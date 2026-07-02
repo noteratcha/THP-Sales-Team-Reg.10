@@ -3544,7 +3544,7 @@
                 if (sumYear === 0) return; // Skip year if no data
 
                 var wrapper = document.createElement('div');
-                wrapper.className = "dynamic-pie-chart-service w-1/2 h-[260px] relative flex flex-col items-center px-2";
+                wrapper.className = "dynamic-pie-chart-service w-1/2 h-[340px] relative flex flex-col items-center px-2";
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
@@ -3567,7 +3567,7 @@
                         datasets: [{ data: sDataYear, backgroundColor: serviceColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false, layout: { padding: 10 }, cutout: '45%',
+                        responsive: true, maintainAspectRatio: false, layout: { padding: 25 }, cutout: '45%',
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
                             datalabels: {
@@ -3655,7 +3655,7 @@
                 if (sumYear === 0) return;
 
                 var wrapper = document.createElement('div');
-                wrapper.className = "dynamic-pie-chart-level w-1/2 h-[260px] relative flex flex-col items-center px-2";
+                wrapper.className = "dynamic-pie-chart-level w-1/2 h-[340px] relative flex flex-col items-center px-2";
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
@@ -3678,7 +3678,7 @@
                         datasets: [{ data: lDataYear, backgroundColor: lColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false, layout: { padding: 10 },
+                        responsive: true, maintainAspectRatio: false, layout: { padding: 25 },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
                             datalabels: {
