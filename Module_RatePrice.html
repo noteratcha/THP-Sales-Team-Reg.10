@@ -1,0 +1,317 @@
+<style>
+    /* ปรับแต่ง Scrollbar ของ Dropdown บริการ */
+    select#rateServiceSelector::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    select#rateServiceSelector::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 8px;
+    }
+
+    select#rateServiceSelector::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 8px;
+    }
+
+    select#rateServiceSelector::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-emerald-500 max-w-6xl mx-auto mt-4 mb-8">
+
+    <!-- ส่วนหัวของหน้า -->
+    <div
+        class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div
+            class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full opacity-50 blur-3xl pointer-events-none">
+        </div>
+
+        <div class="flex items-center gap-4 relative z-10">
+            <div
+                class="bg-emerald-100 text-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-emerald-200">
+                <i class="fas fa-file-invoice-dollar text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">อัตราค่าบริการ (Rate Price)</h3>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">ตรวจสอบพิกัดน้ำหนัก ค่าบริการ
+                    และเงื่อนไขต่างๆ</p>
+            </div>
+        </div>
+        <button onclick="loadRatePricePage()"
+            class="relative z-10 text-xs bg-white text-gray-600 hover:text-emerald-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm font-bold flex items-center gap-2 hover:bg-emerald-50">
+            <i class="fas fa-sync-alt"></i> รีเซ็ตข้อมูล
+        </button>
+    </div>
+
+    <!-- พื้นที่แสดงผลหลัก -->
+    <div class="p-6 sm:p-8 bg-gray-50/50 min-h-[500px] relative">
+
+        <!-- ตัวเลือกบริการ -->
+        <div class="mb-8 max-w-2xl bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative z-10">
+            <label class="form-label text-sm font-bold text-gray-700 flex items-center mb-3">
+                <i class="fas fa-filter text-emerald-500 mr-2"></i> เลือกประเภทบริการ
+            </label>
+            <div class="relative shadow-sm rounded-xl">
+                <select id="rateServiceSelector" onchange="renderRateCards()"
+                    class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition font-sans text-sm sm:text-base bg-white cursor-pointer appearance-none font-bold text-gray-800"
+                    disabled>
+                    <option value="">กำลังโหลดข้อมูล...</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- หน้าต่างโหลดข้อมูล -->
+        <div id="ratePriceLoader"
+            class="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <i class="fas fa-circle-notch fa-spin text-emerald-500 text-5xl mb-4"></i>
+            <p class="font-bold text-lg text-gray-600">กำลังซิงค์ข้อมูลอัตราค่าบริการ...</p>
+            <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังดึงข้อมูลจากฐานข้อมูล</p>
+        </div>
+
+        <!-- พื้นที่ว่าง (กรณีไม่พบข้อมูล) -->
+        <div id="ratePriceNoData"
+            class="hidden flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-400">
+            <i class="fas fa-box-open text-5xl mb-4 opacity-30"></i>
+            <p class="font-bold text-lg text-gray-600">ไม่พบข้อมูลอัตราค่าบริการ</p>
+            <p class="text-xs text-gray-400 mt-1">กรุณาลองเปลี่ยนประเภทบริการ หรือตรวจสอบในฐานข้อมูล</p>
+        </div>
+
+        <!-- Container สำหรับแสดงตารางราคา -->
+        <div id="rateCardsContainer" class="hidden relative z-10 w-full animate-fade-in flex flex-col gap-4">
+            <!-- ตารางจะถูก Generate ออกมาด้วย Javascript ที่นี่ -->
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ตัวแปรเก็บข้อมูลทั้งหมดจาก Google Sheet
+    window.globalRateData = [];
+
+    // ฟังก์ชันเริ่มโหลดข้อมูล
+    window.loadRatePricePage = function () {
+        const selector = document.getElementById('rateServiceSelector');
+        const loader = document.getElementById('ratePriceLoader');
+        const container = document.getElementById('rateCardsContainer');
+        const noData = document.getElementById('ratePriceNoData');
+
+        if (selector) { selector.disabled = true; selector.innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>'; }
+        if (loader) loader.classList.remove('hidden');
+        if (container) container.classList.add('hidden');
+        if (noData) noData.classList.add('hidden');
+
+        if (typeof google !== 'undefined') {
+            google.script.run
+                .withSuccessHandler(res => {
+                    if (res.status === 'success') {
+                        window.globalRateData = res.data;
+                        populateRateDropdown();
+                    } else {
+                        if (loader) loader.classList.add('hidden');
+                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลได้: ' + res.message, 'error');
+                    }
+                })
+                .withFailureHandler(err => {
+                    if (loader) loader.classList.add('hidden');
+                    Swal.fire('ข้อผิดพลาดการเชื่อมต่อ', err.toString(), 'error');
+                })
+                .getRatePriceData();
+        }
+    };
+
+    // ฟังก์ชันสร้าง Dropdown ให้เลือก "บริการ"
+    window.populateRateDropdown = function () {
+        const selector = document.getElementById('rateServiceSelector');
+        const loader = document.getElementById('ratePriceLoader');
+        const noData = document.getElementById('ratePriceNoData');
+
+        if (!window.globalRateData || window.globalRateData.length === 0) {
+            if (loader) loader.classList.add('hidden');
+            if (noData) noData.classList.remove('hidden');
+            if (selector) selector.innerHTML = '<option value="">ไม่มีข้อมูลในระบบ</option>';
+            return;
+        }
+
+        // คัดแยกชื่อบริการแบบไม่ซ้ำ (Unique Services)
+        const uniqueServices = [...new Set(window.globalRateData.map(item => item.service))];
+
+        if (selector) {
+            selector.innerHTML = '';
+
+            // เพิ่ม Default Option
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = "";
+            defaultOpt.textContent = "-- กรุณาเลือกบริการที่ต้องการ --";
+            defaultOpt.disabled = true;
+            defaultOpt.selected = true;
+            selector.appendChild(defaultOpt);
+
+            uniqueServices.forEach(srv => {
+                const opt = document.createElement('option');
+                opt.value = srv;
+                opt.textContent = srv;
+                selector.appendChild(opt);
+            });
+
+            selector.disabled = false;
+        }
+
+        if (loader) loader.classList.add('hidden');
+        if (noData) noData.classList.remove('hidden'); // แสดงหน้าว่างก่อน จนกว่าจะเลือก Dropdown
+    };
+
+    // ฟังก์ชันวาดตารางเมื่อมีการเปลี่ยน Dropdown
+    window.renderRateCards = function () {
+        const selector = document.getElementById('rateServiceSelector');
+        const container = document.getElementById('rateCardsContainer');
+        const loader = document.getElementById('ratePriceLoader');
+        const noData = document.getElementById('ratePriceNoData');
+
+        if (loader) loader.classList.add('hidden');
+
+        const selectedService = selector ? selector.value : '';
+        if (!selectedService) {
+            if (container) container.classList.add('hidden');
+            if (noData) noData.classList.remove('hidden');
+            return;
+        }
+
+        const filteredData = window.globalRateData.filter(item => item.service === selectedService);
+
+        if (filteredData.length === 0) {
+            if (container) container.classList.add('hidden');
+            if (noData) noData.classList.remove('hidden');
+            return;
+        }
+
+        if (noData) noData.classList.add('hidden');
+        if (container) {
+            container.innerHTML = '';
+
+            // 1. ดึงรหัสบริการมาแสดง (ถ้ามี)
+            let serviceCodeStr = '';
+            if (filteredData[0].serviceCode && filteredData[0].serviceCode !== '-') {
+                serviceCodeStr = `
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-xl shadow-sm border border-gray-200 text-sm font-bold tracking-wide w-max">
+                    <i class="fas fa-barcode text-emerald-500"></i> รหัสบริการ: <span class="text-emerald-700">${filteredData[0].serviceCode}</span>
+                </div>`;
+            }
+
+            // 2. จัดการเงื่อนไขเพิ่มเติม (ดึงจากรายการแรก เนื่องจากทั้งแพ็กเกจมักใช้เงื่อนไขเดียวกัน)
+            const firstItem = filteredData[0];
+            const hasConditions = firstItem.minItems || firstItem.condMinQty || firstItem.condMaxSize || firstItem.condTime || firstItem.condExtraCharge || firstItem.condTimeExtension;
+            let conditionsHtml = '';
+
+            if (hasConditions) {
+                let conds = [];
+                // ฟังก์ชันแปลง \n (Enter) ให้เป็น <br> ของ HTML
+                const formatText = (text) => String(text).replace(/\n/g, '<br>');
+
+                if (firstItem.minItems && firstItem.minItems !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-orange-50 text-orange-700 rounded-lg"><i class="fas fa-box text-orange-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>ชิ้นงานขั้นต่ำ :</b> ${formatText(firstItem.minItems)} ชิ้น</span></div>`);
+                // 💡 แก้ไขข้อความจาก "หรือ จำนวน :" เป็น "หรือ ชิ้นงานขั้นต่ำ :"
+                if (firstItem.condMinQty && firstItem.condMinQty !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg"><i class="fas fa-cubes text-emerald-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>หรือ ชิ้นงานขั้นต่ำ :</b> ${formatText(firstItem.condMinQty)}</span></div>`);
+                if (firstItem.condMaxSize && firstItem.condMaxSize !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg"><i class="fas fa-ruler-combined text-blue-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>ขนาดอย่างสูง :</b> ${formatText(firstItem.condMaxSize)}</span></div>`);
+                if (firstItem.condTime && firstItem.condTime !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-purple-50 text-purple-700 rounded-lg"><i class="fas fa-clock text-purple-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>ระยะเวลา :</b> ${formatText(firstItem.condTime)}</span></div>`);
+
+                // เงื่อนไขเพิ่มเติม (ค่าบริการเพิ่มเติม) จากคอลัมน์ J
+                if (firstItem.condExtraCharge && firstItem.condExtraCharge !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-rose-50 text-rose-700 rounded-lg"><i class="fas fa-coins text-rose-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>ค่าบริการเพิ่มเติม :</b> ${formatText(firstItem.condExtraCharge)}</span></div>`);
+
+                // เงื่อนไขเพิ่มเติม (การขยายเวลา) จากคอลัมน์ K
+                if (firstItem.condTimeExtension && firstItem.condTimeExtension !== '-') conds.push(`<div class="flex items-start gap-2.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg"><i class="fas fa-calendar-plus text-indigo-500 mt-1 shrink-0"></i> <span class="leading-relaxed"><b>เงื่อนไขการขยายเวลา :</b> ${formatText(firstItem.condTimeExtension)}</span></div>`);
+
+                conditionsHtml = `
+                    <div class="bg-white border border-gray-200 rounded-2xl p-5 mt-2 shadow-sm">
+                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-emerald-500"></i> เงื่อนไขเพิ่มเติม
+                        </p>
+                        <div class="flex flex-col gap-3 text-[13px] md:flex-row md:flex-wrap">
+                            ${conds.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. แบ่งข้อมูลออกเป็น 3 ชุด (ตาราง 3 คอลัมน์)
+            const chunkSize = Math.ceil(filteredData.length / 3);
+            const chunk1 = filteredData.slice(0, chunkSize);
+            const chunk2 = filteredData.slice(chunkSize, chunkSize * 2);
+            const chunk3 = filteredData.slice(chunkSize * 2);
+
+            // ฟังก์ชันสำหรับสร้างตารางย่อย
+            const buildTableChunk = (dataChunk) => {
+                let trs = '';
+                dataChunk.forEach((item, index) => {
+                    let weightText = '-';
+                    let wStartRaw = item.weightStart ? String(item.weightStart).trim() : '';
+                    let wEndRaw = item.weightEnd ? String(item.weightEnd).trim() : '';
+
+                    // แปลงเป็นตัวเลขและใส่ลูกน้ำ (Comma)
+                    let wStartNum = parseFloat(wStartRaw.replace(/,/g, ''));
+                    let wEndNum = parseFloat(wEndRaw.replace(/,/g, ''));
+
+                    let wStartDisp = !isNaN(wStartNum) ? wStartNum.toLocaleString() : wStartRaw;
+                    let wEndDisp = !isNaN(wEndNum) ? wEndNum.toLocaleString() : wEndRaw;
+
+                    if (wStartRaw && wEndRaw) {
+                        // ปรับให้เป็น "ไม่เกิน X,XXX กรัม" หากตัวเลขเริ่มต้นเป็น 0 หรือ 1
+                        if (wStartNum === 0 || wStartNum === 1 || wStartRaw === '-' || wStartRaw.toLowerCase() === 'none') {
+                            weightText = `ไม่เกิน ${wEndDisp} กรัม`;
+                        } else {
+                            weightText = `เกิน ${wStartDisp} กรัม แต่ไม่เกิน ${wEndDisp} กรัม`;
+                        }
+                    } else if (wStartRaw) {
+                        weightText = `เริ่มต้น ${wStartDisp} กรัม`;
+                    } else if (wEndRaw) {
+                        weightText = `ไม่เกิน ${wEndDisp} กรัม`;
+                    }
+                    weightText = weightText.replace(/กรัม\s*กรัม/g, 'กรัม');
+
+                    // สลับสีแถวให้เหมือนต้นฉบับ
+                    let rowBg = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+
+                    trs += `
+                        <tr class="${rowBg} hover:bg-emerald-50 transition-colors group border-b border-gray-200 last:border-b-0">
+                            <td class="px-2 lg:px-3 py-3 font-medium text-gray-700 text-center text-[11px] lg:text-[12px] leading-snug">${weightText}</td>
+                            <td class="px-2 lg:px-3 py-3 text-center font-bold text-emerald-600 text-[13px] lg:text-[14px]">${item.price || '0'}</td>
+                        </tr>
+                    `;
+                });
+
+                return `
+                    <div class="overflow-hidden bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-200 w-full h-max">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-[#062e21] text-white font-bold text-[11px] lg:text-[12px] tracking-wide">
+                                <tr>
+                                    <th class="px-2 lg:px-3 py-3 text-center w-2/3">พิกัดน้ำหนัก</th>
+                                    <th class="px-2 lg:px-3 py-3 text-center w-1/3 leading-tight">อัตราค่าบริการ<br><span class="text-[9px] font-normal text-gray-300">(บาท/ชิ้น)</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${trs}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            };
+
+            // 4. ประกอบ HTML
+            let finalHTML = `
+                ${serviceCodeStr}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-1 items-start">
+                    ${chunk1.length > 0 ? buildTableChunk(chunk1) : ''}
+                    ${chunk2.length > 0 ? buildTableChunk(chunk2) : ''}
+                    ${chunk3.length > 0 ? buildTableChunk(chunk3) : ''}
+                </div>
+                ${conditionsHtml}
+            `;
+
+            container.innerHTML = finalHTML;
+            container.classList.remove('hidden');
+        }
+    };
+</script>

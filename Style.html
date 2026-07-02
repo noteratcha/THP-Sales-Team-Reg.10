@@ -1,0 +1,318 @@
+<!-- โหลด Tailwind CSS ผ่าน CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+    if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'theme-black': '#062e21', 'theme-orange': '#e27d3d', 'theme-white': '#f4f5f4', 'theme-green': '#93e9be', 'theme-gray-hover': 'rgba(255,255,255,0.1)',
+                    },
+                    fontFamily: {
+                        // กำหนดฟอนต์หลักเป็น SF Pro และ Sukhumvit Set
+                        'sans': ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Sukhumvit Set"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                        // ทับคลาส prompt เดิมเพื่อไม่ให้โค้ดเก่าพัง
+                        'prompt': ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Sukhumvit Set"', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
+                    }
+                }
+            }
+        }
+    } else {
+        console.warn('Tailwind CSS has not been loaded.');
+    }
+</script>
+<style>
+    /* กำหนด Global Font ให้เรียกใช้ฟอนต์ระบบของ Apple ก่อน (SF Pro + Sukhumvit Set) */
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Sukhumvit Set", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f4f5f4;
+    }
+
+    .custom-radius {
+        border-radius: 10px 60px 30px;
+    }
+
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px 60px 30px;
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #e27d3d;
+    }
+
+    /* ซ่อน Scrollbar ของเมนูด้านซ้ายแต่ยังเลื่อนได้ */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #062e21;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #93e9be;
+        border-color: #93e9be;
+    }
+
+    .checkbox-group label,
+    .radio-group label {
+        display: flex;
+        align-items: start;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+    }
+
+    .checkbox-group input,
+    .radio-group input {
+        margin-top: 0.25rem;
+        margin-right: 0.5rem;
+        accent-color: #e27d3d;
+    }
+
+    .drag-active {
+        background-color: #f0fdf4 !important;
+        border-color: #e27d3d !important;
+        border-style: solid !important;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+        font-size: 0.875rem;
+    }
+
+    /* ตั้งค่าให้หัวตารางยึดติดขอบบนปกติ */
+    th {
+        background-color: #062e21;
+        color: white;
+        padding: 12px 16px;
+        text-align: left;
+        vertical-align: middle;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    td {
+        padding: 10px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        vertical-align: middle;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f9fafb;
+    }
+
+    tr:hover {
+        background-color: #f0fdf4;
+    }
+
+    .cursor-grab {
+        cursor: grab;
+    }
+
+    .cursor-grabbing {
+        cursor: grabbing;
+    }
+
+    .modal-overlay {
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+
+    .scale-wrapper {
+        transform: scale(0.65);
+        transform-origin: top center;
+        margin-bottom: -35%;
+    }
+
+    @media (max-width: 768px) {
+        .scale-wrapper {
+            transform: scale(0.4);
+            margin-bottom: -60%;
+        }
+    }
+
+    .text-thai-justify {
+        text-align: justify;
+        text-justify: inter-word;
+    }
+
+    /* เอฟเฟคปุ่มเต้น (Elastic Pop) สำหรับ Header */
+    .btn-pop {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-pop:hover {
+        transform: translateY(-4px) scale(1.05);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* บังคับปุ่มทุกปุ่มให้เป็นตัวหนังสือธรรมดา (ไม่หนา) */
+    button,
+    .btn,
+    a[id*="Btn"] {
+        font-weight: normal !important;
+    }
+
+    /* ==============================================================================
+       💡 เทคนิคบังคับรูปแบบวันที่ วัน/เดือน/ปี (DD/MM/YYYY) ที่แก้ไขใหม่ให้ทำงาน 100%
+       ============================================================================== */
+    input[type="date"].custom-date-th {
+        position: relative;
+        color: rgba(0, 0, 0, 0) !important;
+        /* บังคับซ่อน Text เดิมของระบบ */
+    }
+
+    /* ซ่อน Input แบบเจาะจงสำหรับ Chrome / WebKit */
+    input[type="date"].custom-date-th::-webkit-datetime-edit,
+    input[type="date"].custom-date-th::-webkit-datetime-edit-fields-wrapper,
+    input[type="date"].custom-date-th::-webkit-datetime-edit-text,
+    input[type="date"].custom-date-th::-webkit-datetime-edit-month-field,
+    input[type="date"].custom-date-th::-webkit-datetime-edit-day-field,
+    input[type="date"].custom-date-th::-webkit-datetime-edit-year-field {
+        color: rgba(0, 0, 0, 0) !important;
+        background: transparent !important;
+    }
+
+    /* สร้างข้อความวันที่แบบ วัน/เดือน/ปี มาทับแทน */
+    input[type="date"].custom-date-th::before {
+        content: attr(data-date);
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        /* อิงตาม Padding ซ้าย */
+        transform: translateY(-50%);
+        color: #374151 !important;
+        /* สีเทา text-gray-700 */
+        pointer-events: none;
+        font-family: inherit;
+        font-size: inherit;
+    }
+
+    /* เปลี่ยนสีเป็นสีส้มเวลาถูก Focus */
+    input[type="date"].custom-date-th:focus::before,
+    input[type="date"].custom-date-th:active::before {
+        color: #e27d3d !important;
+        /* theme-orange */
+    }
+
+    input[type="date"].custom-date-th::-webkit-calendar-picker-indicator {
+        position: relative;
+        z-index: 10;
+        cursor: pointer;
+        background-color: transparent;
+    }
+
+    /* 🎵 Background Music Animations */
+    @keyframes spinDisc {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .music-disc.playing {
+        animation: spinDisc 5s linear infinite;
+    }
+
+    @keyframes waveAnim {
+
+        0%,
+        100% {
+            height: 3px;
+        }
+
+        50% {
+            height: 12px;
+        }
+    }
+
+    .music-wave .music-bar {
+        transition: height 0.3s ease;
+        height: 3px;
+    }
+
+    .music-wave.playing .bar-1 {
+        animation: waveAnim 1s ease-in-out infinite;
+    }
+
+    .music-wave.playing .bar-2 {
+        animation: waveAnim 0.8s ease-in-out infinite 0.2s;
+    }
+
+    .music-wave.playing .bar-3 {
+        animation: waveAnim 1.2s ease-in-out infinite 0.4s;
+    }
+</style>

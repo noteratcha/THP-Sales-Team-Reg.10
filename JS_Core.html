@@ -1,0 +1,1657 @@
+<!-- Script จำลองฟังก์ชันชั่วคราวสำหรับแก้ Error ในโหมด Preview ของ Canvas -->
+<script>
+    // Global error listener to catch syntax/runtime errors and send to LINE
+    window.addEventListener('error', function (e) {
+        console.error("Caught script load error:", e);
+        setTimeout(function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'พบข้อผิดพลาดของระบบ',
+                    html: '<div class="text-left text-xs font-mono bg-gray-50 p-3 rounded-lg border border-gray-200 overflow-x-auto max-h-40">' + 
+                          '<b>ข้อความ:</b> ' + (e.message || 'ไม่ทราบข้อผิดพลาด') + '<br>' +
+                          '<b>ไฟล์:</b> ' + (e.filename || 'ไม่ระบุ') + '<br>' +
+                          '<b>บรรทัด:</b> ' + (e.lineno || 0) + ':' + (e.colno || 0) +
+                          '</div>',
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#00B900',
+                    cancelButtonColor: '#EA580C',
+                    confirmButtonText: '<i class="fab fa-line"></i> แจ้งปัญหาทาง LINE',
+                    cancelButtonText: 'ปิด'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var confirmBtn = Swal.getConfirmButton();
+                        if (confirmBtn) confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังแคปหน้าจอ...';
+                        
+                        if (typeof html2canvas !== 'undefined') {
+                            html2canvas(document.body).then(function(canvas) {
+                                var imgData = canvas.toDataURL('image/png');
+                                var errorMessage = "พบปัญหาการใช้งานระบบ:\n" + (e.message || 'ไม่ทราบข้อผิดพลาด') + "\nไฟล์: " + (e.filename || 'ไม่ระบุ') + " (" + (e.lineno || 0) + ":" + (e.colno || 0) + ")";
+                                
+                                if (typeof google !== 'undefined') {
+                                    google.script.run
+                                    .withSuccessHandler(function(res) {
+                                        if(res && res.status === 'success') {
+                                            Swal.fire('สำเร็จ', 'ส่งข้อมูลแจ้งปัญหาไปที่ LINE เรียบร้อยแล้ว', 'success');
+                                        } else {
+                                            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งข้อมูลได้: ' + (res ? res.message : 'Unknown'), 'error');
+                                        }
+                                    })
+                                    .withFailureHandler(function(err) {
+                                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งข้อมูลได้: ' + err, 'error');
+                                    })
+                                    .sendBugReportToLine(errorMessage, imgData);
+                                } else {
+                                    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+                                }
+                            }).catch(function(err) {
+                                Swal.fire('ข้อผิดพลาด', 'แคปหน้าจอไม่สำเร็จ: ' + err, 'error');
+                            });
+                        } else {
+                            Swal.fire('ข้อผิดพลาด', 'ไม่พบไลบรารี html2canvas สำหรับแคปหน้าจอ', 'error');
+                        }
+                    }
+                });
+            } else {
+                alert('พบข้อผิดพลาดของระบบ: ' + e.message);
+            }
+        }, 1000);
+    });
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer);
+    toast.addEventListener('mouseleave', Swal.resumeTimer);
+  }
+});
+
+
+  if (typeof window.switchPage === 'undefined') {
+    window.switchPage = function(pageId) { console.log('Mock switchPage:', pageId); };
+  }
+  if (typeof window.toggleSidebar === 'undefined') {
+    window.toggleSidebar = function() { console.log('Mock toggleSidebar'); };
+  }
+  if (typeof window.toggleSubMenu === 'undefined') {
+    window.toggleSubMenu = function(groupId, iconId) { console.log('Mock toggleSubMenu:', groupId); };
+  }
+  if (typeof window.logout === 'undefined') {
+    window.logout = function() { console.log('Mock logout'); };
+  }
+</script>
+<script>
+    // ==========================================
+    // GLOBAL CONFIGURATION
+    // ==========================================
+
+    
+    // URL เริ่มต้นของภาพแม่แบบ Post News (Google Drive Link)
+    // สามารถเปลี่ยนแปลงได้ผ่านเมนูการตั้งค่าในระบบ
+    window.DEFAULT_POST_NEWS_TEMPLATE = 'https://drive.google.com/file/d/1YcSArXrdpol8IhFNvd6rGcAUTzK0iLIM/view?usp=sharing';
+    
+</script>
+
+<script>
+    // ==========================================
+    // PASSWORD VISIBILITY TOGGLE
+    // ==========================================
+    function togglePasswordVisibility() {
+        try {
+            console.log("togglePasswordVisibility triggered!");
+            const passwordInput = document.getElementById('loginPassword');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (passwordInput && eyeIcon) {
+                if (passwordInput.type === 'password') {
+                    passwordInput.setAttribute('type', 'text');
+                    eyeIcon.classList.remove('fa-eye');
+                    eyeIcon.classList.add('fa-eye-slash');
+                    console.log("Password field changed to visible text.");
+                } else {
+                    passwordInput.setAttribute('type', 'password');
+                    eyeIcon.classList.remove('fa-eye-slash');
+                    eyeIcon.classList.add('fa-eye');
+                    console.log("Password field changed to hidden dots.");
+                }
+            } else {
+                console.error("Elements not found: passwordInput:", passwordInput, "eyeIcon:", eyeIcon);
+            }
+        } catch (err) {
+            console.error("Error in togglePasswordVisibility:", err);
+        }
+    }
+    // ส่งออกให้เรียกใช้งานได้ในระดับ Global
+    window.togglePasswordVisibility = togglePasswordVisibility;
+    window.restoreSession = restoreSession;
+
+    // เพิ่ม Global Click Listener เพื่อดักจับทุกการคลิกในหน้าจออย่างไร้ข้อผิดพลาด
+    document.addEventListener("click", function(event) {
+        try {
+            // ตรวจสอบว่าเป้าหมายการคลิกคือปุ่มดวงตาหรือไม่ (เช็คทั้ง ID และคลาสลูก)
+            const targetBtn = (event.target && typeof event.target.closest === 'function') ? event.target.closest('#btnTogglePass') : null;
+            if (targetBtn) {
+                console.log("Detected click on #btnTogglePass via delegated click event listener");
+                if (event.preventDefault) event.preventDefault();
+                if (event.stopPropagation) event.stopPropagation();
+                togglePasswordVisibility();
+            }
+        } catch (err) {
+            console.error("Error in delegated click listener:", err);
+        }
+    });
+
+    // ==========================================
+    // 0. BUG TRACKER & GLOBAL ERROR HANDLER
+    // ==========================================
+    window.onerror = function(message, source, lineno, colno, error) {
+        if (typeof Swal !== 'undefined') Swal.close(); 
+        showDebugAlert(message, source, lineno, colno, error);
+        return false;
+    };
+
+    window.onunhandledrejection = function(event) {
+        if (typeof Swal !== 'undefined') Swal.close();
+        showDebugAlert(
+            event.reason ? (event.reason.message || event.reason) : 'Unhandled Promise Rejection', 
+            'Promise/Async Operation', 
+            0, 
+            0, 
+            event.reason
+        );
+    };
+
+    function translateAndExplainError(msg) {
+        if (!msg) return 'ไม่ทราบสาเหตุแน่ชัด';
+        
+        const m = String(msg).toLowerCase();
+        if (m.includes('is not defined')) {
+            const nameMatch = msg.match(/(\w+)\s+is\s+not\s+defined/i);
+            const varName = nameMatch ? `"${nameMatch[1]}"` : 'ตัวแปร/ฟังก์ชัน';
+            return `เกิดจากระบบเรียกใช้ ${varName} ที่ยังไม่ได้ประกาศสร้างไว้ หรือพิมพ์ชื่อตัวแปรสะกดผิดพลาด`;
+        }
+        if (m.includes('is not a function')) {
+            const nameMatch = msg.match(/(\w+)\s+is\s+not\s+a\s+function/i);
+            const funcName = nameMatch ? `"${nameMatch[1]}"` : 'ชื่อ';
+            return `เกิดจากการเรียกใช้ ${funcName} ในฐานะฟังก์ชัน แต่ระบบตรวจพบว่าสิ่งนั้นไม่ได้เป็นฟังก์ชันจริง ๆ (อาจจะพิมพ์ชื่อสะกดผิด)`;
+        }
+        if (m.includes('cannot read property') || m.includes('cannot read properties') || m.includes('is null') || m.includes('is undefined')) {
+            return `เกิดจากการพยายามอ่านข้อมูลย่อยของตัวแปรที่มีค่าเป็นค่าว่างเปล่า (null หรือ undefined) เช่น พยายามดึงข้อมูลลูกค้าแต่ข้อมูลนั้นยังไม่ได้ถูกโหลดลงมา`;
+        }
+        if (m.includes('networkerror') || m.includes('failed to fetch') || m.includes('load resource')) {
+            return `เกิดจากปัญหาการเชื่อมต่อเครือข่าย หรือเซิร์ฟเวอร์ Google Apps Script ขัดข้องชั่วคราว`;
+        }
+        if (m.includes('script error')) {
+            return `เกิดจากความผิดพลาดของสคริปต์ภายนอก (Cross-origin script error) หรือการตั้งค่าความปลอดภัยของเว็บเบราว์เซอร์`;
+        }
+        return 'เป็นความผิดพลาดทั่วไปในส่วนควบคุมระบบปฏิบัติการของโค้ด';
+    }
+
+    function shareBugToLine(msg, file, line, explanation) {
+        const verStr = typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'ไม่ระบุเวอร์ชัน';
+        const userStr = (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.name) ? `${currentUserInfo.name} (${currentUserInfo.user})` : 'ไม่ได้ล็อกอิน';
+        
+        const text = `🚨 รายงานการพบบั๊ก (Bug Report)
+ระบบ: THP Sales Team Reg.10
+เวอร์ชัน: ${verStr}
+ผู้พบปัญหา: ${userStr}
+
+[รายละเอียดความเสียหาย]
+• วิเคราะห์สาเหตุ: ${explanation}
+• ข้อความ Error: ${msg}
+• ตรวจพบที่ไฟล์: ${file}
+• ตำแหน่ง: บรรทัดที่ ${line}
+
+💬 รบกวนส่งรายงานนี้ให้กับ Line ID: NOTERCW เพื่อทำการแก้ไขด่วนครับ!`;
+
+        const lineShareUrl = `https://line.me/R/share?text=${encodeURIComponent(text)}`;
+        window.open(lineShareUrl, '_blank');
+    }
+
+    function showDebugAlert(msg, url, line, col, err) {
+        const errStack = err && err.stack ? err.stack : 'ไม่มีข้อมูล Stack trace';
+        const shortUrl = url ? url.substring(url.lastIndexOf('/') + 1) : 'ไม่ทราบแหล่งที่มา';
+        const explanation = translateAndExplainError(msg);
+        
+        // 🚨 ส่งรายงานเข้า LINE Bot อัตโนมัติพร้อมภาพหน้าจอในพื้นหลัง (Background Process)
+        const verStr = typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'ไม่ระบุเวอร์ชัน';
+        const userStr = (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.name) ? `${currentUserInfo.name} (${currentUserInfo.user})` : 'ไม่ได้ล็อกอิน';
+        const browserInfo = navigator.userAgent;
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: '⚠️ ระบบพบข้อผิดพลาด (Bug)',
+                html: `
+                    <div class="text-left bg-red-50 p-4 rounded-lg border border-red-200 mt-2 overflow-hidden shadow-inner font-sans">
+                        <p class="text-sm font-bold text-red-800 mb-1">🔍 วิเคราะห์สาเหตุ (ภาษาไทย):</p>
+                        <p class="text-xs text-slate-800 mb-3 bg-amber-50 p-2.5 rounded border border-amber-200 leading-relaxed font-semibold">${explanation}</p>
+
+                        <p class="text-xs font-bold text-red-800 mb-1">รายละเอียดข้อผิดพลาด (Technical Msg):</p>
+                        <p class="text-xs text-red-600 mb-3 font-mono break-words bg-white p-2 rounded border border-red-100">${msg}</p>
+                        
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-700 bg-white p-2 rounded border border-red-100">
+                            <div><b class="text-gray-900">ไฟล์:</b><br>${shortUrl}</div>
+                            <div><b class="text-gray-900">ตำแหน่ง:</b><br>บรรทัดที่ ${line}</div>
+                        </div>
+                        
+                        <div class="bg-white p-2 rounded border border-red-100 mb-3">
+                            <p class="text-[10px] font-bold text-gray-500 mb-1">Stack Trace:</p>
+                            <pre class="text-[10px] text-gray-600 whitespace-pre-wrap max-h-24 overflow-y-auto font-mono">${errStack}</pre>
+                        </div>
+
+                        <!-- LINE BUTTON -->
+                        <button type="button" id="btnShareBugLine" class="w-full bg-[#06C755] hover:bg-[#05b04b] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition duration-300 shadow-md transform hover:-translate-y-0.5 cursor-pointer">
+                            <i class="fab fa-line text-lg"></i> ส่งรายงานบั๊กไปที่ LINE (ID: NOTERCW)
+                        </button>
+                    </div>
+                `,
+                showConfirmButton: true,
+                confirmButtonText: 'ปิดหน้าต่าง',
+                confirmButtonColor: '#062e21',
+                didOpen: () => {
+                    const btn = document.getElementById('btnShareBugLine');
+                    if (btn) {
+                        btn.onclick = () => {
+                            shareBugToLine(msg, shortUrl, line, explanation);
+                        };
+                    }
+                }
+            });
+        } else {
+            alert(`Bug: ${msg}\nCause: ${explanation}\nFile: ${shortUrl}\nLine: ${line}`);
+        }
+    }
+
+    // ==========================================
+    // SAFE STORAGE UTILS (CORS & IFRAME IF BLOCK-COOKIES)
+    // ==========================================
+    var SafeStorage = {
+        _memoryStore: {},
+        setItem: function(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                this._memoryStore[key] = value;
+                console.warn("localStorage is blocked. Using memory fallback.");
+            }
+        },
+        getItem: function(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                return this._memoryStore[key] || null;
+            }
+        },
+        removeItem: function(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {
+                delete this._memoryStore[key];
+            }
+        }
+    };
+
+    // ==========================================
+    // 1. GLOBAL VARIABLES
+    // ==========================================
+    let currentUserInfo = { user: '', zipcode: '', name: '', team: '' }; 
+    let isMusicPlayerVisible = false;
+
+    if (typeof google === 'undefined') {
+      window.google = { script: { run: { withSuccessHandler: (s) => ({
+        checkLogin: (f) => setTimeout(() => s({ status: 'success', user: 'admin', name: 'Admin', zipcode: '10000', team: 'IT Support' }), 500),
+        getDataForTable: () => setTimeout(() => s({ status: 'success', data: [] }), 500),
+        getRevenueReportData: () => setTimeout(() => s({ status: 'success', data: [] }), 500),
+        sendBugToLineNotify: () => setTimeout(() => s({ status: 'success' }), 500)
+      }) } } };
+    }
+
+    var successSound = new Audio('https://cdn.pixabay.com/audio/2021/08/04/audio_bb630cc098.mp3');
+    var errorSound = new Audio('https://cdn.pixabay.com/audio/2021/08/09/audio_9bd3558779.mp3');
+
+    // ==========================================
+    // 2. UTILS
+    // ==========================================
+    function getDriveDirectUrl(url) {
+        if (!url) return "";
+        let fileId = "";
+        const match1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match1 && match1[1]) fileId = match1[1];
+        else if (match2 && match2[1]) fileId = match2[1];
+        return fileId ? "https://lh3.googleusercontent.com/d/" + fileId : url;
+    }
+
+    function toggleDropdown(id) {
+        const dd = document.getElementById(id);
+        if (dd) {
+            dd.classList.toggle('hidden');
+            const isHidden = dd.classList.contains('hidden');
+            const btnId = id.replace('Dropdown', 'Btn');
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                const chevron = btn.querySelector('.fa-chevron-down');
+                if (chevron) {
+                    chevron.style.transition = 'transform 0.2s ease-in-out';
+                    chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            }
+        }
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('appSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar) {
+            sidebar.classList.toggle('hidden');
+        }
+        if (overlay) {
+            overlay.classList.toggle('hidden');
+        }
+        
+        const tmsGroup = document.getElementById('menu-group-tms');
+        const tmsIcon = document.getElementById('icon-tms');
+        if (tmsGroup && tmsIcon) {
+            tmsGroup.classList.add('hidden');
+            tmsGroup.classList.remove('flex');
+            tmsIcon.style.transform = 'rotate(0deg)';
+            tmsIcon.classList.remove('text-theme-orange');
+        }
+    }
+
+    function toggleSubMenu(groupId, iconId) {
+        const allGroups = ['menu-group-visits', 'menu-group-revenue', 'menu-group-tools', 'menu-group-biglot'];
+        const allIcons = ['icon-visits', 'icon-revenue', 'icon-tools', 'icon-biglot'];
+
+        const targetGroup = document.getElementById(groupId);
+        const targetIcon = document.getElementById(iconId);
+        
+        if (targetGroup && targetIcon) {
+            const isHidden = targetGroup.classList.contains('hidden');
+
+            if (allGroups.includes(groupId)) {
+                allGroups.forEach((id, index) => {
+                    const grp = document.getElementById(id);
+                    const icn = document.getElementById(allIcons[index]);
+                    if (grp && icn) {
+                        grp.classList.add('hidden');
+                        grp.classList.remove('flex');
+                        icn.style.transform = 'rotate(0deg)';
+                        icn.classList.remove('text-theme-orange');
+                    }
+                });
+
+                const tmsGroup = document.getElementById('menu-group-tms');
+                const tmsIcon = document.getElementById('icon-tms');
+                if (tmsGroup && tmsIcon) {
+                    tmsGroup.classList.add('hidden');
+                    tmsGroup.classList.remove('flex');
+                    tmsIcon.style.transform = 'rotate(0deg)';
+                    tmsIcon.classList.remove('text-theme-orange');
+                }
+            } else if (!isHidden) {
+                targetGroup.classList.add('hidden');
+                targetGroup.classList.remove('flex');
+                targetIcon.style.transform = 'rotate(0deg)';
+                targetIcon.classList.remove('text-theme-orange');
+            }
+
+            if (isHidden) {
+                targetGroup.classList.remove('hidden');
+                targetGroup.classList.add('flex');
+                targetIcon.style.transform = 'rotate(180deg)';
+                targetIcon.classList.add('text-theme-orange'); 
+            }
+        }
+    }
+
+    function showGlobalLoader(text = 'กำลังเตรียมข้อมูล...') {
+        const loader = document.getElementById('globalLoader');
+        const loaderText = document.getElementById('globalLoaderText');
+        if (loaderText) loaderText.innerText = text;
+        if (loader) loader.classList.remove('hidden');
+    }
+
+    function hideGlobalLoader() {
+        const loader = document.getElementById('globalLoader');
+        if (loader) loader.classList.add('hidden');
+    }
+
+    // ==========================================
+    // 3. INITIALIZATION
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.app-version-text').forEach(el => el.innerText = typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
+        
+        // ยิง API ไปบวกตัวเลขและโหลดจำนวนผู้เข้าชม (Visitor Counter)
+        if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.incrementVisitorCount === 'function') {
+            google.script.run.withSuccessHandler(res => {
+                const countEl = document.getElementById('visitorCountDisplay');
+                if (res && res.status === 'success' && countEl) {
+                    countEl.innerText = res.count.toLocaleString();
+                } else if (countEl) {
+                    countEl.innerText = '-';
+                }
+            }).withFailureHandler(err => {
+                console.error("Failed to increment visitor count:", err);
+                const countEl = document.getElementById('visitorCountDisplay');
+                if (countEl) countEl.innerText = '-';
+            }).incrementVisitorCount();
+        } else {
+            console.warn("google.script.run.incrementVisitorCount is not available.");
+            const countEl = document.getElementById('visitorCountDisplay');
+            if (countEl) countEl.innerText = '-';
+        }
+
+        const savedSession = SafeStorage.getItem('thp_user_session');
+        if (savedSession) {
+            try { 
+                const sessionData = JSON.parse(savedSession);
+                let isValid = true;
+                if (sessionData.user !== 'admin' && sessionData.loginTime) {
+                    const hoursPassed = (new Date().getTime() - sessionData.loginTime) / (1000 * 60 * 60);
+                    if (hoursPassed > 12) isValid = false;
+                }
+                if (isValid) {
+                    restoreSession(sessionData); 
+                } else {
+                    SafeStorage.removeItem('thp_user_session');
+                }
+            } catch(e) { SafeStorage.removeItem('thp_user_session'); }
+        }
+
+        const patchJumpInterval = setInterval(() => {
+            if (typeof window.jumpToPostNews === 'function') {
+                clearInterval(patchJumpInterval);
+                if (!window.jumpToPostNewsPatched) {
+                    window.jumpToPostNews = function(sheetRowIndex, rowData) {
+                        switchPage('postnews'); 
+                        
+                        const checkReady = setInterval(() => {
+                            const loader = document.getElementById('globalLoader');
+                            if (!loader || loader.classList.contains('hidden')) {
+                                clearInterval(checkReady);
+                                setTimeout(() => {
+                                    if (typeof applyDataToPostNews === 'function') {
+                                        applyDataToPostNews(rowData);
+                                        const selector = document.getElementById('newsDataSelector');
+                                        if (selector) selector.value = ""; 
+                                    }
+                                }, 100);
+                            }
+                        }, 100);
+                    };
+                    window.jumpToPostNewsPatched = true;
+                }
+            }
+        }, 500);
+
+        // fetchBigLotProducts is now triggered immediately by switchPage('home')
+    });
+
+    // ==========================================
+    // 4. NAVIGATION & AUTH
+    // ==========================================
+    function switchPage(pageId) {
+        try {
+            // 💡 เพิ่ม 'page-rateprice', 'page-biglot' และ 'page-biglot-report' ในรายการที่ต้องซ่อนก่อนสลับหน้า
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report'];
+            pages.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+
+            const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
+            const activeClasses = ['bg-gradient-to-r', 'from-theme-orange/20', 'to-transparent', 'text-theme-orange', 'border-l-4', 'border-theme-orange', 'font-bold'];
+
+            pages.forEach(p => {
+                const menuId = 'menu-' + p.replace('page-', '');
+                const el = document.getElementById(menuId);
+                if(el) { el.classList.remove(...activeClasses); el.classList.add(...inactiveClasses); }
+            });
+
+            // 💡 แผนผังหน้าจอ
+            const mapping = {
+                'home': { 
+                    page: 'page-home', 
+                    menu: 'menu-home', 
+                    title: 'หน้าหลัก',
+                    action: () => {
+                        const container = document.getElementById('biglot-recommended-container');
+                        const grid = document.getElementById('biglot-recommended-grid');
+                        if (container && grid) {
+                            if (window.bigLotProducts && window.bigLotProducts.length > 0) {
+                                if (typeof window.renderHomeAds === 'function') window.renderHomeAds(window.bigLotProducts);
+                            } else {
+                                container.classList.remove('hidden');
+                                grid.innerHTML = `<div class="col-span-full py-10 flex flex-col items-center justify-center text-gray-400">
+                                    <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-orange-400"></i>
+                                    <p class="text-sm font-medium">กำลังจัดเตรียมดีลพิเศษสำหรับคุณ...</p>
+                                </div>`;
+                                if (typeof window.fetchBigLotProducts === 'function') {
+                                    window.fetchBigLotProducts(products => {
+                                        if (typeof window.renderHomeAds === 'function') {
+                                            window.renderHomeAds(products);
+                                        }
+                                    }, true);
+                                }
+                            }
+                        }
+                    }
+                },
+                'form': { page: 'page-form', menu: 'menu-form', title: 'เพิ่มข้อมูลการเข้าพบลูกค้า' },
+                'data': { page: 'page-data', menu: 'menu-data', title: 'ข้อมูลการเข้าพบลูกค้า', action: () => typeof loadVisitData === 'function' && loadVisitData() },
+                'postnews': { 
+                    page: 'page-postnews', 
+                    menu: 'menu-postnews', 
+                    title: 'สร้างภาพข่าว (Post News)', 
+                    action: () => {
+                        if (!window.postNewsInitialized) {
+                            if (typeof initPostNews === 'function') initPostNews();
+                            window.postNewsInitialized = true;
+                        }
+                    } 
+                },
+                'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
+                'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'ข้อมูลการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
+                'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินการวัดผล', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
+                'settings': { 
+                    page: 'page-settings', 
+                    menu: 'menu-settings', 
+                    title: 'การตั้งค่าระบบ',
+                    action: () => {
+                        if (typeof window.loadPostNewsTemplates === 'function') window.loadPostNewsTemplates();
+                        if (typeof window.checkAutoTriggerStatus === 'function') window.checkAutoTriggerStatus();
+                    }
+                },
+                // 💡 แก้ไข title ตรงนี้
+                'rateprice': { 
+                    page: 'page-rateprice', 
+                    menu: 'menu-rateprice', 
+                    title: 'อัตราค่าบริการ (Rate Price)', 
+                    action: () => { if(typeof window.loadRatePricePage === 'function') window.loadRatePricePage(); } 
+                },
+                'biglot': { 
+                    page: 'page-biglot', 
+                    menu: 'menu-biglot', 
+                    title: 'สั่งสินค้า BigLot', 
+                    action: () => { 
+                        if(typeof window.loadBigLotPage === 'function') window.loadBigLotPage(); 
+                        // Auto-expand parent group
+                        const grp = document.getElementById('menu-group-biglot');
+                        const icn = document.getElementById('icon-biglot');
+                        if (grp && icn && grp.classList.contains('hidden')) {
+                            grp.classList.remove('hidden');
+                            grp.classList.add('flex');
+                            icn.style.transform = 'rotate(180deg)';
+                            icn.classList.add('text-theme-orange');
+                        }
+                    } 
+                },
+                'biglot-report': { 
+                    page: 'page-biglot-report', 
+                    menu: 'menu-biglot-report', 
+                    title: 'รายงานการสั่งซื้อ BigLot', 
+                    action: () => { 
+                        if(typeof window.loadBigLotReportPage === 'function') window.loadBigLotReportPage(); 
+                        // Auto-expand parent group
+                        const grp = document.getElementById('menu-group-biglot');
+                        const icn = document.getElementById('icon-biglot');
+                        if (grp && icn && grp.classList.contains('hidden')) {
+                            grp.classList.remove('hidden');
+                            grp.classList.add('flex');
+                            icn.style.transform = 'rotate(180deg)';
+                            icn.classList.add('text-theme-orange');
+                        }
+                    } 
+                }
+            };
+            
+            const target = mapping[pageId];
+            if (target) {
+                const pageEl = document.getElementById(target.page);
+                if (pageEl) pageEl.classList.remove('hidden');
+                const menuEl = document.getElementById(target.menu);
+                if(menuEl) { menuEl.classList.remove(...inactiveClasses); menuEl.classList.add(...activeClasses); }
+                const pageTitleEl = document.getElementById('pageTitle');
+                if (pageTitleEl) pageTitleEl.innerText = target.title;
+                if(target.action) target.action();
+            }
+
+            const headerBtns = ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn'];
+            headerBtns.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+
+            if (pageId === 'revenue-report') {
+                ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('hidden'); });
+                if (typeof currentUserInfo !== 'undefined' && currentUserInfo.user && currentUserInfo.user.toLowerCase() === 'admin') {
+                    const el = document.getElementById('headerKhorLorReportBtn'); if (el) el.classList.remove('hidden');
+                }
+            } else if (pageId === 'postnews') {
+                ['headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('hidden'); });
+            } else if (pageId === 'form') {
+                const el = document.getElementById('headerMergeImageBtn'); if(el) el.classList.remove('hidden');
+            } else if (pageId === 'revenue') {
+                ['headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer'].forEach(id => { 
+                    const el = document.getElementById(id); 
+                    if(el) {
+                        el.classList.remove('hidden');
+                        if(id === 'headerYearSelectorContainer') el.classList.add('flex');
+                    }
+                });
+                if (typeof fetchLastUpdateA1A14 === 'function') fetchLastUpdateA1A14();
+            } else if (pageId === 'pk-admin') {
+                const el = document.getElementById('headerPKChartBtn');
+                if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+            }
+        } catch (e) {
+            console.error("SwitchPage Error:", e);
+        }
+    }
+
+    function handleLogin(e) {
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
+        
+        try {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ title: 'กำลังเข้าสู่ระบบ', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            }
+        } catch (err) {
+            console.warn("Swal loading error:", err);
+        }
+        
+        const form = document.getElementById('loginForm');
+        const userObj = {
+            username: form.username.value,
+            password: form.password.value
+        };
+
+        const timeoutId = setTimeout(() => {
+            if (typeof Swal !== 'undefined') Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'เซิร์ฟเวอร์ไม่ตอบสนอง',
+                text: 'หมดเวลาการเชื่อมต่อ (Timeout) กรุณาลองเข้าสู่ระบบใหม่อีกครั้ง หรือเช็คอินเทอร์เน็ต',
+                confirmButtonColor: '#e27d3d'
+            });
+        }, 15000);
+
+        try {
+            if (typeof google === 'undefined' || !google.script || !google.script.run || typeof google.script.run.checkLogin !== 'function') {
+                clearTimeout(timeoutId);
+                if (typeof Swal !== 'undefined') Swal.close();
+                throw new Error("ฟังก์ชันเข้าสู่ระบบไม่พร้อมใช้งาน (กรุณาไปกด Deploy > New Version ใน Apps Script)");
+            }
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    clearTimeout(timeoutId);
+                    loginSuccess(res);
+                })
+                .withFailureHandler(err => {
+                    clearTimeout(timeoutId);
+                    if (typeof Swal !== 'undefined') Swal.close();
+                    Swal.fire('ข้อผิดพลาดเซิร์ฟเวอร์', 'ไม่สามารถเชื่อมต่อได้: ' + err.toString(), 'error');
+                })
+                .checkLogin(userObj); 
+        } catch (error) {
+            clearTimeout(timeoutId);
+            if (typeof Swal !== 'undefined') Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาดระบบ',
+                text: error.message,
+                confirmButtonColor: '#e27d3d'
+            });
+        }
+    }
+
+    function loginSuccess(res) {
+        try {
+            if (res && res.status === 'success') {
+                if (typeof successSound !== 'undefined') successSound.play().catch(e=>{});
+                 res.loginTime = new Date().getTime();
+                 SafeStorage.setItem('thp_user_session', JSON.stringify(res));
+                restoreSession(res);
+                Toast.fire({ icon: 'success', title: 'ยินดีต้อนรับ', timer: 1000, showConfirmButton: false });
+            } else {
+                if (typeof errorSound !== 'undefined') errorSound.play().catch(e=>{});
+                Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบล้มเหลว', text: res ? res.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ' });
+            }
+        } catch (error) {
+            console.error("LoginSuccess Error:", error);
+            Swal.fire('ข้อผิดพลาดหน้าเว็บ', 'เกิดปัญหาขณะเตรียมหน้าจอ: ' + error.message, 'error');
+        }
+    }
+
+    function restoreSession(res) {
+        try {
+            currentUserInfo = { user: res.user, zipcode: res.zipcode, name: res.name, team: res.team || '' }; 
+            
+            const trySetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
+
+            trySetText('navName', res.name);
+            trySetText('menuNavName', res.name);
+            
+            let teamAndUser = '';
+            if (currentUserInfo.team && currentUserInfo.team.trim() !== '') {
+                teamAndUser += currentUserInfo.team + ' • ';
+            }
+            teamAndUser += res.user;
+            trySetText('navUser', teamAndUser);
+            trySetText('menuNavUser', teamAndUser);
+            trySetText('welcomeName', res.name);
+            
+            const loginSection = document.getElementById('loginSection');
+            if (loginSection) loginSection.classList.add('hidden'); 
+            
+            const mainApp = document.getElementById('mainApp');
+            if (mainApp) mainApp.classList.remove('hidden'); 
+            
+            const userRole = String(res.user).toLowerCase();
+            
+            // เรียก Element ควบคุมเมนู Sidebar ให้ครบถ้วน
+            const elHome = document.getElementById('menu-home');
+            const navDivider1 = document.getElementById('nav-divider-1');
+            const triggerVisits = document.getElementById('nav-trigger-visits');
+            const triggerRevenue = document.getElementById('nav-trigger-revenue');
+            const navDivider2 = document.getElementById('nav-divider-2');
+            const triggerTools = document.getElementById('nav-trigger-tools');
+            const menuGroupTools = document.getElementById('menu-group-tools');
+            const navDividerEval = document.getElementById('nav-divider-eval');
+            const elPrePostGuide = document.getElementById('menu-prepost-guide');
+            const elRatePrice = document.getElementById('menu-rateprice'); // 💡 เพิ่มตัวแปรเมนูเรตราคา
+            const navDividerBigLot = document.getElementById('nav-divider-biglot');
+            const triggerBigLot = document.getElementById('nav-trigger-biglot');
+            const menuGroupBigLot = document.getElementById('menu-group-biglot');
+            const elBigLotReport = document.getElementById('menu-biglot-report');
+            
+            const toolsGeneral = [
+                document.getElementById('tool-adv'), document.getElementById('tool-manual'), 
+                document.getElementById('tool-survey'), document.getElementById('tool-pr'), 
+                document.getElementById('tool-postinter')
+            ];
+
+            const elForm = document.getElementById('menu-form');
+            const elPostNews = document.getElementById('menu-postnews');
+            const elRevAdmin = document.getElementById('menu-revenue');
+            const elSysSettings = document.getElementById('section-system');
+            const elEval = document.getElementById('profile-evaluation'); 
+            const homeAddBtn = document.querySelector('button[onclick="switchPage(\'form\')"]');
+
+            // --- Reset Default Visibility (เปิดแสดงให้หมดก่อนค่อยสั่งปิด) ---
+            [elHome, navDivider1, triggerVisits, triggerRevenue, navDivider2, triggerTools, navDividerEval, elForm, elPostNews, elEval, homeAddBtn, elPrePostGuide, elRatePrice, ...toolsGeneral, triggerBigLot, navDividerBigLot, elBigLotReport].forEach(el => {
+                if (el) el.classList.remove('hidden');
+            });
+            if (menuGroupTools) {
+                menuGroupTools.classList.add('hidden');
+                menuGroupTools.classList.remove('flex');
+            }
+            if (menuGroupBigLot) {
+                menuGroupBigLot.classList.add('hidden');
+                menuGroupBigLot.classList.remove('flex');
+            }
+
+            let targetPage = 'home';
+
+            if (userRole === 'prepost') {
+                // ซ่อนเมนูที่ไม่เกี่ยวข้องสำหรับ user "prepost"
+                [elHome, navDivider1, triggerVisits, triggerRevenue, navDivider2, elForm, elPostNews, elRevAdmin, elSysSettings, homeAddBtn, ...toolsGeneral].forEach(el => {
+                    if (el) el.classList.add('hidden');
+                });
+                const menuBigLotOnly = document.getElementById('menu-biglot');
+                if (menuBigLotOnly) menuBigLotOnly.classList.add('hidden');
+                
+                // กางเมนูเครื่องมืออื่นๆ อัตโนมัติ
+                if (menuGroupTools) {
+                    menuGroupTools.classList.remove('hidden');
+                    menuGroupTools.classList.add('flex');
+                    const iconTools = document.getElementById('icon-tools');
+                    if(iconTools) {
+                        iconTools.style.transform = 'rotate(180deg)';
+                        iconTools.classList.add('text-theme-orange');
+                    }
+                }
+                
+                targetPage = 'evaluation';
+                
+            } else if (userRole === 'admin') {
+                if(elRevAdmin) elRevAdmin.classList.remove('hidden');
+                if(elSysSettings) elSysSettings.classList.remove('hidden');
+                
+            } else if (userRole === 'viewer') {
+                if(elForm) elForm.classList.add('hidden');
+                if(elPostNews) elPostNews.classList.add('hidden');
+                if(elRevAdmin) elRevAdmin.classList.add('hidden');
+                if(elSysSettings) elSysSettings.classList.add('hidden');
+                if(homeAddBtn) homeAddBtn.classList.add('hidden');
+                if(elEval) elEval.classList.add('hidden'); 
+                if(navDividerEval) navDividerEval.classList.add('hidden'); 
+                
+            } else {
+                if(elRevAdmin) elRevAdmin.classList.add('hidden');
+                if(elSysSettings) elSysSettings.classList.add('hidden');
+            }
+
+            switchPage(targetPage);
+        } catch (error) {
+            console.error("RestoreSession Error:", error);
+            Swal.fire('ข้อผิดพลาดระบบ', 'การโหลดเซสชันผู้ใช้งานล้มเหลว', 'error');
+        }
+    }
+
+    function logout() {
+         SafeStorage.removeItem('thp_user_session');
+        currentUserInfo = { user: '', zipcode: '', name: '', team: '' }; 
+        window.postNewsInitialized = false; 
+
+        const mainApp = document.getElementById('mainApp');
+        const loginSec = document.getElementById('loginSection');
+        
+        if (mainApp) mainApp.classList.add('hidden');
+        if (loginSec) loginSec.classList.remove('hidden');
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) loginForm.reset();
+        
+        const mainForm = document.getElementById('mainForm');
+        if (mainForm) mainForm.reset();
+
+        Toast.fire({ icon: 'success',
+            title: 'ออกจากระบบสำเร็จ',
+            text: 'พบกันใหม่โอกาสหน้าครับ',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+
+    window.originalLoadHomeDashboard = typeof window.loadHomeDashboard !== 'undefined' ? window.loadHomeDashboard : null;
+    window.loadHomeDashboard = function() {
+        showGlobalLoader('กำลังดึงข้อมูลหน้าหลัก...');
+        google.script.run
+            .withSuccessHandler((res) => { hideGlobalLoader(); if (typeof window.renderHomeChart !== 'undefined') window.renderHomeChart(res); })
+            .withFailureHandler((err) => { hideGlobalLoader(); console.error(err); })
+            .getRevenueReportData(currentUserInfo);
+    };
+
+    // ==========================================
+    // 5. SYSTEM SETTINGS & EXTERNAL LINKS
+    // ==========================================
+    
+    // เปิดหน้าต่างใหม่แบบแท็บปกติ
+    window.openNotebookLMPopup = function() {
+        const chatUrl = "https://notebooklm.google.com/notebook/223df399-a482-4e12-9f24-0e7771f22bbc/preview?pli=1";
+        window.open(chatUrl, '_blank');
+    };
+
+    // --- Service Manager (จัดการรายการบริการที่แนะนำ) ---
+    window.openServiceManagerModal = function() {
+        let modal = document.getElementById('serviceManagerModal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'serviceManagerModal';
+            modal.className = 'hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[120] px-4 backdrop-blur-md transition-opacity duration-300';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-green-500">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-green-50 text-green-600 w-10 h-10 rounded-full flex items-center justify-center border border-green-100 shadow-inner">
+                                <i class="fas fa-list-ul text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800 leading-tight">จัดการรายการบริการที่แนะนำ</h3>
+                                <p class="text-xs text-gray-500 mt-0.5 font-bold">เพิ่ม, แก้ไข หรือลบ ข้อมูลสำหรับหน้าฟอร์มเข้าพบลูกค้า</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="closeServiceManagerModal()" class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 flex flex-col bg-gray-50/50 p-6 relative overflow-hidden">
+                        <div class="mb-4 flex flex-col sm:flex-row gap-2 shrink-0">
+                            <input type="text" id="newServiceInput" placeholder="พิมพ์ชื่อบริการใหม่ที่ต้องการเพิ่ม..." class="flex-1 p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 transition text-sm font-sans" onkeypress="if(event.key==='Enter') addNewService()">
+                            <button onclick="addNewService()" class="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-green-700 transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                                <i class="fas fa-plus"></i> เพิ่มบริการ
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
+                            <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="serviceManagerList">
+                                <div class="text-center text-gray-400 py-8"><i class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            const innerDiv = modal.querySelector('div');
+            if (innerDiv) innerDiv.classList.remove('scale-95');
+        }, 10);
+        window.loadServicesManagerList();
+    };
+
+    window.closeServiceManagerModal = function() {
+        const modal = document.getElementById('serviceManagerModal');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        const innerDiv = modal.querySelector('div');
+        if (innerDiv) innerDiv.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+        
+        if (typeof loadServicesDropdown === 'function') loadServicesDropdown();
+    };
+
+    window.loadServicesManagerList = function() {
+        const list = document.getElementById('serviceManagerList');
+        if (!list) return;
+        list.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...</div>';
+        
+        if(typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(res => {
+                if (res.status === 'success') {
+                    window.currentServicesList = res.data;
+                    window.renderServicesManagerList(res.data);
+                } else {
+                    list.innerHTML = `<div class="text-center text-red-500 py-4">${res.message}</div>`;
+                }
+            }).withFailureHandler(err => {
+                list.innerHTML = `<div class="text-center text-red-500 py-4">เกิดข้อผิดพลาด: ${err.message}</div>`;
+            }).getServicesList();
+        }
+    };
+
+    window.renderServicesManagerList = function(data) {
+        const list = document.getElementById('serviceManagerList');
+        if (!list) return;
+        list.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-8">ไม่มีข้อมูลบริการ<br><span class="text-xs mt-2">กรุณาเพิ่มบริการใหม่ด้านบน</span></div>';
+            return;
+        }
+
+        data.forEach((service, index) => {
+            const item = document.createElement('div');
+            item.className = "flex items-center justify-between p-3 bg-white hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors";
+            
+            const safeService = service.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            
+            item.innerHTML = `
+                <div class="flex items-center gap-3 flex-1 min-w-0 pr-4">
+                    <span class="w-6 h-6 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-[10px] font-bold shrink-0">${index + 1}</span>
+                    <span class="font-semibold text-gray-700 text-sm truncate">${service}</span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="editServiceItem(${index}, '${safeService}')" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-blue-500 hover:bg-blue-50 hover:border-blue-200 transition flex items-center justify-center shadow-sm" title="แก้ไขบริการนี้">
+                        <i class="fas fa-edit text-xs"></i>
+                    </button>
+                    <button type="button" onclick="deleteServiceItem(${index})" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition flex items-center justify-center shadow-sm" title="ลบบริการนี้">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    };
+
+    window.addNewService = function() {
+        const input = document.getElementById('newServiceInput');
+        if(!input) return;
+        const serviceName = input.value.trim();
+        if (!serviceName) {
+            Swal.fire('แจ้งเตือน', 'กรุณาระบุชื่อบริการที่ต้องการเพิ่ม', 'warning');
+            return;
+        }
+
+        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        
+        if(typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(res => {
+                if (res.status === 'success') {
+                    Toast.fire({ icon: 'success', title: 'สำเร็จ', text: 'เพิ่มบริการเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+                    input.value = '';
+                    window.loadServicesManagerList();
+                } else {
+                    Swal.fire('ผิดพลาด', res.message, 'error');
+                }
+            }).addRecommendedService(serviceName);
+        }
+    };
+
+    window.editServiceItem = function(index, oldName) {
+        Swal.fire({
+            title: 'แก้ไขชื่อบริการ',
+            input: 'text',
+            inputValue: oldName,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึกการแก้ไข',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#10b981',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') return 'กรุณาระบุชื่อบริการ!';
+                if (value.trim() === oldName) return 'ชื่อบริการไม่ได้เปลี่ยนแปลง';
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                if(typeof google !== 'undefined') {
+                    google.script.run.withSuccessHandler(res => {
+                        if (res.status === 'success') {
+                            Toast.fire({ icon: 'success', title: 'แก้ไขสำเร็จ', timer: 1500, showConfirmButton: false });
+                            window.loadServicesManagerList();
+                        } else {
+                            Swal.fire('ผิดพลาด', res.message, 'error');
+                        }
+                    }).editRecommendedService(index, result.value.trim());
+                }
+            }
+        });
+    };
+
+    window.deleteServiceItem = function(index) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: "คุณต้องการลบบริการนี้ออกจากระบบใช่หรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                if(typeof google !== 'undefined') {
+                    google.script.run.withSuccessHandler(res => {
+                        if (res.status === 'success') {
+                            Toast.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
+                            window.loadServicesManagerList();
+                        } else {
+                            Swal.fire('ผิดพลาด', res.message, 'error');
+                        }
+                    }).deleteRecommendedService(index);
+                }
+            }
+        });
+    };
+
+    // --- Template Manager (จัดการภาพแม่แบบข่าว) ---
+    window.loadPostNewsTemplates = function() {
+        const list = document.getElementById('postNewsTemplateList');
+        if (!list) return;
+        list.innerHTML = '<div class="text-center text-gray-400 py-8 w-full col-span-full"><i class="fas fa-circle-notch fa-spin text-theme-orange mb-2 text-2xl"></i><br>กำลังโหลดข้อมูลแม่แบบ...</div>';
+        
+        if (typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(res => {
+                if (res.status === 'success') {
+                    window.renderPostNewsTemplateList(res.data);
+                } else {
+                    list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">${res.message}</div>`;
+                }
+            }).getPostNewsTemplates();
+        }
+    };
+
+    window.renderPostNewsTemplateList = function(data) {
+        const list = document.getElementById('postNewsTemplateList');
+        if (!list) return;
+        list.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-8 col-span-full">ยังไม่มีรูปภาพแม่แบบ<br><span class="text-xs mt-2">กรุณาเพิ่มลิงก์ Google Drive ด้านบน</span></div>';
+            return;
+        }
+
+        data.forEach((item, index) => {
+            const isUse = item.status === 'Use';
+            const imgUrl = typeof getDriveDirectUrl === 'function' ? getDriveDirectUrl(item.url) : item.url;
+            const borderClass = isUse ? 'border-2 border-green-500 shadow-md' : 'border border-gray-200';
+            const badgeHtml = isUse ? '<div class="absolute top-2 left-2 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm"><i class="fas fa-check-circle"></i> ใช้งานอยู่</div>' : '';
+            
+            const div = document.createElement('div');
+            div.className = `relative bg-white rounded-xl overflow-hidden group ${borderClass} transition-all hover:shadow-md`;
+            div.innerHTML = `
+                <div class="aspect-[3/4] w-full bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                    ${badgeHtml}
+                    <img src="${imgUrl}" crossorigin="anonymous" onclick="openImagePreview('${imgUrl}')" class="cursor-pointer object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" onerror="this.src=''; this.parentElement.innerHTML='<i class=\\'fas fa-image text-gray-300 text-3xl\\'></i>';">
+                </div>
+                <div class="px-2 pt-2 pb-1 text-center text-[11px] font-bold text-gray-700 truncate cursor-pointer hover:text-theme-orange transition-colors" onclick="renamePostNewsTemplatePrompt(${index}, '${item.name || 'ไม่มีชื่อ'}')" title="คลิกเพื่อแก้ไขชื่อ">
+                    ${item.name || 'ไม่มีชื่อ'} <i class="fas fa-edit ml-1 text-gray-400 hover:text-theme-orange"></i>
+                </div>
+                <div class="p-2 bg-gray-50 flex flex-col xl:flex-row justify-between items-center gap-1.5 border-t border-gray-100">
+                    ${!isUse ? `<button onclick="setPostNewsTemplateActive(${index})" class="w-full xl:flex-1 bg-white border border-gray-200 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-200 text-[10px] py-1 rounded transition font-medium shadow-sm">เลือกใช้</button>` : `<button disabled class="w-full xl:flex-1 bg-green-50 text-green-600 border border-green-200 text-[10px] py-1 rounded font-bold shadow-inner cursor-not-allowed">ใช้งานอยู่</button>`}
+                    <button onclick="deletePostNewsTemplate(${index})" class="w-full xl:w-6 h-6 rounded bg-white border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition flex items-center justify-center shadow-sm">
+                        <i class="fas fa-trash-alt text-[9px]"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    };
+
+    window.addNewPostNewsTemplate = function() {
+        const input = document.getElementById('newPostNewsTemplateInput');
+        const url = input ? input.value.trim() : '';
+        if (!url) { Swal.fire('แจ้งเตือน', 'กรุณาระบุลิงก์ Google Drive', 'warning'); return; }
+        
+        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        if (typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(res => {
+                if (res.status === 'success') {
+                    Toast.fire({ icon: 'success', title: 'เพิ่มรูปภาพสำเร็จ', timer: 1500, showConfirmButton: false });
+                    if(input) input.value = '';
+                    window.loadPostNewsTemplates();
+                } else {
+                    Swal.fire('ผิดพลาด', res.message, 'error');
+                }
+            }).addPostNewsTemplate(url);
+        }
+    };
+
+    window.setPostNewsTemplateActive = function(index) {
+        Swal.fire({ title: 'กำลังเปลี่ยนรูปแม่แบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        if (typeof google !== 'undefined') {
+            google.script.run.withSuccessHandler(res => {
+                if (res.status === 'success') {
+                    Toast.fire({ icon: 'success', title: 'เปลี่ยนรูปแม่แบบสำเร็จ', timer: 1500, showConfirmButton: false });
+                    window.loadPostNewsTemplates();
+                } else {
+                    Swal.fire('ผิดพลาด', res.message, 'error');
+                }
+            }).setPostNewsTemplateActive(index);
+        }
+    };
+
+    window.deletePostNewsTemplate = function(index) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?', text: "คุณต้องการลบรูปแม่แบบนี้ใช่หรือไม่?", icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ลบเลย!', cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                if (typeof google !== 'undefined') {
+                    google.script.run.withSuccessHandler(res => {
+                        if (res.status === 'success') {
+                            Toast.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1500, showConfirmButton: false });
+                            window.loadPostNewsTemplates();
+                        } else {
+                            Swal.fire('ผิดพลาด', res.message, 'error');
+                        }
+                    }).deletePostNewsTemplate(index);
+                }
+            }
+        });
+    };
+
+    // --- Automations (ตั้งเวลาดึงข้อมูล A1-A14) ---
+    window.setupDailyTrigger = function() {
+        Swal.fire({ title: 'กำลังตั้งเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                Toast.fire({icon: 'success', title: res.message});
+                window.checkAutoTriggerStatus();
+            } else Swal.fire('ผิดพลาด', res.message, 'error');
+        }).createDailyTriggerA1A14();
+    };
+
+    window.removeDailyTrigger = function() {
+        Swal.fire({ title: 'กำลังปิดการใช้งาน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                Toast.fire({icon: 'success', title: res.message});
+                window.checkAutoTriggerStatus();
+            } else Swal.fire('ผิดพลาด', res.message, 'error');
+        }).deleteDailyTriggerA1A14();
+    };
+
+    window.checkAutoTriggerStatus = function() {
+        const badge = document.getElementById('autoTriggerStatusBadge');
+        if (!badge) return;
+        
+        badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+        badge.className = "bg-gray-200 text-gray-600 px-2 py-1 rounded text-[10px] ml-2 flex items-center gap-1";
+        
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'active') {
+                badge.className = "bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] ml-2 font-bold border border-green-200";
+                badge.innerHTML = '<i class="fas fa-check-circle"></i> เปิดใช้งานแล้ว (01:00 น.)';
+            } else {
+                badge.className = "bg-gray-100 text-gray-500 px-2 py-1 rounded text-[10px] ml-2 font-bold border border-green-200";
+                badge.innerHTML = '<i class="fas fa-times-circle"></i> ปิดการใช้งาน';
+            }
+        }).checkDailyTriggerA1A14();
+    };
+
+    // ==========================================
+    // 🎵 BACKGROUND MUSIC PLAYER (YouTube Iframe API)
+    // ==========================================
+    var ytPlayer;
+    var isMusicPlaying = false;
+    var isMusicMuted = false;
+    var currentMusicVolume = 15;
+
+    // รายชื่อเพลงเริ่มต้น (จะถูกเขียนทับด้วยข้อมูลจากเซิร์ฟเวอร์)
+    var BG_MUSIC_TRACKS = [];
+    var currentMusicTrack = null;
+
+    // ฟังก์ชันเริ่มโหลด Player และอัปเดต UI หลังจากได้ข้อมูลเพลง
+    function initMusicPlayerAndUI() {
+        if (!BG_MUSIC_TRACKS || BG_MUSIC_TRACKS.length === 0) {
+            // ปิดการใช้งานฟังก์ชันเพลงหากไม่มีข้อมูลในชีต
+            var select = document.getElementById('musicTrackSelect');
+            if (select) {
+                select.innerHTML = '<option value="">(ไม่มีเพลงในระบบ)</option>';
+                select.disabled = true;
+            }
+            return;
+        }
+        
+        currentMusicTrack = BG_MUSIC_TRACKS[Math.floor(Math.random() * BG_MUSIC_TRACKS.length)];
+
+        // อัปเดต Dropdown
+        var select = document.getElementById('musicTrackSelect');
+        if (select) {
+            select.innerHTML = '';
+            BG_MUSIC_TRACKS.forEach(function(track) {
+                var opt = document.createElement('option');
+                opt.value = track.id;
+                opt.text = track.title;
+                select.appendChild(opt);
+            });
+            select.value = currentMusicTrack.id;
+        }
+
+        // โหลดสคริปต์ YouTube Player API และสร้าง container
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag) {
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+            document.head.appendChild(tag);
+        }
+
+        var div = document.createElement('div');
+        div.id = 'ytPlayerContainer';
+        div.style.position = 'fixed';
+        div.style.bottom = '0';
+        div.style.right = '0';
+        div.style.width = '200px';
+        div.style.height = '200px';
+        div.style.pointerEvents = 'none';
+        div.style.zIndex = '-100';
+        div.style.opacity = '1';
+        div.innerHTML = '<div id="ytPlayer"></div>';
+        document.body.appendChild(div);
+    }
+
+    // โหลดข้อมูลเพลงจากเซิร์ฟเวอร์
+    google.script.run.withSuccessHandler(function(res) {
+        if (res && res.status === 'success' && res.data && res.data.length > 0) {
+            BG_MUSIC_TRACKS = res.data;
+        }
+        initMusicPlayerAndUI();
+    }).withFailureHandler(function(err) {
+        console.error('Failed to load music playlist', err);
+        initMusicPlayerAndUI(); // fallback to default
+    }).getMusicPlaylist();
+
+    // ฟังก์ชัน callback ส่วนกลางเมื่อ API พร้อมใช้งาน
+    window.onYouTubeIframeAPIReady = function() {
+        ytPlayer = new YT.Player('ytPlayer', {
+            height: '200',
+            width: '200',
+            videoId: currentMusicTrack.id,
+            playerVars: {
+                'autoplay': 0, // ปิด autoplay เพื่อให้ YouTube นับยอดวิว // เปิดเล่นอัตโนมัติ
+                'controls': 0,
+                'disablekb': 1,
+                'fs': 0,
+                'modestbranding': 1,
+                'rel': 0,
+                'showinfo': 0,
+                'start': 0, // เริ่มที่ 0 วินาทีเสมอตามคำขอผู้ใช้
+                'loop': 0, // ปิด loop ที่นี่ เพื่อใช้การสุ่มเพลงใหม่แทน
+                'playlist': currentMusicTrack.id
+            },
+            events: {
+                'onReady': onYtPlayerReady,
+                'onStateChange': onYtPlayerStateChange,
+                'onError': onYtPlayerError
+            }
+        });
+    };
+
+    // ฟังก์ชันแจ้งเตือนข้อผิดพลาดและข้ามไปยังเพลงถัดไปอัตโนมัติ (เช่น เพลงถูกลบ/ติดลิขสิทธิ์)
+    function onYtPlayerError(event) {
+        console.warn("YouTube player error (code " + event.data + "). Skipping to next random track...");
+        playRandomNextTrack();
+    }
+
+    function onYtPlayerReady(event) {
+        event.target.setVolume(currentMusicVolume);
+        
+        // บังคับเริ่มเล่นที่ 0 วินาทีเสมอ (ป้องกันประวัติการรับชมเดิมจำจุดเริ่ม)
+        if (typeof event.target.seekTo === 'function') {
+            event.target.seekTo(0, true);
+        }
+        
+        // เพื่อให้ยอดวิวถูกนับตามกฎ YouTube จำเป็นต้องให้การเล่นเกิดจากผู้ใช้คลิก
+        document.addEventListener('click', function autoPlayOnFirstClick() {
+            if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+                if (typeof ytPlayer.seekTo === 'function') {
+                    ytPlayer.seekTo(0, true);
+                }
+                ytPlayer.playVideo();
+            }
+            document.removeEventListener('click', autoPlayOnFirstClick);
+        }, { once: true });
+    }
+
+    function onYtPlayerStateChange(event) {
+        var disc = document.getElementById('btnBgMusicPlayMini');
+        var menuBtnIcon = document.getElementById('menuBtnPlayPauseIcon');
+
+        if (event.data === 1) { // PLAYING
+            isMusicPlaying = true;
+            if (disc) {
+                disc.classList.add('playing');
+                disc.classList.remove('bg-gray-50', 'border-gray-200', 'text-theme-orange');
+                disc.classList.add('bg-theme-orange', 'border-theme-orange', 'text-white', 'shadow-md');
+            }
+            if (menuBtnIcon) {
+                menuBtnIcon.className = 'fas fa-pause text-xs';
+            }
+            SafeStorage.setItem('thp_bg_music_state', 'playing');
+        } else if (event.data === 0) { // ENDED
+            // เมื่อเพลงบรรเลงปัจจุบันจบลง สุ่มเล่นเพลงใหม่ทันที!
+            playRandomNextTrack();
+        } else if (event.data === 2 || event.data === -1 || event.data === 5) { // PAUSED or UNSTARTED
+            isMusicPlaying = false;
+            if (disc) {
+                disc.classList.remove('playing');
+                disc.classList.remove('bg-theme-orange', 'border-theme-orange', 'text-white', 'shadow-md');
+                disc.classList.add('bg-gray-50', 'border-gray-200', 'text-theme-orange');
+            }
+            if (menuBtnIcon) {
+                menuBtnIcon.className = 'fas fa-play text-xs ml-0.5';
+            }
+            SafeStorage.setItem('thp_bg_music_state', 'paused');
+        }
+    }
+
+    // ฟังก์ชันสำหรับสุ่มเพลงบรรเลงในลำดับถัดไป
+    window.playRandomNextTrack = function() {
+        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
+        
+        // กรองเพลงปัจจุบันออกไปก่อนเพื่อไม่ให้สุ่มได้เพลงเดิมซ้ำติดต่อกัน
+        var availableTracks = BG_MUSIC_TRACKS.filter(function(t) { 
+            return t.id !== currentMusicTrack.id; 
+        });
+        if (availableTracks.length === 0) availableTracks = BG_MUSIC_TRACKS;
+        
+        currentMusicTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
+        
+        ytPlayer.loadVideoById({
+            videoId: currentMusicTrack.id,
+            startSeconds: 0 // บังคับเริ่มเล่นที่ 0 วินาทีสำหรับทุกเพลง
+        });
+        if (typeof ytPlayer.seekTo === 'function') {
+            ytPlayer.seekTo(0, true);
+        }
+        ytPlayer.playVideo();
+        
+        // ซิงค์การแสดงผลของ Dropdown เพลงบรรเลง
+        var select = document.getElementById('musicTrackSelect');
+        if (select) {
+            select.value = currentMusicTrack.id;
+        }
+    };
+
+    window.playNextTrack = function() {
+        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
+        var currentIndex = BG_MUSIC_TRACKS.findIndex(function(t) { return t.id === currentMusicTrack.id; });
+        var nextIndex = (currentIndex + 1) % BG_MUSIC_TRACKS.length;
+        playSelectedTrack(BG_MUSIC_TRACKS[nextIndex].id);
+    };
+
+    window.playPreviousTrack = function() {
+        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
+        var currentIndex = BG_MUSIC_TRACKS.findIndex(function(t) { return t.id === currentMusicTrack.id; });
+        var prevIndex = (currentIndex - 1 + BG_MUSIC_TRACKS.length) % BG_MUSIC_TRACKS.length;
+        playSelectedTrack(BG_MUSIC_TRACKS[prevIndex].id);
+    };
+
+    // ฟังก์ชันสำหรับการเลือกเล่นเพลงจาก Dropdown รายการตั้งค่า
+    window.playSelectedTrack = function(id) {
+        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
+        
+        var track = BG_MUSIC_TRACKS.find(function(t) { return t.id === id; });
+        if (!track) return;
+        
+        currentMusicTrack = track;
+        
+        ytPlayer.loadVideoById({
+            videoId: currentMusicTrack.id,
+            startSeconds: 0
+        });
+        if (typeof ytPlayer.seekTo === 'function') {
+            ytPlayer.seekTo(0, true);
+        }
+        ytPlayer.playVideo();
+        
+        // ยืนยันการอัปเดตสถานะ Dropdown
+        var select = document.getElementById('musicTrackSelect');
+        if (select) {
+            select.value = id;
+        }
+    };
+
+    // ฟังก์ชันเปิด/ปิดเครื่องเล่นผ่านปุ่มตัวโน้ตหลัก
+    window.toggleBgMusic = function(forcePlay) {
+        if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
+        
+        if (forcePlay === true || !isMusicPlaying) {
+            ytPlayer.playVideo();
+        } else {
+            ytPlayer.pauseVideo();
+        }
+    };
+
+    window.toggleBgMusicMute = function() {
+        if (!ytPlayer || typeof ytPlayer.mute !== 'function') return;
+        var muteIcon = document.getElementById('btnBgMusicMuteIcon');
+        
+        if (isMusicMuted) {
+            ytPlayer.unMute();
+            isMusicMuted = false;
+            if (muteIcon) {
+                muteIcon.className = 'fas fa-volume-up';
+                muteIcon.classList.remove('text-red-500');
+            }
+        } else {
+            ytPlayer.mute();
+            isMusicMuted = true;
+            if (muteIcon) {
+                muteIcon.className = 'fas fa-volume-mute text-red-500';
+            }
+        }
+        updateMusicVolIcon(currentMusicVolume);
+    };
+
+    // ฟังก์ชันปรับความดังของเสียง (ซิงค์ทั้ง YouTube, Slider, เปอร์เซ็นต์ และ ไอคอน)
+    window.changeBgMusicVolume = function(val) {
+        currentMusicVolume = parseInt(val);
+        if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
+            ytPlayer.setVolume(currentMusicVolume);
+        }
+        
+        // ซิงค์ค่าไปยัง UI Slider และป้ายเปอร์เซ็นต์
+        var percent = document.getElementById('musicVolPercent');
+        var slider = document.getElementById('musicVolSlider');
+        if (percent) percent.innerText = currentMusicVolume + '%';
+        if (slider) slider.value = currentMusicVolume;
+        
+        updateMusicVolIcon(currentMusicVolume);
+    };
+
+    // แสดง/ซ่อน Context Menu ควบคุมเสียงและเพลงด้วยคลิกขวา
+    window.handleMusicContextMenu = function(e) {
+        if (e) e.preventDefault();
+        var menu = document.getElementById('musicContextMenu');
+        if (!menu) return;
+        
+        var isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+            // อัปเดตข้อมูลใน Slider และ Dropdown ก่อนแสดงหน้าจอ
+            var slider = document.getElementById('musicVolSlider');
+            var percent = document.getElementById('musicVolPercent');
+            var select = document.getElementById('musicTrackSelect');
+            
+            if (slider) slider.value = currentMusicVolume;
+            if (percent) percent.innerText = currentMusicVolume + '%';
+            if (select) select.value = currentMusicTrack.id;
+            updateMusicVolIcon(currentMusicVolume);
+            
+            var menuBtnIcon = document.getElementById('menuBtnPlayPauseIcon');
+            if (menuBtnIcon) {
+                if (isMusicPlaying) {
+                    menuBtnIcon.className = 'fas fa-pause text-xs';
+                } else {
+                    menuBtnIcon.className = 'fas fa-play text-xs ml-0.5';
+                }
+            }
+            
+            menu.classList.remove('hidden');
+            
+            // รอสักครู่แล้วเปิด event ตรวจจับการคลิกด้านนอกเพื่อปิดเมนู
+            setTimeout(function() {
+                document.addEventListener('click', closeMusicContextMenu);
+            }, 50);
+        } else {
+            menu.classList.add('hidden');
+        }
+    };
+
+    // ปิดเมนูควบคุมเมื่อผู้ใช้คลิกข้างนอกตัวควบคุม
+    function closeMusicContextMenu(e) {
+        var menu = document.getElementById('musicContextMenu');
+        if (!menu) return;
+        
+        var btn = document.getElementById('btnBgMusicPlayMini');
+        if (menu.contains(e.target) || (btn && btn.contains(e.target))) {
+            return; // หากคลิกโดนเมนูการตั้งค่า หรือโดนปุ่มโน้ตเพลงหลัก ไม่ต้องปิด
+        }
+        
+        menu.classList.add('hidden');
+        document.removeEventListener('click', closeMusicContextMenu);
+    }
+
+    // ฟังก์ชันช่วยเปลี่ยนสถานะไอคอนเสียงตามระดับเปอร์เซ็นต์เสียงจริง
+    function updateMusicVolIcon(vol) {
+        var icon = document.getElementById('musicVolIcon');
+        if (!icon) return;
+        if (vol === 0 || isMusicMuted) {
+            icon.className = 'fas fa-volume-mute text-red-500 w-4 text-center';
+        } else if (vol < 30) {
+            icon.className = 'fas fa-volume-down text-gray-400 w-4 text-center';
+        } else if (vol < 70) {
+            icon.className = 'fas fa-volume-up text-gray-500 w-4 text-center';
+        } else {
+            icon.className = 'fas fa-volume-up text-theme-orange w-4 text-center';
+        }
+    }
+
+    // แสดง/ซ่อน เมนูออกจากระบบเมื่อคลิกขวาที่รูปโปรไฟล์ ด้วยเอฟเฟกต์แอนิเมชันแบบสปริงที่นุ่มนวล
+    window.handleProfileContextMenu = function(e) {
+        if (e) e.preventDefault();
+        var menu = document.getElementById('profileContextMenu');
+        if (!menu) return;
+        
+        var isOpen = menu.classList.contains('opacity-100');
+        if (!isOpen) {
+            // ลบสถานะปิด (Closed) และเพิ่มสถานะเปิด (Opened)
+            menu.classList.remove('opacity-0', 'pointer-events-none', 'invisible', 'scale-95', '-translate-y-2');
+            menu.classList.add('opacity-100', 'pointer-events-auto', 'visible', 'scale-100', 'translate-y-0');
+            
+            // รอสักครู่แล้วเปิด event ตรวจจับการคลิกด้านนอกเพื่อปิดเมนู
+            setTimeout(function() {
+                document.addEventListener('click', closeProfileContextMenu);
+            }, 50);
+        } else {
+            closeContextMenuAnimated(menu);
+        }
+    };
+
+    // ฟังก์ชันช่วยปิดเมนูพร้อมแอนิเมชันหดเล็กลงและฟีดหายไป
+    function closeContextMenuAnimated(menu) {
+        if (!menu) return;
+        menu.classList.add('opacity-0', 'pointer-events-none', 'invisible', 'scale-95', '-translate-y-2');
+        menu.classList.remove('opacity-100', 'pointer-events-auto', 'visible', 'scale-100', 'translate-y-0');
+        document.removeEventListener('click', closeProfileContextMenu);
+    }
+
+    // ปิดเมนูออกจากระบบเมื่อผู้ใช้คลิกข้างนอกตัวควบคุม
+    function closeProfileContextMenu(e) {
+        var menu = document.getElementById('profileContextMenu');
+        if (!menu) return;
+        
+        // หากคลิกโดนเมนูการตั้งค่า หรือโดนรูปภาพโปรไฟล์หลัก ไม่ต้องปิด
+        var profileDiv = menu.parentElement;
+        if (menu.contains(e.target) || (profileDiv && profileDiv.contains(e.target))) {
+            return;
+        }
+        
+        closeContextMenuAnimated(menu);
+    }
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+    const loginFormEl = document.getElementById('loginForm');
+    if (loginFormEl) {
+        loginFormEl.addEventListener('submit', function(e) {
+            handleLogin(e);
+        });
+    }
+
+    // ==========================================
+    // IMAGE PREVIEW MODAL
+    // ==========================================
+    window.openImagePreview = function(url) {
+        let modal = document.getElementById('imagePreviewModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'imagePreviewModal';
+            modal.className = 'fixed inset-0 z-[10000] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300';
+            modal.innerHTML = `
+                <div class="relative w-full max-w-3xl h-full max-h-[90vh] flex flex-col items-center justify-center">
+                    <button onclick="closeImagePreview()" class="absolute -top-10 right-0 text-white hover:text-theme-orange transition-colors text-4xl">&times;</button>
+                    <img id="imagePreviewImg" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+                </div>
+            `;
+            // Click outside to close
+            modal.addEventListener('click', function(e) {
+                if(e.target === modal) closeImagePreview();
+            });
+            document.body.appendChild(modal);
+        }
+        document.getElementById('imagePreviewImg').src = url;
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    };
+
+    window.closeImagePreview = function() {
+        const modal = document.getElementById('imagePreviewModal');
+        if (modal) {
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    };
+</script>

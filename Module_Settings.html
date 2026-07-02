@@ -1,0 +1,1192 @@
+<!-- PAGE: SETTINGS -->
+<!-- ==========================================
+     SETTINGS PAGE: View_Settings.html
+     ฉบับสมบูรณ์ 100% (Full Feature: Services Edit/Sort, Templates, Automations, API)
+     ========================================== -->
+<style>
+    #musicManagerModal .custom-scrollbar::-webkit-scrollbar,
+    #serviceManagerModal .custom-scrollbar::-webkit-scrollbar {
+        width: 6px !important;
+        display: block !important;
+    }
+    #musicManagerModal .custom-scrollbar::-webkit-scrollbar-track,
+    #serviceManagerModal .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
+        border-radius: 4px !important;
+    }
+    #musicManagerModal .custom-scrollbar::-webkit-scrollbar-thumb,
+    #serviceManagerModal .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1 !important;
+        border-radius: 4px !important;
+    }
+    #musicManagerModal .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+    #serviceManagerModal .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8 !important;
+    }
+</style>
+
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-purple-50 max-w-5xl mx-auto mb-6">
+    <div class="p-8">
+        <h3 class="text-xl font-bold text-theme-black mb-6 border-b pb-4 flex items-center gap-3">
+            <i class="fas fa-cog text-purple-500"></i>
+            การตั้งค่าระบบ
+        </h3>
+
+        <div class="space-y-10">
+
+            <!-- 1. ส่วนจัดการฐานข้อมูล (Database Links) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-database text-blue-500"></i>
+                        ฐานข้อมูลระบบ (Database Links)
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">รวมลิงก์ไปยัง Google Sheets
+                        ที่ใช้เป็นฐานข้อมูลหลักของระบบเพื่อความสะดวกในการตรวจสอบข้อมูลดิบ</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="https://drive.google.com/drive/folders/1kKobnpRB9DfEn1mlPRtr3NpHLaY6Ytnf" target="_blank"
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all group no-underline">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div
+                                class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลของระบบ</h5>
+                        </div>
+                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
+                            <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
+                            <i
+                                class="fas fa-external-link-alt text-[10px] text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                    </a>
+
+                    <a href="https://docs.google.com/spreadsheets/d/1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs/edit?gid=0#gid=0"
+                        target="_blank"
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all group no-underline">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div
+                                class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-table"></i>
+                            </div>
+                            <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลรายได้ลูกค้า</h5>
+                        </div>
+                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
+                            <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
+                            <i
+                                class="fas fa-external-link-alt text-[10px] text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                    </a>
+
+                    <a href="https://docs.google.com/spreadsheets/d/1uo2vKwNI--USPCLg_jZNmWWxbcV8aHheem4ZAfobIg4/edit?gid=0#gid=0"
+                        target="_blank"
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-green-400 hover:shadow-md transition-all group no-underline">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div
+                                class="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-list-alt"></i>
+                            </div>
+                            <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลการเข้าพบ</h5>
+                        </div>
+                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
+                            <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
+                            <i
+                                class="fas fa-external-link-alt text-[10px] text-green-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                    </a>
+
+                    <a href="https://docs.google.com/spreadsheets/d/1OjtyfCAqGEqE3V6oXALf2UiKhAHHbxO4RwLSnZTvT7Q/edit?gid=0#gid=0"
+                        target="_blank"
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-teal-400 hover:shadow-md transition-all group no-underline">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div
+                                class="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลรายชื่อ A1-A14</h5>
+                        </div>
+                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
+                            <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
+                            <i
+                                class="fas fa-external-link-alt text-[10px] text-teal-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 2. ส่วนจัดการรายการบริการ (Service Manager) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-list text-green-500"></i>
+                        จัดการรายการบริการที่แนะนำ (Services)
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">เพิ่มข้อมูลใหม่, แก้ไขข้อความ หรือสลับลำดับการแสดงผลในตัวเลือก
+                        "14. บริการที่แนะนำ" ของหน้าฟอร์มเข้าพบลูกค้า</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" onclick="openServiceManagerModal()"
+                        class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-green-600/20 hover:bg-green-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        <i class="fas fa-edit"></i> เปิดหน้าต่างจัดการบริการ
+                    </button>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400 px-2 italic">
+                        <i class="fas fa-info-circle"></i> ข้อมูลจะถูกดึงมาใช้ใน Dropdown
+                        ของฟอร์มบันทึกการเข้าพบอัตโนมัติ
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.5 ส่วนจัดการเพลงพื้นหลัง (Background Music) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-music text-purple-500"></i>
+                        จัดการเพลงพื้นหลัง (Background Music)
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">เพิ่มข้อมูลใหม่, แก้ไขข้อความ หรือลบรายการเพลงพื้นหลังระบบ (รองรับลิงก์ YouTube)</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" onclick="window.openMusicManagerModal()"
+                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        <i class="fas fa-music"></i> เปิดหน้าต่างจัดการเพลง
+                    </button>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400 px-2 italic">
+                        <i class="fas fa-info-circle"></i> ข้อมูลจะถูกดึงมาใช้ในตัวเลือกหน้าเล่นเพลงอัตโนมัติ
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ส่วนจัดการภาพแม่แบบข่าว (Template Manager) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-image text-theme-orange"></i>
+                        จัดการภาพแม่แบบข่าว (Post News Template)
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">เพิ่มลิงก์รูปภาพพื้นหลังจาก Google Drive
+                        และเลือกภาพที่ต้องการใช้เป็นพื้นหลังสำหรับเครื่องมือสร้างภาพข่าว</p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 mb-6">
+                    <input type="text" id="newPostNewsTemplateInput"
+                        placeholder="วางลิงก์ Google Drive ของรูปภาพ (ต้องตั้งค่าแชร์ให้ทุกคนอ่านได้)..."
+                        class="flex-1 p-3 border border-gray-300 rounded-xl outline-none focus:border-theme-orange focus:ring-1 focus:ring-theme-orange/20 transition-all text-sm font-sans bg-white">
+                    <button onclick="addNewPostNewsTemplate()"
+                        class="bg-theme-green text-theme-black px-6 py-2.5 rounded-xl font-bold shadow-md hover:bg-green-400 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-plus"></i> เพิ่มรูปภาพ
+                    </button>
+                </div>
+
+                <div id="postNewsTemplateList"
+                    class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[600px] overflow-y-auto p-2 -mx-2">
+                    <div class="text-center text-gray-400 py-12 w-full col-span-full">
+                        <i class="fas fa-circle-notch fa-spin text-theme-orange mb-3 text-3xl"></i>
+                        <br>กำลังโหลดข้อมูลแม่แบบ...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. ส่วนการทำงานอัตโนมัติ (Automations) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-robot text-blue-500"></i>
+                        การทำงานอัตโนมัติ (Automations)
+                        <span id="autoTriggerStatusBadge"
+                            class="bg-gray-200 text-gray-600 px-2 py-1 rounded text-[10px] ml-2 flex items-center gap-1">
+                            <i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...
+                        </span>
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">ตั้งค่าให้ระบบรันสคริปต์ดึงข้อมูลรายชื่อลูกค้า A1-A14
+                        อัตโนมัติทุกวันในเวลาเช้ามืด (01:00 น.)</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button" onclick="setupDailyTrigger()"
+                        class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        <i class="fas fa-clock"></i> เปิดใช้งานดึงข้อมูลอัตโนมัติ (01:00 น.)
+                    </button>
+                    <button type="button" onclick="removeDailyTrigger()"
+                        class="bg-white border border-red-200 text-red-600 px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-red-50 hover:border-red-400 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        <i class="fas fa-times-circle"></i> ปิดการใช้งาน
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5. ส่วนคู่มือ API (API Docs) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-code text-indigo-500"></i>
+                        คู่มือการเรียกใช้งาน API สำหรับดึงข้อมูลผู้ใช้
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">ระบบอนุญาตให้นักพัฒนาเรียกใช้ข้อมูลโปรไฟล์ผู้ใช้งานผ่าน URL
+                        พารามิเตอร์ เพื่อเชื่อมต่อกับระบบอื่น</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <h5 class="font-bold text-xs text-gray-600 mb-2 uppercase tracking-widest">Endpoint URL</h5>
+                        <div
+                            class="bg-slate-800 p-4 rounded-xl font-mono text-xs overflow-x-auto border border-slate-700 text-green-400 shadow-inner">
+                            <span class="text-purple-400">GET</span> https://script.google.com/macros/s/<span
+                                class="text-yellow-400 italic">YOUR_SCRIPT_ID</span>/exec?api=getUser&username=<span
+                                class="text-white">{username}</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-gray-100 text-gray-600 uppercase">
+                                <tr>
+                                    <th class="py-3 px-4 font-bold border-b">Parameter</th>
+                                    <th class="py-3 px-4 font-bold border-b text-center">Required</th>
+                                    <th class="py-3 px-4 font-bold border-b">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr>
+                                    <td class="py-3 px-4 font-mono font-bold text-indigo-600">api</td>
+                                    <td class="py-3 px-4 text-center"><i class="fas fa-check-circle text-green-500"></i>
+                                    </td>
+                                    <td class="py-3 px-4 text-gray-600">ต้องกำหนดค่าเป็น <code
+                                            class="bg-gray-100 px-1.5 py-0.5 rounded border">getUser</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 px-4 font-mono font-bold text-indigo-600">username</td>
+                                    <td class="py-3 px-4 text-center"><i class="fas fa-check-circle text-green-500"></i>
+                                    </td>
+                                    <td class="py-3 px-4 text-gray-600">รหัสผู้ใช้งานหรือรหัสไปรษณีย์ที่ต้องการค้นหา
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-bold text-[10px] text-green-700 mb-2 uppercase tracking-widest">Success
+                                Response (JSON)</h5>
+                            <pre
+                                class="bg-slate-800 text-white p-4 rounded-xl font-mono text-[10px] overflow-x-auto shadow-inner border border-slate-700">{
+  "status": "success",
+  "user": "34000",
+  "name": "อุบลราชธานี",
+  "team": "ทีมขาย 1"
+}</pre>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-[10px] text-red-700 mb-2 uppercase tracking-widest">Error Response
+                                (JSON)</h5>
+                            <pre
+                                class="bg-slate-800 text-white p-4 rounded-xl font-mono text-[10px] overflow-x-auto shadow-inner border border-slate-700">{
+  "status": "error",
+  "message": "ไม่พบข้อมูลผู้ใช้งาน"
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. ส่วนคู่มือการอัปเดตระบบ & LINE OA Webhook (System Deployment & Webhook Guide) -->
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="mb-5">
+                    <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                        <i class="fab fa-line text-green-500 text-lg"></i>
+                        คู่มือการอัปเดตระบบ & LINE OA Webhook
+                    </h4>
+                    <p class="text-xs text-gray-500 mt-1">คำแนะนำขั้นตอนการทำให้ใช้งานได้ (Deploy) ใหม่ และการผูกเชื่อมโยงข้อมูลกับบอท OrderBigLot</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-600">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="bg-blue-50 text-blue-600 font-bold px-2.5 py-1 rounded-md text-[10px] uppercase">วิธีที่ 1: อัปเดตแบบไม่ต้องเปลี่ยนลิงก์ (แนะนำ ⭐)</span>
+                            <p class="font-bold text-sm text-gray-800 mt-3 mb-2">อัปเดตเวอร์ชันผ่าน Manage Deployments</p>
+                            <p class="leading-relaxed mb-4 font-sans text-gray-500">วิธีนี้สะดวกที่สุด ลิงก์ URL ของ Web App จะยังเป็นตัวเดิมเสมอ ทำให้<strong>ไม่ต้องเข้าไปแก้ไขค่า Webhook ใน LINE Console</strong></p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-sans">
+                                <li>ใน Google Apps Script กดปุ่ม <strong>Deploy (การทำให้ใช้งานได้)</strong> -> เลือก <strong>Manage deployments (จัดการการทำให้ใช้งานได้)</strong></li>
+                                <li>คลิกรูป <strong>ดินสอ (แก้ไข / Edit)</strong> ที่ชื่อสคริปต์หลักของคุณ</li>
+                                <li>ที่เมนูย่อย Version ให้เลือกเปลี่ยนเป็น <strong>"New version" (เวอร์ชันใหม่)</strong></li>
+                                <li>กดปุ่ม <strong>Deploy</strong> ด้านล่างเพื่ออัปเดตระบบ</li>
+                            </ol>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 text-[10px] text-green-600 flex items-center gap-1 font-bold">
+                            <i class="fas fa-check-circle"></i> ลิงก์เดิมใช้งานต่อได้ทันที ไม่ต้องตั้งค่าใน LINE ใหม่!
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-gray-200/80 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <span class="bg-orange-50 text-orange-600 font-bold px-2.5 py-1 rounded-md text-[10px] uppercase">วิธีที่ 2: สร้างการจำหน่ายใหม่ (New Deployment)</span>
+                            <p class="font-bold text-sm text-gray-800 mt-3 mb-2">กรณีที่คุณกดปุ่ม "New deployment" (การทำให้ใช้งานได้ใหม่) แทนการแก้ไขตัวเดิม:</p>
+                            <p class="leading-relaxed mb-4 font-sans text-gray-500">การกด New deployment จะทำให้ Google สร้าง ลิงก์ URL ตัวใหม่ขึ้นมา ซึ่งหากใช้วิธีนี้ คุณจะต้องทำสิ่งนี้เพิ่มครับ:</p>
+                            <ol class="list-decimal pl-4 space-y-1.5 font-sans">
+                                <li>คัดลอก <strong>URL เว็บแอปตัวใหม่</strong> ที่ได้มา</li>
+                                <li>ไปที่ <a href="https://developers.line.biz/" target="_blank" class="text-green-600 font-bold underline hover:text-green-700">LINE Developers Console</a> -> บอท <strong>"OrderBigLot"</strong> -> แท็บ <strong>Messaging API</strong></li>
+                                <li>ไปที่หัวข้อ <strong>Webhook settings</strong> -> กด <strong>Edit (แก้ไข)</strong> และนำ URL ตัวใหม่ไปวางแทนของเดิม แล้วกดบันทึก</li>
+                                <li>จากนั้นพิมพ์ <code>.id</code> ในกลุ่มอีกครั้ง เพื่อเชื่อมต่อใหม่อีกรอบครับ</li>
+                            </ol>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 text-[10px] text-orange-600 flex items-center gap-1 font-bold">
+                            <i class="fas fa-exclamation-triangle"></i> ต้องนำลิงก์ URL ใหม่ไปเปลี่ยนใน LINE Developers Console เสมอ!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL: จัดการรายการบริการที่แนะนำ
+     (Service Manager UI)
+     ========================================== -->
+<div id="serviceManagerModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[150] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-green-500">
+        <!-- Modal Header -->
+        <div
+            class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-green-50 text-green-600 w-10 h-10 rounded-full flex items-center justify-center border border-green-100 shadow-inner">
+                    <i class="fas fa-list-ul text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 leading-tight">จัดการรายการบริการที่แนะนำ</h3>
+                    <p class="text-xs text-gray-500 mt-0.5 font-bold">เพิ่ม, แก้ไข หรือสลับลำดับรายการในหน้าฟอร์ม</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeServiceManagerModal()"
+                class="text-gray-400 hover:text-red-500 w-10 h-10 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-1 flex flex-col bg-gray-50/50 p-6 relative overflow-hidden">
+            <!-- Add New Input -->
+            <div class="mb-5 flex flex-col sm:flex-row gap-3 shrink-0">
+                <div class="relative flex-1">
+                    <i class="fas fa-plus-circle absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                    <input type="text" id="newServiceInput" placeholder="พิมพ์ชื่อบริการใหม่ที่ต้องการเพิ่ม..."
+                        class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/10 transition-all text-sm font-sans bg-white shadow-sm"
+                        onkeypress="if(event.key==='Enter') addNewService()">
+                </div>
+                <button onclick="addNewService()"
+                    class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-green-600/20 hover:bg-green-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                    <i class="fas fa-plus"></i> เพิ่มบริการ
+                </button>
+            </div>
+
+            <!-- Service List Container -->
+            <div
+                class="bg-white rounded-xl shadow-md border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
+                <div
+                    class="bg-gray-100/50 px-4 py-2 border-b border-gray-100 flex justify-between items-center shrink-0">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">รายการปัจจุบัน</span>
+                    <span id="serviceCountBadge"
+                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-green-600 border border-green-100">0
+                        รายการ</span>
+                </div>
+                <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="serviceManagerList">
+                    <div class="text-center text-gray-400 py-12">
+                        <i class="fas fa-circle-notch fa-spin text-green-500 mb-3 text-3xl"></i>
+                        <br>กำลังโหลดข้อมูล...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer Hint -->
+        <div
+            class="px-6 py-3 bg-white border-t border-gray-50 text-[10px] text-gray-400 flex items-center justify-center gap-4 shrink-0">
+            <span><i class="fas fa-arrows-up-down mr-1"></i> ใช้ปุ่มลูกศรเพื่อสลับลำดับ</span>
+            <span class="w-1 h-1 bg-gray-200 rounded-full"></span>
+            <span><i class="fas fa-save mr-1 text-blue-400"></i> บันทึกข้อมูลอัตโนมัติทุกครั้งที่เปลี่ยน</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL: จัดการเพลงพื้นหลัง
+     (Music Manager UI)
+     ========================================== -->
+<div id="musicManagerModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[150] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-purple-500">
+        <!-- Modal Header -->
+        <div
+            class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-purple-50 text-purple-600 w-10 h-10 rounded-full flex items-center justify-center border border-purple-100 shadow-inner">
+                    <i class="fas fa-music text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 leading-tight">จัดการเพลงพื้นหลัง</h3>
+                    <p class="text-xs text-gray-500 mt-0.5 font-bold">เพิ่ม, แก้ไข หรือลบรายการเพลง (ใช้ YouTube URL)</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeMusicManagerModal()"
+                class="text-gray-400 hover:text-red-500 w-10 h-10 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="flex-1 flex flex-col bg-gray-50/50 p-6 relative overflow-hidden">
+            <!-- Add New Input -->
+            <div class="mb-5 flex flex-col gap-3 shrink-0">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <i class="fab fa-youtube absolute left-3 top-1/2 -translate-y-1/2 text-red-500"></i>
+                        <input type="text" id="newMusicUrlInput" placeholder="วางลิงก์ YouTube (เช่น https://www.youtube.com/watch?v=6xzuBUDsixo)..."
+                            class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-sm font-sans bg-white shadow-sm"
+                            onkeypress="if(event.key==='Enter') addNewMusic()">
+                    </div>
+                    <button onclick="addNewMusic()"
+                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-plus"></i> เพิ่มเพลง
+                    </button>
+                </div>
+            </div>
+
+            <!-- List Container -->
+            <div
+                class="bg-white rounded-xl shadow-md border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
+                <div
+                    class="bg-gray-100/50 px-4 py-2 border-b border-gray-100 flex justify-between items-center shrink-0">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">รายการเพลงปัจจุบัน</span>
+                    <span id="musicCountBadge"
+                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-purple-600 border border-purple-100">0 รายการ</span>
+                </div>
+                <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="musicManagerList">
+                    <div class="text-center text-gray-400 py-12">
+                        <i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i>
+                        <br>กำลังโหลดข้อมูล...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer Hint -->
+        <div
+            class="px-6 py-3 bg-white border-t border-gray-50 text-[10px] text-gray-400 flex items-center justify-center gap-4 shrink-0">
+            <span><i class="fas fa-arrows-up-down mr-1"></i> ใช้ปุ่มลูกศรเพื่อสลับลำดับ</span>
+            <span class="w-1 h-1 bg-gray-200 rounded-full"></span>
+            <span><i class="fas fa-save mr-1 text-blue-400"></i> บันทึกข้อมูลอัตโนมัติทุกครั้งที่เปลี่ยน</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     JAVASCRIPT LOGIC
+     ========================================== -->
+
+
+<script>
+    // ==========================================
+    // 1. SYSTEM SETTINGS INITIALIZATION
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        // โหลดข้อมูลเมื่อเปิดหน้าเมนูตั้งค่า
+        const settingsMenu = document.getElementById('menu-settings');
+        if (settingsMenu) {
+            settingsMenu.addEventListener('click', () => {
+                window.loadPostNewsTemplates();
+                window.checkAutoTriggerStatus();
+            });
+        }
+
+        // โหลดรายการบริการที่แนะนำสำหรับฟอร์ม
+        if (typeof loadRecommendedServices === 'function') {
+            loadRecommendedServices();
+        } else if (typeof window.loadRecommendedServices === 'function') {
+            window.loadRecommendedServices();
+        }
+    });
+
+    // ==========================================
+    // 2. SERVICE MANAGER LOGIC (CRUD & SORT)
+    // ==========================================
+    window.currentServicesList = [];
+
+    window.openServiceManagerModal = function () {
+        const modal = document.getElementById('serviceManagerModal');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            const innerDiv = modal.querySelector('div');
+            if (innerDiv) innerDiv.classList.remove('scale-95');
+        }, 10);
+
+        window.loadServicesManagerList();
+    };
+
+    window.closeServiceManagerModal = function () {
+        const modal = document.getElementById('serviceManagerModal');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        const innerDiv = modal.querySelector('div');
+        if (innerDiv) innerDiv.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+
+        if (typeof loadServicesDropdown === 'function') loadServicesDropdown();
+    };
+
+    window.loadServicesManagerList = function () {
+        const list = document.getElementById('serviceManagerList');
+        if (!list) return;
+        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-green-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
+
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                window.currentServicesList = res.data || [];
+                window.renderServicesManagerList(window.currentServicesList);
+                const badge = document.getElementById('serviceCountBadge');
+                if (badge) badge.innerText = (window.currentServicesList.length) + ' รายการ';
+            } else {
+                list.innerHTML = `<div class="text-center text-red-500 py-6 font-bold"><i class="fas fa-exclamation-triangle mr-2"></i> ${res.message}</div>`;
+            }
+        }).getServicesList();
+    };
+
+    window.renderServicesManagerList = function (data) {
+        var list = document.getElementById('serviceManagerList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        // อัปเดตตัวเลข Badge
+        var badge = document.getElementById('serviceCountBadge');
+        if (badge) badge.innerText = (data ? data.length : 0) + ' รายการ';
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-16"><i class="fas fa-box-open text-5xl mb-4 opacity-20"></i><p class="font-medium">ยังไม่มีข้อมูลบริการ</p></div>';
+            return;
+        }
+
+        data.forEach(function(service, index) {
+            var item = document.createElement('div');
+            item.className = "flex items-center justify-between p-4 bg-white hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-all group";
+
+            item.innerHTML = 
+                '<div class="flex items-center gap-4 flex-1 min-w-0 pr-4">' +
+                    '<span class="w-7 h-7 rounded-lg bg-green-50 text-green-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-green-100">' + (index + 1) + '</span>' +
+                    '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-green-600 transition-colors">' + service + '</span>' +
+                '</div>' +
+                '<div class="flex items-center gap-1.5 shrink-0">' +
+                    '<button type="button" class="btn-move-up w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-sm" title="เลื่อนขึ้น">' +
+                        '<i class="fas fa-chevron-up text-xs"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn-move-down w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-sm" title="เลื่อนลง">' +
+                        '<i class="fas fa-chevron-down text-xs"></i>' +
+                    '</button>' +
+                    '<div class="w-px h-6 bg-gray-100 mx-1"></div>' +
+                    '<button type="button" class="btn-edit w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-orange-500 hover:bg-orange-50 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm" title="แก้ไขข้อความ">' +
+                        '<i class="fas fa-edit text-xs"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn-delete w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center shadow-sm" title="ลบรายการ">' +
+                        '<i class="fas fa-trash-alt text-xs"></i>' +
+                    '</button>' +
+                '</div>';
+
+            if (index === 0) item.querySelector('.btn-move-up').disabled = true;
+            if (index === data.length - 1) item.querySelector('.btn-move-down').disabled = true;
+
+            item.querySelector('.btn-move-up').onclick = function() { moveServiceItem(index, -1); };
+            item.querySelector('.btn-move-down').onclick = function() { moveServiceItem(index, 1); };
+            item.querySelector('.btn-edit').onclick = function() { editServiceItem(index, service); };
+            item.querySelector('.btn-delete').onclick = function() { deleteServiceItem(index); };
+
+            list.appendChild(item);
+        });
+    };
+
+        window.moveServiceItem = function (index, direction) {
+        const newList = [...window.currentServicesList];
+        const targetIndex = index + direction;
+
+        if (targetIndex < 0 || targetIndex >= newList.length) return;
+
+        [newList[index], newList[targetIndex]] = [newList[targetIndex], newList[index]];
+
+        window.currentServicesList = newList;
+        window.renderServicesManagerList(newList);
+
+        google.script.run.withSuccessHandler(res => {
+            if (res.status !== 'success') {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกลำดับได้: ' + res.message, 'error');
+                window.loadServicesManagerList();
+            }
+        }).saveFullServicesList(newList);
+    };
+
+    window.addNewService = function () {
+        const input = document.getElementById('newServiceInput');
+        if (!input) return;
+
+        const serviceName = input.value.trim();
+        if (!serviceName) {
+            Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาระบุชื่อบริการที่ต้องการเพิ่ม' });
+            return;
+        }
+
+        Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', timer: 1200, showConfirmButton: false });
+                input.value = '';
+                window.loadServicesManagerList();
+            } else {
+                Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+            }
+        }).addRecommendedService(serviceName);
+    };
+
+    window.editServiceItem = function (index, oldName) {
+        Swal.fire({
+            title: 'แก้ไขชื่อบริการ',
+            input: 'text',
+            inputValue: oldName,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึกการแก้ไข',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#10b981',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') return 'กรุณาระบุชื่อบริการ!';
+                if (value.trim() === oldName) return 'ไม่มีการเปลี่ยนแปลง';
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                google.script.run.withSuccessHandler(res => {
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'แก้ไขสำเร็จ', timer: 1200, showConfirmButton: false });
+                        window.loadServicesManagerList();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+                    }
+                }).editRecommendedService(index, result.value.trim());
+            }
+        });
+    };
+
+    window.deleteServiceItem = function (index) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: "ข้อมูลบริการนี้จะถูกลบออกจากระบบถาวร คุณแน่ใจใช่หรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                google.script.run.withSuccessHandler(res => {
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+                        window.loadServicesManagerList();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+                    }
+                }).deleteRecommendedService(index);
+            }
+        });
+    };
+
+// --- 1.5 Music Manager Logic (CRUD & Sorting) ---
+    window.currentMusicList = [];
+
+    window.openMusicManagerModal = function () {
+        var modal = document.getElementById('musicManagerModal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        setTimeout(function () {
+            modal.classList.remove('opacity-0');
+            var innerDiv = modal.querySelector('div');
+            if (innerDiv) innerDiv.classList.remove('scale-95');
+        }, 10);
+        window.loadMusicManagerList();
+    };
+
+    window.closeMusicManagerModal = function () {
+        var modal = document.getElementById('musicManagerModal');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        var innerDiv = modal.querySelector('div');
+        if (innerDiv) innerDiv.classList.add('scale-95');
+        setTimeout(function () {
+            modal.classList.add('hidden');
+        }, 300);
+        
+        // Reload music dropdown in the player if it's already running
+        if (typeof window.BG_MUSIC_TRACKS !== 'undefined') {
+            window.BG_MUSIC_TRACKS = window.currentMusicList || [];
+            var select = document.getElementById('musicTrackSelect');
+            if (select) {
+                var currentVal = select.value;
+                select.innerHTML = '';
+                if (window.BG_MUSIC_TRACKS.length === 0) {
+                    select.innerHTML = '<option value="">(ไม่มีเพลงในระบบ)</option>';
+                    select.disabled = true;
+                } else {
+                    select.disabled = false;
+                    window.BG_MUSIC_TRACKS.forEach(function (track) {
+                        var opt = document.createElement('option');
+                        opt.value = track.id;
+                        opt.text = track.title;
+                        select.appendChild(opt);
+                    });
+                    var stillExists = window.BG_MUSIC_TRACKS.some(function (t) { return t.id === currentVal; });
+                    if (stillExists) {
+                        select.value = currentVal;
+                    } else if (window.BG_MUSIC_TRACKS.length > 0) {
+                        select.value = window.BG_MUSIC_TRACKS[0].id;
+                    }
+                }
+            }
+            Swal.fire({
+                icon: 'success',
+                title: 'อัปเดตรายการเพลงแล้ว',
+                text: 'ระบบได้ทำการอัปเดตรายการเพลงในเครื่องเล่นเพลงเรียบร้อยแล้วโดยไม่ต้องรีเฟรชหน้าเว็บ',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    };
+
+    window.loadMusicManagerList = function () {
+        var list = document.getElementById('musicManagerList');
+        if (!list) return;
+        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
+        google.script.run.withSuccessHandler(function (res) {
+            if (res.status === 'success') {
+                window.currentMusicList = res.data || [];
+                window.renderMusicManagerList(window.currentMusicList);
+                var badge = document.getElementById('musicCountBadge');
+                if (badge) badge.innerText = (window.currentMusicList.length) + ' รายการ';
+            } else {
+                list.innerHTML = '<div class="text-center text-red-500 py-6 font-bold"><i class="fas fa-exclamation-triangle mr-2"></i> ' + res.message + '</div>';
+            }
+        }).getMusicPlaylist();
+    };
+
+    window.renderMusicManagerList = function (data) {
+        var list = document.getElementById('musicManagerList');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!data || data.length === 0) {
+            list.innerHTML = 
+                '<div class="text-center text-gray-400 py-16">' +
+                    '<i class="fas fa-music text-5xl mb-4 opacity-20"></i>' +
+                    '<p class="font-medium">ยังไม่มีข้อมูลเพลงในระบบ</p>' +
+                '</div>';
+            return;
+        }
+        data.forEach(function (item, index) {
+            var div = document.createElement('div');
+            div.className = "flex items-center justify-between p-4 bg-white hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-all group";
+            div.innerHTML = 
+                '<div class="flex items-center gap-4 flex-1 min-w-0 pr-4">' +
+                    '<span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-purple-100">' + (index + 1) + '</span>' +
+                    '<div class="flex flex-col min-w-0">' +
+                        '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-purple-600 transition-colors">' + item.title + '</span>' +
+                        '<a href="https://youtube.com/watch?v=' + item.id + '" target="_blank" class="text-[10px] text-gray-400 hover:text-blue-500 truncate"><i class="fab fa-youtube text-red-500"></i> ' + item.id + '</a>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="flex items-center gap-1.5 shrink-0">' +
+                    '<button type="button" class="btn-move-up w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-sm" title="เลื่อนขึ้น"><i class="fas fa-chevron-up text-xs"></i></button>' +
+                    '<button type="button" class="btn-move-down w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-sm" title="เลื่อนลง"><i class="fas fa-chevron-down text-xs"></i></button>' +
+                    '<div class="w-px h-6 bg-gray-100 mx-1"></div>' +
+                    '<button type="button" class="btn-edit w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-orange-500 hover:bg-orange-50 hover:border-orange-200 transition-all flex items-center justify-center shadow-sm" title="แก้ไข"><i class="fas fa-edit text-xs"></i></button>' +
+                    '<button type="button" class="btn-delete w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center shadow-sm" title="ลบ"><i class="fas fa-trash-alt text-xs"></i></button>' +
+                '</div>';
+
+            if (index === 0) div.querySelector('.btn-move-up').disabled = true;
+            if (index === data.length - 1) div.querySelector('.btn-move-down').disabled = true;
+
+            div.querySelector('.btn-move-up').onclick = function () { moveMusicItem(index, -1); };
+            div.querySelector('.btn-move-down').onclick = function () { moveMusicItem(index, 1); };
+            div.querySelector('.btn-edit').onclick = function () { editMusicItem(index, item.id, item.title); };
+            div.querySelector('.btn-delete').onclick = function () { deleteMusicItem(index); };
+
+            list.appendChild(div);
+        });
+    };
+
+        window.moveMusicItem = function (index, direction) {
+        var newList = window.currentMusicList.slice();
+        var targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= newList.length) return;
+        var temp = newList[index];
+        newList[index] = newList[targetIndex];
+        newList[targetIndex] = temp;
+        window.currentMusicList = newList;
+        window.renderMusicManagerList(newList);
+        google.script.run.withSuccessHandler(function (res) {
+            if (res.status !== 'success') {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกลำดับใหม่ได้: ' + res.message, 'error');
+                window.loadMusicManagerList();
+            }
+        }).saveFullMusicPlaylist(newList);
+    };
+
+    window.addNewMusic = function () {
+        var urlInput = document.getElementById('newMusicUrlInput');
+        if (!urlInput) return;
+        var url = urlInput.value.trim();
+        if (!url) {
+            Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาระบุลิงก์ YouTube ให้ครบถ้วน' });
+            return;
+        }
+        Swal.fire({ title: 'กำลังดึงข้อมูลและบันทึก...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+        google.script.run.withSuccessHandler(function (res) {
+            if (res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', text: 'เพิ่มเพลงใหม่เรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+                urlInput.value = '';
+                window.loadMusicManagerList();
+            } else {
+                Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+            }
+        }).addMusicTrack(url, '');
+    };
+
+    window.editMusicItem = function (index, oldUrl, oldTitle) {
+        var fullUrl = oldUrl.indexOf('http') === -1 ? 'https://www.youtube.com/watch?v=' + oldUrl : oldUrl;
+        Swal.fire({
+            title: 'แก้ไขเพลง',
+            html: 
+                '<input id="swal-input-url" class="swal2-input" placeholder="YouTube URL (เช่น https://www.youtube.com/watch?v=6xzuBUDsixo)" value="' + fullUrl + '">' +
+                '<input id="swal-input-title" class="swal2-input" placeholder="ชื่อเพลง" value="' + oldTitle + '">',
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึกการแก้ไข',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#10b981',
+            preConfirm: function () {
+                var url = document.getElementById('swal-input-url').value;
+                var title = document.getElementById('swal-input-title').value;
+                if (!url || !title) {
+                    Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบถ้วน!');
+                    return false;
+                }
+                return { url: url, title: title };
+            }
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังบันทึกการแก้ไข...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+                google.script.run.withSuccessHandler(function (res) {
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'แก้ไขสำเร็จ', timer: 1200, showConfirmButton: false });
+                        window.loadMusicManagerList();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+                    }
+                }).editMusicTrack(index, result.value.url, result.value.title);
+            }
+        });
+    };
+
+    window.deleteMusicItem = function (index) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: "เพลงนี้จะถูกลบออกจากรายการถาวร คุณแน่ใจใช่หรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบรายการ...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+                google.script.run.withSuccessHandler(function (res) {
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+                        window.loadMusicManagerList();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message });
+                    }
+                }).deleteMusicTrack(index);
+            }
+        });
+    };
+
+    
+    // ==========================================
+    // 3. TEMPLATE MANAGER LOGIC
+    // ==========================================
+    window.loadPostNewsTemplates = function () {
+        const list = document.getElementById('postNewsTemplateList');
+        if (!list) return;
+
+        list.innerHTML = '<div class="text-center text-gray-400 py-12 w-full col-span-full"><i class="fas fa-circle-notch fa-spin text-theme-orange mb-3 text-3xl"></i><br>กำลังโหลดข้อมูลแม่แบบ...</div>';
+
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                window.renderPostNewsTemplateList(res.data);
+            } else {
+                list.innerHTML = `<div class="text-center text-red-500 py-6 col-span-full font-bold">${res.message}</div>`;
+            }
+        }).getPostNewsTemplates();
+    };
+
+    window.renderPostNewsTemplateList = function (data) {
+        const list = document.getElementById('postNewsTemplateList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            list.innerHTML = `
+                <div class="text-center text-gray-400 py-12 col-span-full border-2 border-dashed border-gray-200 rounded-2xl">
+                    <i class="far fa-images text-5xl mb-4 opacity-20"></i>
+                    <p class="font-medium">ยังไม่มีรูปภาพแม่แบบในฐานข้อมูล</p>
+                    <p class="text-[10px] mt-2 italic">กรุณาเพิ่มลิงก์ Google Drive เพื่อเริ่มใช้งาน</p>
+                </div>`;
+            return;
+        }
+
+        data.forEach((item, index) => {
+            const isUse = (item.status === 'Use');
+            let imgUrl = item.url;
+
+            if (typeof getDriveDirectUrl === 'function') {
+                imgUrl = getDriveDirectUrl(item.url);
+            }
+
+            const borderClass = isUse ? 'ring-4 ring-green-500 border-green-500 shadow-xl' : 'border border-gray-200';
+            const badgeHtml = isUse ? '<div class="absolute top-3 left-3 bg-green-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg z-20 animate-bounce"><i class="fas fa-check-circle mr-1"></i> ใช้งานอยู่</div>' : '';
+
+            const div = document.createElement('div');
+            // เพิ่ม flex flex-col เพื่อจัดระเบียบภายในการ์ด
+            div.className = `relative bg-white rounded-2xl overflow-hidden group ${borderClass} transition-all duration-300 hover:shadow-2xl flex flex-col`;
+
+            // ใช้เทคนิค Padding-Top Hack (141.4%) เพื่อบังคับสัดส่วน A4 แนวตั้งแบบ 100% ชัวร์
+            div.innerHTML = `
+                <div class="w-full bg-slate-100 relative overflow-hidden" style="padding-top: 141.4%;">
+                    ${badgeHtml}
+                    <div class="absolute inset-0 flex items-center justify-center p-3 z-10">
+                        <img src="${imgUrl}" crossorigin="anonymous" class="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500 drop-shadow-md" onerror="this.src=''; this.parentElement.innerHTML='<div class=\\'flex flex-col items-center\\'><i class=\\'fas fa-image text-gray-300 text-4xl mb-2\\'></i><span class=\\'text-[9px] text-gray-400 font-bold\\'>โหลดภาพไม่สำเร็จ</span></div>';">
+                    </div>
+                </div>
+                <div class="p-4 bg-white flex justify-between items-center gap-3 border-t border-gray-100 mt-auto relative z-20">
+                    ${!isUse ?
+                    `<button onclick="setPostNewsTemplateActive(${index})" class="flex-1 bg-white border border-gray-200 text-gray-700 hover:bg-green-50 hover:text-green-600 hover:border-green-300 text-xs py-2 rounded-xl transition-all font-bold shadow-sm">
+                            <i class="fas fa-mouse-pointer mr-1"></i> เลือกใช้
+                        </button>` :
+                    `<button disabled class="flex-1 bg-green-50 text-green-700 border border-green-200 text-xs py-2 rounded-xl font-black shadow-inner cursor-not-allowed">
+                            <i class="fas fa-check mr-1"></i> กำลังใช้งาน
+                        </button>`
+                }
+                    <button onclick="deletePostNewsTemplate(${index})" class="w-10 h-10 rounded-xl bg-white border border-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center shadow-sm" title="ลบแม่แบบ">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    };
+
+    window.addNewPostNewsTemplate = function () {
+        const input = document.getElementById('newPostNewsTemplateInput');
+        if (!input) return;
+
+        const url = input.value.trim();
+        if (!url) { Swal.fire({ icon: 'warning', title: 'ข้อมูลว่างเปล่า', text: 'กรุณาระบุลิงก์ Google Drive' }); return; }
+
+        Swal.fire({ title: 'กำลังเพิ่มรูปภาพ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', timer: 1200, showConfirmButton: false });
+                input.value = '';
+                window.loadPostNewsTemplates();
+            } else { Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message }); }
+        }).addPostNewsTemplate(url);
+    };
+
+    window.setPostNewsTemplateActive = function (index) {
+        Swal.fire({ title: 'กำลังเปลี่ยนแม่แบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                Swal.fire({ icon: 'success', title: 'สำเร็จ', timer: 1200, showConfirmButton: false });
+                window.loadPostNewsTemplates();
+            } else { Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message }); }
+        }).setPostNewsTemplateActive(index);
+    };
+
+    window.deletePostNewsTemplate = function (index) {
+        Swal.fire({
+            title: 'ยืนยันการลบ?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'ใช่, ลบแม่แบบ',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                google.script.run.withSuccessHandler(res => {
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1000, showConfirmButton: false });
+                        window.loadPostNewsTemplates();
+                    } else { Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message }); }
+                }).deletePostNewsTemplate(index);
+            }
+        });
+    };
+
+    // ==========================================
+    // 4. AUTOMATIONS & A1-A14 EXTRACT LOGIC
+    // ==========================================
+    window.fetchLastUpdateA1A14 = function () {
+        const dateEl = document.getElementById('headerExtractA1A14Date');
+        if (dateEl) dateEl.innerText = 'อัปเดต: กำลังตรวจสอบ...';
+
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run.withSuccessHandler(function (res) {
+                if (res.status === 'success' && res.data) {
+                    const d = new Date(res.data);
+                    const dateStr = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    if (dateEl) dateEl.innerText = 'อัปเดต: ' + dateStr + ' น.';
+                } else {
+                    if (dateEl) dateEl.innerText = 'อัปเดต: ไม่มีข้อมูล';
+                }
+            }).withFailureHandler(function (err) {
+                if (dateEl) dateEl.innerText = 'อัปเดต: ไม่ทราบ';
+            }).getLastUpdateDateA1A14();
+        }
+    };
+
+    window.triggerExtractA1A14 = function () {
+        Swal.fire({
+            title: 'ยืนยันการดึงข้อมูล?',
+            text: "ระบบจะทำการดึงรายชื่อลูกค้า EMS Package A1-A14 ที่ไม่ซ้ำกัน ไปบันทึกที่ชีตเป้าหมาย",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ใช่, ดึงข้อมูลเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let startTime = Date.now();
+                let timerInterval;
+
+                Swal.fire({
+                    title: 'กำลังประมวลผล...',
+                    html: '<div class="mt-2 text-sm text-gray-600">ระบบกำลังดึงข้อมูลและคัดกรองรายชื่อ</div><div class="mt-4 font-mono text-xl text-theme-orange font-bold">เวลาที่ใช้: <span id="extractTimer">0</span> วินาที</div>',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        timerInterval = setInterval(() => {
+                            let elapsed = Math.floor((Date.now() - startTime) / 1000);
+                            const timerEl = document.getElementById('extractTimer');
+                            if (timerEl) timerEl.textContent = elapsed;
+                        }, 1000);
+                    },
+                    willClose: () => clearInterval(timerInterval)
+                });
+
+                if (typeof google !== 'undefined' && google.script) {
+                    google.script.run
+                        .withSuccessHandler(function (res) {
+                            clearInterval(timerInterval);
+                            let totalSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                            if (res.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'ดึงข้อมูลสำเร็จ!',
+                                    html: `
+                                      <div class="text-left bg-gray-50 p-5 rounded-xl mt-3 text-sm border border-gray-200 shadow-inner">
+                                         <div class="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                                             <span class="font-bold text-gray-700">จำนวนลูกค้า (ไม่ซ้ำ)</span>
+                                             <span class="text-blue-600 font-bold text-base">${res.count.toLocaleString()} <span class="text-xs font-normal">รายการ</span></span>
+                                         </div>
+                                         <div class="flex items-center justify-between">
+                                             <span class="font-bold text-gray-700">เวลาที่ใช้ทั้งหมด</span>
+                                             <span class="text-orange-500 font-bold text-base">${totalSeconds} <span class="text-xs font-normal">วินาที</span></span>
+                                         </div>
+                                      </div>
+                                    `,
+                                    confirmButtonText: 'ตกลง',
+                                    confirmButtonColor: '#062e21'
+                                }).then(() => { window.fetchLastUpdateA1A14(); });
+                            } else { Swal.fire('ผิดพลาด', res.message, 'error'); }
+                        })
+                        .withFailureHandler(function (err) {
+                            clearInterval(timerInterval);
+                            Swal.fire('ผิดพลาด', err.toString(), 'error');
+                        })
+                        .extractA1A14Customers();
+                }
+            }
+        });
+    };
+
+    window.setupDailyTrigger = function () {
+        Swal.fire({
+            title: 'ยืนยันการตั้งเวลา?',
+            text: "ระบบจะดึงรายชื่อลูกค้า A1-A14 อัตโนมัติทุกวัน เวลา 01:00 น.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb', cancelButtonColor: '#d33', confirmButtonText: 'ตกลง'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังตั้งค่า...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                google.script.run.withSuccessHandler(res => {
+                    if (res.status === 'success') { Swal.fire('สำเร็จ!', res.message, 'success'); window.checkAutoTriggerStatus(); }
+                    else { Swal.fire('ผิดพลาด', res.message, 'error'); }
+                }).createDailyTriggerA1A14();
+            }
+        });
+    };
+
+    window.removeDailyTrigger = function () {
+        Swal.fire({
+            title: 'ยืนยันการยกเลิก?',
+            text: "ยกเลิกการดึงข้อมูลอัตโนมัติ",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', cancelButtonColor: '#6b7280', confirmButtonText: 'ยกเลิกการตั้งเวลา'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                google.script.run.withSuccessHandler(res => {
+                    if (res.status === 'success') { Swal.fire('สำเร็จ!', res.message, 'success'); window.checkAutoTriggerStatus(); }
+                    else { Swal.fire('ผิดพลาด', res.message, 'error'); }
+                }).deleteDailyTriggerA1A14();
+            }
+        });
+    };
+
+    window.checkAutoTriggerStatus = function () {
+        const badge = document.getElementById('autoTriggerStatusBadge');
+        if (badge) {
+            badge.className = 'bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-[10px] ml-2 font-bold transition-all';
+            badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ตรวจสอบ...';
+        }
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run.withSuccessHandler(res => {
+                if (badge && res.status === 'active') {
+                    badge.className = 'bg-green-100 text-green-700 border border-green-200 px-3 py-1 rounded-full text-[10px] ml-2 font-black transition-all shadow-sm';
+                    badge.innerHTML = '<i class="fas fa-check-circle"></i> ทำงาน 01:00 น.';
+                } else if (badge) {
+                    badge.className = 'bg-gray-100 text-gray-500 border border-gray-200 px-3 py-1 rounded-full text-[10px] ml-2 font-bold transition-all';
+                    badge.innerHTML = '<i class="fas fa-power-off"></i> ปิดใช้งาน';
+                }
+            }).checkDailyTriggerA1A14();
+        }
+    };
+</script>

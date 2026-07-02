@@ -1,0 +1,17 @@
+# Ignore all files by default
+**/**
+
+# Except these
+!appsscript.json
+!*.js
+!*.html
+
+# Specifically ignore local Node.js and configuration files
+update-version.js
+apply_cache.js
+package.json
+package-lock.json
+node_modules/**
+.gitignore
+.claspignore
+README.md

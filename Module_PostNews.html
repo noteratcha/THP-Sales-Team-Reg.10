@@ -1,0 +1,1311 @@
+<!-- PAGE: POST NEWS -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left: Editor Panel -->
+    <div class="lg:col-span-1 space-y-4">
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 space-y-4">
+            <div>
+                <label
+                    class="form-label text-[10px] font-bold text-gray-400 mb-2 block uppercase">เลือกรายการเข้าพบล่าสุด</label>
+                <select id="newsDataSelector" onchange="renderNewsPreviewFromSelect()"
+                    class="w-full p-2 border border-gray-300 rounded-lg text-xs bg-gray-50 focus:ring-1 focus:ring-theme-orange focus:outline-none font-sans"></select>
+            </div>
+            <div class="border-t border-gray-100 pt-4">
+                <label class="form-label text-[10px] font-bold text-gray-400 mb-2 block uppercase">รูปแบบภาพพื้นหลัง
+                    (Template)</label>
+                <select id="newsTemplateSelector" onchange="changePostNewsTemplate(this.value)"
+                    class="w-full p-2 border border-gray-300 rounded-lg text-xs bg-gray-50 focus:ring-1 focus:ring-theme-orange focus:outline-none font-sans">
+                    <option value="">กำลังโหลด...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200" id="newsEditPanel">
+            <div class="mb-4">
+                <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">วันที่แสดงในรูป</label>
+                <input type="date" id="newsDateInput" oninput="updateDateDisplay(this); updateNewsPreview()"
+                    class="w-full text-xs p-2 border border-gray-300 rounded-lg outline-none focus:border-theme-orange font-sans custom-date-th"
+                    data-date="วว/ดด/ปปปป">
+            </div>
+            <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center mb-3 border-b border-gray-200 pb-1">
+                    <p class="text-xs font-bold text-gray-600"><i class="fas fa-image"></i> ปรับแต่งรูปภาพ</p>
+                    <button type="button" onclick="resetImageSettings()"
+                        class="text-[10px] bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition"><i
+                            class="fas fa-undo mr-1"></i>คืนค่าเริ่มต้น</button>
+                </div>
+                <div class="mb-3">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase flex justify-between mb-1">
+                        <span>ความสูงกรอบรูป</span>
+                        <span id="newsImageHeightValue" class="text-theme-orange">280px</span>
+                    </label>
+                    <input type="range" id="newsImageHeightInput" min="100" max="800" step="10" value="280"
+                        oninput="updateNewsPreview()" class="w-full accent-theme-orange cursor-pointer">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">หัวข้อข่าวประชาสัมพันธ์</label>
+                <textarea id="newsTitleInput" oninput="updateNewsPreview()" placeholder="ระบุหัวข้อข่าว..."
+                    class="w-full text-xs p-2 border border-gray-300 rounded-lg outline-none focus:border-theme-orange font-sans"
+                    rows="3"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">รายละเอียดข่าวสาร</label>
+                <textarea id="newsDetailInput" oninput="updateNewsPreview()"
+                    class="w-full text-xs p-2 border border-gray-300 rounded-lg outline-none focus:border-theme-orange font-sans"
+                    rows="12" placeholder="ระบุรายละเอียด..."></textarea>
+            </div>
+            <div class="mb-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">ลงชื่อ / ผู้จัดทำ</label>
+                <input type="text" id="newsTeamInput" oninput="updateNewsPreview()"
+                    class="w-full text-xs p-2 border border-gray-300 rounded-lg outline-none focus:border-theme-orange font-sans">
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Canvas Preview -->
+    <div
+        class="lg:col-span-2 flex justify-center overflow-hidden bg-gray-100 p-2 md:p-6 rounded-xl relative shadow-inner">
+        <div class="scale-wrapper">
+            <div id="newsCaptureArea" class="bg-white relative shadow-2xl overflow-hidden font-sans"
+                style="width: 800px; height: 1131px; background-color: #ffffff;">
+                <img id="newsTemplateBg" src="" class="absolute inset-0 w-full h-full object-cover z-0"
+                    crossorigin="anonymous" alt="News Background">
+                <div id="newsPreviewDate"
+                    class="absolute top-[115px] right-[70px] z-10 text-[18px] font-normal text-black text-right w-[300px]">
+                </div>
+                <div class="relative z-10 w-full h-full flex flex-col pt-[200px] px-[70px] pb-[30px]">
+                    <div id="newsPreviewTitle"
+                        class="text-center text-[28px] font-normal text-black mb-6 leading-tight whitespace-pre-wrap">
+                        หัวข้อข่าวประชาสัมพันธ์</div>
+
+                    <div id="newsImageWrapper" class="mx-auto rounded-2xl mb-6 bg-white overflow-hidden"
+                        style="width: 560px; max-width: 660px; transition: width 0.3s;">
+                        <div id="newsImageContainer" onclick="document.getElementById('postNewsImageUpload').click()"
+                            class="bg-white rounded-2xl border-4 border-white flex items-center justify-center relative overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                            style="height: 280px; width: 100%;" title="คลิกเพื่ออัปโหลด/เปลี่ยนรูปภาพ">
+                            <img id="newsPreviewImage" src="" class="h-full w-auto block hidden object-cover">
+                            <div id="newsPreviewNoImage"
+                                class="flex flex-col items-center justify-center text-gray-300 w-full py-16">
+                                <i class="fas fa-image text-6xl mb-2"></i>
+                                <span class="text-xl">ไม่มีรูปภาพประกอบ</span>
+                                <span class="text-sm mt-2 text-theme-orange font-bold">(คลิกเพื่อเพิ่มรูปภาพ)</span>
+                            </div>
+                            <input type="file" id="postNewsImageUpload" accept="image/*" class="hidden"
+                                onchange="handlePostNewsImageUpload(this)">
+                        </div>
+                    </div>
+
+                    <div class="flex-1 flex flex-col bg-transparent p-2 md:p-8">
+                        <p id="newsPreviewDetail"
+                            class="text-[16px] text-black leading-[1.8] text-left indent-12 whitespace-pre-wrap flex-1 tracking-normal">
+                            รายละเอียดการเข้าพบจะแสดงที่นี่...</p>
+                    </div>
+
+                    <div class="mt-8 flex justify-between items-end gap-4">
+                        <div class="text-left flex-1">
+                            <p id="newsPreviewSubject" class="text-[16px] font-normal text-black tracking-normal pl-2">
+                            </p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p id="newsPreviewTeam" class="text-[16px] font-normal text-black pr-2 whitespace-nowrap">
+                                ส่วนทีมขายและดูแลลูกค้า ปข.10</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 🔊 นำเข้าเสียงแจ้งเตือนจากระบบส่วนกลาง (Core Module)
+    var successSound = window.successSound;
+    var errorSound = window.errorSound;
+
+    // ==========================================
+    // 5. POST NEWS LOGIC
+    // ==========================================
+    function initPostNews() {
+        showGlobalLoader('กำลังดึงภาพพื้นหลังจากระบบ...');
+
+        // 1. ดึงเทมเพลตทั้งหมดเพื่อสร้างตัวเลือกใน Dropdown
+        google.script.run.withSuccessHandler(function (res) {
+            var selector = document.getElementById('newsTemplateSelector');
+            var defaultUrl = '';
+
+            if (res.status === 'success' && res.data && res.data.length > 0) {
+                if (selector) {
+                    selector.innerHTML = '';
+                    res.data.forEach(function (t, idx) {
+                        var isUse = t.status === 'Use';
+                        if (isUse && !defaultUrl) defaultUrl = t.url;
+                        var opt = document.createElement('option');
+                        opt.value = t.url;
+
+                        var label = t.name || ('แบบที่ ' + (idx + 1));
+
+                        opt.text = label + (isUse ? ' (ค่าเริ่มต้น)' : '');
+                        if (isUse) opt.selected = true;
+                        selector.appendChild(opt);
+                    });
+
+                    // หากไม่มีการระบุ Use เลย ให้ใช้อันแรกเป็น Default
+                    if (!defaultUrl && res.data[0]) defaultUrl = res.data[0].url;
+                }
+            } else {
+                if (selector) selector.innerHTML = '<option value="">ไม่มีข้อมูลแม่แบบ</option>';
+            }
+
+            if (!defaultUrl) {
+                defaultUrl = window.DEFAULT_POST_NEWS_TEMPLATE;
+            }
+
+            // 2. โหลดภาพ Base64 จาก URL เริ่มต้นที่หาได้
+            preloadTemplateToBase64(defaultUrl, function (success) {
+                if (!success) {
+                    console.error("Post News Background: ไม่สามารถโหลดรูปได้ กรุณาตรวจสอบการตั้งค่าการแชร์ใน Google Drive");
+                }
+                continueInitPostNews();
+            });
+        }).withFailureHandler(function (err) {
+            console.error("Error loading templates: ", err);
+            continueInitPostNews();
+        }).getPostNewsTemplates();
+    }
+
+    // ฟังก์ชันสานต่อการทำงานหลังจากโหลดรูปพื้นหลังเสร็จ
+    function continueInitPostNews() {
+        if (allFetchedRows.length === 0) {
+            google.script.run.withSuccessHandler(function (r) {
+                hideGlobalLoader();
+                if (r.status === 'success') {
+                    var data = r.data;
+                    allFetchedRows = [];
+                    for (var i = data.length - 1; i >= 1; i--) {
+                        var row = data[i].slice();
+                        row.push(i + 1);
+                        allFetchedRows.push(row);
+                    }
+                    populatePostNewsSelector();
+                    renderNewsPreviewFromSelect();
+                }
+            }).getDataForTable();
+        } else {
+            hideGlobalLoader();
+            populatePostNewsSelector();
+            renderNewsPreviewFromSelect();
+        }
+    }
+
+    // เมื่อผู้ใช้เปลี่ยน Template จาก Dropdown
+    window.changePostNewsTemplate = function (url) {
+        if (!url) return;
+        showGlobalLoader('กำลังเปลี่ยนภาพพื้นหลัง...');
+        preloadTemplateToBase64(url, function (success) {
+            hideGlobalLoader();
+            if (!success) {
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดรูปภาพแม่แบบได้ กรุณาลองเลือกรูปแบบอื่น', 'error');
+            }
+        });
+    };
+
+    /**
+     * 🔹 เทคนิคระดับโปร: Pre-load รูปภาพผ่าน Proxy และแปลงเป็น Base64
+     * เพื่อให้ภาพแสดงผลได้ 100% และ html2canvas ไม่ติดปัญหา CORS ตอนดาวน์โหลด
+     */
+    function preloadUrlToBase64(url, targetImgElement, callback) {
+        if (!targetImgElement) { if (callback) callback(false); return; }
+
+        // ดึง File ID จากลิงก์ Google Drive เฉพาะเจาะจงเพื่อหลีกเลี่ยงการจับ URL ภายนอกทั่วไปผิดพลาด
+        var fileId = "";
+        var match1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        var match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match1 && match1[1]) fileId = match1[1];
+        else if (match2 && match2[1]) fileId = match2[1];
+
+        if (!fileId) {
+            targetImgElement.removeAttribute('crossorigin');
+            targetImgElement.src = url;
+            if (callback) callback(true);
+            return;
+        }
+
+        // ลำดับช่องทางการดึงรูป (Thumbnail API เสถียรสุดสำหรับ CORS)
+        var driveUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1600";
+
+        // รายชื่อ Proxy ที่ผ่านการทดสอบว่าทำงานได้ดี
+        var proxyUrls = [
+            "https://api.allorigins.win/raw?url=",
+            "https://corsproxy.io/?url=",
+            "https://images.weserv.nl/?url="
+        ];
+
+        function tryFetchProxy(index) {
+            if (index >= proxyUrls.length) {
+                // ถ้าล้มเหลวทุก Proxy ให้ลองใช้ระบบ Thumbnail ตรงๆ โดยถอด crossorigin ออกเพื่อการันตีการแสดงผลภาพบนเบราว์เซอร์
+                targetImgElement.removeAttribute('crossorigin');
+                targetImgElement.src = driveUrl;
+                if (callback) callback(false);
+                return;
+            }
+
+            var finalUrl = proxyUrls[index] + encodeURIComponent(driveUrl);
+
+            fetch(finalUrl)
+                .then(function (res) {
+                    if (!res.ok) throw new Error("Proxy response error");
+                    return res.blob();
+                })
+                .then(function (blob) {
+                    var reader = new FileReader();
+                    reader.onloadend = function () {
+                        var base64data = reader.result;
+                        targetImgElement.removeAttribute('crossorigin');
+                        targetImgElement.src = base64data;
+                        targetImgElement.setAttribute('data-base64-loaded', 'true');
+                        if (callback) callback(true);
+                    };
+                    reader.readAsDataURL(blob);
+                })
+                .catch(function (e) {
+                    tryFetchProxy(index + 1);
+                });
+        }
+
+        tryFetchProxy(0);
+    }
+
+    function preloadTemplateToBase64(url, callback) {
+        var bgImg = document.getElementById('newsTemplateBg');
+        preloadUrlToBase64(url, bgImg, callback);
+    }
+
+    function populatePostNewsSelector() {
+        var selector = document.getElementById('newsDataSelector');
+        if (!selector) return;
+        selector.innerHTML = '<option value="">-- กรุณาเลือกรายการเข้าพบ (เริ่มใหม่) --</option>';
+        var recentRows = allFetchedRows.slice(0, 20);
+        recentRows.forEach(function (row, index) {
+            var date = row[0] ? row[0].split(' ')[0] : '-';
+            var customer = row[7] || 'ไม่ระบุชื่อ';
+            var subject = row[1] || 'ไม่ระบุหัวข้อ';
+            var option = document.createElement('option');
+            option.value = index;
+            option.textContent = "[" + date + "] " + subject + " - " + customer;
+            selector.appendChild(option);
+        });
+    }
+
+    function jumpToPostNews(sheetRowIndex, rowData) {
+        switchPage('postnews');
+        setTimeout(function () { applyDataToPostNews(rowData); }, 100);
+    }
+
+    function renderNewsPreviewFromSelect() {
+        var selector = document.getElementById('newsDataSelector');
+        var index = selector ? selector.value : '';
+        var editPanel = document.getElementById('newsEditPanel');
+        if (editPanel) editPanel.style.display = 'block';
+
+        var signature = 'ส่วนทีมขายและดูแลลูกค้า ปข.10';
+        if (currentUserInfo && currentUserInfo.user !== 'admin') {
+            var teamName = currentUserInfo.team || 'ทีมขาย';
+            var zipCode = currentUserInfo.zipcode || '';
+            signature = teamName + (zipCode ? " (" + zipCode + ")" : "");
+        }
+
+        if (index === "") {
+            var trySetInput = function (id, val) { var el = document.getElementById(id); if (el) el.value = val; }
+            var trySetText = function (id, text) { var el = document.getElementById(id); if (el) el.innerText = text; }
+
+            trySetInput('newsDateInput', ''); trySetInput('newsTitleInput', ''); trySetInput('newsDetailInput', ''); trySetInput('newsTeamInput', signature);
+            trySetText('newsPreviewTitle', 'หัวข้อข่าวประชาสัมพันธ์'); trySetText('newsPreviewDetail', 'รายละเอียดการเข้าพบจะแสดงที่นี่...');
+            trySetText('newsPreviewTeam', signature); trySetText('newsPreviewDate', ''); trySetText('newsPreviewSubject', '');
+            var previewImg = document.getElementById('newsPreviewImage');
+            if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); }
+            var noImg = document.getElementById('newsPreviewNoImage');
+            if (noImg) noImg.classList.remove('hidden');
+
+            var fileInput = document.getElementById('postNewsImageUpload');
+            if (fileInput) fileInput.value = '';
+
+            resetImageSettings();
+            return;
+        }
+        applyDataToPostNews(allFetchedRows[index]);
+    }
+
+    function resetPostNews() {
+        var selector = document.getElementById('newsDataSelector');
+        if (selector) selector.value = "";
+
+        // 💡 เพิ่มการรีเซ็ตกลับเป็น Template ค่าเริ่มต้นด้วย
+        var tmplSelector = document.getElementById('newsTemplateSelector');
+        if (tmplSelector) {
+            for (var i = 0; i < tmplSelector.options.length; i++) {
+                if (tmplSelector.options[i].text.includes('ค่าเริ่มต้น')) {
+                    tmplSelector.selectedIndex = i;
+                    window.changePostNewsTemplate(tmplSelector.value);
+                    break;
+                }
+            }
+        }
+
+        renderNewsPreviewFromSelect();
+    }
+
+    function handlePostNewsImageUpload(input) {
+        var file = input.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var previewImg = document.getElementById('newsPreviewImage');
+                var noImgDiv = document.getElementById('newsPreviewNoImage');
+
+                if (previewImg && noImgDiv) {
+                    previewImg.onload = function () { adjustNewsImageWidth(); };
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                    noImgDiv.classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function applyDataToPostNews(rowData) {
+        var dateStr = rowData[0] ? rowData[0].split(' ')[0] : '';
+        var subject = rowData[1] || '-';
+        var teamInRow = rowData[6] || '-';
+        var office = rowData[4] || '-';
+        var customer = rowData[7] || '-';
+        var customerGroup = rowData[2] || '-';
+        var phone = rowData[8] ? String(rowData[8]).replace(/^'/, "") : '-';
+        var productType = rowData[9] || '-';
+        var salesChannel = rowData[10] || '-';
+        var shippingVolume = rowData[11] || '-';
+        var currentCarrier = rowData[12] || '-';
+        var imgUrl = rowData[18] || '';
+
+        var maskedPhone = phone;
+        if (maskedPhone !== '-' && maskedPhone.length >= 4) {
+            maskedPhone = maskedPhone.substring(0, maskedPhone.length - 4) + 'xxxx';
+        }
+
+        var thaiDateFull = dateStr;
+        var isoDate = '';
+        if (dateStr) {
+            var dateParts = dateStr.split('/');
+            if (dateParts.length === 3) {
+                var d = parseInt(dateParts[0]);
+                var m = parseInt(dateParts[1]) - 1;
+                var y = parseInt(dateParts[2]);
+                var thaiMonthsLocal = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                thaiDateFull = d + " " + thaiMonthsLocal[m] + " " + (y + 543);
+                isoDate = y + "-" + String(m + 1).padStart(2, '0') + "-" + String(d).padStart(2, '0');
+            }
+        }
+
+        var titleText = subject + " " + customer;
+        var detailText = "เมื่อวันที่ " + thaiDateFull + " นำทีมโดย " + teamInRow + " (" + office + ") ได้เข้าพบผู้ประกอบการ " + customer + " (เบอร์โทร: " + maskedPhone + ") ซึ่งเป็นกลุ่มลูกค้า " + customerGroup + " โดยจำหน่ายสินค้าประเภท" + productType + " ผ่านช่องทาง" + salesChannel + " มีปริมาณการจัดส่งประมาณ " + shippingVolume + " ชิ้น/เดือน (ปัจจุบันใช้บริการขนส่งของ " + currentCarrier + ")\n\nการเข้าพบครั้งนี้มีหัวข้อในการพูดคุยคือ \"" + subject + "\" โดยมีรายละเอียดดังนี้...";
+
+        var signature = 'ส่วนทีมขายและดูแลลูกค้า ปข.10';
+        if (currentUserInfo && currentUserInfo.user !== 'admin') {
+            var teamName = currentUserInfo.team || 'ทีมขาย';
+            var zipCode = currentUserInfo.zipcode || '';
+            signature = teamName + (zipCode ? " (" + zipCode + ")" : "");
+        }
+
+        var trySetInput = function (id, val) { var el = document.getElementById(id); if (el) el.value = val; }
+        trySetInput('newsTitleInput', titleText); trySetInput('newsDetailInput', detailText); trySetInput('newsDateInput', isoDate); trySetInput('newsTeamInput', signature);
+
+        var previewSubj = document.getElementById('newsPreviewSubject');
+        if (previewSubj) previewSubj.innerText = subject !== '-' ? "ประเภท : " + subject : "";
+
+        var previewImg = document.getElementById('newsPreviewImage');
+        var noImgDiv = document.getElementById('newsPreviewNoImage');
+
+        var fileInput = document.getElementById('postNewsImageUpload');
+        if (fileInput) fileInput.value = '';
+
+        if (imgUrl && imgUrl.startsWith('http') && previewImg && noImgDiv) {
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดรูปภาพประกอบข่าว...');
+            preloadUrlToBase64(imgUrl, previewImg, function (success) {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                previewImg.onload = function () { adjustNewsImageWidth(); };
+                adjustNewsImageWidth();
+                previewImg.classList.remove('hidden');
+                noImgDiv.classList.add('hidden');
+            });
+        } else if (previewImg && noImgDiv) {
+            previewImg.src = '';
+            previewImg.classList.add('hidden');
+            noImgDiv.classList.remove('hidden');
+            adjustNewsImageWidth();
+        }
+        updateNewsPreview();
+    }
+
+    function updateNewsPreview() {
+        var trySetText = function (id, text) { var el = document.getElementById(id); if (el) el.innerText = text; }
+        trySetText('newsPreviewTitle', document.getElementById('newsTitleInput').value || 'หัวข้อข่าวประชาสัมพันธ์');
+        trySetText('newsPreviewDetail', document.getElementById('newsDetailInput').value || 'รายละเอียดการเข้าพบจะแสดงที่นี่...');
+        trySetText('newsPreviewTeam', document.getElementById('newsTeamInput').value || '-');
+
+        var rawDate = document.getElementById('newsDateInput').value;
+        if (rawDate) {
+            var parts = rawDate.split('-');
+            var thaiMonthsLocal = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            trySetText('newsPreviewDate', parseInt(parts[2]) + " " + thaiMonthsLocal[parseInt(parts[1]) - 1] + " " + (parseInt(parts[0]) + 543));
+        } else {
+            trySetText('newsPreviewDate', '');
+        }
+
+        var heightInput = document.getElementById('newsImageHeightInput');
+        if (heightInput) {
+            var imgContainer = document.getElementById('newsImageContainer');
+            if (imgContainer) imgContainer.style.height = heightInput.value + 'px';
+            var heightValDisplay = document.getElementById('newsImageHeightValue');
+            if (heightValDisplay) heightValDisplay.innerText = heightInput.value + 'px';
+            adjustNewsImageWidth();
+        }
+    }
+
+    function resetImageSettings() {
+        var heightInput = document.getElementById('newsImageHeightInput');
+        if (heightInput) heightInput.value = 280;
+        updateNewsPreview();
+    }
+
+    function adjustNewsImageWidth() {
+        var previewImg = document.getElementById('newsPreviewImage');
+        var wrapper = document.getElementById('newsImageWrapper');
+        var heightInput = document.getElementById('newsImageHeightInput');
+        if (!wrapper) return;
+        if (previewImg && !previewImg.classList.contains('hidden') && previewImg.naturalWidth) {
+            var targetHeight = heightInput ? parseInt(heightInput.value) : 280;
+            var calculatedWidth = targetHeight * (previewImg.naturalWidth / previewImg.naturalHeight);
+            if (calculatedWidth > 660) calculatedWidth = 660;
+            wrapper.style.width = Math.round(calculatedWidth) + 'px';
+        } else {
+            wrapper.style.width = '560px';
+        }
+    }
+
+    function downloadNewsImage() {
+        var captureArea = document.getElementById('newsCaptureArea');
+        if (!captureArea) return;
+        Swal.fire({ title: 'กำลังสร้างรูปภาพ...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+
+        document.fonts.ready.then(function () {
+            var clone = captureArea.cloneNode(true);
+            clone.style.transform = 'none';
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.width = '800px';
+            clone.style.height = '1131px';
+
+            var originalImg = captureArea.querySelector('#newsPreviewImage');
+            var clonedImg = clone.querySelector('#newsPreviewImage');
+            if (originalImg && clonedImg) {
+                clonedImg.src = originalImg.src;
+                if (originalImg.classList.contains('hidden')) {
+                    clonedImg.classList.add('hidden');
+                } else {
+                    clonedImg.classList.remove('hidden');
+                }
+            }
+
+            var originalBg = captureArea.querySelector('#newsTemplateBg');
+            var clonedBg = clone.querySelector('#newsTemplateBg');
+            if (originalBg && clonedBg) {
+                clonedBg.src = originalBg.src;
+            }
+
+            document.body.appendChild(clone);
+
+            var runCapture = function () {
+                setTimeout(function () {
+                    html2canvas(clone, { useCORS: true, allowTaint: false, scale: 4, backgroundColor: '#ffffff', logging: false }).then(function (canvas) {
+                        document.body.removeChild(clone);
+                        Swal.close();
+                        var image = canvas.toDataURL("image/png", 1.0);
+                        var link = document.createElement('a');
+                        var titleInput = document.getElementById('newsTitleInput');
+                        var dateInput = document.getElementById('newsDateInput');
+                        var title = (titleInput ? titleInput.value.substring(0, 20) : '') || 'PostNews';
+                        var date = (dateInput ? dateInput.value.replace(/-/g, '') : '') || 'date';
+                        link.download = "PostNews_" + date + "_" + title + ".png";
+                        link.href = image;
+                        link.click();
+                        successSound.play().catch(function (e) { });
+                        Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'รูปภาพข่าวถูกดาวน์โหลดแล้ว', timer: 2000, showConfirmButton: false });
+                    }).catch(function (err) {
+                        document.body.removeChild(clone);
+                        Swal.close();
+                        errorSound.play().catch(function (e) { });
+                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                    });
+                }, 300);
+            };
+
+            // 💡 เทคนิคชั้นเซียน: รอให้รูปภาพทั้งหมดใน Clone ทำการโหลดเสร็จ 100% ก่อนทำการแคปเจอร์
+            var images = Array.from(clone.getElementsByTagName('img'));
+            var activeImages = images.filter(function (img) {
+                return img.src && !img.complete;
+            });
+
+            if (activeImages.length === 0) {
+                runCapture();
+            } else {
+                var loadedCount = 0;
+                var totalImages = activeImages.length;
+                var triggerCapture = function () {
+                    loadedCount++;
+                    if (loadedCount >= totalImages) {
+                        runCapture();
+                    }
+                };
+                activeImages.forEach(function (img) {
+                    img.onload = triggerCapture;
+                    img.onerror = triggerCapture; // fallback
+                });
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. MERGE IMAGES TOOL LOGIC (SMART EDITOR)
+    // ==========================================
+
+    var MERGE_LAYOUTS = [
+        { id: 'l1', icon: 'fas fa-square', label: '1 ภาพ', aspect: '1/1', grid: 'grid-cols-1 grid-rows-1', slots: [''] },
+        { id: 'l2h', icon: 'fas fa-columns', label: '2 ภาพ', aspect: '2/1', grid: 'grid-cols-2 grid-rows-1', slots: ['', ''] },
+        { id: 'l3', icon: 'fas fa-th-large', label: '3 ภาพ', aspect: '3/2', grid: 'grid-cols-3 grid-rows-2', slots: ['col-span-2 row-span-2', 'col-span-1 row-span-1', 'col-span-1 row-span-1'] },
+        { id: 'l3v', icon: 'fas fa-th-list', label: '3 ภาพ (ตั้ง)', aspect: '2/3', grid: 'grid-cols-2 grid-rows-3', slots: ['col-span-2 row-span-2', 'col-span-1 row-span-1', 'col-span-1 row-span-1'] },
+        { id: 'l4', icon: 'fas fa-th', label: '4 ภาพ (2x2)', aspect: '1/1', grid: 'grid-cols-2 grid-rows-2', slots: ['', '', '', ''] },
+        { id: 'l4h', icon: 'fas fa-window-restore', label: '4 ภาพ (1ใหญ่)', aspect: '4/3', grid: 'grid-cols-4 grid-rows-3', slots: ['col-span-3 row-span-3', 'col-span-1 row-span-1', 'col-span-1 row-span-1', 'col-span-1 row-span-1'] },
+        { id: 'l5', icon: 'fas fa-cubes', label: '5 ภาพ', aspect: '4/2', grid: 'grid-cols-4 grid-rows-2', slots: ['col-span-2 row-span-2', 'col-span-1 row-span-1', 'col-span-1 row-span-1', 'col-span-1 row-span-1', 'col-span-1 row-span-1'] },
+        { id: 'l6', icon: 'fas fa-grip-horizontal', label: '6 ภาพ (3x2)', aspect: '3/2', grid: 'grid-cols-3 grid-rows-2', slots: ['', '', '', '', '', ''] }
+    ];
+
+    var activeMergeLayout = 'l3';
+    var mergeSlotData = [null, null, null, null, null, null];
+    var selectedMergeSlotIndex = -1;
+    var targetUploadSlotIndex = -1;
+    var dragSourceSlotIndex = -1;
+    var isMergeDragging = false;
+    var dragStartX = 0;
+    var dragStartY = 0;
+    var startPanX = 0;
+    var startPanY = 0;
+
+    function toggleMergeLayoutPanel() {
+        var panel = document.getElementById('mergeLayoutCollapsible');
+        var icon = document.getElementById('mergeLayoutToggleIcon');
+        if (panel) {
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                panel.classList.add('flex');
+                if (icon) icon.classList.add('rotate-180');
+            } else {
+                panel.classList.add('hidden');
+                panel.classList.remove('flex');
+                if (icon) icon.classList.remove('rotate-180');
+            }
+        }
+    }
+
+    function openMergeModal() {
+        var modal = document.getElementById('mergeModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+
+            // Programmatically bind file input change event to guarantee it works in all environments
+            var fileInput = document.getElementById('hiddenMergeFileInput');
+            if (fileInput) {
+                fileInput.onchange = function () {
+                    handleMergeFileUpload(this);
+                };
+            }
+
+            // Keep active layout but reset slot data if empty
+            var hasData = mergeSlotData.some(function (d) { return d !== null; });
+            if (!hasData) {
+                mergeSlotData = [null, null, null, null, null, null];
+                selectedMergeSlotIndex = -1;
+            }
+            initMergeToolUI();
+            renderMergeWorkspace();
+        }
+    }
+
+    function closeMergeModal() {
+        var modal = document.getElementById('mergeModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function resetMergeTool() {
+        Swal.fire({
+            title: 'ยืนยันการล้างข้อมูล?',
+            text: 'รูปภาพทั้งหมดที่คุณอัปโหลดในเลย์เอาต์จะถูกลบออก',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e27d3d',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ใช่, ล้างทั้งหมด',
+            cancelButtonText: 'ยกเลิก'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                mergeSlotData = [null, null, null, null, null, null];
+                selectedMergeSlotIndex = -1;
+                renderMergeWorkspace();
+                Swal.fire({ icon: 'success', title: 'ล้างข้อมูลสำเร็จ', timer: 1000, showConfirmButton: false });
+            }
+        });
+    }
+
+    function initMergeToolUI() {
+        var selector = document.getElementById('mergeLayoutSelector');
+        if (!selector) return;
+        selector.innerHTML = '';
+
+        MERGE_LAYOUTS.forEach(function (layout) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            var isActive = layout.id === activeMergeLayout;
+            var activeClass = isActive
+                ? "border-theme-orange bg-theme-orange/10 text-theme-orange shadow-sm font-bold ring-1 ring-theme-orange"
+                : "border-gray-200 hover:border-theme-orange hover:bg-orange-50/50 text-gray-500 hover:text-theme-orange";
+
+            // Ultra-compact styling as requested by user
+            btn.className = "flex flex-col items-center justify-center p-1.5 rounded-md border text-center transition-all cursor-pointer duration-200 " + activeClass;
+            btn.innerHTML = '<i class="' + layout.icon + ' text-[14px] mb-1"></i><span class="text-[9px] md:text-[10px] tracking-tight truncate w-full font-sans">' + layout.label + '</span>';
+            btn.onclick = function () {
+                setMergeLayout(layout.id);
+            };
+            selector.appendChild(btn);
+        });
+    }
+
+    function setMergeLayout(layoutId) {
+        activeMergeLayout = layoutId;
+        var layoutObj = MERGE_LAYOUTS.find(function (l) { return l.id === layoutId; });
+        if (selectedMergeSlotIndex >= layoutObj.slots.length) {
+            selectedMergeSlotIndex = -1;
+        }
+        initMergeToolUI();
+        renderMergeWorkspace();
+    }
+
+    function renderMergeWorkspace() {
+        var container = document.getElementById('mergeGridContainer');
+        if (!container) return;
+
+        var layoutObj = MERGE_LAYOUTS.find(function (l) { return l.id === activeMergeLayout; });
+
+        // Dynamically adjust workspace container size and aspect ratio to ensure square slots
+        var workspace = document.getElementById('mergeWorkspaceContainer');
+        if (workspace) {
+            workspace.classList.remove('w-full', 'aspect-square');
+            workspace.style.aspectRatio = layoutObj.aspect;
+
+            var aspectParts = layoutObj.aspect.split('/');
+            var wRatio = parseFloat(aspectParts[0]);
+            var hRatio = parseFloat(aspectParts[1]);
+
+            // Set dynamic canvas bounding box to strictly fit within the available workspace viewport height and width
+            var isMobile = window.innerWidth < 768;
+            var maxCanvasW = isMobile ? window.innerWidth - 32 : 540;
+            var maxCanvasH = isMobile ? window.innerHeight - 200 : 430; // Adjust max height for mobile to fit screen
+
+            var calculatedW = maxCanvasW;
+            var calculatedH = calculatedW * (hRatio / wRatio);
+
+            if (calculatedH > maxCanvasH) {
+                calculatedH = maxCanvasH;
+                calculatedW = calculatedH * (wRatio / hRatio);
+            }
+
+            workspace.style.width = Math.round(calculatedW) + 'px';
+            workspace.style.height = Math.round(calculatedH) + 'px';
+            workspace.style.maxWidth = 'none';
+            workspace.style.maxHeight = 'none';
+        }
+
+        container.className = "w-full h-full grid gap-1.5 p-1.5 bg-white " + layoutObj.grid;
+        container.innerHTML = '';
+
+        layoutObj.slots.forEach(function (spanClass, index) {
+            var data = mergeSlotData[index];
+            var div = document.createElement('div');
+
+            var isSelected = selectedMergeSlotIndex === index;
+            var outlineClass = isSelected ? "ring-4 ring-theme-orange ring-inset z-10 shadow-lg" : "border border-gray-200";
+
+            div.className = "relative bg-gray-100 rounded-lg overflow-hidden flex flex-col items-center justify-center group " + spanClass + " " + outlineClass + " transition-all duration-200";
+
+            if (data) {
+                var imgWrapper = document.createElement('div');
+                imgWrapper.className = 'absolute inset-0 flex items-center justify-center merge-image-layer pointer-events-none';
+                imgWrapper.style.cssText = "transform: scale(" + data.zoom + ") translate(" + data.panX + "px, " + data.panY + "px) rotate(" + (data.rotate || 0) + "deg); transition: transform 0.05s ease-out; width: 100%; height: 100%;";
+
+                // Contain is default fit mode ("พอดีขอบ"), Cover is "เต็มช่อง"
+                // Using div with background-image, background-size, and background-position to ensure 
+                // 100% flawless rendering by html2canvas (bypassing the famous img object-fit bug)
+                var fitMode = data.fitMode || 'contain';
+                var sizeMode = fitMode === 'contain' ? 'contain' : 'cover';
+                var bgColor = fitMode === 'contain' ? 'rgba(249, 250, 251, 0.5)' : 'transparent';
+                var img = document.createElement('div');
+                img.className = 'w-full h-full';
+                img.style.cssText = "background-image: url(\"" + data.src + "\"); background-size: " + sizeMode + "; background-position: center; background-repeat: no-repeat; background-color: " + bgColor + "; width: 100%; height: 100%; pointer-events: none;";
+
+                imgWrapper.appendChild(img);
+                div.appendChild(imgWrapper);
+
+                // Rule of thirds helper guides (Canva Style)
+                if (isSelected) {
+                    var helperLines = document.createElement('div');
+                    helperLines.className = "absolute inset-0 pointer-events-none border border-theme-orange/40 z-10 grid grid-cols-3 grid-rows-3 opacity-40 transition-opacity helper-lines-overlay";
+                    helperLines.innerHTML = '<div class="border-r border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-r border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-r border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-r border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-b border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-r border-dashed border-theme-orange/20"></div>' +
+                        '<div class="border-r border-dashed border-theme-orange/20"></div>' +
+                        '<div></div>';
+                    div.appendChild(helperLines);
+                }
+
+                var panLayer = document.createElement('div');
+                panLayer.className = 'absolute inset-0 z-10 cursor-grab pan-catcher';
+                panLayer.onmousedown = function (e) { startMergePan(e, index); };
+                panLayer.ontouchstart = function (e) { startMergePan(e, index); };
+                panLayer.onclick = function (e) {
+                    if (!isMergeDragging) selectMergeSlot(index);
+                };
+
+                panLayer.ondragover = function (e) {
+                    e.preventDefault();
+                    if (dragSourceSlotIndex !== -1 && dragSourceSlotIndex !== index) {
+                        div.classList.add('ring-4', 'ring-blue-500', 'ring-inset');
+                    }
+                };
+                panLayer.ondragleave = function (e) {
+                    div.classList.remove('ring-4', 'ring-blue-500', 'ring-inset');
+                };
+                panLayer.ondrop = function (e) {
+                    e.preventDefault();
+                    div.classList.remove('ring-4', 'ring-blue-500', 'ring-inset');
+                    if (dragSourceSlotIndex !== -1 && dragSourceSlotIndex !== index) {
+                        var temp = mergeSlotData[dragSourceSlotIndex];
+                        mergeSlotData[dragSourceSlotIndex] = mergeSlotData[index];
+                        mergeSlotData[index] = temp;
+                        selectedMergeSlotIndex = index;
+                        renderMergeWorkspace();
+                    }
+                    dragSourceSlotIndex = -1;
+                };
+                div.appendChild(panLayer);
+
+                var topControls = document.createElement('div');
+                topControls.className = "absolute top-2 left-2 right-2 flex justify-between items-start z-20 " + (isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100") + " transition-opacity";
+
+                var btnDel = document.createElement('button');
+                btnDel.className = "w-8 h-8 bg-white/90 hover:bg-red-500 text-red-500 hover:text-white rounded-lg shadow flex items-center justify-center cursor-pointer transition-colors border-0";
+                btnDel.innerHTML = '<i class="fas fa-trash-alt text-[11px]"></i>';
+                btnDel.title = "ลบรูปนี้";
+                btnDel.onclick = function (e) { e.stopPropagation(); removeMergeSlotImageSpecific(index); };
+                topControls.appendChild(btnDel);
+
+                var swapHandle = document.createElement('div');
+                swapHandle.className = "px-2.5 py-1 bg-white/90 hover:bg-white backdrop-blur rounded-lg shadow flex items-center justify-center cursor-move text-gray-600 hover:text-theme-orange transition-all font-bold text-[9px] uppercase tracking-wider border border-gray-100";
+                swapHandle.innerHTML = '<i class="fas fa-arrows-alt mr-1 text-[9px]"></i> สลับรูป';
+                swapHandle.draggable = true;
+                swapHandle.onmousedown = function (e) { e.stopPropagation(); };
+                swapHandle.ontouchstart = function (e) { e.stopPropagation(); };
+                swapHandle.ondragstart = function (e) {
+                    dragSourceSlotIndex = index;
+                    e.dataTransfer.effectAllowed = "move";
+                    setTimeout(function () { div.classList.add('opacity-50'); }, 0);
+                };
+                swapHandle.ondragend = function (e) {
+                    div.classList.remove('opacity-50');
+                    dragSourceSlotIndex = -1;
+                };
+                topControls.appendChild(swapHandle);
+
+                div.appendChild(topControls);
+
+            } else {
+                div.classList.add('cursor-pointer', 'hover:bg-gray-200', 'transition');
+                div.innerHTML = '<div class="add-image-prompt text-gray-400 flex flex-col items-center justify-center group-hover:text-theme-orange transition transform group-hover:scale-110 w-full px-1"><i class="fas fa-plus-circle text-2xl md:text-3xl drop-shadow-sm"></i><span class="text-[9px] md:text-[10px] font-bold bg-white/90 px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-sm border border-gray-200 mt-1.5 md:mt-2 max-w-[95%] overflow-hidden text-ellipsis whitespace-nowrap">เพิ่มรูปภาพ</span></div>';
+                (function (idx) {
+                    div.onclick = function () { openMergeUpload(idx); };
+                })(index);
+
+                div.ondragover = function (e) { e.preventDefault(); };
+                (function (idx) {
+                    div.ondrop = function (e) {
+                        e.preventDefault();
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            targetUploadSlotIndex = idx;
+                            handleMergeFileUpload({ files: e.dataTransfer.files });
+                        }
+                    };
+                })(index);
+            }
+            container.appendChild(div);
+        });
+
+        // ----------------------------------------------------
+        // UPDATE SIDEBAR CONTROL PANEL FOR SELECTED SLOT IMAGE
+        // ----------------------------------------------------
+        var controlPanel = document.getElementById('mergeSlotControlPanel');
+        if (controlPanel) {
+            var activeData = selectedMergeSlotIndex !== -1 ? mergeSlotData[selectedMergeSlotIndex] : null;
+            if (activeData) {
+                // Show the sidebar adjustment controls card
+                controlPanel.classList.remove('hidden');
+
+                var zoomValEl = document.getElementById('sidebarZoomVal');
+                var slider = document.getElementById('sidebarZoomSlider');
+                var btnOut = document.getElementById('sidebarZoomOutBtn');
+                var btnIn = document.getElementById('sidebarZoomInBtn');
+                var btnFit = document.getElementById('sidebarBtnFitMode');
+                var btnRot = document.getElementById('sidebarBtnRotate');
+                var btnDel = document.getElementById('sidebarBtnDelete');
+
+                var zVal = Math.round(activeData.zoom * 100);
+                if (slider) slider.value = zVal;
+                if (zoomValEl) zoomValEl.innerText = zVal + '%';
+
+                // Toggle Fit Mode visual states
+                var isContain = activeData.fitMode === 'contain';
+                if (btnFit) {
+                    var fitBtnLabel = isContain ? 'เต็มช่อง' : 'พอดีขอบ';
+                    var fitBtnIcon = isContain ? 'fas fa-expand-alt' : 'fas fa-compress-alt';
+                    btnFit.innerHTML = '<i class="' + fitBtnIcon + ' text-theme-orange mr-1"></i> ' + fitBtnLabel;
+                }
+
+                // Bind zoom inputs
+                if (slider) {
+                    slider.oninput = function (e) {
+                        var val = e.target.value;
+                        if (zoomValEl) zoomValEl.innerText = val + '%';
+                        if (selectedMergeSlotIndex !== -1 && mergeSlotData[selectedMergeSlotIndex]) {
+                            mergeSlotData[selectedMergeSlotIndex].zoom = val / 100;
+                            updateMergeTransform(selectedMergeSlotIndex);
+                        }
+                    };
+                }
+
+                if (btnOut) {
+                    btnOut.onclick = function () {
+                        if (slider) {
+                            var v = Math.max(50, parseInt(slider.value) - 10);
+                            slider.value = v;
+                            slider.dispatchEvent(new Event('input'));
+                        }
+                    };
+                }
+                if (btnIn) {
+                    btnIn.onclick = function () {
+                        if (slider) {
+                            var v = Math.min(300, parseInt(slider.value) + 10);
+                            slider.value = v;
+                            slider.dispatchEvent(new Event('input'));
+                        }
+                    };
+                }
+
+                // Bind fit mode toggle
+                if (btnFit) {
+                    btnFit.onclick = function () {
+                        if (selectedMergeSlotIndex !== -1 && mergeSlotData[selectedMergeSlotIndex]) {
+                            var curFit = mergeSlotData[selectedMergeSlotIndex].fitMode || 'contain';
+                            mergeSlotData[selectedMergeSlotIndex].fitMode = curFit === 'contain' ? 'cover' : 'contain';
+                            renderMergeWorkspace();
+                        }
+                    };
+                }
+
+                // Bind rotation toggle
+                if (btnRot) {
+                    btnRot.onclick = function () {
+                        if (selectedMergeSlotIndex !== -1 && mergeSlotData[selectedMergeSlotIndex]) {
+                            var curRot = mergeSlotData[selectedMergeSlotIndex].rotate || 0;
+                            mergeSlotData[selectedMergeSlotIndex].rotate = (curRot + 90) % 360;
+                            updateMergeTransform(selectedMergeSlotIndex);
+                        }
+                    };
+                }
+
+                // Bind delete button
+                if (btnDel) {
+                    btnDel.onclick = function () {
+                        if (selectedMergeSlotIndex !== -1) {
+                            removeMergeSlotImageSpecific(selectedMergeSlotIndex);
+                        }
+                    };
+                }
+            } else {
+                // Hide sidebar control panel if no image is present in selected slot or no slot is selected
+                controlPanel.classList.add('hidden');
+            }
+        }
+    }
+
+    // ฟังก์ชันคำนวณและอัปเดต CSS transform ให้รองรับ Zoom, Pan, และ Rotate รวมกัน
+    function updateMergeTransform(index) {
+        var data = mergeSlotData[index];
+        if (!data) return;
+        var slotEl = document.getElementById('mergeGridContainer').children[index];
+        if (slotEl) {
+            var imgLayer = slotEl.querySelector('.merge-image-layer');
+            if (imgLayer) {
+                var zoom = data.zoom || 1.0;
+                var panX = data.panX || 0;
+                var panY = data.panY || 0;
+                var rotate = data.rotate || 0;
+                imgLayer.style.transform = "scale(" + zoom + ") translate(" + panX + "px, " + panY + "px) rotate(" + rotate + "deg)";
+            }
+        }
+    }
+
+    function openMergeUpload(index) {
+        console.log("openMergeUpload index:", index);
+        targetUploadSlotIndex = index;
+        var fileInput = document.getElementById('hiddenMergeFileInput');
+        if (fileInput) {
+            console.log("Found file input, calling click...");
+            fileInput.value = '';
+            fileInput.click();
+        } else {
+            console.error("File input element #hiddenMergeFileInput not found!");
+        }
+    }
+
+    // ฟังก์ชันปรับความคมชัด/ลดขนาดภาพความละเอียดสูงสุดขีด (4000px - 4K UHD) เพื่อคงรายละเอียดพิกเซลและสีสันสูงสุด
+    function compressImageAndLoad(base64Str, callback) {
+        var img = new Image();
+        img.onload = function () {
+            var maxW = 4000;
+            var maxH = 4000;
+            var w = img.width;
+            var h = img.height;
+            if (w > maxW || h > maxH) {
+                if (w > h) {
+                    h = Math.round((h * maxW) / w);
+                    w = maxW;
+                } else {
+                    w = Math.round((w * maxH) / h);
+                    h = maxH;
+                }
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            var compressedBase64 = canvas.toDataURL('image/jpeg', 0.98);
+            callback(compressedBase64);
+        };
+        img.onerror = function () {
+            callback(base64Str);
+        };
+        img.src = base64Str;
+    }
+
+    function handleMergeFileUpload(input) {
+        console.log("handleMergeFileUpload input:", input);
+        if (!input || !input.files) {
+            console.error("Invalid file input object:", input);
+            return;
+        }
+        var file = input.files[0];
+        console.log("Selected file:", file, "targetUploadSlotIndex:", targetUploadSlotIndex);
+        if (!file || targetUploadSlotIndex === -1) return;
+
+        showGlobalLoader('กำลังประมวลผลรูปภาพสำหรับเครื่องมือรวมรูปภาพ...');
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            hideGlobalLoader();
+            mergeSlotData[targetUploadSlotIndex] = {
+                src: e.target.result, // เก็บรูปภาพต้นฉบับแบบความละเอียด 100% เต็ม ไม่ผ่านการบีบอัด
+                zoom: 1.0,
+                panX: 0,
+                panY: 0,
+                rotate: 0,
+                fitMode: 'contain'
+            };
+            selectedMergeSlotIndex = targetUploadSlotIndex;
+            renderMergeWorkspace();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function selectMergeSlot(index) {
+        selectedMergeSlotIndex = index;
+        renderMergeWorkspace();
+    }
+
+    function updateMergeZoomFromInline(zoomLevel, index) {
+        if (mergeSlotData[index]) {
+            mergeSlotData[index].zoom = zoomLevel;
+            updateMergeTransform(index);
+        }
+    }
+
+    function removeMergeSlotImageSpecific(index) {
+        if (mergeSlotData[index]) {
+            mergeSlotData[index] = null;
+            selectedMergeSlotIndex = -1;
+            renderMergeWorkspace();
+        }
+    }
+
+    function startMergePan(e, index) {
+        if (e.type === 'mousedown' && e.button !== 0) return;
+
+        selectedMergeSlotIndex = index;
+        renderMergeWorkspace();
+
+        var slotEl = document.getElementById('mergeGridContainer').children[index];
+        if (slotEl) {
+            var panLayer = slotEl.querySelector('.pan-catcher');
+            if (panLayer) {
+                panLayer.classList.remove('cursor-grab');
+                panLayer.classList.add('cursor-grabbing');
+            }
+        }
+
+        isMergeDragging = false;
+        dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        dragStartY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        startPanX = mergeSlotData[index].panX;
+        startPanY = mergeSlotData[index].panY;
+
+        document.addEventListener('mousemove', onMergePanMove);
+        document.addEventListener('touchmove', onMergePanMove, { passive: false });
+        document.addEventListener('mouseup', stopMergePan);
+        document.addEventListener('touchend', stopMergePan);
+    }
+
+    function onMergePanMove(e) {
+        isMergeDragging = true;
+        if (e.cancelable) e.preventDefault();
+
+        var clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        var clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+        var dx = clientX - dragStartX;
+        var dy = clientY - dragStartY;
+
+        var zoom = mergeSlotData[selectedMergeSlotIndex].zoom;
+        var sensitivity = 0.8;
+
+        var newPanX = startPanX + (dx / zoom) * sensitivity;
+        var newPanY = startPanY + (dy / zoom) * sensitivity;
+
+        mergeSlotData[selectedMergeSlotIndex].panX = newPanX;
+        mergeSlotData[selectedMergeSlotIndex].panY = newPanY;
+
+        updateMergeTransform(selectedMergeSlotIndex);
+    }
+
+    function stopMergePan() {
+        document.removeEventListener('mousemove', onMergePanMove);
+        document.removeEventListener('touchmove', onMergePanMove);
+        document.removeEventListener('mouseup', stopMergePan);
+        document.removeEventListener('touchend', stopMergePan);
+
+        if (selectedMergeSlotIndex !== -1) {
+            var slotEl = document.getElementById('mergeGridContainer').children[selectedMergeSlotIndex];
+            if (slotEl) {
+                var panLayer = slotEl.querySelector('.pan-catcher');
+                if (panLayer) {
+                    panLayer.classList.add('cursor-grab');
+                    panLayer.classList.remove('cursor-grabbing');
+                }
+            }
+        }
+
+        setTimeout(function () { isMergeDragging = false; }, 50);
+    }
+
+    function downloadMergedImage() {
+        var container = document.getElementById('mergeWorkspaceContainer');
+        var gridContainer = document.getElementById('mergeGridContainer');
+        if (!container || !gridContainer) return;
+
+        var hasImage = mergeSlotData.some(function (d) { return d !== null; });
+        if (!hasImage) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเพิ่มรูปภาพอย่างน้อย 1 รูป', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'กำลังบันทึกรูปภาพ...',
+            text: 'ระบบกำลังประมวลผลรูปภาพความละเอียดสูงเทียบเท่ารูปภาพต้นฉบับ กรุณารอสักครู่...',
+            allowOutsideClick: false,
+            didOpen: function () { Swal.showLoading(); }
+        });
+
+        // 1. Load all images in parallel to ensure we use original high-resolution pixels
+        var promises = mergeSlotData.map(function (data, idx) {
+            if (!data) return Promise.resolve(null);
+            return new Promise(function (resolve) {
+                var img = new Image();
+                img.onload = function () {
+                    resolve({ img: img, data: data, index: idx });
+                };
+                img.onerror = function () {
+                    resolve(null);
+                };
+                img.src = data.src;
+            });
+        });
+
+        Promise.all(promises).then(function (results) {
+            try {
+                // 2. Determine target high-resolution canvas size (3600px width base)
+                var canvasWidth = 3600;
+                var layoutObj = MERGE_LAYOUTS.find(function (l) { return l.id === activeMergeLayout; });
+                var aspectParts = layoutObj.aspect.split('/');
+                var wRatio = parseFloat(aspectParts[0]);
+                var hRatio = parseFloat(aspectParts[1]);
+
+                var canvas = document.createElement('canvas');
+                canvas.width = canvasWidth;
+                canvas.height = Math.round(canvasWidth * (hRatio / wRatio));
+
+                var ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Calculate scaling factor from DOM pixels to high-res canvas pixels
+                var domW = gridContainer.offsetWidth;
+                var scale = canvas.width / domW;
+
+                var slots = gridContainer.querySelectorAll('.group');
+
+                // 3. Render each slot on the high-res canvas
+                results.forEach(function (res, index) {
+                    var slot = slots[index];
+                    if (!slot) return;
+
+                    var sX = slot.offsetLeft * scale;
+                    var sY = slot.offsetTop * scale;
+                    var sW = slot.offsetWidth * scale;
+                    var sH = slot.offsetHeight * scale;
+
+                    if (res) {
+                        var img = res.img;
+                        var data = res.data;
+
+                        // Calculate unzoomed fit bounds (baseW, baseH) inside the slot
+                        var imgRatio = img.naturalWidth / img.naturalHeight;
+                        var slotRatio = sW / sH;
+                        var fitMode = data.fitMode || 'contain';
+                        var baseW, baseH;
+
+                        if (fitMode === 'contain') {
+                            if (imgRatio > slotRatio) {
+                                baseW = sW;
+                                baseH = sW / imgRatio;
+                            } else {
+                                baseH = sH;
+                                baseW = sH * imgRatio;
+                            }
+                        } else { // 'cover'
+                            if (imgRatio > slotRatio) {
+                                baseH = sH;
+                                baseW = sH * imgRatio;
+                            } else {
+                                baseW = sW;
+                                baseH = sW / imgRatio;
+                            }
+                        }
+
+                        // Center of the slot is the transform origin
+                        var centerX = sX + sW / 2;
+                        var centerY = sY + sH / 2;
+
+                        ctx.save();
+
+                        // Clip drawing to slot boundaries
+                        ctx.beginPath();
+                        ctx.rect(sX, sY, sW, sH);
+                        ctx.clip();
+
+                        // Apply CSS scale and translate transformations
+                        ctx.translate(centerX, centerY);
+                        ctx.scale(data.zoom, data.zoom);
+                        ctx.translate(data.panX * scale, data.panY * scale);
+                        ctx.rotate((data.rotate || 0) * Math.PI / 180);
+
+                        // Draw image centered at the origin
+                        ctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
+
+                        ctx.restore();
+                    } else {
+                        // Draw empty slot background
+                        ctx.fillStyle = '#f3f4f6';
+                        ctx.fillRect(sX, sY, sW, sH);
+                    }
+                });
+
+                // 4. Download final high-resolution merged image
+                var image = canvas.toDataURL("image/jpeg", 0.98); // Visually lossless JPEG
+                var link = document.createElement('a');
+
+                var date = new Date();
+                var yyyy = date.getFullYear();
+                var mm = String(date.getMonth() + 1).padStart(2, '0');
+                var dd = String(date.getDate()).padStart(2, '0');
+                var time = String(date.getHours()).padStart(2, '0') + String(date.getMinutes()).padStart(2, '0');
+
+                link.download = "Merged_Visit_" + yyyy + mm + dd + "_" + time + ".jpg";
+                link.href = image;
+                link.click();
+
+                Swal.close();
+                successSound.play().catch(function (e) { });
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ดาวน์โหลดสำเร็จ',
+                    text: 'ภาพได้รับการบันทึกด้วยความละเอียดสูงระดับเทียบเท่าภาพต้นฉบับของคุณแล้วครับ',
+                    timer: 3000,
+                    showConfirmButton: true,
+                    confirmButtonText: 'รับทราบ',
+                    confirmButtonColor: '#e27d3d'
+                });
+
+            } catch (err) {
+                console.error("High-Res Canvas rendering error:", err);
+                Swal.close();
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพความละเอียดสูงได้ กรุณาลองใหม่อีกครั้ง', 'error');
+            }
+        }).catch(function (err) {
+            console.error("Promise load images error:", err);
+            Swal.close();
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดรูปภาพต้นฉบับได้ กรุณาลองใหม่อีกครั้ง', 'error');
+        });
+    }
+
+    // Attach to window globally to guarantee accessibility across all Apps Script modules
+    window.openMergeModal = openMergeModal;
+    window.closeMergeModal = closeMergeModal;
+    window.resetMergeTool = resetMergeTool;
+    window.handleMergeFileUpload = handleMergeFileUpload;
+    window.openMergeUpload = openMergeUpload;
+    window.renderMergeWorkspace = renderMergeWorkspace;
+    window.setMergeLayout = setMergeLayout;
+    window.downloadMergedImage = downloadMergedImage;
+</script>

@@ -1,0 +1,1216 @@
+<!-- ==========================================
+  MODALS & POPUPS
+========================================== -->
+
+<!-- 1. Modal แก้ไขข้อมูล (จากหน้าข้อมูล) -->
+<div id="editModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-[100] px-4 backdrop-blur-sm transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-blue-500">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="text-lg font-bold text-theme-black flex items-center gap-2"><i
+                    class="fas fa-edit text-blue-500"></i> แก้ไขข้อมูลการเข้าพบลูกค้า</h3>
+            <button type="button" onclick="closeEditModal()"
+                class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-white">
+            <form id="editForm" onsubmit="submitEditForm(event)">
+                <input type="hidden" id="editRowIndex">
+                <input type="hidden" id="editOfficeRegion">
+                <input type="hidden" id="editOfficeName">
+                <input type="hidden" id="editZipCode">
+                <input type="hidden" id="editSalesName">
+                <input type="hidden" id="editOldImageUrl">
+                <input type="hidden" id="editFileName">
+                <input type="hidden" id="editFileData">
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">1. หัวข้อเรื่อง <span class="text-red-500">*</span></label>
+                        <select id="editSubject" class="form-input bg-white font-sans text-sm" required>
+                            <option value="" disabled selected>- กรุณาเลือก -</option>
+                            <option value="ติดตามลูกค้าใหม่">ติดตามลูกค้าใหม่</option>
+                            <option value="นัดโทรหาลูกค้า">นัดโทรหาลูกค้า</option>
+                            <option value="ส่งใบเสนอราคา">ส่งใบเสนอราคา</option>
+                            <option value="ติดตามลูกค้าที่หายไป">ติดตามลูกค้าที่หายไป</option>
+                            <option value="ติดตามลูกค้าที่หายไป (ปก.)">ติดตามลูกค้าที่หายไป (ปก.)</option>
+                            <option value="เข้าพบลูกค้ารายเดือน">เข้าพบลูกค้ารายเดือน</option>
+                            <option value="ติดตามลูกค้ารายสำคัญ">ติดตามลูกค้ารายสำคัญ</option>
+                            <option value="การติดตามผลจากการสนทนาก่อนหน้านี้">การติดตามผลจากการสนทนาก่อนหน้านี้</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">2. กลุ่มลูกค้า <span class="text-red-500">*</span></label>
+                        <div class="checkbox-group grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1 text-sm">
+                            <label
+                                class="flex items-center gap-2 cursor-pointer hover:text-theme-orange transition"><input
+                                    type="checkbox" name="editCustomerGroupCheckbox" value="ระหว่างประเทศ (ขร.)"
+                                    class="accent-theme-orange"> ระหว่างประเทศ</label>
+                            <label
+                                class="flex items-center gap-2 cursor-pointer hover:text-theme-orange transition"><input
+                                    type="checkbox" name="editCustomerGroupCheckbox"
+                                    value="ไปรษณียภัณฑ์/การเงิน/ค้าปลีก (ขป.)" class="accent-theme-orange">
+                                ไปรษณียภัณฑ์/ค้าปลีก</label>
+                            <label
+                                class="flex items-center gap-2 cursor-pointer hover:text-theme-orange transition"><input
+                                    type="checkbox" name="editCustomerGroupCheckbox" value="e-Commerce (ขล.)"
+                                    class="accent-theme-orange"> e-Commerce</label>
+                            <label
+                                class="flex items-center gap-2 cursor-pointer hover:text-theme-orange transition"><input
+                                    type="checkbox" name="editCustomerGroupCheckbox" value="Fuze Post"
+                                    class="accent-theme-orange"> Fuze Post</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 relative">
+                        <label class="form-label text-xs">3. ชื่อ-นามสกุล ผู้ประกอบการ <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="editEntrepreneurName" class="form-input font-sans text-sm"
+                            autocomplete="off" required>
+                        <div id="editPkCustomerDropdown"
+                            class="hidden absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto custom-scrollbar">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">4. เบอร์โทรศัพท์ ผู้ประกอบการ <span
+                                class="text-red-500">*</span></label>
+                        <input type="tel" id="editEntrepreneurPhone" class="form-input font-sans text-sm" required
+                            oninput="validatePhone(this)" maxlength="10">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">5. ประเภทสินค้า <span class="text-red-500">*</span></label>
+                        <input type="text" id="editProductType" class="form-input font-sans text-sm"
+                            list="productTypeList" placeholder="ระบุหรือเลือกประเภทสินค้า" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">6. ช่องทางการจำหน่าย <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="editSalesChannel" class="form-input font-sans text-sm"
+                            list="salesChannelList" placeholder="ระบุหรือเลือกช่องทางการจำหน่าย" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">7. ปริมาณชิ้นงานฝากส่ง (ชิ้น/เดือน) <span
+                                class="text-red-500">*</span></label>
+                        <select id="editShippingVolume" class="form-input bg-white font-sans text-sm" required>
+                            <option value="" disabled selected>- กรุณาเลือก -</option>
+                            <option value="0 - 49">0 - 49</option>
+                            <option value="50 - 99">50 - 99</option>
+                            <option value="100 - 199">100 - 199</option>
+                            <option value="200 - 999">200 - 999</option>
+                            <option value="1,000 - 3,999">1,000 - 3,999</option>
+                            <option value="4,000 - 5,999">4,000 - 5,999</option>
+                            <option value="6,000 - 7,999">6,000 - 7,999</option>
+                            <option value="8,000 - 9,999">8,000 - 9,999</option>
+                            <option value="10,000 ขึ้นไป">10,000 ขึ้นไป</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">8. ผู้ขนส่งที่ใช้ปัจจุบัน <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="editCurrentCarrier" class="form-input font-sans text-sm"
+                            list="currentCarrierList" placeholder="ระบุหรือเลือกผู้ขนส่ง" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">9. สิ่งที่ลูกค้าต้องการรับสนับสนุน <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="editNeeds" class="form-input font-sans text-sm" list="needsList"
+                            placeholder="ระบุสิ่งที่ลูกค้าต้องการรับสนับสนุน" required>
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">10. ปัญหาที่พบระหว่างการแนะนำบริการ</label>
+                        <input type="text" id="editProblems" class="form-input font-sans text-sm" list="problemsList"
+                            placeholder="ระบุปัญหา (ไม่ระบุก็ได้)">
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">11. ข้อเสนอแนะของปัญหาที่พบ</label>
+                        <input type="text" id="editSuggestions" class="form-input font-sans text-sm"
+                            list="suggestionsList" placeholder="ระบุข้อเสนอแนะ (ไม่ระบุก็ได้)">
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">12. Post Family</label>
+                        <div class="radio-group flex gap-6 mt-1 text-sm">
+                            <label class="cursor-pointer hover:text-theme-orange transition"><input type="radio"
+                                    name="editPostFamilyStatus" value="ไม่เป็นสมาชิก"
+                                    onclick="toggleEditPostFamily(false)"> ไม่เป็นสมาชิก</label>
+                            <label class="cursor-pointer hover:text-theme-orange transition"><input type="radio"
+                                    name="editPostFamilyStatus" value="เป็นสมาชิก" onclick="toggleEditPostFamily(true)">
+                                เป็นสมาชิก</label>
+                        </div>
+                        <input type="text" id="editPostFamilyID" class="form-input font-sans mt-2 hidden text-sm"
+                            placeholder="THP-XXXXXXXX" oninput="validatePostFamily(this)" maxlength="12">
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">13. ผลการนำเสนอบริการ <span
+                                class="text-red-500">*</span></label>
+                        <div class="radio-group flex gap-6 mt-1 text-sm">
+                            <label class="cursor-pointer hover:text-theme-orange transition"><input type="radio"
+                                    name="editOfferResult" value="ปิดไม่ได้" required> ปิดไม่ได้</label>
+                            <label class="cursor-pointer hover:text-theme-orange transition"><input type="radio"
+                                    name="editOfferResult" value="ปิดได้" required> ปิดได้</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-xs">14. บริการที่แนะนำ <span class="text-red-500">*</span></label>
+                        <select id="editRecommendedService" class="form-input bg-white font-sans text-sm" required>
+                            <option value="" disabled selected>- กรุณาเลือก -</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4 lg:col-span-2">
+                        <label class="form-label text-xs">15. สาเหตุที่ยอดขายลดลงหรือลูกค้าหายไป</label>
+                        <select id="editLostReason" class="form-input bg-white font-sans text-sm"
+                            onchange="toggleEditLostReasonOther(this.value === 'อื่น ๆ')">
+                            <option value="" selected>- เลือกสาเหตุ -</option>
+                            <option value="ราคาคู่แข่งต่ำกว่า คู่แข่งมอบสิทธิประโยชน์,สนับสนุนอุปกรณ์การฝากส่งดีกว่า">
+                                ราคาคู่แข่งต่ำกว่า คู่แข่งมอบสิทธิประโยชน์,สนับสนุนอุปกรณ์การฝากส่งดีกว่า</option>
+                            <option value="คุณภาพบริการ (สิ่งของแตกหัก เสียหาย สูญหายบ่อยครั้ง )">คุณภาพบริการ
+                                (สิ่งของแตกหัก เสียหาย สูญหายบ่อยครั้ง )</option>
+                            <option value="เลิกกิจการ">เลิกกิจการ</option>
+                            <option value="เสียชีวิต">เสียชีวิต</option>
+                            <option value="เปลี่ยนที่อยู่">เปลี่ยนที่อยู่</option>
+                            <option value="ติดต่อไม่ได้">ติดต่อไม่ได้</option>
+                            <option value="ฝากส่งตามฤดูกาล (seasonal)/ไม่ได้ส่งเป็นประจำ">ฝากส่งตามฤดูกาล
+                                (seasonal)/ไม่ได้ส่งเป็นประจำ</option>
+                            <option value="กิจการลูกค้ามีออเดอร์ลดลง">กิจการลูกค้ามีออเดอร์ลดลง</option>
+                            <option value="ลูกค้าเป็นเจ้าหน้าที่บริษัทฯ ลาออกจากงานแล้ว">ลูกค้าเป็นเจ้าหน้าที่บริษัทฯ
+                                ลาออกจากงานแล้ว</option>
+                            <option value="ทดลองฝากส่งระยะแรกและไม่พึงพอใจในระบบงาน">
+                                ทดลองฝากส่งระยะแรกและไม่พึงพอใจในระบบงาน</option>
+                            <option value="สิ่งของต้องห้ามส่งทางไปรษณีย์หรือสิ่งของผิดกฎหมาย (Grey Area)">
+                                สิ่งของต้องห้ามส่งทางไปรษณีย์หรือสิ่งของผิดกฎหมาย (Grey Area)</option>
+                            <option value="สิ่งของติดภาษีอากรปลายทาง">สิ่งของติดภาษีอากรปลายทาง</option>
+                            <option value="สิ่งของที่ฝากส่งเกินหลักเกณฑ์ที่กำหนด (เช่น Dimension เกินกำหนด เป็นต้น)">
+                                สิ่งของที่ฝากส่งเกินหลักเกณฑ์ที่กำหนด (เช่น Dimension เกินกำหนด เป็นต้น)</option>
+                            <option value="ลูกค้าเปลี่ยนไปใช้บริการที่ราคาต่อชิ้นถูกลง/ปณท กำหนดราคาต่อชิ้นเพิ่มขึ้น">
+                                ลูกค้าเปลี่ยนไปใช้บริการที่ราคาต่อชิ้นถูกลง/ปณท กำหนดราคาต่อชิ้นเพิ่มขึ้น</option>
+                            <option value="Marketplace Platform ปิดกั้น/ซ่อน การเลือก ปณท เป็นผู้ฝากส่ง">Marketplace
+                                Platform ปิดกั้น/ซ่อน การเลือก ปณท เป็นผู้ฝากส่ง</option>
+                            <option value="หลักเกณฑ์การให้ส่วนลดอ้างอิงชิ้นงานสูง/คู่แข่งมีหลักเกณฑ์ที่ยืดหยุ่นมากกว่า">
+                                หลักเกณฑ์การให้ส่วนลดอ้างอิงชิ้นงานสูง/คู่แข่งมีหลักเกณฑ์ที่ยืดหยุ่นมากกว่า</option>
+                            <option value="เปลี่ยนการฝากส่งไปใช้ชื่อบัญชีอื่น">เปลี่ยนการฝากส่งไปใช้ชื่อบัญชีอื่น
+                            </option>
+                            <option value="ข้อมูลนำเข้า Salesforce ไม่ครบถ้วน">ข้อมูลนำเข้า Salesforce ไม่ครบถ้วน
+                            </option>
+                            <option value="มีการแบ่งส่งไปยังคู่แข่งมากขึ้น">มีการแบ่งส่งไปยังคู่แข่งมากขึ้น</option>
+                            <option value="มีการแบ่งส่งไปยัง ปณ. อื่น">มีการแบ่งส่งไปยัง ปณ. อื่น</option>
+                            <option value="อื่น ๆ">อื่น ๆ</option>
+                        </select>
+                        <div id="editLostReasonOtherWrapper" class="hidden mt-2">
+                            <input type="text" id="editLostReasonOther" class="form-input font-sans text-sm"
+                                placeholder="โปรดระบุสาเหตุอื่น ๆ">
+                        </div>
+                    </div>
+
+                    <div class="mb-6 lg:col-span-2 border border-gray-100 p-4 rounded-xl bg-gray-50/50 relative">
+                        <label class="form-label text-xs mb-3">16. รูปภาพการเข้าพบลูกค้า <span
+                                class="text-red-500">*</span></label>
+                        <div class="flex flex-col items-center justify-center w-full relative">
+                            <div id="editDropZoneContainer" class="w-full">
+                                <label id="editDropZone" for="editImageUpload"
+                                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors group">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i
+                                            class="fas fa-cloud-upload-alt text-2xl text-gray-400 group-hover:text-blue-500 mb-2 transition"></i>
+                                        <p class="text-xs text-gray-500">คลิกหรือลากไฟล์รูปภาพมาวาง
+                                            (เพื่อเปลี่ยนรูปใหม่)</p>
+                                    </div>
+                                    <input id="editImageUpload" type="file" class="hidden" accept="image/*"
+                                        onchange="previewEditImage(this)" />
+                                </label>
+                            </div>
+                            <div id="editImagePreviewContainer" class="hidden w-full text-center relative mt-2 group">
+                                <img id="editImagePreview"
+                                    class="max-h-48 rounded-lg shadow-sm border border-gray-200 object-contain mx-auto"
+                                    src="">
+                                <button type="button" onclick="removeEditImage()"
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 transition opacity-0 group-hover:opacity-100 transform scale-90 group-hover:scale-100">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                                <div class="mt-2 text-[10px] text-gray-400 flex items-center justify-center gap-1"><i
+                                        class="fas fa-info-circle"></i> คลิก x ด้านบนขวาเพื่อลบรูปภาพ</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="flex justify-end pt-4 border-t border-gray-100 mt-4 bg-gray-50 -mx-6 -mb-6 px-6 py-4 rounded-b-2xl">
+                    <button type="button" onclick="closeEditModal()"
+                        class="mr-3 px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-white hover:shadow-sm transition font-medium text-sm">ยกเลิก</button>
+                    <button type="submit" id="btnUpdate"
+                        class="px-8 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md transform hover:-translate-y-0.5 transition text-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i> อัปเดตข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Modal รวมรูปภาพ (Smart Merge Editor) -->
+<div id="mergeModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-2 sm:px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[95vh] sm:h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300">
+
+        <!-- Header -->
+        <div
+            class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+            <div>
+                <h3 class="text-base sm:text-lg font-bold text-theme-black flex items-center gap-2"><i
+                        class="fas fa-layer-group text-theme-orange"></i> รวมรูปภาพ (Smart Editor)</h3>
+                <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5 hidden sm:block">รวมรูปถ่ายหลายใบให้อยู่ในภาพเดียว
+                </p>
+            </div>
+            <button type="button" onclick="closeMergeModal()"
+                class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-hidden flex flex-col md:flex-row bg-gray-50/50">
+            <!-- Left Sidebar (Control Panel) -->
+            <div
+                class="w-full md:w-[320px] bg-white border-b md:border-b-0 md:border-r border-gray-100 flex flex-col p-4 shrink-0">
+                <!-- Mobile Toggle Button -->
+                <button type="button" onclick="toggleMergeLayoutPanel()" class="md:hidden w-full flex items-center justify-between p-3 mb-2 bg-theme-orange/10 text-theme-orange rounded-xl border border-theme-orange/20 transition-all active:scale-95">
+                    <span class="text-xs font-bold flex items-center gap-2"><i class="fas fa-th"></i> เลือกรูปแบบเลย์เอาต์ (Layout)</span>
+                    <i class="fas fa-chevron-down transition-transform duration-300" id="mergeLayoutToggleIcon"></i>
+                </button>
+
+                <div id="mergeLayoutCollapsible" class="hidden md:flex flex-col flex-1 overflow-y-auto overflow-x-hidden min-h-0 transition-all duration-300">
+                    <p class="text-xs font-bold text-gray-600 mb-2.5 hidden md:flex items-center gap-2"><i
+                            class="fas fa-th text-theme-orange"></i> เลือกรูปแบบเลย์เอาต์ (Layout)</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 gap-2 p-1" id="mergeLayoutSelector">
+                        <!-- Layout Buttons generated by JS -->
+                    </div>
+
+                    <!-- Image Editor Control Panel (Hidden by default) -->
+                    <div id="mergeSlotControlPanel"
+                        class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl hidden transition-all duration-300">
+                        <p
+                            class="text-[11px] font-bold text-gray-600 mb-2.5 flex items-center gap-1.5 border-b border-gray-200 pb-1.5">
+                            <i class="fas fa-sliders-h text-theme-orange"></i> ปรับแต่งรูปภาพที่เลือก</p>
+                        <div class="space-y-3">
+                            <!-- Zoom Slider -->
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-500 uppercase flex justify-between mb-1">
+                                    <span>ระดับการซูม</span>
+                                    <span id="sidebarZoomVal" class="text-theme-orange font-bold font-mono">100%</span>
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="sidebarZoomOutBtn"
+                                        class="w-6 h-6 rounded bg-white hover:bg-gray-100 text-gray-600 flex items-center justify-center border border-gray-200 cursor-pointer shadow-sm focus:outline-none animate-none"><i
+                                            class="fas fa-minus text-[9px]"></i></button>
+                                    <input type="range" id="sidebarZoomSlider" min="50" max="300" value="100"
+                                        class="flex-1 accent-theme-orange h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    <button type="button" id="sidebarZoomInBtn"
+                                        class="w-6 h-6 rounded bg-white hover:bg-gray-100 text-gray-600 flex items-center justify-center border border-gray-200 cursor-pointer shadow-sm focus:outline-none animate-none"><i
+                                            class="fas fa-plus text-[9px]"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" id="sidebarBtnFitMode"
+                                    class="flex-1 py-1.5 bg-white hover:bg-orange-50 border border-gray-200 hover:border-orange-100 rounded-lg transition text-[9.5px] font-bold text-gray-600 hover:text-theme-orange cursor-pointer flex items-center justify-center gap-1 focus:outline-none animate-none">
+                                    <i class="fas fa-expand-alt text-theme-orange"></i> เต็มช่อง
+                                </button>
+                                <button type="button" id="sidebarBtnRotate"
+                                    class="flex-1 py-1.5 bg-white hover:bg-orange-50 border border-gray-200 hover:border-orange-100 rounded-lg transition text-[9.5px] font-bold text-gray-600 hover:text-theme-orange cursor-pointer flex items-center justify-center gap-1 focus:outline-none animate-none">
+                                    <i class="fas fa-sync text-theme-orange"></i> หมุน 90°
+                                </button>
+                                <button type="button" id="sidebarBtnDelete"
+                                    class="py-1.5 px-2.5 bg-red-50 hover:bg-red-500 border border-red-100 hover:border-red-500 rounded-lg transition text-[9.5px] font-bold text-red-600 hover:text-white cursor-pointer flex items-center justify-center gap-1 focus:outline-none animate-none">
+                                    <i class="fas fa-trash-alt"></i> ลบรูป
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Guide Card -->
+                    <div
+                        class="mt-5 p-3 bg-theme-orange/5 border border-theme-orange/15 rounded-xl text-[10px] text-gray-600 leading-relaxed shrink-0">
+                        <p class="font-bold text-theme-orange mb-1.5 flex items-center gap-1.5 text-[11px]"><i
+                                class="fas fa-info-circle"></i> คำแนะนำการใช้งาน</p>
+                        <ul class="space-y-1.5 font-medium">
+                            <li class="flex items-start gap-1.5"><i
+                                    class="fas fa-mouse-pointer mt-0.5 text-theme-orange/80"></i>
+                                <span>คลิกที่ช่องว่างเพื่อเลือกหรือเพิ่มรูปภาพ</span></li>
+                            <li class="flex items-start gap-1.5"><i
+                                    class="fas fa-search-plus mt-0.5 text-theme-orange/80"></i>
+                                <span>คลิกเลือกรูปแล้วเลื่อนสไลเดอร์เพื่อซูม</span></li>
+                            <li class="flex items-start gap-1.5"><i
+                                    class="fas fa-arrows-alt mt-0.5 text-theme-orange/80"></i> <span>ลากปุ่ม "สลับรูป"
+                                    เพื่อขยับสลับช่องแสดงผล</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Actions Panel at Sidebar Bottom -->
+                <div class="mt-4 md:mt-auto pt-4 border-t border-gray-100 flex flex-row md:flex-col gap-2 shrink-0">
+                    <button type="button" onclick="resetMergeTool()"
+                        class="flex-1 md:w-full text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition flex items-center justify-center gap-2 font-medium">
+                        <i class="fas fa-trash-alt text-red-400"></i> ล้างทั้งหมด
+                    </button>
+                    <button type="button" onclick="downloadMergedImage()"
+                        class="flex-1 md:w-full text-xs sm:text-sm px-6 py-2.5 rounded-xl bg-theme-orange text-white font-bold hover:bg-orange-600 shadow-md transform hover:-translate-y-0.5 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-download"></i> บันทึกภาพ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Workspace Area -->
+            <div class="flex-1 overflow-auto p-4 sm:p-6 flex flex-col items-center justify-center relative">
+
+                <!-- Canvas Container -->
+                <div
+                    class="bg-white p-2 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.08)] w-full max-w-[620px] relative flex items-center justify-center transition-all duration-300">
+                    <div id="mergeWorkspaceContainer"
+                        class="bg-white relative overflow-hidden rounded-lg transition-all duration-300 shadow-sm border border-gray-100">
+                        <div id="mergeGridContainer" class="w-full h-full grid gap-1.5 p-1.5 bg-white">
+                            <!-- Slots generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden file input for adding images to slots -->
+                <input type="file" id="hiddenMergeFileInput" accept="image/*" class="opacity-0 absolute"
+                    style="left: -9999px; top: 0;" onchange="handleMergeFileUpload(this)">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Modal กราฟสรุปการเข้าพบรายเดือน -->
+<div id="revenueChartModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-theme-orange">
+
+        <!-- CSS สำหรับ Scrollbar สีเทา ให้มองเห็นได้ชัดเจนบนพื้นหลังสีขาว -->
+        <style>
+            .rev-modal-scrollbar::-webkit-scrollbar {
+                width: 8px;
+                display: block !important;
+            }
+
+            .rev-modal-scrollbar::-webkit-scrollbar-track {
+                background: #f8fafc;
+                border-radius: 4px;
+            }
+
+            .rev-modal-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+            }
+
+            .rev-modal-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+        </style>
+
+        <!-- Header -->
+        <div
+            class="px-4 sm:p-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-orange-50 text-theme-orange w-10 h-10 rounded-full flex items-center justify-center border border-orange-100 shadow-inner">
+                    <i class="fas fa-chart-pie text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight mb-0">
+                        สรุปข้อมูลการใช้บริการรายปี</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5 mb-0" id="revenueChartSubtitle">
+                        ข้อมูลแสดงผลตามตัวกรองที่เลือกไว้</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <button type="button" onclick="exportChartsToPDF()"
+                    class="text-[11px] sm:text-xs bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition flex items-center gap-2 shadow-[0_4px_10px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.5)] transform hover:-translate-y-0.5 font-bold">
+                    <i class="fas fa-file-pdf"></i> <span class="hidden sm:inline">ดาวน์โหลด PDF</span>
+                </button>
+                <button type="button" onclick="closeRevenueChartModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body Area for Charts (Scrollable) -->
+        <div class="flex-1 overflow-y-auto rev-modal-scrollbar bg-gray-50/50 p-4 sm:p-6 relative">
+            <div id="revenueChartsExportArea" class="w-full flex flex-col gap-6 max-w-full">
+                <!-- Monthly Revenue & Pieces Chart -->
+                <div class="grid grid-cols-1 gap-6 w-full max-w-full">
+                    <div
+                        class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden col-span-full">
+                        <h4
+                            class="text-sm font-bold text-gray-700 mb-4 flex items-center shrink-0 border-b border-gray-100 pb-3">
+                            <i class="fas fa-chart-bar text-theme-orange mr-2"></i>รายได้รายเดือน</h4>
+                        <div class="relative w-full" style="height: 400px; min-height: 400px;">
+                            <canvas id="revChartMonthlyRevenue"></canvas>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden col-span-full">
+                        <h4
+                            class="text-sm font-bold text-gray-700 mb-4 flex items-center shrink-0 border-b border-gray-100 pb-3">
+                            <i class="fas fa-chart-bar text-green-500 mr-2"></i>ปริมาณชิ้นงานรายเดือน</h4>
+                        <div class="relative w-full" style="height: 400px; min-height: 400px;">
+                            <canvas id="revChartMonthlyPieces"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service & Level Chart -->
+                <div class="grid grid-cols-1 gap-6 w-full max-w-full">
+                    <div
+                        class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden col-span-full">
+                        <h4
+                            class="text-sm font-bold text-gray-700 mb-4 flex items-center shrink-0 border-b border-gray-100 pb-3">
+                            <i class="fas fa-chart-pie text-blue-500 mr-2"></i>สัดส่วนรายได้แยกตามประเภทบริการ</h4>
+                        <canvas id="revChartService"></canvas>
+                    </div>
+
+                    <div
+                        class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden col-span-full">
+                        <h4
+                            class="text-sm font-bold text-gray-700 mb-4 flex items-center shrink-0 border-b border-gray-100 pb-3">
+                            <i class="fas fa-chart-pie text-purple-500 mr-2"></i>สัดส่วนรายได้แยกตามระดับลูกค้า</h4>
+                        <canvas id="revChartLevel"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Modal ลูกค้าที่ไม่ได้ใช้บริการ (Inactive Customers) -->
+<div id="inactiveModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-red-500">
+
+        <!-- CSS สำหรับ Scrollbar สีเทา -->
+        <style>
+            #inactiveModal .custom-scrollbar::-webkit-scrollbar {
+                width: 8px !important;
+                display: block !important;
+            }
+
+            #inactiveModal .custom-scrollbar::-webkit-scrollbar-track {
+                background: #f8fafc !important;
+                border-radius: 4px !important;
+            }
+
+            #inactiveModal .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border-radius: 4px !important;
+            }
+
+            #inactiveModal .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8 !important;
+            }
+        </style>
+
+        <!-- Header -->
+        <div
+            class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-red-50 text-red-500 w-10 h-10 rounded-full flex items-center justify-center border border-red-100 shadow-inner shrink-0">
+                    <i class="fas fa-user-clock text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight">ลูกค้าที่ไม่มีความเคลื่อนไหว
+                    </h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5" id="inactiveDateRangeDisplay">
+                        อัปเดตข้อมูลล่าสุด: <span id="inactiveMaxMonthDisplay"
+                            class="font-bold text-theme-orange"></span></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2">แสดง:</label>
+                    <select id="inactiveRowsPerPageSelect" onchange="changeInactiveRowsPerPage(this.value)"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-red-500 cursor-pointer bg-white font-sans mr-2 sm:mr-3">
+                        <option value="10" selected>10 รายการ</option>
+                        <option value="20">20 รายการ</option>
+                        <option value="50">50 รายการ</option>
+                        <option value="100">100 รายการ</option>
+                        <option value="ALL">ทั้งหมด</option>
+                    </select>
+                    <div class="w-px h-4 bg-gray-300 mx-1 hidden sm:block"></div>
+                    <label
+                        class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">เงื่อนไขหายไป:</label>
+                    <select id="inactiveMonthSelect" onchange="renderInactiveCustomers()"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-red-500 cursor-pointer bg-white font-sans">
+                        <option value="1">1 เดือนขึ้นไป</option>
+                        <option value="2">2 เดือนขึ้นไป</option>
+                        <option value="3" selected>3 เดือนขึ้นไป</option>
+                        <option value="6">6 เดือนขึ้นไป</option>
+                    </select>
+                </div>
+                <button type="button" onclick="exportInactiveToExcel()"
+                    class="text-[10px] sm:text-xs bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm font-bold">
+                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                </button>
+                <button type="button" onclick="closeInactiveModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-4 sm:p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2"><i
+                            class="fas fa-list-ul text-red-400"></i> รายชื่อลูกค้า</h4>
+                    <span class="bg-red-100 text-red-600 px-2 py-1 rounded-lg text-xs font-bold shadow-sm"
+                        id="inactiveCountDisplay">0</span>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                    <table class="min-w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-800 text-white sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-12">#
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    รายชื่อลูกค้า</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[100px]">
+                                    รหัสสมาชิก</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-24">
+                                    ระดับ</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[120px]">ทีม
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[180px]">
+                                    ที่ทำการ</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[200px]">
+                                    บริการที่ใช้ล่าสุด</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-28">
+                                    ใช้งานล่าสุดเมื่อ</th>
+                                <th
+                                    class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right text-theme-orange w-32">
+                                    รายได้ย้อนหลัง 1 ปี (บาท)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inactiveTableBody" class="bg-white divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="9" class="py-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="inactiveNoData"
+                        class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white text-gray-400 z-20">
+                        <i class="fas fa-box-open text-4xl mb-3 opacity-30"></i>
+                        <p class="text-sm font-medium">ไม่พบข้อมูลลูกค้าที่ตรงตามเงื่อนไข</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Pagination -->
+            <div id="inactivePaginationControls" class="hidden flex justify-between items-center mt-4 shrink-0">
+                <div id="inactivePageInfo"
+                    class="text-xs font-bold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    แสดง 0 ถึง 0 จาก 0 รายการ</div>
+                <div class="flex gap-2">
+                    <button type="button" id="btnInactivePrev" onclick="changeInactivePage(-1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ก่อนหน้า</button>
+                    <button type="button" id="btnInactiveNext" onclick="changeInactivePage(1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ถัดไป</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Modal ลูกค้ารายใหม่ (New Customers) -->
+<div id="newCustomerModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-green-500">
+
+        <!-- CSS สำหรับ Scrollbar สีเทา ให้มองเห็นได้ชัดเจนบนพื้นหลังสีขาว -->
+        <style>
+            #newCustomerModal .custom-scrollbar::-webkit-scrollbar {
+                width: 8px !important;
+                display: block !important;
+            }
+
+            #newCustomerModal .custom-scrollbar::-webkit-scrollbar-track {
+                background: #f8fafc !important;
+                border-radius: 4px !important;
+            }
+
+            #newCustomerModal .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border-radius: 4px !important;
+            }
+
+            #newCustomerModal .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8 !important;
+            }
+        </style>
+
+        <!-- Header -->
+        <div
+            class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-green-50 text-green-500 w-10 h-10 rounded-full flex items-center justify-center border border-green-100 shadow-inner shrink-0">
+                    <i class="fas fa-user-plus text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight">ลูกค้ารายใหม่</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5">ลูกค้าที่เพิ่งเริ่มใช้บริการ
+                        (ไม่มีประวัติย้อนหลัง 3 เดือน)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2">แสดง:</label>
+                    <select id="newCustomerRowsPerPageSelect" onchange="changeNewCustomerRowsPerPage(this.value)"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-green-500 cursor-pointer bg-white font-sans mr-2 sm:mr-3">
+                        <option value="10" selected>10 รายการ</option>
+                        <option value="20">20 รายการ</option>
+                        <option value="50">50 รายการ</option>
+                        <option value="100">100 รายการ</option>
+                        <option value="ALL">ทั้งหมด</option>
+                    </select>
+                    <div class="w-px h-4 bg-gray-300 mx-1 hidden sm:block"></div>
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">ประจำเดือน:</label>
+                    <select id="newCustomerMonthSelect" onchange="renderNewCustomers()"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-green-500 cursor-pointer bg-white font-sans">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+                <button type="button" onclick="exportNewCustomerToExcel()"
+                    class="text-[10px] sm:text-xs bg-green-50 text-green-600 hover:bg-green-500 hover:text-white border border-green-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm font-bold">
+                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                </button>
+                <button type="button" onclick="closeNewCustomerModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-4 sm:p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2"><i
+                            class="fas fa-list-ul text-green-400"></i> รายชื่อลูกค้าใหม่</h4>
+                    <span class="bg-green-100 text-green-600 px-2 py-1 rounded-lg text-xs font-bold shadow-sm"
+                        id="newCustomerCountDisplay">0</span>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                    <table class="min-w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-800 text-white sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-12">#
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-24">
+                                    เดือน</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[120px]">ทีม
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    ที่ทำการ</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    รายชื่อลูกค้า</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[100px]">
+                                    รหัสสมาชิก</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    บริการที่ใช้</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right w-24">
+                                    จำนวน (ชิ้น)</th>
+                                <th
+                                    class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right text-theme-orange w-32">
+                                    รายได้ (บาท)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newCustomerTableBody" class="bg-white divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="9" class="py-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="newCustomerNoData"
+                        class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white text-gray-400 z-20">
+                        <i class="fas fa-box-open text-4xl mb-3 opacity-30"></i>
+                        <p class="text-sm font-medium">ไม่พบข้อมูลลูกค้าใหม่ในเดือนนี้</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Pagination -->
+            <div id="newCustomerPaginationControls" class="hidden flex justify-between items-center mt-4 shrink-0">
+                <div id="newCustomerPageInfo"
+                    class="text-xs font-bold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    แสดง 0 ถึง 0 จาก 0 รายการ</div>
+                <div class="flex gap-2">
+                    <button type="button" id="btnNewCustomerPrev" onclick="changeNewCustomerPage(-1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ก่อนหน้า</button>
+                    <button type="button" id="newCustomerNext" onclick="changeNewCustomerPage(1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ถัดไป</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. Modal กราฟลูกค้าสูงสุด -->
+<div id="topCustomersChartModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-yellow-500">
+        <div
+            class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-yellow-50 text-yellow-500 w-10 h-10 rounded-full flex items-center justify-center border border-yellow-100 shadow-inner">
+                    <i class="fas fa-trophy text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 leading-tight">กราฟลูกค้าที่มีรายได้สูงสุด</h3>
+                    <p class="text-xs text-gray-500 mt-0.5" id="topCustomersChartSubtitle">10 อันดับแรก</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    <label class="text-xs font-bold text-gray-600 mr-2">แสดง:</label>
+                    <select id="topCustomersLimitSelect" onchange="renderTopCustomersChart()"
+                        class="text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-yellow-500 cursor-pointer bg-white font-sans">
+                        <option value="10" selected>10 อันดับ</option>
+                        <option value="20">20 อันดับ</option>
+                        <option value="30">30 อันดับ</option>
+                        <option value="40">40 อันดับ</option>
+                        <option value="50">50 อันดับ</option>
+                        <option value="60">60 อันดับ</option>
+                        <option value="70">70 อันดับ</option>
+                        <option value="80">80 อันดับ</option>
+                        <option value="90">90 อันดับ</option>
+                        <option value="100">100 อันดับ</option>
+                        <!-- 'แสดงทั้งหมด' Option is injected via JS -->
+                    </select>
+                </div>
+                <button type="button" onclick="exportTopCustomersToExcel()"
+                    class="text-xs bg-green-50 text-green-600 hover:bg-green-500 hover:text-white border border-green-200 px-4 py-1.5 rounded-lg font-bold shadow-sm flex items-center gap-1 transition transform hover:scale-105">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button type="button" onclick="closeTopCustomersChartModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50 p-6 relative">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden min-h-full">
+                <div id="topCustomersChartWrapper" class="relative w-full" style="height: 500px;">
+                    <canvas id="topCustomersChartPopup"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. Modal รายละเอียดรายเดือนของลูกค้ารายบุคคล (เพิ่มใหม่) -->
+<div id="customerMonthChartModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[120] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[90vw] 2xl:max-w-[1400px] h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+        <div
+            class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-indigo-50 text-indigo-500 w-10 h-10 rounded-full flex items-center justify-center border border-indigo-100 shadow-inner">
+                    <i class="fas fa-user-chart text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 leading-tight" id="custMonthModalTitle">
+                        เปรียบเทียบรายได้รายเดือน</h3>
+                    <p class="text-xs text-gray-500 mt-0.5 font-bold" id="custMonthModalSubtitle">ชื่อลูกค้า</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCustomerMonthModal()"
+                class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50 p-6 relative">
+            <div
+                class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 w-full overflow-hidden h-full min-h-[400px] flex flex-col">
+                <div class="relative flex-1 w-full">
+                    <canvas id="customerMonthChartPopup"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 8. Modal ลูกค้าที่มีจำนวนชิ้นงานไม่เป็นตามเกณฑ์ (Volume Alert) -->
+<div id="volumeAlertModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
+
+        <style>
+            #volumeAlertModal .custom-scrollbar::-webkit-scrollbar {
+                width: 8px !important;
+                display: block !important;
+            }
+
+            #volumeAlertModal .custom-scrollbar::-webkit-scrollbar-track {
+                background: #f8fafc !important;
+                border-radius: 4px !important;
+            }
+
+            #volumeAlertModal .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1 !important;
+                border-radius: 4px !important;
+            }
+
+            #volumeAlertModal .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8 !important;
+            }
+        </style>
+
+        <!-- Header -->
+        <div
+            class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-orange-50 text-orange-500 w-10 h-10 rounded-full flex items-center justify-center border border-orange-100 shadow-inner shrink-0">
+                    <i class="fas fa-exclamation-triangle text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
+                        จำนวนชิ้นงานต่อเดือนไม่เป็นตามเกณฑ์</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5" id="volAlertDateRangeDisplay">
+                        เปรียบเทียบยอดการใช้บริการจริงกับเป้าหมายขั้นต่ำ</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    <!-- 💡 เพิ่ม Checkbox กรอง "ไม่เป็นสมาชิก" -->
+                    <label
+                        class="flex items-center text-[10px] sm:text-xs font-bold text-gray-600 mr-2 sm:mr-3 cursor-pointer hover:text-orange-500 transition-colors"
+                        title="แสดงเฉพาะลูกค้าที่ไม่ได้เป็นสมาชิก Post Family">
+                        <input type="checkbox" id="volAlertNonMemberCheck" onchange="renderVolumeAlerts()"
+                            class="mr-1.5 accent-orange-500">
+                        เฉพาะ 'ไม่เป็นสมาชิก'
+                    </label>
+                    <div class="w-px h-4 bg-gray-300 mx-1 hidden sm:block"></div>
+
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">แสดง:</label>
+                    <select id="volAlertRowsPerPageSelect" onchange="changeVolAlertRowsPerPage(this.value)"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-orange-500 cursor-pointer bg-white font-sans mr-2 sm:mr-3">
+                        <option value="10" selected>10 รายการ</option>
+                        <option value="20">20 รายการ</option>
+                        <option value="50">50 รายการ</option>
+                        <option value="100">100 รายการ</option>
+                        <option value="ALL">ทั้งหมด</option>
+                    </select>
+
+                    <div class="w-px h-4 bg-gray-300 mx-1 hidden sm:block"></div>
+
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">บริการ:</label>
+                    <select id="volAlertServiceSelect" onchange="renderVolumeAlerts()"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-orange-500 cursor-pointer bg-white font-sans w-48 sm:w-64 truncate">
+                        <option value="ALL">ทุกบริการ</option>
+                    </select>
+
+                    <div class="w-px h-4 bg-gray-300 mx-1 hidden sm:block"></div>
+
+                    <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">เดือน:</label>
+                    <select id="volAlertMonthSelect" onchange="renderVolumeAlerts()"
+                        class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-orange-500 cursor-pointer bg-white font-sans">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+                <button type="button" onclick="exportVolAlertToExcel()"
+                    class="text-[10px] sm:text-xs bg-green-50 text-green-600 hover:bg-green-500 hover:text-white border border-green-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm font-bold">
+                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                </button>
+                <button type="button" onclick="closeVolumeAlertModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-4 sm:p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                <div class="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                    <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2"><i
+                            class="fas fa-list-ul text-orange-500"></i> รายชื่อลูกค้าที่ยอดไม่ถึงเกณฑ์</h4>
+                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded-lg text-xs font-bold shadow-sm"
+                        id="volAlertCountDisplay">0</span>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+                    <table class="min-w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-800 text-white sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-12">#
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-center w-24">
+                                    เดือน</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[120px]">ทีม
+                                </th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    ที่ทำการ</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    รายชื่อลูกค้า</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[100px]">
+                                    รหัสสมาชิก</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider min-w-[150px]">
+                                    บริการที่พิจารณา</th>
+                                <th class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right w-24">
+                                    เป้าขั้นต่ำ<br><span class="text-[9px] font-normal text-gray-300">(ชิ้น)</span></th>
+                                <th
+                                    class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right w-24 text-orange-400">
+                                    ฝากส่งจริง<br><span class="text-[9px] font-normal text-gray-300">(ชิ้น)</span></th>
+                                <th
+                                    class="py-3 px-4 font-semibold text-xs uppercase tracking-wider text-right w-24 text-red-400">
+                                    ส่วนต่าง<br><span class="text-[9px] font-normal text-gray-300">(ชิ้น)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="volAlertTableBody" class="bg-white divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="10" class="py-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="volAlertNoData"
+                        class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white text-gray-400 z-20">
+                        <i class="fas fa-check-circle text-green-500 text-4xl mb-3 opacity-80"></i>
+                        <p class="text-sm font-medium text-gray-600">เยี่ยมมาก!
+                            ไม่มีลูกค้าที่ตกเกณฑ์ในเดือน/บริการที่เลือก</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Pagination -->
+            <div id="volAlertPaginationControls" class="hidden flex justify-between items-center mt-4 shrink-0">
+                <div id="volAlertPageInfo"
+                    class="text-xs font-bold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                    แสดง 0 ถึง 0 จาก 0 รายการ</div>
+                <div class="flex gap-2">
+                    <button type="button" id="btnVolAlertPrev" onclick="changeVolAlertPage(-1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ก่อนหน้า</button>
+                    <button type="button" id="btnVolAlertNext" onclick="changeVolAlertPage(1)"
+                        class="px-4 py-1.5 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed">ถัดไป</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. Modal จัดการบริการ (Service Manager) -->
+    <div id="serviceManagerModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[120] px-4 backdrop-blur-md transition-opacity duration-300">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-green-500">
+            <div
+                class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="bg-green-50 text-green-600 w-10 h-10 rounded-full flex items-center justify-center border border-green-100 shadow-inner">
+                        <i class="fas fa-list-ul text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 leading-tight">จัดการรายการบริการที่แนะนำ</h3>
+                        <p class="text-xs text-gray-500 mt-0.5 font-bold">เพิ่ม/ลบ
+                            ข้อมูลสำหรับตัวเลือกหน้าฟอร์มเข้าพบลูกค้า</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeServiceManagerModal()"
+                    class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="flex-1 flex flex-col bg-gray-50/50 p-6 relative overflow-hidden">
+                <div class="mb-4 flex flex-col sm:flex-row gap-2 shrink-0">
+                    <input type="text" id="newServiceInput" placeholder="พิมพ์ชื่อบริการใหม่ที่ต้องการเพิ่ม..."
+                        class="flex-1 p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 transition text-sm font-sans"
+                        onkeypress="if(event.key==='Enter') addNewService()">
+                    <button onclick="addNewService()"
+                        class="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-green-700 transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-plus"></i> เพิ่มบริการ
+                    </button>
+                </div>
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
+                    <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="serviceManagerList">
+                        <!-- Items populated by JS -->
+                        <div class="text-center text-gray-400 py-8"><i
+                                class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. Modal แชท NotebookLM (Pre Post Guide) -->
+    <div id="guideChatModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[150] px-4 backdrop-blur-md transition-opacity duration-300">
+        <!-- ปรับ max-w ให้เป็น 450px (ขนาดมือถือ) เพื่อบังคับให้เว็บแสดงผลเป็นแบบมือถือ (เห็นเฉพาะกรอบแชท) -->
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-[450px] h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-blue-500">
+            <div
+                class="px-5 py-3 border-b border-gray-100 flex justify-between items-center bg-slate-800 shrink-0 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-inner shrink-0">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white leading-tight">AI Assistant</h3>
+                        <p class="text-[10px] text-blue-200 mt-0.5">Pre Post Guide For Sales Team</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openNotebookLMPopup()" title="แยกหน้าต่างออกมา (Popup)"
+                        class="text-gray-300 hover:text-white w-8 h-8 rounded-full hover:bg-white/10 transition flex items-center justify-center">
+                        <i class="fas fa-external-link-alt text-xs"></i>
+                    </button>
+                    <button type="button" onclick="closeGuideChatModal()"
+                        class="text-gray-300 hover:text-red-400 w-8 h-8 rounded-full hover:bg-white/10 transition flex items-center justify-center">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col bg-gray-50 relative overflow-hidden">
+                <!-- Iframe สำหรับแสดงหน้าแชท (อยู่เลเยอร์บนสุด) -->
+                <iframe id="guideChatIframe" src="" class="w-full h-full border-none relative z-20"></iframe>
+
+                <!-- โชว์เตือนและปุ่มเปิดแบบ Popup ไว้ด้านหลัง iframe เผื่อ iframe โดน Google Block จะได้มีทางเลือกให้กดแทน -->
+                <div
+                    class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-10 px-6 text-center">
+                    <i class="fas fa-shield-alt text-gray-300 text-5xl mb-4"></i>
+                    <h4 class="font-bold text-gray-700 text-base mb-2">ระบบความปลอดภัยของ Google</h4>
+                    <p class="text-xs text-gray-500 mb-6 leading-relaxed">หากหน้าต่างแชทไม่แสดงผล
+                        (หน้าจอขาว)<br>กรุณากดปุ่มด้านล่างเพื่อเปิดหน้าต่างแชทแยกออกมา</p>
+                    <button onclick="openNotebookLMPopup()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-full shadow-md transition transform hover:-translate-y-0.5 text-sm flex items-center gap-2">
+                        <i class="fas fa-external-link-alt"></i> เปิดหน้าต่างแชท (Popup)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11. Modal สรุปผลการประเมิน (Evaluation Summary) -->
+    <div id="evalSummaryModal"
+        class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[160] px-4 backdrop-blur-md transition-opacity duration-300">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+            <div
+                class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+                        <i class="fas fa-chart-pie text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
+                        <p id="evalSummaryTopicName" class="text-[11px] text-indigo-600 font-bold mt-0.5 line-clamp-1">-
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEvalSummaryModal()"
+                    class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
+                <div
+                    class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-indigo-50/30">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-400">
+                            <i class="fas fa-users text-lg"></i>
+                        </div>
+                        <span class="text-sm font-bold text-gray-700">จำนวนผู้ประเมินทั้งหมด</span>
+                    </div>
+                    <span id="evalSummaryTotalCount" class="text-2xl font-black text-indigo-600 drop-shadow-sm">-
+                        คน</span>
+                </div>
+
+                <div id="evalSummaryContent" class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 12. Modal รายงาน ขล. (กลุ่มบริการขนส่งและโลจิสติกส์) -->
+<div id="khorLorReportModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[110] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1600px] h-[95vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-blue-500">
+            <style>
+                #khorLorReportModal .custom-scrollbar::-webkit-scrollbar { width: 8px !important; display: block !important; }
+                #khorLorReportModal .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc !important; border-radius: 4px !important; }
+                #khorLorReportModal .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1 !important; border-radius: 4px !important; }
+                #khorLorReportModal .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8 !important; }
+            </style>
+
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-50 text-blue-500 w-10 h-10 rounded-full flex items-center justify-center border border-blue-100 shadow-inner shrink-0">
+                        <i class="fas fa-file-invoice text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight">รายงาน ขล.</h3>
+                        <p id="khorLorSubtitle" class="text-[10px] sm:text-xs text-gray-500 mt-0.5">กลุ่มบริการขนส่งและโลจิสติกส์ แยกตามรหัสไปรษณีย์</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+                    <div class="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                        <label class="text-[10px] sm:text-xs font-bold text-gray-600 mr-2 ml-1 sm:ml-2">เดือน:</label>
+                        <select id="khorLorMonthSelect" onchange="renderKhorLorReport()"
+                            class="text-[10px] sm:text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-blue-500 cursor-pointer bg-white font-sans">
+                            <option value="ALL">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="exportKhorLorToExcel()"
+                        class="text-[10px] sm:text-xs bg-green-50 text-green-600 hover:bg-green-500 hover:text-white border border-green-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm font-bold">
+                        <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
+                    </button>
+                    <button type="button" onclick="closeKhorLorReportModal()"
+                        class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-4 sm:p-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                    <div class="flex-1 overflow-auto custom-scrollbar relative px-4 pb-4 pt-0">
+                        <div id="khorLorTableContainer" class="w-full mt-4">
+                            <!-- Table injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

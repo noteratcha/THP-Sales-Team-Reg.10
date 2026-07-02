@@ -1,0 +1,11 @@
+{
+  "name": "thp-sales-team-reg-10",
+  "version": "1.0.0",
+  "description": "THP Sales Team Reg.10 Google Apps Script Project",
+  "scripts": {
+    "push": "node update-version.js && npx clasp push"
+  },
+  "dependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}

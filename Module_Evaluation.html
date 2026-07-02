@@ -1,0 +1,454 @@
+<!-- PAGE: EVALUATION -->
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-indigo-500 max-w-4xl mx-auto mt-4 mb-8">
+    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-white">
+        <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
+            <div
+                class="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
+                <i class="fas fa-star-half-alt text-xl"></i>
+            </div>
+            ประเมินการวัดผล
+        </h3>
+        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-indigo-200 ml-5 pl-3">
+            กรุณาให้คะแนนความพึงพอใจในแต่ละหัวข้อคำถามด้านล่าง<br>
+            <span class="text-indigo-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
+        </p>
+    </div>
+
+    <div class="p-6 sm:p-8 bg-gray-50/30">
+        <!-- ตัวเลือกประเมินวัดผล -->
+        <div class="mb-6 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3 sm:gap-2">
+                <label class="form-label text-sm font-bold text-gray-700 m-0 flex items-center"><i
+                        class="fas fa-list-ul text-indigo-500 mr-2"></i>เลือกหัวข้อการประเมิน <span
+                        class="text-red-500 ml-1">*</span></label>
+                <button type="button" id="btnViewEvalSummary" onclick="openEvalSummaryModal()"
+                    class="hidden text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white border border-indigo-200 px-3 py-1.5 rounded-lg transition-all font-bold shadow-sm items-center gap-1.5">
+                    <i class="fas fa-chart-pie"></i> ดูสรุปคะแนน
+                </button>
+            </div>
+            <select id="evalTopicSelect"
+                class="w-full p-3 sm:p-4 border border-gray-300 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition font-sans text-sm bg-gray-50 cursor-pointer shadow-inner"
+                onchange="onEvalTopicChange()">
+                <option value="" disabled selected>กำลังโหลดข้อมูล...</option>
+            </select>
+        </div>
+
+        <!-- สถานะกำลังโหลด -->
+        <div id="evalLoader"
+            class="hidden text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <i class="fas fa-circle-notch fa-spin text-indigo-500 text-5xl mb-4"></i>
+            <p class="font-bold text-lg text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+
+        <!-- ฟอร์มการให้คะแนน -->
+        <form id="evaluationForm" class="hidden" onsubmit="submitEvaluation(event)">
+            <div id="evalQuestionsContainer" class="space-y-6">
+                <!-- คำถามถูกสร้างผ่าน JS -->
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end">
+                <button type="submit" id="btnSubmitEval"
+                    class="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-paper-plane"></i> บันทึกผลการประเมิน
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentEvalQuestions = [];
+    let actualEvalSheetName = '';
+
+    // โหลดตัวเลือก Dropdown เมื่อเข้าสู่หน้า
+    window.loadEvaluationQuestions = function () {
+        const select = document.getElementById('evalTopicSelect');
+        const loader = document.getElementById('evalLoader');
+        const form = document.getElementById('evaluationForm');
+        const container = document.getElementById('evalQuestionsContainer');
+        const btnSummary = document.getElementById('btnViewEvalSummary');
+
+        if (!select || !loader || !form || !container) return;
+
+        form.classList.add('hidden');
+        if (btnSummary) { btnSummary.classList.add('hidden'); btnSummary.classList.remove('inline-flex'); }
+        container.innerHTML = '';
+        select.innerHTML = '<option value="" disabled selected>กำลังโหลดข้อมูล...</option>';
+
+        loader.classList.remove('hidden');
+
+        google.script.run.withSuccessHandler(res => {
+            loader.classList.add('hidden');
+            if (res.status === 'success') {
+                let html = '<option value="" disabled selected>- กรุณาเลือกหัวข้อการประเมิน -</option>';
+                res.data.forEach(opt => {
+                    html += `<option value="${opt}">${opt}</option>`;
+                });
+                select.innerHTML = html;
+            } else {
+                select.innerHTML = '<option value="" disabled selected>โหลดข้อมูลไม่สำเร็จ</option>';
+                Swal.fire('ผิดพลาด', 'ไม่สามารถโหลดตัวเลือกได้: ' + res.message, 'error');
+            }
+        }).withFailureHandler(err => {
+            loader.classList.add('hidden');
+            select.innerHTML = '<option value="" disabled selected>โหลดข้อมูลไม่สำเร็จ</option>';
+            Swal.fire('ผิดพลาดจากเซิร์ฟเวอร์', err.toString(), 'error');
+        }).getEvaluationOptions();
+    }
+
+    // เมื่อเลือกหัวข้อ ให้ไปดึงคำถามจากชีตนั้น
+    window.onEvalTopicChange = function () {
+        const select = document.getElementById('evalTopicSelect');
+        const loader = document.getElementById('evalLoader');
+        const form = document.getElementById('evaluationForm');
+        const container = document.getElementById('evalQuestionsContainer');
+        const btnSummary = document.getElementById('btnViewEvalSummary');
+
+        const selectedTopic = select.value;
+        if (!selectedTopic) return;
+
+        loader.classList.remove('hidden');
+        form.classList.add('hidden');
+        if (btnSummary) { btnSummary.classList.add('hidden'); btnSummary.classList.remove('inline-flex'); }
+        container.innerHTML = '';
+        actualEvalSheetName = '';
+
+        google.script.run.withSuccessHandler(res => {
+            loader.classList.add('hidden');
+            if (res.status === 'success') {
+                actualEvalSheetName = res.actualSheetName;
+                currentEvalQuestions = res.data;
+
+                if (currentEvalQuestions.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-500 py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                            <i class="fas fa-clipboard-check text-6xl mb-4 opacity-20 text-indigo-500"></i>
+                            <p class="font-bold text-xl text-gray-700">ไม่มีคำถามในการประเมินนี้</p>
+                        </div>`;
+                    form.classList.remove('hidden');
+                    document.getElementById('btnSubmitEval').style.display = 'none';
+                    return;
+                }
+
+                renderEvalQuestions();
+                form.classList.remove('hidden');
+                document.getElementById('btnSubmitEval').style.display = 'inline-flex';
+                if (btnSummary) { btnSummary.classList.remove('hidden'); btnSummary.classList.add('inline-flex'); }
+            } else {
+                Swal.fire('ผิดพลาด', 'ไม่สามารถโหลดคำถามได้: ' + res.message, 'error');
+            }
+        }).withFailureHandler(err => {
+            loader.classList.add('hidden');
+            Swal.fire('ผิดพลาดจากเซิร์ฟเวอร์', err.toString(), 'error');
+        }).getEvaluationQuestions(selectedTopic);
+    }
+
+    // สร้าง HTML ช่องให้คะแนน
+    function renderEvalQuestions() {
+        const container = document.getElementById('evalQuestionsContainer');
+        let html = '';
+
+        currentEvalQuestions.forEach((q, i) => {
+            html += `
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-indigo-300 transition-colors group">
+                    <p class="font-bold text-gray-800 mb-5 flex items-start gap-3 text-sm sm:text-base">
+                        <span class="bg-indigo-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5">${i + 1}</span>
+                        <span class="leading-relaxed pt-0.5">${q.text} <span class="text-red-500">*</span></span>
+                    </p>
+                    <div class="w-full overflow-x-auto custom-scrollbar pb-3 pt-1">
+                        <div class="flex flex-nowrap gap-2 sm:gap-3 justify-between sm:justify-center min-w-max mx-auto px-1">
+            `;
+
+            for (let score = 1; score <= 10; score++) {
+                let colorClass = '';
+                if (score <= 3) {
+                    colorClass = 'hover:bg-red-50 hover:border-red-400 hover:text-red-600 peer-checked:bg-red-500 peer-checked:border-red-500 peer-checked:shadow-red-500/30';
+                } else if (score <= 7) {
+                    colorClass = 'hover:bg-yellow-50 hover:border-yellow-500 hover:text-yellow-600 peer-checked:bg-yellow-500 peer-checked:border-yellow-500 peer-checked:shadow-yellow-500/30';
+                } else {
+                    colorClass = 'hover:bg-green-50 hover:border-green-500 hover:text-green-600 peer-checked:bg-green-500 peer-checked:border-green-500 peer-checked:shadow-green-500/30';
+                }
+
+                html += `
+                    <label class="cursor-pointer relative group/score">
+                        <input type="radio" name="eval_q_${q.index}" value="${score}" required class="peer sr-only">
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-gray-200 flex items-center justify-center text-xs sm:text-sm font-bold text-gray-500 bg-white transition-all duration-200 peer-checked:text-white shadow-sm hover:shadow shrink-0 ${colorClass}">
+                            ${score}
+                        </div>
+                    </label>
+                `;
+            }
+
+            html += `
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mt-2 px-2 font-bold uppercase tracking-wider w-full mx-auto sm:max-w-2xl">
+                        <span><i class="fas fa-arrow-left mr-1"></i>น้อยที่สุด</span>
+                        <span>มากที่สุด<i class="fas fa-arrow-right ml-1"></i></span>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // กดยืนยันการประเมิน
+    window.submitEvaluation = function (e) {
+        e.preventDefault();
+        const form = document.getElementById('evaluationForm');
+        const select = document.getElementById('evalTopicSelect');
+
+        let scoresData = [];
+        let allAnswered = true;
+
+        const sheetNameTarget = actualEvalSheetName || (select ? select.value : '');
+
+        if (!sheetNameTarget) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลหัวข้อการประเมิน กรุณาโหลดหน้านี้ใหม่', 'error');
+            return;
+        }
+
+        currentEvalQuestions.forEach(q => {
+            const selected = form.querySelector(`input[name="eval_q_${q.index}"]:checked`);
+            if (selected) {
+                scoresData.push({ index: q.index, score: parseInt(selected.value) });
+            } else {
+                allAnswered = false;
+            }
+        });
+
+        if (!allAnswered) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบ',
+                text: 'กรุณาให้คะแนนครบทุกข้อก่อนบันทึก',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitEval');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...';
+
+        Swal.fire({
+            title: 'กำลังส่งผลการประเมิน...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        google.script.run.withSuccessHandler(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> บันทึกผลการประเมิน';
+
+            if (res.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ!',
+                    html: 'บันทึกผลการประเมินเรียบร้อยแล้ว<br>ขอบคุณที่ให้ความร่วมมือครับ',
+                    confirmButtonColor: '#10b981'
+                });
+
+                form.reset();
+                if (select) select.value = '';
+                form.classList.add('hidden');
+
+                const btnSummary = document.getElementById('btnViewEvalSummary');
+                if (btnSummary) { btnSummary.classList.add('hidden'); btnSummary.classList.remove('inline-flex'); }
+
+                const mainContainer = document.querySelector('main');
+                if (mainContainer) mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                Swal.fire('ผิดพลาด', 'ไม่สามารถบันทึกได้: ' + res.message, 'error');
+            }
+        }).withFailureHandler(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> บันทึกผลการประเมิน';
+            Swal.fire('ผิดพลาด', err.toString(), 'error');
+        }).submitEvaluationScores(scoresData, sheetNameTarget);
+    }
+
+    // 💡 ฟังก์ชันควบคุม Modal สรุปผลการประเมิน (เพิ่ม Scrollbar และดีไซน์แบบ Minimal)
+    window.openEvalSummaryModal = function () {
+        const select = document.getElementById('evalTopicSelect');
+        const fallbackTopic = select ? select.value : '';
+        const sheetNameTarget = actualEvalSheetName || fallbackTopic;
+
+        if (!sheetNameTarget) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกหัวข้อการประเมินก่อนเข้าดูสรุปผล', 'warning');
+            return;
+        }
+
+        const existingModal = document.getElementById('evalSummaryModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'evalSummaryModal';
+        modal.style.zIndex = '9999';
+        // ใช้ padding รอบด้านให้เท่ากัน (px-4 py-4 md:p-8)
+        modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center px-4 py-4 md:p-8 backdrop-blur-md transition-opacity duration-300 opacity-0';
+
+        modal.innerHTML = `
+            <!-- Style ของ Scrollbar -->
+            <style>
+                #evalSummaryContent::-webkit-scrollbar { width: 6px; }
+                #evalSummaryContent::-webkit-scrollbar-track { background: transparent; }
+                #evalSummaryContent::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+                #evalSummaryContent::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            </style>
+            
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+                <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+                            <i class="fas fa-chart-pie text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
+                            <p id="evalSummaryTopicName" class="text-[11px] text-indigo-600 font-bold mt-0.5 line-clamp-1">-</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEvalSummaryModal()" class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
+                    <!-- หัวข้อสรุปภาพรวม -->
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-indigo-50/30 gap-4">
+                        <div class="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
+                            <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 shadow-inner">
+                                <i class="fas fa-tachometer-alt text-lg"></i>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700">ภาพรวมการประเมิน</span>
+                        </div>
+                        <div class="flex items-center gap-6 self-center sm:self-auto bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                            <div class="text-center">
+                                <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">ผู้ประเมินทั้งหมด</p>
+                                <span id="evalSummaryTotalCount" class="text-xl sm:text-2xl font-black text-indigo-600 drop-shadow-sm">-</span>
+                                <span class="text-xs text-gray-400 font-bold ml-1">คน</span>
+                            </div>
+                            <div class="w-px h-10 bg-gray-200"></div>
+                            <div class="text-center min-w-[100px]">
+                                <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">คะแนนเฉลี่ยรวม</p>
+                                <span id="evalSummaryTotalAvg" class="text-xl sm:text-2xl font-black text-gray-400 drop-shadow-sm">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ส่วนรายการคำถามที่เลื่อนได้ (Scrollable) -->
+                    <div id="evalSummaryContent" class="flex-1 overflow-y-auto pr-2 pb-2">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-16"><i class="fas fa-circle-notch fa-spin text-indigo-500 text-4xl mb-4"></i><p class="text-gray-500 font-bold mt-3">กำลังประมวลผลสรุปคะแนน...</p><p class="text-xs text-gray-400 mt-1">ระบบกำลังคำนวณข้อมูลจากฐานข้อมูล</p></div>';
+        document.getElementById('evalSummaryTopicName').innerText = sheetNameTarget;
+        document.getElementById('evalSummaryTotalCount').innerText = '-';
+        document.getElementById('evalSummaryTotalAvg').innerText = '-';
+
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            const innerDiv = modal.querySelector('div');
+            if (innerDiv) innerDiv.classList.remove('scale-95');
+        });
+
+        google.script.run.withSuccessHandler(res => {
+            if (res.status === 'success') {
+                renderEvalSummary(res);
+            } else {
+                document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-10 text-red-500"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p class="font-bold">เกิดข้อผิดพลาด</p><p class="text-sm mt-2">' + res.message + '</p></div>';
+            }
+        }).withFailureHandler(err => {
+            document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-10 text-red-500"><i class="fas fa-wifi text-3xl mb-3"></i><p class="font-bold">ขาดการเชื่อมต่อเซิร์ฟเวอร์</p><p class="text-sm mt-2">' + err.toString() + '</p></div>';
+        }).getEvaluationSummary(sheetNameTarget);
+    };
+
+    window.closeEvalSummaryModal = function () {
+        const modal = document.getElementById('evalSummaryModal');
+        if (!modal) return;
+        modal.classList.add('opacity-0');
+        const innerDiv = modal.querySelector('div');
+        if (innerDiv) innerDiv.classList.add('scale-95');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    };
+
+    function renderEvalSummary(res) {
+        try {
+            const container = document.getElementById('evalSummaryContent');
+            const data = res.data || [];
+            const totalCount = res.totalEvaluators || 0;
+
+            document.getElementById('evalSummaryTotalCount').innerText = totalCount.toLocaleString();
+
+            if (data.length === 0) {
+                document.getElementById('evalSummaryTotalAvg').innerText = '0.00';
+                document.getElementById('evalSummaryTotalAvg').className = 'text-xl sm:text-2xl font-black text-gray-400 drop-shadow-sm';
+                container.innerHTML = `
+                    <div class="text-center py-16 text-gray-400">
+                        <i class="fas fa-inbox text-5xl mb-4 opacity-30"></i>
+                        <p class="font-bold text-gray-600 mt-2">ยังไม่มีข้อมูลสรุปคะแนน</p>
+                        <p class="text-xs text-gray-400 mt-1">ยังไม่มีผู้ทำการประเมินในหัวข้อนี้</p>
+                    </div>`;
+                return;
+            }
+
+            let totalAvgSum = 0;
+            let html = '<div class="space-y-3 pb-2">';
+
+            data.forEach((item, index) => {
+                let scoreColor = 'text-green-600';
+                let scoreBg = 'bg-green-50';
+                let scoreBorder = 'border-green-200';
+                let avg = parseFloat(item.avgScore);
+
+                totalAvgSum += avg;
+
+                if (avg < 5) { scoreColor = 'text-red-600'; scoreBg = 'bg-red-50'; scoreBorder = 'border-red-200'; }
+                else if (avg < 8) { scoreColor = 'text-orange-600'; scoreBg = 'bg-orange-50'; scoreBorder = 'border-orange-200'; }
+
+                // นำส่วนแสดงจำนวนคนประเมินออก โชว์เฉพาะคะแนนเฉลี่ย
+                html += `
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
+                        <div class="flex items-start gap-3 flex-1 min-w-0 pr-2">
+                            <span class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-inner border border-indigo-100">${index + 1}</span>
+                            <span class="text-sm text-gray-700 font-medium leading-snug pt-1 group-hover:text-indigo-700 transition-colors">${item.question}</span>
+                        </div>
+                        <div class="flex items-center shrink-0 self-end sm:self-auto bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
+                            <div class="text-center min-w-[70px]">
+                                <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-1 font-bold">คะแนนเฉลี่ย</p>
+                                <div class="${scoreBg} ${scoreColor} ${scoreBorder} border px-3 py-1.5 rounded-lg font-bold text-sm shadow-inner leading-none">
+                                    ${item.avgScore}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            let finalOverallAvg = (totalAvgSum / data.length).toFixed(2);
+            let overallScoreColor = 'text-green-600';
+            if (finalOverallAvg < 5) { overallScoreColor = 'text-red-600'; }
+            else if (finalOverallAvg < 8) { overallScoreColor = 'text-orange-600'; }
+
+            const avgEl = document.getElementById('evalSummaryTotalAvg');
+            avgEl.innerText = finalOverallAvg;
+            avgEl.className = `text-xl sm:text-2xl font-black drop-shadow-sm ${overallScoreColor}`;
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error("Render Summary Error: ", error);
+            document.getElementById('evalSummaryContent').innerHTML = `<div class="text-center py-10 text-red-500"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p class="font-bold">เกิดข้อผิดพลาดในการแสดงผล</p><p class="text-sm mt-2">${error.message}</p></div>`;
+        }
+    }
+</script>
