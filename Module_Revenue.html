@@ -3235,7 +3235,7 @@
                 // สร้างคอนเทนเนอร์สำหรับกราฟ
                 chartWrapper = document.createElement('div');
                 chartWrapper.id = containerId + '-chart-wrapper';
-                chartWrapper.className = "relative w-full lg:w-[40%] flex flex-col justify-center items-center py-4 shrink-0 gap-6";
+                chartWrapper.className = "relative w-full lg:w-[45%] flex flex-row flex-wrap justify-center items-center py-4 shrink-0 gap-y-6";
 
                 // ย้าย canvas เข้าไป
                 canvasEl.parentNode.insertBefore(innerFlexContainer, canvasEl);
@@ -3246,7 +3246,7 @@
                 // สร้างคอนเทนเนอร์สำหรับตาราง
                 tableContainer = document.createElement('div');
                 tableContainer.id = containerId;
-                tableContainer.className = "w-full lg:w-[60%] h-auto border border-gray-200 rounded-xl bg-white shadow-md flex flex-col overflow-hidden";
+                tableContainer.className = "w-full lg:w-[55%] h-auto border border-gray-200 rounded-xl bg-white shadow-md flex flex-col overflow-hidden";
                 innerFlexContainer.appendChild(tableContainer);
             }
             return { tableContainer: tableContainer, chartWrapper: chartWrapper };
@@ -3544,7 +3544,7 @@
                 if (sumYear === 0) return; // Skip year if no data
 
                 var wrapper = document.createElement('div');
-                wrapper.className = "dynamic-pie-chart-service w-full h-[260px] relative flex flex-col items-center";
+                wrapper.className = "dynamic-pie-chart-service w-1/2 h-[260px] relative flex flex-col items-center px-2";
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
@@ -3655,7 +3655,7 @@
                 if (sumYear === 0) return;
 
                 var wrapper = document.createElement('div');
-                wrapper.className = "dynamic-pie-chart-level w-full h-[260px] relative flex flex-col items-center";
+                wrapper.className = "dynamic-pie-chart-level w-1/2 h-[260px] relative flex flex-col items-center px-2";
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
