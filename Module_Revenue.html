@@ -3214,6 +3214,7 @@
             var card = canvasEl.closest('.bg-white.rounded-2xl');
             var tableContainer = document.getElementById(containerId);
             var innerFlexContainer = document.getElementById(containerId + '-wrapper');
+            var chartWrapper = document.getElementById(containerId + '-chart-wrapper');
 
             // ปรับ Style ของ Card หลัก (แต่ไม่ให้ลบ class เดิมที่เป็นตัวกำหนดกรอบทิ้ง)
             if (card && !card.id.includes('Modal')) {
@@ -3232,12 +3233,14 @@
                 innerFlexContainer.className = "flex flex-col lg:flex-row gap-6 w-full items-start mt-4";
 
                 // สร้างคอนเทนเนอร์สำหรับกราฟ
-                var chartWrapper = document.createElement('div');
-                chartWrapper.className = "relative w-full lg:w-[40%] h-[350px] flex justify-center items-center py-4 shrink-0";
+                chartWrapper = document.createElement('div');
+                chartWrapper.id = containerId + '-chart-wrapper';
+                chartWrapper.className = "relative w-full lg:w-[40%] flex flex-col justify-center items-center py-4 shrink-0 gap-6";
 
                 // ย้าย canvas เข้าไป
                 canvasEl.parentNode.insertBefore(innerFlexContainer, canvasEl);
                 chartWrapper.appendChild(canvasEl);
+                canvasEl.style.display = 'none'; // ซ่อนอันเก่า
                 innerFlexContainer.appendChild(chartWrapper);
 
                 // สร้างคอนเทนเนอร์สำหรับตาราง
@@ -3246,7 +3249,7 @@
                 tableContainer.className = "w-full lg:w-[60%] h-auto border border-gray-200 rounded-xl bg-white shadow-md flex flex-col overflow-hidden";
                 innerFlexContainer.appendChild(tableContainer);
             }
-            return tableContainer;
+            return { tableContainer: tableContainer, chartWrapper: chartWrapper };
         };
 
         // =====================================
@@ -3522,31 +3525,65 @@
 
         var canvasService = document.getElementById('revChartService');
         if (canvasService && typeof Chart !== 'undefined') {
-            var tableContainerService = setupPieChartLayout(canvasService, 'tableServiceContainer');
-            var ctxService = canvasService.getContext('2d');
-            if (window.revChartServiceInst) window.revChartServiceInst.destroy();
-            window.revChartServiceInst = new Chart(ctxService, {
-                type: 'doughnut',
-                data: {
-                    labels: sLabels,
-                    datasets: [{ data: sData, backgroundColor: serviceColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, layout: { padding: 20 }, cutout: '45%',
-                    plugins: {
-                        chart3DShadowPlugin: { enabled: true }, legend: { display: false },
-                        datalabels: {
-                            display: true, color: '#fff', font: { weight: 'bold', size: 11 }, textShadowBlur: 0, textShadowColor: 'transparent',
-                            formatter: function (value, ctx) {
-                                var sum = 0; ctx.chart.data.datasets[0].data.forEach(function (d) { sum += d; });
-                                if (sum === 0) return "";
-                                var pctValue = (value * 100 / sum);
-                                return pctValue < 3 ? "" : pctValue.toFixed(2) + "%";
-                            }
-                        },
-                        tooltip: { callbacks: { label: function (context) { var label = context.label || ''; var value = context.parsed || 0; var sum = context.dataset.data.reduce(function (a, b) { return a + b; }, 0); var pct = sum > 0 ? ((value * 100) / sum).toFixed(2) + '%' : ''; return label + ': ' + value.toLocaleString() + ' บาท (' + pct + ')'; } } }
+            var layoutService = setupPieChartLayout(canvasService, 'tableServiceContainer');
+            var tableContainerService = layoutService.tableContainer;
+            var chartWrapperService = layoutService.chartWrapper;
+
+            // Clear old dynamically generated charts
+            var oldCharts = chartWrapperService.querySelectorAll('.dynamic-pie-chart-service');
+            oldCharts.forEach(function(el) { el.remove(); });
+            
+            if (window.revChartServiceInsts) {
+                window.revChartServiceInsts.forEach(function(inst) { inst.destroy(); });
+            }
+            window.revChartServiceInsts = [];
+
+            yearArr.forEach(function (y) {
+                var sDataYear = sLabels.map(function (k) { return serviceData[k][y] || 0; });
+                var sumYear = sDataYear.reduce(function(a,b){return a+b}, 0);
+                if (sumYear === 0) return; // Skip year if no data
+
+                var wrapper = document.createElement('div');
+                wrapper.className = "dynamic-pie-chart-service w-full h-[260px] relative flex flex-col items-center";
+                
+                var title = document.createElement('div');
+                title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
+                title.innerText = "ปี " + y;
+                
+                var canvasWrapper = document.createElement('div');
+                canvasWrapper.className = "relative w-full flex-1";
+                
+                var canvas = document.createElement('canvas');
+                canvasWrapper.appendChild(canvas);
+                wrapper.appendChild(title);
+                wrapper.appendChild(canvasWrapper);
+                chartWrapperService.appendChild(wrapper);
+
+                var ctx = canvas.getContext('2d');
+                var inst = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: sLabels,
+                        datasets: [{ data: sDataYear, backgroundColor: serviceColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, layout: { padding: 10 }, cutout: '45%',
+                        plugins: {
+                            chart3DShadowPlugin: { enabled: true }, legend: { display: false },
+                            datalabels: {
+                                display: true, color: '#fff', font: { weight: 'bold', size: 10 }, textShadowBlur: 0, textShadowColor: 'transparent',
+                                formatter: function (value, ctx) {
+                                    var sum = 0; ctx.chart.data.datasets[0].data.forEach(function (d) { sum += d; });
+                                    if (sum === 0) return "";
+                                    var pctValue = (value * 100 / sum);
+                                    return pctValue < 3 ? "" : pctValue.toFixed(2) + "%";
+                                }
+                            },
+                            tooltip: { callbacks: { label: function (context) { var label = context.label || ''; var value = context.parsed || 0; var sum = context.dataset.data.reduce(function (a, b) { return a + b; }, 0); var pct = sum > 0 ? ((value * 100) / sum).toFixed(2) + '%' : ''; return label + ': ' + value.toLocaleString() + ' บาท (' + pct + ')'; } } }
+                        }
                     }
-                }
+                });
+                window.revChartServiceInsts.push(inst);
             });
 
             var sCombined = sLabels.map(function (lbl, idx) { return { label: lbl, data: serviceData[lbl], color: serviceColors[idx % serviceColors.length] }; });
@@ -3599,31 +3636,65 @@
 
         var canvasLevel = document.getElementById('revChartLevel');
         if (canvasLevel && typeof Chart !== 'undefined') {
-            var tableContainerLevel = setupPieChartLayout(canvasLevel, 'tableLevelContainer');
-            var ctxLevel = canvasLevel.getContext('2d');
-            if (window.revChartLevelInst) window.revChartLevelInst.destroy();
-            window.revChartLevelInst = new Chart(ctxLevel, {
-                type: 'pie',
-                data: {
-                    labels: lLabels,
-                    datasets: [{ data: lData, backgroundColor: lColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, layout: { padding: 20 },
-                    plugins: {
-                        chart3DShadowPlugin: { enabled: true }, legend: { display: false },
-                        datalabels: {
-                            display: true, color: '#fff', font: { weight: 'bold', size: 11 }, textShadowBlur: 0, textShadowColor: 'transparent',
-                            formatter: function (value, ctx) {
-                                var sum = 0; ctx.chart.data.datasets[0].data.forEach(function (d) { sum += d; });
-                                if (sum === 0) return "";
-                                var pctValue = (value * 100 / sum);
-                                return pctValue < 3 ? "" : pctValue.toFixed(2) + "%";
-                            }
-                        },
-                        tooltip: { callbacks: { label: function (context) { var label = context.label || ''; var value = context.parsed || 0; return label + ': ' + value.toLocaleString() + ' บาท'; } } }
+            var layoutLevel = setupPieChartLayout(canvasLevel, 'tableLevelContainer');
+            var tableContainerLevel = layoutLevel.tableContainer;
+            var chartWrapperLevel = layoutLevel.chartWrapper;
+
+            // Clear old dynamically generated charts
+            var oldChartsLevel = chartWrapperLevel.querySelectorAll('.dynamic-pie-chart-level');
+            oldChartsLevel.forEach(function(el) { el.remove(); });
+            
+            if (window.revChartLevelInsts) {
+                window.revChartLevelInsts.forEach(function(inst) { inst.destroy(); });
+            }
+            window.revChartLevelInsts = [];
+
+            yearArr.forEach(function (y) {
+                var lDataYear = lLabels.map(function (k) { return levelData[k][y] || 0; });
+                var sumYear = lDataYear.reduce(function(a,b){return a+b}, 0);
+                if (sumYear === 0) return;
+
+                var wrapper = document.createElement('div');
+                wrapper.className = "dynamic-pie-chart-level w-full h-[260px] relative flex flex-col items-center";
+                
+                var title = document.createElement('div');
+                title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
+                title.innerText = "ปี " + y;
+                
+                var canvasWrapper = document.createElement('div');
+                canvasWrapper.className = "relative w-full flex-1";
+                
+                var canvas = document.createElement('canvas');
+                canvasWrapper.appendChild(canvas);
+                wrapper.appendChild(title);
+                wrapper.appendChild(canvasWrapper);
+                chartWrapperLevel.appendChild(wrapper);
+
+                var ctx = canvas.getContext('2d');
+                var inst = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: lLabels,
+                        datasets: [{ data: lDataYear, backgroundColor: lColors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 15 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, layout: { padding: 10 },
+                        plugins: {
+                            chart3DShadowPlugin: { enabled: true }, legend: { display: false },
+                            datalabels: {
+                                display: true, color: '#fff', font: { weight: 'bold', size: 10 }, textShadowBlur: 0, textShadowColor: 'transparent',
+                                formatter: function (value, ctx) {
+                                    var sum = 0; ctx.chart.data.datasets[0].data.forEach(function (d) { sum += d; });
+                                    if (sum === 0) return "";
+                                    var pctValue = (value * 100 / sum);
+                                    return pctValue < 3 ? "" : pctValue.toFixed(2) + "%";
+                                }
+                            },
+                            tooltip: { callbacks: { label: function (context) { var label = context.label || ''; var value = context.parsed || 0; return label + ': ' + value.toLocaleString() + ' บาท'; } } }
+                        }
                     }
-                }
+                });
+                window.revChartLevelInsts.push(inst);
             });
 
             var lCombined = lLabels.map(function (lbl, idx) { return { label: lbl, data: levelData[lbl], color: lColors[idx] }; });
