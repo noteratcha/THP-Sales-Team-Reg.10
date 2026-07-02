@@ -2425,8 +2425,9 @@
             var isAdmin = (reqUserStr === 'admin' || reqUserStr === 'viewer');
             var userZip = currentUserInfo.zipcode ? String(currentUserInfo.zipcode).trim() : "";
 
-            var allTeamChecked = document.getElementById('revSelectAllTeam') ? document.getElementById('revSelectAllTeam').checked : true;
-            var selectedTeams = Array.from(document.querySelectorAll('.team-checkbox:checked')).map(function(cb) { return cb.value; });
+            var allTeamCheckedElement = document.querySelector('#revFilterTeamDropdown input[value="ALL"]');
+            var allTeamChecked = allTeamCheckedElement ? allTeamCheckedElement.checked : true;
+            var selectedTeams = Array.from(document.querySelectorAll('#revFilterTeamDropdown .team-checkbox:checked')).map(function(cb) { return cb.value; });
 
             for (var i = 1; i < globalRevenueTargets.length; i++) {
                 var r = globalRevenueTargets[i];
