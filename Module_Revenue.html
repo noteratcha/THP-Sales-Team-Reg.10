@@ -2342,67 +2342,56 @@
         setTimeout(function () { modal.classList.add('hidden'); }, 300);
     }
 
-    window.openChartDetailModal = function (titleText, subtitleText, dataRows) {
+    window.largePieChartInst = null;
+    window.openChartDetailModal = function (titleText, subtitleText, chartType, labels, data, colors) {
         var modal = document.getElementById('chartDetailModal');
         if (!modal) return;
         document.getElementById('chartDetailTitle').innerText = titleText;
         document.getElementById('chartDetailSubtitle').innerText = subtitleText;
         
-        var container = document.getElementById('chartDetailTableContainer');
-        
-        // Generate table
-        var tableHtml = '<div class="w-full overflow-x-auto"><table class="min-w-full text-xs text-left border-collapse border border-gray-300">';
-        tableHtml += '<thead class="bg-indigo-600 text-white">';
-        tableHtml += '<tr>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">ลำดับ</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">ปณ. / หน่วยงาน</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">ทีมขาย</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">เดือน</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">ระดับลูกค้า</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold whitespace-nowrap">ประเภทบริการ</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold text-right whitespace-nowrap">ปริมาณ (ชิ้น)</th>';
-        tableHtml += '<th class="py-2 px-3 border border-indigo-700 font-bold text-right whitespace-nowrap">รายได้ (บาท)</th>';
-        tableHtml += '</tr></thead><tbody class="text-gray-700">';
-        
-        if (!dataRows || dataRows.length === 0) {
-            tableHtml += '<tr><td colspan="8" class="py-6 px-4 text-center text-gray-500">ไม่พบข้อมูล</td></tr>';
-        } else {
-            var sumPieces = 0;
-            var sumRevenue = 0;
-            dataRows.forEach(function(row, idx) {
-                var office = String(row[0] || '').trim();
-                var team = String(row[10] || '').trim();
-                var month = String(row[5] || '').trim();
-                var level = String(row[3] || '').trim();
-                var service = String(row[4] || '').trim();
-                
-                var pieces = parseFloat(String(row[7]).replace(/,/g, '')) || 0;
-                var rev = parseFloat(String(row[8]).replace(/,/g, '')) || 0;
-                sumPieces += pieces;
-                sumRevenue += rev;
-                
-                tableHtml += '<tr class="hover:bg-indigo-50/40 transition border-b border-gray-200">';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 text-center">' + (idx + 1) + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 truncate max-w-[200px]" title="' + office + '">' + office + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 whitespace-nowrap">' + team + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 whitespace-nowrap">' + month + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 whitespace-nowrap">' + level + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 max-w-[200px] truncate" title="' + service + '">' + service + '</td>';
-                tableHtml += '<td class="py-2 px-3 border-r border-gray-300 text-right font-medium">' + pieces.toLocaleString() + '</td>';
-                tableHtml += '<td class="py-2 px-3 text-right font-bold text-indigo-700">' + rev.toLocaleString() + '</td>';
-                tableHtml += '</tr>';
-            });
-            
-            // Footer summary
-            tableHtml += '<tr class="bg-indigo-50 font-bold border-t-2 border-indigo-200">';
-            tableHtml += '<td colspan="6" class="py-3 px-3 text-right text-indigo-900">รวมทั้งหมด</td>';
-            tableHtml += '<td class="py-3 px-3 text-right text-indigo-900">' + sumPieces.toLocaleString() + '</td>';
-            tableHtml += '<td class="py-3 px-3 text-right text-indigo-900">' + sumRevenue.toLocaleString() + '</td>';
-            tableHtml += '</tr>';
+        var canvas = document.getElementById('largePieCanvas');
+        if (!canvas) return;
+
+        if (window.largePieChartInst) {
+            window.largePieChartInst.destroy();
         }
-        
-        tableHtml += '</tbody></table></div>';
-        container.innerHTML = tableHtml;
+
+        var ctx = canvas.getContext('2d');
+        window.largePieChartInst = new Chart(ctx, {
+            type: chartType,
+            data: {
+                labels: labels,
+                datasets: [{ data: data, backgroundColor: colors, borderWidth: 3, borderColor: '#ffffff', hoverOffset: 25 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, layout: { padding: 40 }, cutout: chartType === 'doughnut' ? '45%' : undefined,
+                plugins: {
+                    chart3DShadowPlugin: { enabled: true },
+                    legend: { display: true, position: 'right', labels: { font: { size: 14 } } },
+                    datalabels: {
+                        display: true, color: '#fff', font: { weight: 'bold', size: 16 }, textShadowBlur: 4, textShadowColor: '#000000',
+                        formatter: function (value, ctx) {
+                            var sum = 0; ctx.chart.data.datasets[0].data.forEach(function (d) { sum += d; });
+                            if (sum === 0) return "";
+                            var pctValue = (value * 100 / sum);
+                            return pctValue < 1 ? "" : pctValue.toFixed(2) + "%";
+                        }
+                    },
+                    tooltip: {
+                        titleFont: { size: 16 }, bodyFont: { size: 16 }, padding: 12,
+                        callbacks: {
+                            label: function (context) {
+                                var label = context.label || '';
+                                var value = context.parsed || 0;
+                                var sum = context.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                var pct = sum > 0 ? ((value * 100) / sum).toFixed(2) + '%' : '';
+                                return label + ': ' + value.toLocaleString() + ' บาท (' + pct + ')';
+                            }
+                        }
+                    }
+                }
+            }
+        });
         
         modal.classList.remove('hidden');
         setTimeout(function () {
@@ -3648,19 +3637,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 }, cutout: '45%',
                         onClick: function(event, elements) {
-                            if (elements && elements.length > 0) {
-                                var idx = elements[0].index;
-                                var label = sLabels[idx];
-                                var clickedYear = y;
-                                var filtered = revenueFilteredRows.filter(function(r) {
-                                    var s = String(r[4] || '').trim();
-                                    if (s.indexOf('กลุ่มบริการขนส่งและโลจ') !== -1 && s.indexOf('(เพิ่มเติม)') !== -1) {
-                                        s = s.replace(' (เพิ่มเติม)', '').trim();
-                                    }
-                                    return s === label && parseInt(r[6]) == clickedYear;
-                                });
-                                window.openChartDetailModal('ประเภทบริการ: ' + label, 'ปี ' + clickedYear, filtered);
-                            }
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามประเภทบริการ', 'ปี ' + y, 'doughnut', sLabels, sDataYear, serviceColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
@@ -3774,15 +3751,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 },
                         onClick: function(event, elements) {
-                            if (elements && elements.length > 0) {
-                                var idx = elements[0].index;
-                                var label = lLabels[idx];
-                                var clickedYear = y;
-                                var filtered = revenueFilteredRows.filter(function(r) {
-                                    return String(r[3] || 'ไม่ระบุ').trim() === label && parseInt(r[6]) == clickedYear;
-                                });
-                                window.openChartDetailModal('ระดับลูกค้า: ' + label, 'ปี ' + clickedYear, filtered);
-                            }
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามระดับลูกค้า', 'ปี ' + y, 'pie', lLabels, lDataYear, lColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
