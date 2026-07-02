@@ -1214,3 +1214,34 @@
             </div>
         </div>
     </div>
+
+<!-- 13. Modal รายละเอียดกราฟวงกลม -->
+<div id="chartDetailModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[120] px-4 backdrop-blur-md transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] 2xl:max-w-[1400px] h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+        <!-- Header -->
+        <div class="px-4 sm:p-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-50 text-indigo-500 w-10 h-10 rounded-full flex items-center justify-center border border-indigo-100 shadow-inner">
+                    <i class="fas fa-list text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight mb-0" id="chartDetailTitle">รายละเอียดข้อมูล</h3>
+                    <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5 mb-0" id="chartDetailSubtitle">รายการข้อมูลที่เกี่ยวข้อง</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeChartDetailModal()"
+                class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors border border-transparent hover:border-gray-200">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <!-- Content -->
+        <div class="flex-1 overflow-hidden flex flex-col bg-gray-50/50 p-4 sm:p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-auto custom-scrollbar relative px-4 pb-4 pt-4" id="chartDetailTableContainer">
+                    <!-- Table injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
