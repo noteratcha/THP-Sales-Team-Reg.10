@@ -2356,6 +2356,9 @@
         data.forEach(function (row) {
             var level = String(row[3] || 'ไม่ระบุ').trim();
             var service = String(row[4] || 'ไม่ระบุ').trim();
+            if (service.indexOf('กลุ่มบริการขนส่งและโลจ') !== -1 && service.indexOf('(เพิ่มเติม)') !== -1) {
+                service = service.replace(' (เพิ่มเติม)', '').trim();
+            }
             var monthName = String(row[5] || '').trim();
             var yearStr = String(row[6] || '').trim();
             var year = parseInt(yearStr);
