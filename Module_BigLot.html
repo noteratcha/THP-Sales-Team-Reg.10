@@ -150,6 +150,22 @@
         0% { opacity: 0.1; transform: scale(0.98); }
         100% { opacity: 1; transform: scale(1.02); filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9)); }
     }
+    
+    /* Sortable Drag & Drop Animations */
+    .sortable-ghost {
+        opacity: 0.4;
+        filter: grayscale(80%);
+        border: 2px dashed #94a3b8;
+        transition: all 0.2s ease;
+    }
+    .sortable-drag, .sortable-fallback {
+        opacity: 0.85 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        box-shadow: 0 20px 30px -5px rgba(234, 88, 12, 0.4) !important;
+        border: 2px dashed #f97316 !important; /* เปลี่ยนเป็นเส้นประให้ดูเป็น โครง */
+        cursor: grabbing !important;
+        z-index: 9999 !important;
+    }
 </style>
 
 <div class="max-w-7xl mx-auto mt-4 mb-8 px-4 sm:px-6 lg:px-8">
@@ -468,6 +484,7 @@
 
             return matchesSearch && matchesStatus;
         });
+        window.currentFilteredProducts = filtered;
 
         if (filtered.length === 0) {
             if (grid) grid.classList.add('hidden');
@@ -495,7 +512,7 @@
             const processedImageUrl = transformGoogleDriveUrl(p.image);
             const imgFilters = inStock ? '' : 'opacity-40 grayscale-[50%]';
             if (processedImageUrl && processedImageUrl.trim() !== '') {
-                imageHTML = `<img src="${escapeHtml(processedImageUrl)}" alt="${escapeHtml(p.name)}" onclick="window.viewBigLotFullImage('${escapeJs(processedImageUrl)}', '${escapeJs(p.name)}')" class="w-full h-40 object-contain bg-gray-50/40 p-2 cursor-zoom-in hover:scale-105 transition duration-500 relative z-10 ${imgFilters}" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">`;
+                imageHTML = `<img src="${escapeHtml(processedImageUrl)}" alt="${escapeHtml(p.name)}" onclick="window.viewBigLotFullImage('${escapeJs(p.code)}')" class="w-full h-40 object-contain bg-gray-50/40 p-2 cursor-zoom-in hover:scale-105 transition duration-500 relative z-10 ${imgFilters}" title="คลิกเพื่อดูรูปภาพขนาดใหญ่">`;
             } else {
                 imageHTML = `
                 <div class="w-full h-40 bg-gradient-to-br from-orange-100 to-amber-50 flex flex-col items-center justify-center text-orange-400 relative overflow-hidden z-10 ${imgFilters}">
@@ -619,7 +636,7 @@
                     
                     <div class="space-y-3">
                         <div class="flex justify-between items-baseline">
-                            <span class="text-xs text-gray-400">ราคาต่อชิ้น</span>
+                            <span class="text-xs text-gray-400">ราคาต่อหน่วย</span>
                             <span class="text-lg font-black text-gray-800">${priceFormatted}</span>
                         </div>
                         
@@ -640,14 +657,18 @@
         const isViewingAll = window.bigLotSearchQuery.trim() === '' && window.bigLotFilterStatus === 'all';
         if (isAdmin && isViewingAll && typeof Sortable !== 'undefined') {
             window.bigLotSortable = new Sortable(grid, {
-                animation: 150,
+                animation: 350,
+                easing: "cubic-bezier(0.25, 1, 0.5, 1)",
                 handle: '.drag-handle',
-                ghostClass: 'opacity-50',
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
                 delay: 200, // หน่วงเวลาเล็กน้อยเพื่อให้แยกระหว่างการเลื่อนจอหน้าเว็บกับการลาก
                 delayOnTouchOnly: true, // หน่วงเวลาเฉพาะบนจอสัมผัส (มือถือ, iPad)
                 fallbackTolerance: 5, // อนุญาตให้นิ้วขยับได้เล็กน้อยระหว่างรอโดยไม่ยกเลิกการลาก
-                forceFallback: true, // บังคับใช้ fallback (ช่วยแก้ปัญหาบน iOS/iPad)
+                forceFallback: true, // บังคับใช้ fallback (ช่วยแก้ปัญหาบน iOS/iPad และทำให้คลาสทำงานได้ดีขึ้น)
                 fallbackOnBody: true, // ให้ element ที่ถูกลากหลุดจาก container เดิม
+                swapThreshold: 0.65, // ปรับความอ่อนไหวเวลาลากสลับที่ (เหมาะกับ Grid)
+                invertSwap: true, // ช่วยลดอาการกระตุกเวลาลากสลับไปมาระหว่างแถวและคอลัมน์
                 onEnd: function (evt) {
                     if (evt.oldIndex === evt.newIndex) return;
                     
@@ -890,6 +911,15 @@
                     </div>
                     <div class="text-2xl font-black text-orange-600 drop-shadow-sm">${formatCurrency(grandTotal)}</div>
                 </div>
+                
+                <div class="mt-4 text-left bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fas fa-calendar-alt text-orange-500 mr-1"></i> กำหนดวันที่ต้องการสินค้า <span class="text-[10px] font-normal text-gray-400">(ระบุหรือไม่ก็ได้)</span></label>
+                    <input type="date" id="checkout-delivery-date" class="w-full p-2 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none transition">
+                    
+                    <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fas fa-comment-dots text-orange-500 mr-1"></i> หมายเหตุ <span class="text-[10px] font-normal text-gray-400">(ระบุหรือไม่ก็ได้)</span></label>
+                    <textarea id="checkout-remark" rows="2" class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none transition" placeholder="เช่น ขอใบเสร็จ, ระบุสี/ลาย..."></textarea>
+                </div>
+                
                 ${substituteInfoHtml}
             `,
             showCancelButton: true,
@@ -901,9 +931,16 @@
                 popup: 'rounded-2xl shadow-2xl border border-gray-100',
                 confirmButton: 'rounded-xl font-bold px-6 shadow-lg shadow-orange-500/30 transition-all hover:scale-105',
                 cancelButton: 'rounded-xl font-bold px-6 bg-gray-200 text-gray-700 hover:bg-gray-300 transition-all'
+            },
+            preConfirm: () => {
+                return {
+                    deliveryDate: document.getElementById('checkout-delivery-date') ? document.getElementById('checkout-delivery-date').value : '',
+                    remark: document.getElementById('checkout-remark') ? document.getElementById('checkout-remark').value : ''
+                };
             }
         }).then((result) => {
             if (result.isConfirmed) {
+                const formValues = result.value || {};
                 // Show loading SweetAlert2
                 Swal.fire({
                     title: 'กำลังส่งข้อมูลการสั่งซื้อ',
@@ -917,7 +954,9 @@
                 const ordersArray = cartCopy.map(i => ({
                     productCode: i.code,
                     quantity: i.quantity,
-                    price: i.price
+                    price: i.price,
+                    deliveryDate: formValues.deliveryDate,
+                    remark: formValues.remark
                 }));
 
                 if (typeof google !== 'undefined') {
@@ -1558,18 +1597,72 @@
     }
 
     // 🖼️ Open Full Image Modal via SweetAlert2
-    window.viewBigLotFullImage = function (imageUrl, productName) {
+    window.viewBigLotFullImage = function (productCode) {
+        const sourceArray = window.currentFilteredProducts || window.bigLotProducts || [];
+        const currentIndex = sourceArray.findIndex(p => p.code === productCode);
+        if (currentIndex === -1) return;
+        const product = sourceArray[currentIndex];
+        
+        const prevProduct = currentIndex > 0 ? sourceArray[currentIndex - 1] : null;
+        const nextProduct = currentIndex < sourceArray.length - 1 ? sourceArray[currentIndex + 1] : null;
+
+        const inStock = isProductInStock(product.status);
+        const processedImageUrl = transformGoogleDriveUrl(product.image);
+        const priceFormatted = formatCurrency(product.price);
+        
+        let htmlContent = `
+            <div class="flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-10 p-0 h-auto md:h-[88vh]">
+                <!-- Left: Image (มือถือ: auto / คอม: เอาความสูง 88vh เป็นเกณฑ์) -->
+                <div class="w-full md:w-auto md:h-full flex items-center justify-center bg-transparent rounded-xl relative group">
+                    <img src="${escapeHtml(processedImageUrl)}" alt="${escapeHtml(product.name)}" class="w-full h-auto max-h-[50vh] md:w-auto md:h-full md:max-h-none object-contain drop-shadow-md rounded-xl max-w-full">
+                    ${prevProduct ? `<button onclick="window.viewBigLotFullImage('${escapeJs(prevProduct.code)}')" class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-white/70 hover:bg-white/95 text-gray-700 hover:text-orange-600 rounded-full shadow border border-gray-100 transition-all opacity-80 md:opacity-0 group-hover:opacity-100 focus:opacity-100 backdrop-blur-sm z-10"><i class="fas fa-chevron-left text-lg md:text-2xl"></i></button>` : ''}
+                    ${nextProduct ? `<button onclick="window.viewBigLotFullImage('${escapeJs(nextProduct.code)}')" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center bg-white/70 hover:bg-white/95 text-gray-700 hover:text-orange-600 rounded-full shadow border border-gray-100 transition-all opacity-80 md:opacity-0 group-hover:opacity-100 focus:opacity-100 backdrop-blur-sm z-10"><i class="fas fa-chevron-right text-lg md:text-2xl"></i></button>` : ''}
+                </div>
+                
+                <!-- Right: Details (มือถือ: เต็มจอ / คอม: ล็อกความกว้าง) -->
+                <div class="w-full md:w-[400px] lg:w-[450px] flex-shrink-0 text-left flex flex-col justify-center space-y-4 md:space-y-6 py-2 md:py-4 overflow-y-auto">
+                    <div class="flex justify-between items-center border-b border-gray-100 pb-2 md:pb-3">
+                        <span class="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg border border-orange-100">${escapeHtml(product.sourceOffice)}</span>
+                        <span class="text-[11px] text-gray-400 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100">${escapeHtml(product.code)}</span>
+                    </div>
+                    
+                    <h3 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 leading-snug">${escapeHtml(product.name)}</h3>
+                    
+                    <div class="flex items-center gap-2">
+                        ${inStock 
+                            ? '<span class="px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100"><i class="fas fa-check-circle"></i> มีสินค้าพร้อมส่ง</span>' 
+                            : '<span class="px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100"><i class="fas fa-times-circle"></i> สินค้าหมดชั่วคราว</span>'}
+                        ${product.recommend === 'Recommend' 
+                            ? '<span class="px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100"><i class="fas fa-star text-yellow-500"></i> สินค้าแนะนำ</span>' 
+                            : ''}
+                    </div>
+
+                    <div class="flex flex-col bg-gradient-to-r from-orange-50/50 to-transparent p-4 md:p-6 rounded-xl border border-orange-100/50 mt-2 md:mt-4">
+                        <span class="text-gray-500 font-medium text-sm mb-1">ราคาต่อหน่วย</span>
+                        <span class="text-4xl md:text-5xl font-black text-orange-600">${priceFormatted} <span class="text-lg md:text-xl text-gray-500 font-medium">บาท</span></span>
+                    </div>
+
+                    <!-- Custom Action Buttons -->
+                    <div class="flex flex-col xl:flex-row gap-3 pt-2">
+                        ${inStock 
+                            ? `<button onclick="Swal.close(); window.addToBigLotCart('${escapeJs(product.code)}');" class="flex-1 font-bold px-4 py-3 md:py-4 rounded-xl text-base md:text-lg shadow-md hover:shadow-lg transition-all bg-orange-600 hover:bg-orange-700 text-white"><i class="fas fa-cart-plus mr-1"></i> เพิ่มเข้าตะกร้า</button>
+                               <button onclick="Swal.close(); window.openBulkOrderModal(${product.rowIndex});" class="flex-1 font-bold px-4 py-3 md:py-4 rounded-xl text-base md:text-lg shadow-sm hover:shadow-md transition-all bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200"><i class="fas fa-users mr-1"></i> สั่งแบบกลุ่ม (สั่งแทน)</button>` 
+                            : `<button disabled class="w-full font-bold px-4 py-3 md:py-4 rounded-xl text-base md:text-lg bg-gray-100 text-gray-500 cursor-not-allowed"><i class="fas fa-times-circle mr-1"></i> สินค้าหมดชั่วคราว</button>`}
+                    </div>
+                </div>
+            </div>
+        `;
+
         Swal.fire({
-            title: '<b>' + escapeHtml(productName) + '</b>',
-            imageUrl: imageUrl,
-            imageAlt: productName,
+            html: htmlContent,
             showConfirmButton: false,
+            showCancelButton: false,
             showCloseButton: true,
-            background: 'rgba(255, 255, 255, 0.98)',
-            backdrop: 'rgba(15, 23, 42, 0.75)',
+            width: window.innerWidth < 768 ? '100%' : 'auto', // มือถือใช้ 100% คอมใช้ auto
             customClass: {
-                popup: 'rounded-2xl shadow-2xl border border-white/40',
-                image: 'max-h-[70vh] object-contain rounded-xl shadow-inner'
+                popup: 'rounded-2xl md:rounded-3xl shadow-2xl border border-gray-100 p-3 md:p-6 !max-w-[98vw] relative', 
+                closeButton: 'absolute top-2 right-2 md:top-4 md:right-4 focus:outline-none hover:text-orange-600 transition-colors',
+                htmlContainer: '!m-0 !p-0'
             }
         });
     };
@@ -1621,7 +1714,7 @@
                             <div class="w-full">
                                 <p class="text-xs font-mono text-blue-500 mb-1">${escapeHtml(product.code)}</p>
                                 <h4 class="text-base font-bold text-blue-900 leading-snug mb-3">${escapeHtml(product.name)}</h4>
-                                <p class="text-base font-black text-orange-600 bg-orange-100/50 py-2 px-4 rounded-xl inline-block border border-orange-200/50">${formatCurrency(product.price)} / ชิ้น</p>
+                                <p class="text-base font-black text-orange-600 bg-orange-100/50 py-2 px-4 rounded-xl inline-block border border-orange-200/50">${formatCurrency(product.price)} บาท/หน่วย</p>
                             </div>
                         </div>
                     </div>
@@ -1660,6 +1753,14 @@
                                     <span class="text-[10px] font-bold text-red-600">ยกเว้น คปณ. ปณย. ปณร. ปณอ.</span>
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-1">
+                            <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fas fa-calendar-alt text-blue-500 mr-1"></i> กำหนดวันที่ต้องการสินค้า <span class="text-[10px] font-normal text-gray-400">(ระบุหรือไม่ก็ได้)</span></label>
+                            <input type="date" id="bulk-delivery-date" class="w-full p-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                            
+                            <label class="block text-xs font-bold text-gray-700 mb-1"><i class="fas fa-comment-dots text-blue-500 mr-1"></i> หมายเหตุ <span class="text-[10px] font-normal text-gray-400">(ระบุหรือไม่ก็ได้)</span></label>
+                            <textarea id="bulk-remark" rows="1" class="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="เช่น ขอใบเสร็จ, ระบุสี/ลาย..."></textarea>
                         </div>
     
                         <div class="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-inner flex-1 flex flex-col">
@@ -1702,11 +1803,16 @@
                     Swal.showValidationMessage('กรุณาระบุจำนวนสินค้าอย่างน้อย 1 ชิ้นใน 1 ที่ทำการ');
                     return false;
                 }
-                return orders;
+                return {
+                    orders: orders,
+                    deliveryDate: document.getElementById('bulk-delivery-date') ? document.getElementById('bulk-delivery-date').value : '',
+                    remark: document.getElementById('bulk-remark') ? document.getElementById('bulk-remark').value : ''
+                };
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                const bulkOrders = result.value;
+                const bulkOrders = result.value.orders;
+                const formValues = result.value;
                 const totalItems = bulkOrders.reduce((sum, o) => sum + o.quantity, 0);
                 const grandTotal = totalItems * product.price;
 
@@ -1766,7 +1872,7 @@
                                         confirmButtonColor: '#2563EB'
                                     });
                                 })
-                                .submitBulkBigLotOrders(product.code, product.price, bulkOrders, zip, name);
+                                .submitBulkBigLotOrders(product.code, product.price, bulkOrders, zip, name, formValues.deliveryDate, formValues.remark);
                         } else {
                             setTimeout(() => {
                                 Swal.fire('สำเร็จ (จำลอง)!', 'ทำรายการสั่งซื้อแบบกลุ่มเรียบร้อยแล้ว', 'success');

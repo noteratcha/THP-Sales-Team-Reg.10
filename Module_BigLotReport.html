@@ -176,6 +176,7 @@
                             <th style="width: 25%; min-width: 220px;" class="py-4 px-4 font-bold border-b border-[#041d15] text-center align-middle">สินค้า</th>
                             <th style="width: 8%; min-width: 95px;" class="py-3.5 px-4 font-bold border-b border-[#041d15] text-center align-middle leading-tight">จำนวน<br>(หน่วย)</th>
                             <th style="width: 12%; min-width: 125px;" class="py-3.5 px-4 font-bold border-b border-[#041d15] text-center align-middle leading-tight">ยอดรวมเงิน<br>(บาท)</th>
+                            <th id="bigLotAdminHeader" style="width: 10%; min-width: 100px;" class="hidden py-3.5 px-4 font-bold border-b border-[#041d15] text-center align-middle">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody id="bigLotReportTableBody" class="divide-y divide-gray-200 bg-white/40">
@@ -296,6 +297,7 @@
                     try {
                         if (res && res.status === 'success') {
                             window.bigLotRawOrders = res.data || [];
+                            window.bigLotIsAdmin = res.isAdmin;
                             
                             // Ensure all zipcodes are 5 digits long by padding with leading zeros
                             window.bigLotRawOrders.forEach(o => {
@@ -427,11 +429,35 @@
             return matchesSearch && matchesDate;
         });
 
-        // Sort by zipcode ascending (from lowest to highest)
+        // Helper function to parse "dd/MM/yyyy HH:mm:ss" or similar
+        function parseCustomTimestamp(dateStr) {
+            if (!dateStr) return 0;
+            const parts = dateStr.split(/[\s/:]+/);
+            if (parts.length >= 3) {
+                const d = parseInt(parts[0], 10) || 1;
+                const m = (parseInt(parts[1], 10) || 1) - 1;
+                const y = parseInt(parts[2], 10) || 0;
+                const h = parseInt(parts[3], 10) || 0;
+                const min = parseInt(parts[4], 10) || 0;
+                const s = parseInt(parts[5], 10) || 0;
+                return new Date(y, m, d, h, min, s).getTime();
+            }
+            return new Date(dateStr).getTime() || 0;
+        }
+
+        // Sort by zipcode ascending (primary), timestamp descending (secondary)
         window.bigLotOrders.sort((a, b) => {
             const zipA = String(a.zipcode || '').trim();
             const zipB = String(b.zipcode || '').trim();
-            return zipA.localeCompare(zipB);
+            const zipCompare = zipA.localeCompare(zipB);
+            
+            if (zipCompare !== 0) {
+                return zipCompare;
+            }
+            
+            const timeA = parseCustomTimestamp(a.timestamp);
+            const timeB = parseCustomTimestamp(b.timestamp);
+            return timeB - timeA;
         });
 
         // Check if report is empty
@@ -498,6 +524,12 @@
         // Populate Table Body
         if (tableBody) {
             tableBody.innerHTML = '';
+            
+            const adminHeader = document.getElementById('bigLotAdminHeader');
+            if (adminHeader) {
+                if (window.bigLotIsAdmin) adminHeader.classList.remove('hidden');
+                else adminHeader.classList.add('hidden');
+            }
 
             paginatedOrders.forEach((o, index) => {
                 const realIndex = startIdx + index + 1;
@@ -531,6 +563,18 @@
                     \x3Ctd class="py-3.5 px-4 text-right">
                         \x3Cspan class="font-mono text-emerald-600">${window.formatCurrency(o.totalPrice)}\x3C/span>
                     \x3C/td>
+                    ${window.bigLotIsAdmin ? `
+                    \x3Ctd class="py-3.5 px-4 text-center">
+                        \x3Cdiv class="flex items-center justify-center space-x-1">
+                            \x3Cbutton onclick="event.stopPropagation(); window.openEditBigLotOrderModal(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 transition flex items-center justify-center" title="แก้ไข">
+                                \x3Ci class="fas fa-edit">\x3C/i>
+                            \x3C/button>
+                            \x3Cbutton onclick="event.stopPropagation(); window.deleteBigLotOrder(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:scale-105 transition flex items-center justify-center" title="ลบ">
+                                \x3Ci class="fas fa-trash-alt">\x3C/i>
+                            \x3C/button>
+                        \x3C/div>
+                    \x3C/td>
+                    ` : ''}
                 `;
                 tableBody.appendChild(tr);
             });
@@ -2302,5 +2346,93 @@
                 }
                 Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างไฟล์ PDF ได้: ' + error.message, 'error');
             });
+    };
+
+    window.openEditBigLotOrderModal = function(index) {
+        const o = window.bigLotOrders[index];
+        if (!o) return;
+
+        Swal.fire({
+            title: 'แก้ไขรายการสั่งซื้อ',
+            html: `
+                <div class="text-left mt-2 text-sm">
+                    <p class="mb-1"><b>สินค้า:</b> ${o.productName}</p>
+                    <p class="mb-4"><b>ที่ทำการ:</b> ${o.officeName} (${o.zipcode})</p>
+                    <label class="block font-bold text-gray-700 mb-1">จำนวน (หน่วย):</label>
+                    <input type="number" id="edit-qty" value="${o.quantity}" class="w-full p-2 border border-gray-300 rounded-lg mb-3" min="1">
+                    
+                    <label class="block font-bold text-gray-700 mb-1">วันที่ต้องการสินค้า:</label>
+                    <input type="date" id="edit-date" value="${o.deliveryDate || ''}" class="w-full p-2 border border-gray-300 rounded-lg mb-3">
+                    
+                    <label class="block font-bold text-gray-700 mb-1">หมายเหตุ:</label>
+                    <textarea id="edit-remark" rows="2" class="w-full p-2 border border-gray-300 rounded-lg">${o.remark || ''}</textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึกการแก้ไข',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#2563EB',
+            preConfirm: () => {
+                return {
+                    quantity: document.getElementById('edit-qty').value,
+                    deliveryDate: document.getElementById('edit-date').value,
+                    remark: document.getElementById('edit-remark').value
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const vals = result.value;
+                if (!vals.quantity || vals.quantity <= 0) {
+                    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุจำนวนให้ถูกต้อง', 'error');
+                    return;
+                }
+                Swal.fire({title: 'กำลังอัปเดตข้อมูล...', didOpen: () => Swal.showLoading(), allowOutsideClick: false});
+                
+                const pricePerUnit = o.totalPrice / o.quantity;
+                const newTotal = parseInt(vals.quantity) * pricePerUnit;
+
+                google.script.run
+                    .withSuccessHandler(res => {
+                        if (res.status === 'success') {
+                            Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
+                        } else {
+                            Swal.fire('ผิดพลาด', res.message, 'error');
+                        }
+                    })
+                    .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
+                    .updateBigLotOrder(o.rowIndex, vals.quantity, newTotal, vals.deliveryDate, vals.remark);
+            }
+        });
+    };
+
+    window.deleteBigLotOrder = function(index) {
+        const o = window.bigLotOrders[index];
+        if (!o) return;
+
+        Swal.fire({
+            title: 'ยืนยันการลบ',
+            text: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการสั่งซื้อสินค้านี้?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({title: 'กำลังลบข้อมูล...', didOpen: () => Swal.showLoading(), allowOutsideClick: false});
+                
+                google.script.run
+                    .withSuccessHandler(res => {
+                        if (res.status === 'success') {
+                            Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
+                        } else {
+                            Swal.fire('ผิดพลาด', res.message, 'error');
+                        }
+                    })
+                    .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
+                    .deleteBigLotOrder(o.rowIndex);
+            }
+        });
     };
 </script>

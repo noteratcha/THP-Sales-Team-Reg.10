@@ -2507,7 +2507,7 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
     var sheet = ss.getSheetByName('BigLot');
     if (!sheet) {
       sheet = ss.insertSheet('BigLot');
-      sheet.appendRow(['timestamp', 'รหัสไปรษณีย์', 'ที่ทำการ', 'จังหวัด', 'สินค้า', 'จำนวนสินค้า', 'จำนวนเงิน']);
+      sheet.appendRow(['timestamp', 'รหัสไปรษณีย์', 'ที่ทำการ', 'จังหวัด', 'สินค้า', 'จำนวนสินค้า', 'จำนวนเงิน', 'กำหนดวันที่ต้องการสินค้า', 'หมายเหตุ']);
     }
 
     var province = '-';
@@ -2554,6 +2554,18 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
     lineMsg += "📍 ที่ทำการ: " + finalOfficeName + " (" + String(zipcode || '').trim() + ")\n";
     lineMsg += "จังหวัด: " + province + "\n";
     lineMsg += "⏰ วันเวลา: " + timestamp + "\n";
+
+    var delDate = String(ordersArray[0].deliveryDate || '').trim();
+    var rem = String(ordersArray[0].remark || '').trim();
+    if (delDate) {
+      var dParts = delDate.split('-');
+      if (dParts.length === 3) delDate = dParts[2] + '/' + dParts[1] + '/' + (parseInt(dParts[0]) + 543);
+      lineMsg += "📅 วันที่ต้องการ: " + delDate + "\n";
+    }
+    if (rem) {
+      lineMsg += "💬 หมายเหตุ: " + rem + "\n";
+    }
+
     lineMsg += "---------------------------\n";
     var grandTotal = 0;
 
@@ -2571,7 +2583,9 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
         province,
         String(item.productCode || '').trim(),
         qty,
-        total
+        total,
+        String(item.deliveryDate || '').trim(),
+        String(item.remark || '').trim()
       ]);
 
       var prodName = stockMap[item.productCode] || item.productCode;
@@ -2592,7 +2606,7 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
   }
 }
 
-function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, originalZip, originalName) {
+function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, originalZip, originalName, deliveryDate, remark) {
   try {
     if (!bulkOrdersArray || bulkOrdersArray.length === 0) {
       return { status: 'error', message: 'ไม่มีข้อมูลรายการสั่งซื้อแบบกลุ่ม' };
@@ -2602,7 +2616,7 @@ function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, orig
     var sheet = ss.getSheetByName('BigLot');
     if (!sheet) {
       sheet = ss.insertSheet('BigLot');
-      sheet.appendRow(['timestamp', 'รหัสไปรษณีย์', 'ที่ทำการ', 'จังหวัด', 'สินค้า', 'จำนวนสินค้า', 'จำนวนเงิน']);
+      sheet.appendRow(['timestamp', 'รหัสไปรษณีย์', 'ที่ทำการ', 'จังหวัด', 'สินค้า', 'จำนวนสินค้า', 'จำนวนเงิน', 'กำหนดวันที่ต้องการสินค้า', 'หมายเหตุ']);
     }
 
     // Load provinces map
@@ -2644,6 +2658,18 @@ function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, orig
     lineMsg += "สั่งโดย: " + String(originalName || '').trim() + " (" + String(originalZip || '').trim() + ")\n";
     lineMsg += "📦 สินค้า: " + prodName + "\n";
     lineMsg += "⏰ วันเวลา: " + timestamp + "\n";
+
+    var delDateBulk = String(deliveryDate || '').trim();
+    var remBulk = String(remark || '').trim();
+    if (delDateBulk) {
+      var dbParts = delDateBulk.split('-');
+      if (dbParts.length === 3) delDateBulk = dbParts[2] + '/' + dbParts[1] + '/' + (parseInt(dbParts[0]) + 543);
+      lineMsg += "📅 วันที่ต้องการ: " + delDateBulk + "\n";
+    }
+    if (remBulk) {
+      lineMsg += "💬 หมายเหตุ: " + remBulk + "\n";
+    }
+
     lineMsg += "---------------------------\n";
 
     var linesData = [];
@@ -2671,7 +2697,9 @@ function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, orig
         province,
         productCode,
         qty,
-        total
+        total,
+        String(deliveryDate || '').trim(),
+        String(remark || '').trim()
       ]);
       
       lineMsg += "📍 " + offName + " | " + qty + " ชิ้น\n";
@@ -2942,6 +2970,9 @@ function getBigLotOrders(username, zipcode, officeName) {
         }
       }
 
+      var rowDeliveryDate = String(row[7] || '').trim();
+      var rowRemark = String(row[8] || '').trim();
+
       if (shouldInclude) {
         orders.push({
           rowIndex: i + 1,
@@ -2953,7 +2984,9 @@ function getBigLotOrders(username, zipcode, officeName) {
           productName: (stockMap[rowProductCode] && stockMap[rowProductCode].name) ? stockMap[rowProductCode].name : rowProductCode,
           productImage: (stockMap[rowProductCode] && stockMap[rowProductCode].image) ? stockMap[rowProductCode].image : '',
           quantity: rowQuantity,
-          totalPrice: rowTotal
+          totalPrice: rowTotal,
+          deliveryDate: rowDeliveryDate,
+          remark: rowRemark
         });
       }
     }
@@ -2975,7 +3008,7 @@ function getBigLotOrders(username, zipcode, officeName) {
   }
 }
 
-function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice) {
+function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate, newRemark) {
   try {
     if (!rowIndex) return {status: 'error', message: 'ข้อมูลไม่ครบถ้วน'};
     
@@ -2988,12 +3021,14 @@ function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice) {
     }
     
     // ดึงข้อมูลเดิมก่อนทำการแก้ไขเพื่อนำมาแจ้งเตือน LINE
-    var rowData = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+    var rowData = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
     var orderZip = String(rowData[1] || '').trim();
     var office = String(rowData[2] || '').trim();
     var productCode = String(rowData[4] || '').trim();
     var oldQty = parseInt(rowData[5]) || 0;
     var oldTotal = parseFloat(rowData[6]) || 0;
+    var oldDate = String(rowData[7] || '').trim();
+    var oldRemark = String(rowData[8] || '').trim();
 
     // ค้นชื่อสินค้าภาษาไทย
     var stockSheet = ss.getSheetByName('Stock');
@@ -3010,13 +3045,17 @@ function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice) {
 
     sheet.getRange(rowIndex, 6).setValue(newQuantity);
     sheet.getRange(rowIndex, 7).setValue(newTotalPrice);
+    sheet.getRange(rowIndex, 8).setValue(String(newDeliveryDate || '').trim());
+    sheet.getRange(rowIndex, 9).setValue(String(newRemark || '').trim());
     
     var lineMsg = "✏️ มีการแก้ไขรายการสั่งสินค้า Big Lot!\n";
     lineMsg += "📍 ที่ทำการ: " + office + " (" + orderZip + ")\n";
     lineMsg += "📦 สินค้า: " + prodName + "\n";
     lineMsg += "---------------------------\n";
     lineMsg += "🔢 จำนวนเดิม: " + oldQty + " ➡️ จำนวนใหม่: " + newQuantity + " ชิ้น\n";
-    lineMsg += "💰 ราคารวมเดิม: " + oldTotal.toLocaleString() + " ➡️ ใหม่: " + parseFloat(newTotalPrice).toLocaleString() + " บาท";
+    lineMsg += "💰 ราคารวมเดิม: " + oldTotal.toLocaleString() + " ➡️ ใหม่: " + parseFloat(newTotalPrice).toLocaleString() + " บาท\n";
+    if (newDeliveryDate) lineMsg += "📅 วันที่ต้องการ: " + newDeliveryDate + "\n";
+    if (newRemark) lineMsg += "💬 หมายเหตุ: " + newRemark + "\n";
 
     sendBigLotLineNotification(lineMsg);
 
