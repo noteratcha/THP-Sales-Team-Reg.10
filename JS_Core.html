@@ -618,7 +618,7 @@ const Toast = Swal.mixin({
                 if(target.action) target.action();
             }
 
-            const headerBtns = ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn'];
+            const headerBtns = ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn'];
             headerBtns.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
 
             if (pageId === 'revenue-report') {
@@ -642,6 +642,9 @@ const Toast = Swal.mixin({
             } else if (pageId === 'pk-admin') {
                 const el = document.getElementById('headerPKChartBtn');
                 if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+            } else if (pageId === 'data') {
+                const el = document.getElementById('headerVisitSummaryBtn');
+                if (el) { el.classList.remove('hidden'); }
             }
         } catch (e) {
             console.error("SwitchPage Error:", e);
