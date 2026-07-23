@@ -4010,14 +4010,12 @@
         const processData = (predicate) => {
             const summary = {};
             
-            // 1. สร้าง Mapping เพื่อหาว่า ที่ทำการ (Office) สังกัด ทีม (Team) ไหน โดยอ้างอิงจากข้อมูลแถวล่าสุด
-            const officeMap = {};
-            
             allFetchedRows.forEach(row => {
-                const teamFull = String(row[6] || '').trim();
+                const teamFull = String(row[6] || '').trim(); // e.g. ทีม 1 ศรีสะเกษ
                 if (!teamFull) return;
                 
                 const zip = String(row[5] || '').trim().replace(/^'/, "");
+                
                 let province = "ไม่ระบุ";
                 let foundProv = customProvOrder.find(p => teamFull.includes(p));
                 if (foundProv) {
@@ -4033,19 +4031,9 @@
                 if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') province = 'ศป.อุบลราชธานี';
                 if (teamFull.includes('ศป.สกลนคร') || zip === '47010') province = 'ศป.สกลนคร';
                 
+                let teamName = teamFull || 'ไม่ระบุทีม';
                 let rawOfficeName = String(row[4] || '').trim();
                 let officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
-                
-                if (officeName && officeName !== 'ไม่ระบุ') {
-                    officeMap[officeName] = { team: teamFull, province: province };
-                }
-            });
-            
-            // 2. กำหนดโครงสร้าง summary ล่วงหน้า เพื่อให้ทุกทีมที่มีที่ทำการแสดงออกมา แม้จะไม่มีการเข้าพบในช่วงวันที่นั้น
-            Object.keys(officeMap).forEach(officeName => {
-                const mapped = officeMap[officeName];
-                const province = mapped.province;
-                const teamName = mapped.team || 'ไม่ระบุทีม';
                 
                 if (!summary[province]) summary[province] = {};
                 if (!summary[province][teamName]) {
@@ -4056,11 +4044,11 @@
                         success: 0, fail: 0
                     };
                 }
-                summary[province][teamName].offices.add(officeName);
-            });
-            
-            // 3. ประมวลผลจำนวน Lead และการเข้าพบ เฉพาะข้อมูลที่ผ่านตัวกรอง (predicate)
-            allFetchedRows.forEach(row => {
+                
+                if (officeName && officeName !== 'ไม่ระบุ') {
+                    summary[province][teamName].offices.add(officeName);
+                }
+                
                 const dateStr = row[0] ? String(row[0]).split(' ')[0] : ''; // DD/MM/YYYY
                 if (!dateStr) return;
                 
@@ -4082,36 +4070,6 @@
                     const result = String(row[19] || '').trim(); // ปิดได้ / ปิดไม่ได้
                     let isSuccess = result === 'ปิดได้';
                     let isFail = result === 'ปิดไม่ได้';
-                    
-                    let rawOfficeName = String(row[4] || '').trim();
-                    let officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
-                    
-                    let teamName = 'ไม่ระบุทีม';
-                    let province = 'ไม่ระบุ';
-                    
-                    if (officeName && officeName !== 'ไม่ระบุ' && officeMap[officeName]) {
-                        teamName = officeMap[officeName].team || 'ไม่ระบุทีม';
-                        province = officeMap[officeName].province || 'ไม่ระบุ';
-                    } else {
-                        teamName = String(row[6] || '').trim() || 'ไม่ระบุทีม';
-                        const zip = String(row[5] || '').trim().replace(/^'/, "");
-                        let foundProv = customProvOrder.find(p => teamName.includes(p));
-                        if (foundProv) province = foundProv;
-                        else if (zip.startsWith('33')) province = 'ศรีสะเกษ';
-                        else if (zip.startsWith('34')) province = 'อุบลราชธานี';
-                        else if (zip.startsWith('35')) province = 'ยโสธร';
-                        else if (zip.startsWith('37')) province = 'อำนาจเจริญ';
-                        else if (zip.startsWith('47')) province = 'สกลนคร';
-                        else if (zip.startsWith('48')) province = 'นครพนม';
-                        else if (zip.startsWith('49')) province = 'มุกดาหาร';
-                        if (teamName.includes('ศป.อุบลราชธานี') || zip === '34010') province = 'ศป.อุบลราชธานี';
-                        if (teamName.includes('ศป.สกลนคร') || zip === '47010') province = 'ศป.สกลนคร';
-                        
-                        if (!summary[province]) summary[province] = {};
-                        if (!summary[province][teamName]) {
-                            summary[province][teamName] = { offices: new Set(), lead_ecom: 0, lead_inter: 0, lead_fuze: 0, visit_ecom: 0, visit_inter: 0, visit_fuze: 0, success: 0, fail: 0 };
-                        }
-                    }
                     
                     let t = summary[province][teamName];
                     
