@@ -4007,48 +4007,66 @@
         let startDay = 1;
         let endDay = yesterday.getDate();
         
+        const globalOfficeMap = {};
+        
+        // Build globalOfficeMap to ensure 1 office -> 1 team, and store ZIP code
+        allFetchedRows.forEach(row => {
+            const teamFull = String(row[6] || '').trim();
+            if (!teamFull) return;
+            
+            const zip = String(row[5] || '').trim().replace(/^'/, "");
+            
+            let province = "ไม่ระบุ";
+            let foundProv = customProvOrder.find(p => teamFull.includes(p));
+            if (foundProv) {
+                province = foundProv;
+            } else if (zip.startsWith('33')) province = 'ศรีสะเกษ';
+            else if (zip.startsWith('34')) province = 'อุบลราชธานี';
+            else if (zip.startsWith('35')) province = 'ยโสธร';
+            else if (zip.startsWith('37')) province = 'อำนาจเจริญ';
+            else if (zip.startsWith('47')) province = 'สกลนคร';
+            else if (zip.startsWith('48')) province = 'นครพนม';
+            else if (zip.startsWith('49')) province = 'มุกดาหาร';
+            
+            if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') province = 'ศป.อุบลราชธานี';
+            if (teamFull.includes('ศป.สกลนคร') || zip === '47010') province = 'ศป.สกลนคร';
+            
+            let rawOfficeName = String(row[4] || '').trim();
+            let officeName = rawOfficeName;
+            if (province !== 'ศป.อุบลราชธานี' && province !== 'ศป.สกลนคร') {
+                officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+            }
+            officeName = officeName.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+            
+            if (officeName && officeName !== 'ไม่ระบุ') {
+                globalOfficeMap[officeName] = { team: teamFull, province: province, zip: zip };
+            }
+        });
+        
         const processData = (predicate) => {
             const summary = {};
             
-            allFetchedRows.forEach(row => {
-                const teamFull = String(row[6] || '').trim(); // e.g. ทีม 1 ศรีสะเกษ
-                if (!teamFull) return;
-                
-                const zip = String(row[5] || '').trim().replace(/^'/, "");
-                
-                let province = "ไม่ระบุ";
-                let foundProv = customProvOrder.find(p => teamFull.includes(p));
-                if (foundProv) {
-                    province = foundProv;
-                } else if (zip.startsWith('33')) province = 'ศรีสะเกษ';
-                else if (zip.startsWith('34')) province = 'อุบลราชธานี';
-                else if (zip.startsWith('35')) province = 'ยโสธร';
-                else if (zip.startsWith('37')) province = 'อำนาจเจริญ';
-                else if (zip.startsWith('47')) province = 'สกลนคร';
-                else if (zip.startsWith('48')) province = 'นครพนม';
-                else if (zip.startsWith('49')) province = 'มุกดาหาร';
-                
-                if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') province = 'ศป.อุบลราชธานี';
-                if (teamFull.includes('ศป.สกลนคร') || zip === '47010') province = 'ศป.สกลนคร';
-                
-                let teamName = teamFull || 'ไม่ระบุทีม';
-                let rawOfficeName = String(row[4] || '').trim();
-                let officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
-                
-                if (!summary[province]) summary[province] = {};
-                if (!summary[province][teamName]) {
-                    summary[province][teamName] = { 
+            // Initialize summary structure based on globalOfficeMap
+            Object.values(globalOfficeMap).forEach(info => {
+                let p = info.province;
+                let t = info.team || 'ไม่ระบุทีม';
+                if (!summary[p]) summary[p] = {};
+                if (!summary[p][t]) {
+                    summary[p][t] = {
                         offices: new Set(),
                         lead_ecom: 0, lead_inter: 0, lead_fuze: 0,
                         visit_ecom: 0, visit_inter: 0, visit_fuze: 0,
                         success: 0, fail: 0
                     };
                 }
-                
-                if (officeName && officeName !== 'ไม่ระบุ') {
-                    summary[province][teamName].offices.add(officeName);
-                }
-                
+            });
+            Object.keys(globalOfficeMap).forEach(officeName => {
+                let info = globalOfficeMap[officeName];
+                summary[info.province][info.team || 'ไม่ระบุทีม'].offices.add(officeName);
+            });
+            
+            // Phase 3: Process the data
+            allFetchedRows.forEach(row => {
                 const dateStr = row[0] ? String(row[0]).split(' ')[0] : ''; // DD/MM/YYYY
                 if (!dateStr) return;
                 
@@ -4062,23 +4080,61 @@
                 const rDate = new Date(rYearCE, rMonth, rDay);
                 
                 if (predicate(rDate)) {
-                    const group = String(row[2] || '').trim(); // e-Commerce (ขล.), ระหว่างประเทศ (ขร.), Fuze Post
-                    let isEcom = group.includes('e-Commerce');
-                    let isInter = group.includes('ระหว่างประเทศ');
-                    let isFuze = group.includes('Fuze');
+                    const teamFull = String(row[6] || '').trim();
+                    const zip = String(row[5] || '').trim().replace(/^'/, "");
                     
-                    const result = String(row[19] || '').trim(); // ปิดได้ / ปิดไม่ได้
-                    let isSuccess = result === 'ปิดได้';
-                    let isFail = result === 'ปิดไม่ได้';
+                    let initialProv = "ไม่ระบุ";
+                    let foundProv = customProvOrder.find(p => teamFull.includes(p));
+                    if (foundProv) {
+                        initialProv = foundProv;
+                    } else if (zip.startsWith('33')) initialProv = 'ศรีสะเกษ';
+                    else if (zip.startsWith('34')) initialProv = 'อุบลราชธานี';
+                    else if (zip.startsWith('35')) initialProv = 'ยโสธร';
+                    else if (zip.startsWith('37')) initialProv = 'อำนาจเจริญ';
+                    else if (zip.startsWith('47')) initialProv = 'สกลนคร';
+                    else if (zip.startsWith('48')) initialProv = 'นครพนม';
+                    else if (zip.startsWith('49')) initialProv = 'มุกดาหาร';
+                    
+                    if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') initialProv = 'ศป.อุบลราชธานี';
+                    if (teamFull.includes('ศป.สกลนคร') || zip === '47010') initialProv = 'ศป.สกลนคร';
+                    
+                    let rawOfficeName = String(row[4] || '').trim();
+                    let officeName = rawOfficeName;
+                    if (initialProv !== 'ศป.อุบลราชธานี' && initialProv !== 'ศป.สกลนคร') {
+                        officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+                    }
+                    officeName = officeName.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+                    
+                    let mappedInfo = globalOfficeMap[officeName];
+                    if (!mappedInfo) return;
+                    
+                    let province = mappedInfo.province;
+                    let teamName = mappedInfo.team || 'ไม่ระบุทีม';
+
+                    const group = String(row[2] || '').trim(); // คอลัมน์ C: บริการ / Group
+                    
+                    let ecomCount = 0;
+                    if (group.includes('e-Commerce')) ecomCount++;
+                    if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                    
+                    let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
+                    let fuzeCount = group.includes('Fuze') ? 1 : 0;
+                    
+                    let totalCount = ecomCount + interCount + fuzeCount;
+                    if (totalCount === 0) totalCount = 1; // Fallback in case of unmatched group but valid result
+                    
+                    const result = String(row[19] || '').trim(); // คอลัมน์ T
+                    let isSuccess = result === 'ปิดได้' || result === 'จัดได้';
+                    let isFail = result === 'ปิดไม่ได้' || result === 'จัดไม่ได้';
                     
                     let t = summary[province][teamName];
                     
-                    if (isEcom) { t.lead_ecom++; t.visit_ecom++; }
-                    if (isInter) { t.lead_inter++; t.visit_inter++; }
-                    if (isFuze) { t.lead_fuze++; t.visit_fuze++; }
+                    if (ecomCount > 0) { t.lead_ecom += ecomCount; t.visit_ecom += ecomCount; }
+                    if (interCount > 0) { t.lead_inter += interCount; t.visit_inter += interCount; }
+                    if (fuzeCount > 0) { t.lead_fuze += fuzeCount; t.visit_fuze += fuzeCount; }
                     
-                    if (isSuccess) t.success++;
-                    if (isFail) t.fail++;
+                    if (isSuccess) t.success += totalCount;
+                    if (isFail) t.fail += totalCount;
                 }
             });
             return summary;
@@ -4096,7 +4152,11 @@
                    d.getDate() === yesterday.getDate();
         });
         
-        const renderTableHtml = (data, dateRangeStr) => {
+        const renderTableHtml = (data, dateRangeStr, isPurple = false) => {
+            const colStyle = isPurple ? 'background-color: #faf5ff; color: #9333ea;' : 'background-color: #eff6ff; color: #2563eb;';
+            const rowStyle = isPurple ? 'background-color: #f3e8ff; color: #581c87;' : 'background-color: #dbeafe; color: #1e3a8a;';
+            const intStyle = isPurple ? 'background-color: #e9d5ff; color: #581c87;' : 'background-color: #bfdbfe; color: #1e3a8a;';
+            
             let html = `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
                 <div class="text-center py-4 font-bold text-sm bg-gray-50 border-b border-gray-200">
@@ -4110,7 +4170,7 @@
                         <tr class="text-white">
                             <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 whitespace-nowrap min-w-[80px] text-center align-middle">จังหวัด</th>
                             <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 whitespace-nowrap min-w-[70px] text-center align-middle">ทีมขาย</th>
-                            <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 min-w-[150px] text-center align-middle">ที่ทำการ</th>
+                            <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 min-w-[200px] max-w-[250px] w-[220px] text-center align-middle">ที่ทำการ</th>
                             <th colspan="4" class="border border-gray-600 px-2 py-1 bg-gray-700 text-center align-middle">Lead (ราย)</th>
                             <th colspan="6" class="border border-gray-600 px-2 py-1 bg-gray-700 text-center align-middle">การเข้าพบลูกค้า (ราย)</th>
                         </tr>
@@ -4125,8 +4185,8 @@
                             <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">Fuze</th>
                             <th class="border border-gray-600 px-1 py-1 bg-gray-700 font-bold text-center align-middle">รวม</th>
                             
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">จัดได้</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">จัดไม่ได้</th>
+                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">ปิดได้</th>
+                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">ปิดไม่ได้</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -4158,18 +4218,20 @@
                     
                     html += `<tr class="hover:bg-gray-50">`;
                     if (idx === 0) {
-                        html += `<td rowspan="${teams.length}" class="border border-gray-300 px-2 py-1 font-bold text-gray-700 align-top bg-white">${prov}</td>`;
+                        html += `<td rowspan="${teams.length}" class="border border-gray-300 px-2 py-1 font-bold text-gray-800 align-middle text-center bg-white cursor-pointer hover:underline hover:bg-blue-50 hover:text-blue-600 transition" onclick="openProvVisitDetailPopup('${prov}', ${isPurple})">${prov}</td>`;
                     }
                     
                     let officeStr = 'ไม่ระบุ';
                     if (t.offices.size > 0) {
                         const officesArr = Array.from(t.offices);
-                        if (officesArr.length <= 3) {
-                            officeStr = officesArr.join(', ');
-                        } else {
-                            const mid = Math.ceil(officesArr.length / 2);
-                            officeStr = officesArr.slice(0, mid).join(', ') + '<br>' + officesArr.slice(mid).join(', ');
-                        }
+                        
+                        // Sort by zip code
+                        officesArr.sort((a, b) => {
+                            let zipA = globalOfficeMap[a] ? globalOfficeMap[a].zip : '';
+                            let zipB = globalOfficeMap[b] ? globalOfficeMap[b].zip : '';
+                            return zipA.localeCompare(zipB);
+                        });
+                        officeStr = officesArr.map(o => `<span class="whitespace-nowrap">${o}</span>`).join(', ');
                     }
                     
                     let shortTeam = team;
@@ -4179,38 +4241,38 @@
                     }
                     
                     html += `
-                        <td class="border border-gray-300 px-2 py-1 text-left font-semibold text-gray-700 align-top">${shortTeam}</td>
-                        <td class="border border-gray-300 px-2 py-1 text-left text-gray-600 align-top whitespace-normal max-w-[250px]">${officeStr}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.lead_ecom)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.lead_inter)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.lead_fuze)}</td>
-                        <td class="border border-gray-300 px-1 py-1 font-bold bg-[#fce4e4] text-[#d9534f] align-top">${format(leadSum)}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-center font-semibold text-gray-800 align-middle cursor-pointer hover:underline hover:text-blue-600 transition" onclick="openTeamVisitDetailPopup('${prov}', '${team}', ${isPurple})">${shortTeam}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-left text-gray-600 align-top whitespace-normal min-w-[200px] max-w-[250px] w-[220px]">${officeStr}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_ecom)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_inter)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_fuze)}</td>
+                        <td class="border border-gray-300 px-1 py-1 font-bold align-middle text-center" style="${colStyle}">${format(leadSum)}</td>
                         
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.visit_ecom)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.visit_inter)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.visit_fuze)}</td>
-                        <td class="border border-gray-300 px-1 py-1 font-bold bg-[#fce4e4] text-[#d9534f] align-top">${format(visitSum)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_ecom)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_inter)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_fuze)}</td>
+                        <td class="border border-gray-300 px-1 py-1 font-bold align-middle text-center" style="${colStyle}">${format(visitSum)}</td>
                         
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.success)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-top">${format(t.fail)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.success)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.fail)}</td>
                     </tr>`;
                 });
                 
                 html += `
-                    <tr class="bg-[#f2d0db] font-bold text-gray-800">
-                        <td colspan="3" class="border border-gray-300 px-2 py-1 text-center">รวม</td>
-                        <td class="border border-gray-300 px-1 py-1">${provLeadEcom}</td>
-                        <td class="border border-gray-300 px-1 py-1">${provLeadInter}</td>
-                        <td class="border border-gray-300 px-1 py-1">${provLeadFuze}</td>
-                        <td class="border border-gray-300 px-1 py-1 bg-[#ff7f0e] text-white">${provLeadSum}</td>
+                    <tr class="font-bold" style="${rowStyle}">
+                        <td colspan="3" class="border border-gray-300 px-2 py-1 text-center align-middle">รวม</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadEcom}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadInter}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadFuze}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center" style="${intStyle}">${provLeadSum}</td>
                         
-                        <td class="border border-gray-300 px-1 py-1">${provVisitEcom}</td>
-                        <td class="border border-gray-300 px-1 py-1">${provVisitInter}</td>
-                        <td class="border border-gray-300 px-1 py-1">${provVisitFuze}</td>
-                        <td class="border border-gray-300 px-1 py-1 bg-[#ff7f0e] text-white">${provVisitSum}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitEcom}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitInter}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitFuze}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center" style="${intStyle}">${provVisitSum}</td>
                         
-                        <td class="border border-gray-300 px-1 py-1">${provSuccess}</td>
-                        <td class="border border-gray-300 px-1 py-1">${provFail}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provSuccess}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provFail}</td>
                     </tr>
                 `;
                 
@@ -4248,6 +4310,346 @@
         monthStr = `ระหว่างวันที่ 1 - ${endDay} ${monthName} ${yearThai}`;
         let yesterdayStr = `วันที่ ${endDay} ${monthName} ${yearThai}`;
         
-        content.innerHTML = renderTableHtml(dataMonth, monthStr) + renderTableHtml(dataYesterday, yesterdayStr);
+        content.innerHTML = renderTableHtml(dataMonth, monthStr) + renderTableHtml(dataYesterday, yesterdayStr, true);
     }
+    
+    window.showImagePopup = function(url) {
+        window.open(url, '_blank');
+    };
+
+    window.openProvVisitDetailPopup = function(provinceName, isYesterday) {
+        if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
+        
+        let today = new Date();
+        let yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let endDay = yesterday.getDate();
+        
+        const predicate = (d) => {
+            if (isYesterday) {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() === yesterday.getDate();
+            } else {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() >= 1 && d.getDate() <= endDay;
+            }
+        };
+
+        const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
+        
+        let filteredRows = window.allFetchedRows.filter(row => {
+            const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
+            if (!dateStr) return false;
+            const parts = dateStr.split('/');
+            if (parts.length < 3) return false;
+            
+            const rDay = parseInt(parts[0], 10);
+            const rMonth = parseInt(parts[1], 10) - 1;
+            const rYear = parseInt(parts[2], 10);
+            const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
+            const rDate = new Date(rYearCE, rMonth, rDay);
+            
+            if (!predicate(rDate)) return false;
+            
+            const teamFull = String(row[6] || '').trim();
+            const zip = String(row[5] || '').trim().replace(/^'/, "");
+            
+            let prov = "ไม่ระบุ";
+            let foundProv = customProvOrder.find(p => teamFull.includes(p));
+            if (foundProv) {
+                prov = foundProv;
+            } else if (zip.startsWith('33')) prov = 'ศรีสะเกษ';
+            else if (zip.startsWith('34')) prov = 'อุบลราชธานี';
+            else if (zip.startsWith('35')) prov = 'ยโสธร';
+            else if (zip.startsWith('37')) prov = 'อำนาจเจริญ';
+            else if (zip.startsWith('47')) prov = 'สกลนคร';
+            else if (zip.startsWith('48')) prov = 'นครพนม';
+            else if (zip.startsWith('49')) prov = 'มุกดาหาร';
+            
+            if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
+            if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
+            
+            return prov === provinceName;
+        });
+
+        let tableHtml = `
+            <div class="overflow-x-auto pb-4">
+            <table class="w-full text-xs text-left border-collapse mt-2 shadow-sm rounded-lg overflow-hidden whitespace-nowrap">
+                <thead>
+                    <tr class="bg-gray-800 text-white">
+                        <th class="border border-gray-700 px-2 py-2">วันที่</th>
+                        <th class="border border-gray-700 px-2 py-2">หัวข้อเรื่อง</th>
+                        <th class="border border-gray-700 px-2 py-2">กลุ่มลูกค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">ที่ทำการไปรษณีย์</th>
+                        <th class="border border-gray-700 px-2 py-2">รหัสไปรษณีย์</th>
+                        <th class="border border-gray-700 px-2 py-2">ทีมขาย</th>
+                        <th class="border border-gray-700 px-2 py-2">ชื่อลูกค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">เบอร์โทร</th>
+                        <th class="border border-gray-700 px-2 py-2">ประเภทสินค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">ช่องทางจำหน่าย</th>
+                        <th class="border border-gray-700 px-2 py-2">ปริมาณ</th>
+                        <th class="border border-gray-700 px-2 py-2">สมาชิก</th>
+                        <th class="border border-gray-700 px-2 py-2">หมายเลขสมาชิก</th>
+                        <th class="border border-gray-700 px-2 py-2 text-center">รูปภาพ</th>
+                        <th class="border border-gray-700 px-2 py-2 text-center">ผลการเข้าพบ</th>
+                        <th class="border border-gray-700 px-2 py-2">บริการที่แนะนำ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        if (filteredRows.length === 0) {
+            tableHtml += `<tr><td colspan="16" class="border border-gray-200 px-2 py-6 text-center text-gray-500">ไม่มีข้อมูลการเข้าพบลูกค้า</td></tr>`;
+        } else {
+            filteredRows.sort((a,b) => {
+                const da = a[0] ? String(a[0]).split(' ')[0] : '';
+                const db = b[0] ? String(b[0]).split(' ')[0] : '';
+                return db.localeCompare(da);
+            });
+            
+            filteredRows.forEach(row => {
+                const colA = row[0] || '';
+                const colB = row[1] || '';
+                const colC = row[2] || '';
+                let colE = String(row[4] || '').trim();
+                if (provinceName !== 'ศป.อุบลราชธานี' && provinceName !== 'ศป.สกลนคร') {
+                    colE = colE.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+                }
+                colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+                const colF = row[5] || '';
+                const colG = row[6] || '';
+                const colH = row[7] || '';
+                const colI = row[8] || '';
+                const colJ = row[9] || '';
+                const colK = row[10] || '';
+                const colL = row[11] || '';
+                const colQ = row[16] || '';
+                const colR = row[17] || '';
+                const colS = row[18] || '';
+                const colT = row[19] || '';
+                const colU = row[20] || '';
+                
+                let statusClass = "text-gray-700";
+                if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = "text-green-600 font-bold";
+                else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = "text-red-600 font-bold";
+                
+                let imgHtml = '-';
+                if (String(colS).startsWith('http')) {
+                    imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
+                } else if (colS) {
+                    imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
+                }
+                
+                tableHtml += `
+                    <tr class="hover:bg-blue-50 transition border-b border-gray-100">
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colB}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-[10px] text-gray-500">${colC}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colE}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500">${colF}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colG}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 font-semibold text-blue-900">${colH}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colI}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colJ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colK}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600 text-center">${colL}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colQ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colR}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center">${imgHtml}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center ${statusClass}">${colT}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500 text-[10px]">${colU}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        tableHtml += `</tbody></table></div>`;
+        
+        const titleText = isYesterday ? `ข้อมูลเข้าพบลูกค้ารายวัน (เมื่อวาน) - ${provinceName}` : `ข้อมูลเข้าพบลูกค้าสะสมรายเดือน - ${provinceName}`;
+        
+        Swal.fire({
+            title: `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">${titleText}</div>`,
+            html: tableHtml,
+            width: '95%',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl',
+                htmlContainer: 'max-h-[75vh] overflow-y-auto custom-scrollbar text-left m-0 p-4'
+            }
+        });
+    };
+    window.openTeamVisitDetailPopup = function(provinceName, teamName, isYesterday) {
+        if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
+        
+        let today = new Date();
+        let yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let endDay = yesterday.getDate();
+        
+        const predicate = (d) => {
+            if (isYesterday) {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() === yesterday.getDate();
+            } else {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() >= 1 && d.getDate() <= endDay;
+            }
+        };
+
+        const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
+        
+        let filteredRows = window.allFetchedRows.filter(row => {
+            const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
+            if (!dateStr) return false;
+            const parts = dateStr.split('/');
+            if (parts.length < 3) return false;
+            
+            const rDay = parseInt(parts[0], 10);
+            const rMonth = parseInt(parts[1], 10) - 1;
+            const rYear = parseInt(parts[2], 10);
+            const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
+            const rDate = new Date(rYearCE, rMonth, rDay);
+            
+            if (!predicate(rDate)) return false;
+            
+            const teamFull = String(row[6] || '').trim();
+            const zip = String(row[5] || '').trim().replace(/^'/, "");
+            
+            let prov = "ไม่ระบุ";
+            let foundProv = customProvOrder.find(p => teamFull.includes(p));
+            if (foundProv) {
+                prov = foundProv;
+            } else if (zip.startsWith('33')) prov = 'ศรีสะเกษ';
+            else if (zip.startsWith('34')) prov = 'อุบลราชธานี';
+            else if (zip.startsWith('35')) prov = 'ยโสธร';
+            else if (zip.startsWith('37')) prov = 'อำนาจเจริญ';
+            else if (zip.startsWith('47')) prov = 'สกลนคร';
+            else if (zip.startsWith('48')) prov = 'นครพนม';
+            else if (zip.startsWith('49')) prov = 'มุกดาหาร';
+            
+            if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
+            if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
+            
+            return prov === provinceName && teamFull === teamName;
+        });
+
+        let tableHtml = `
+            <div class="overflow-x-auto pb-4">
+            <table class="w-full text-xs text-left border-collapse mt-2 shadow-sm rounded-lg overflow-hidden whitespace-nowrap">
+                <thead>
+                    <tr class="bg-gray-800 text-white">
+                        <th class="border border-gray-700 px-2 py-2">วันที่</th>
+                        <th class="border border-gray-700 px-2 py-2">หัวข้อเรื่อง</th>
+                        <th class="border border-gray-700 px-2 py-2">กลุ่มลูกค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">ที่ทำการไปรษณีย์</th>
+                        <th class="border border-gray-700 px-2 py-2">รหัสไปรษณีย์</th>
+                        <th class="border border-gray-700 px-2 py-2">ทีมขาย</th>
+                        <th class="border border-gray-700 px-2 py-2">ชื่อลูกค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">เบอร์โทร</th>
+                        <th class="border border-gray-700 px-2 py-2">ประเภทสินค้า</th>
+                        <th class="border border-gray-700 px-2 py-2">ช่องทางจำหน่าย</th>
+                        <th class="border border-gray-700 px-2 py-2">ปริมาณ</th>
+                        <th class="border border-gray-700 px-2 py-2">สมาชิก</th>
+                        <th class="border border-gray-700 px-2 py-2">หมายเลขสมาชิก</th>
+                        <th class="border border-gray-700 px-2 py-2 text-center">รูปภาพ</th>
+                        <th class="border border-gray-700 px-2 py-2 text-center">ผลการเข้าพบ</th>
+                        <th class="border border-gray-700 px-2 py-2">บริการที่แนะนำ</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        if (filteredRows.length === 0) {
+            tableHtml += `<tr><td colspan="16" class="border border-gray-200 px-2 py-6 text-center text-gray-500">ไม่มีข้อมูลการเข้าพบลูกค้า</td></tr>`;
+        } else {
+            filteredRows.sort((a,b) => {
+                const da = a[0] ? String(a[0]).split(' ')[0] : '';
+                const db = b[0] ? String(b[0]).split(' ')[0] : '';
+                return db.localeCompare(da);
+            });
+            
+            filteredRows.forEach(row => {
+                const colA = row[0] || '';
+                const colB = row[1] || '';
+                const colC = row[2] || '';
+                let colE = String(row[4] || '').trim();
+                if (provinceName !== 'ศป.อุบลราชธานี' && provinceName !== 'ศป.สกลนคร') {
+                    colE = colE.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+                }
+                colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+                const colF = row[5] || '';
+                const colG = row[6] || '';
+                const colH = row[7] || '';
+                const colI = row[8] || '';
+                const colJ = row[9] || '';
+                const colK = row[10] || '';
+                const colL = row[11] || '';
+                const colQ = row[16] || '';
+                const colR = row[17] || '';
+                const colS = row[18] || '';
+                const colT = row[19] || '';
+                const colU = row[20] || '';
+                
+                let statusClass = "text-gray-700";
+                if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = "text-green-600 font-bold";
+                else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = "text-red-600 font-bold";
+                
+                let imgHtml = '-';
+                if (String(colS).startsWith('http')) {
+                    imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
+                } else if (colS) {
+                    imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
+                }
+                
+                tableHtml += `
+                    <tr class="hover:bg-blue-50 transition border-b border-gray-100">
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colB}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-[10px] text-gray-500">${colC}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colE}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500">${colF}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colG}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 font-semibold text-blue-900">${colH}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colI}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colJ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colK}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colL}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colQ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colR}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center">${imgHtml}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center ${statusClass}">${colT}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colU}</td>
+                    </tr>
+                `;
+            });
+        }
+        tableHtml += `</tbody></table></div>`;
+        
+        let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
+        
+        let shortTeam = teamName;
+        const numMatch = teamName.match(/\d+/);
+        if (numMatch && teamName.includes('ทีม')) {
+            shortTeam = "ทีม " + numMatch[0];
+        }
+
+        Swal.fire({
+            title: `<div class="text-lg font-bold text-gray-800 border-b pb-3 mb-2 flex items-center justify-between">
+                <span>ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName} (${shortTeam})</span>
+            </div>`,
+            html: tableHtml,
+            width: '95%',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'rounded-xl shadow-2xl p-0',
+                htmlContainer: 'max-h-[75vh] overflow-y-auto custom-scrollbar text-left m-0 p-4'
+            }
+        });
+    };
 </script>

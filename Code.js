@@ -352,11 +352,38 @@ function getDataForTable() {
     }
 
     var data = sheet.getDataRange().getDisplayValues();
+    
+    // สร้าง Mapping สำหรับที่ทำการไปรษณีย์จากชีต user
+    var userSheet = ss.getSheetByName('user');
+    var zipToPostOfficeMap = {};
+    if (userSheet) {
+      var userData = userSheet.getDataRange().getDisplayValues();
+      for (var i = 1; i < userData.length; i++) {
+        var uZip = String(userData[i][0]).trim(); // คอลัมน์ A: รหัสไปรษณีย์
+        var uPostOffice = String(userData[i][2]).trim(); // คอลัมน์ C: ที่ทำการไปรษณีย์
+        if (uZip && uPostOffice) {
+          zipToPostOfficeMap[uZip] = uPostOffice;
+        }
+      }
+    }
+
     var headers = data[0];
     var filteredRows = data.slice(1).filter(function(row) {
       var zip = String(row[5]).replace(/^'/, "").trim(); // คอลัมน์ F: รหัสไปรษณีย์
       return EXCLUDED_ZIPCODES.indexOf(zip) === -1;
     });
+    
+    // แมปข้อมูลที่ทำการไปรษณีย์ที่ว่างเปล่า
+    for (var j = 0; j < filteredRows.length; j++) {
+      var pOffice = String(filteredRows[j][4]).trim();
+      if (!pOffice || pOffice === '-') {
+        var zipCode = String(filteredRows[j][5]).replace(/^'/, "").trim();
+        if (zipToPostOfficeMap[zipCode]) {
+          filteredRows[j][4] = zipToPostOfficeMap[zipCode];
+        }
+      }
+    }
+    
     var resultData = [headers].concat(filteredRows);
     return { status: 'success', data: resultData };
   } catch (e) {
