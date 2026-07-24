@@ -1,3 +1,8 @@
+function authorizeDriveAccess() {
+  DriveApp.getRootFolder();
+  console.log('ได้รับอนุญาตสำเร็จ');
+}
+
 // =========================================================
 // 🚨 THP Sales Team Reg.10 Unified Backend Script (Code.gs)
 // รวมโค้ดหลังบ้านทั้งหมดฝั่งเซิร์ฟเวอร์เพื่อให้ประมวลผลได้รวดเร็วขึ้น
@@ -3488,8 +3493,28 @@ function sendBugReportToLine(message, base64Image) {
         var base64Data = base64Image.indexOf(',') !== -1 ? base64Image.split(',')[1] : base64Image;
         var imageBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', 'screenshot_bug_' + new Date().getTime() + '.png');
         
-        var file = DriveApp.createFile(imageBlob);
-        file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+        var folderId = "15mVFyzJZ56Iza5xdwFbKoJfFBJWof96V";
+        var folder = DriveApp.getFolderById(folderId);
+        var file = folder.createFile(imageBlob);
+        // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+        
+        // --- เริ่มต้นระบบลบไฟล์เก่าอัตโนมัติ (อายุเกิน 6 เดือน) ---
+        try {
+          // คำนวณวันที่ย้อนหลัง 6 เดือน
+          var sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
+          
+          // ค้นหาไฟล์ในโฟลเดอร์นี้ที่เก่ากว่า 6 เดือน
+          var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
+          while (oldFiles.hasNext()) {
+            var oldFile = oldFiles.next();
+            oldFile.setTrashed(true); // ย้ายไปถังขยะ
+          }
+        } catch (cleanupErr) {
+          console.error("Auto cleanup error: " + cleanupErr.toString());
+        }
+        // --- สิ้นสุดระบบลบไฟล์เก่า ---
         fileUrl = file.getUrl();
       } catch (driveErr) {
         console.error("Drive upload error: " + driveErr.toString());
@@ -3523,6 +3548,100 @@ function sendBugReportToLine(message, base64Image) {
     
   } catch(e) {
     console.error("sendBugReportToLine error: " + e.toString());
+  }
+}
+
+/**
+ * ส่งภาพสรุปการเข้าพบลูกค้าไปยัง LINE OA (Messaging API)
+ */
+function sendVisitSummaryImageToLine(base64Image, messageText) {
+  try {
+    var fileUrl = "";
+    var downloadUrl = "";
+    
+    if (base64Image) {
+      try {
+        var base64Data = base64Image.indexOf(',') !== -1 ? base64Image.split(',')[1] : base64Image;
+        var imageBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', 'visit_summary_' + new Date().getTime() + '.png');
+        
+        var folderId = "15mVFyzJZ56Iza5xdwFbKoJfFBJWof96V";
+        var folder, file;
+        var maxRetries = 3;
+        for (var retry = 0; retry < maxRetries; retry++) {
+          try {
+            folder = DriveApp.getFolderById(folderId);
+            file = folder.createFile(imageBlob);
+            file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+            break;
+          } catch (e) {
+            if (retry === maxRetries - 1) {
+              throw e;
+            }
+            Utilities.sleep(2000);
+          }
+        }
+        fileUrl = file.getUrl();
+        downloadUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
+        
+        try {
+          var sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
+          var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
+          while (oldFiles.hasNext()) {
+            var oldFile = oldFiles.next();
+            oldFile.setTrashed(true);
+          }
+        } catch (cleanupErr) {
+          console.error("Auto cleanup error: " + cleanupErr.toString());
+        }
+      } catch (driveErr) {
+        console.error("Drive upload error: " + driveErr.toString());
+        return {status: 'error', message: 'ไม่สามารถอัปโหลดรูปภาพไปยัง Drive ได้: ' + driveErr.toString()};
+      }
+    }
+    
+    if (!fileUrl) {
+      return {status: 'error', message: 'ไม่มีข้อมูลรูปภาพ'};
+    }
+
+    var fullText = messageText ? messageText : "📊 [สรุปการเข้าพบลูกค้า]\n";
+    var nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy HH:mm");
+    fullText += "\nข้อมูลอัปเดตล่าสุด: " + nowStr + "\n";
+    fullText += "ดูภาพขนาดเต็ม (หรือดาวน์โหลด): " + fileUrl;
+    
+    var apiUrl = 'https://api.line.me/v2/bot/message/push';
+    var messages = [
+      { type: 'text', text: fullText },
+      { type: 'image', originalContentUrl: downloadUrl, previewImageUrl: downloadUrl }
+    ];
+    
+    var payload = {
+      to: LINE_USER_ID,
+      messages: messages
+    };
+    var options = {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    var response = UrlFetchApp.fetch(apiUrl, options);
+    
+    if (response.getResponseCode() !== 200) {
+       payload.messages = [{ type: 'text', text: fullText }];
+       options.payload = JSON.stringify(payload);
+       UrlFetchApp.fetch(apiUrl, options);
+    }
+    
+    return {status: 'success'};
+  } catch(e) {
+    console.error("sendVisitSummaryImageToLine error: " + e.toString());
+    return {status: 'error', message: e.toString()};
   }
 }
 
@@ -3634,4 +3753,134 @@ function saveFullMusicPlaylist(playlist) {
   } catch (e) {
     return { status: 'error', message: e.toString() };
   }
+}
+
+function sendVisitSummaryImagesToLine(imagesData) {
+  try {
+    var folderId = "15mVFyzJZ56Iza5xdwFbKoJfFBJWof96V";
+    var folder;
+    var maxRetries = 3;
+    for (var retry = 0; retry < maxRetries; retry++) {
+      try {
+        folder = DriveApp.getFolderById(folderId);
+        break;
+      } catch (e) {
+        if (retry === maxRetries - 1) throw e;
+        Utilities.sleep(2000);
+      }
+    }
+
+    for (var i = 0; i < imagesData.length; i++) {
+      var item = imagesData[i];
+      var base64Data = item.base64.indexOf(',') !== -1 ? item.base64.split(',')[1] : item.base64;
+      var imageBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', 'visit_summary_' + new Date().getTime() + '_' + i + '.png');
+
+        var file;
+        for (var r = 0; r < maxRetries; r++) {
+          try {
+            file = folder.createFile(imageBlob);
+            // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+            break;
+          } catch(e) {
+            if (r === maxRetries - 1) throw e;
+            Utilities.sleep(2000);
+          }
+        }
+
+      var fileUrl = file.getUrl();
+      var downloadUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
+
+      var fullText = item.messageText ? item.messageText : "📊 สรุปการเข้าพบลูกค้า\n";
+      fullText += fileUrl;
+
+      var messages = [
+        { type: 'text', text: fullText },
+        { type: 'image', originalContentUrl: downloadUrl, previewImageUrl: downloadUrl }
+      ];
+
+      var payload = {
+        to: LINE_USER_ID,
+        messages: messages
+      };
+      var options = {
+        method: 'post',
+        headers: {
+          'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+      if (response.getResponseCode() !== 200) {
+         console.error("LINE API Error on image " + i + ": " + response.getContentText());
+      }
+
+      if (i < imagesData.length - 1) {
+         Utilities.sleep(1500); // delay between LINE pushes
+      }
+    }
+
+    try {
+      var sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
+      var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
+      while (oldFiles.hasNext()) {
+        oldFiles.next().setTrashed(true);
+      }
+    } catch (cleanupErr) {
+      console.error("Auto cleanup error: " + cleanupErr.toString());
+    }
+
+    return {status: 'success', message: 'ส่งรูปทั้งหมดสำเร็จ'};
+  } catch (e) {
+    console.error("sendVisitSummaryImagesToLine error: " + e.toString());
+    return {status: 'error', message: 'ไม่สามารถอัปโหลดรูปภาพไปยัง Drive ได้: ' + e.toString()};
+  }
+}
+
+function sendDailyLinkToLine() {
+  try {
+    var fullText = "📊 สรุปการเข้าพบลูกค้า (ประจำวัน)\n\nสามารถคลิกดูตารางสถิติแบบเต็มได้ที่ลิงก์ด้านล่างนี้ครับ:\nhttps://sites.google.com/view/salesreg10";
+    
+    var messages = [
+      { type: 'text', text: fullText }
+    ];
+
+    var payload = {
+      to: LINE_USER_ID,
+      messages: messages
+    };
+    
+    var options = {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+  } catch (e) {
+    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+  }
+}
+
+function setupDailyTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() == 'sendDailyLinkToLine') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  ScriptApp.newTrigger('sendDailyLinkToLine')
+    .timeBased()
+    .everyDays(1)
+    .atHour(6)
+    .create();
 }

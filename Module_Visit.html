@@ -449,6 +449,7 @@
     // 1. VISIT DATA GLOBALS
     // ==========================================
     var allFetchedRows = [];
+    var globalAllFetchedRows = [];
     var filteredRows = [];
     let currentPage = 1;
     let rowsPerPage = 10;
@@ -1099,9 +1100,19 @@
                     <span class="bg-blue-500 text-white p-1.5 rounded-lg text-xs"><i class="fas fa-chart-bar"></i></span>
                     สรุปการเข้าพบลูกค้า
                 </h3>
-                <button type="button" onclick="closeVisitSummaryModal()" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none">
-                    <i class="fas fa-times"></i>
-                </button>
+                
+                <div class="flex items-center gap-3">
+                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-[10px] sm:text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm">
+                        <i class="fab fa-line"></i> ส่ง LINE OA
+                    </button>
+                    <button type="button" onclick="downloadVisitSummary()" class="text-[10px] sm:text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex">
+                        <i class="fas fa-download"></i> บันทึกรูปภาพ
+                    </button>
+                    <button type="button" onclick="closeVisitSummaryModal()" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
             </div>
             <!-- Body -->
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
@@ -1176,7 +1187,7 @@
             return;
         }
 
-        allFetchedRows = []; const uniqueTeams = new Set();
+        allFetchedRows = []; globalAllFetchedRows = []; const uniqueTeams = new Set();
         const currentUser = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
 
         for (let i = data.length - 1; i >= 1; i--) {
@@ -1189,6 +1200,7 @@
                 if (requiredTeam) { if (!rowSalesName.startsWith(requiredTeam)) isAllowed = false; } else { if (rowZip !== currentUser) isAllowed = false; }
             }
             if (isAllowed) { allFetchedRows.push(row); if (row[6]) uniqueTeams.add(String(row[6]).trim()); }
+            globalAllFetchedRows.push(row);
         }
 
         const salesDropdown = document.getElementById('filterSalesDropdown');
@@ -3948,12 +3960,12 @@
             // ล้างข้อมูลและแสดงผลลัพธ์
             document.body.removeChild(offScreen);
             hideLoader();
-            showToast('success', 'สำเร็จ', 'ดาวน์โหลดไฟล์ JPEG เรียบร้อยแล้ว');
+            Swal.fire('สำเร็จ', 'ดาวน์โหลดไฟล์ JPEG เรียบร้อยแล้ว', 'success');
 
         } catch (err) {
             if (document.body.contains(offScreen)) document.body.removeChild(offScreen);
             hideLoader();
-            showToast('error', 'ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพได้: ' + err.message);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพได้: ' + err.message, 'error');
         }
     };
 
@@ -3961,8 +3973,268 @@
     // 5. สรุปการเข้าพบลูกค้า (Summary Modal)
     // ==========================================
     
+    async function getVisitSummaryBase64(targetEl) {
+        if (!targetEl) return null;
+
+        const offScreen = document.createElement('div');
+        offScreen.style.position = 'absolute';
+        offScreen.style.left = '-9999px';
+        offScreen.style.top = '0';
+        offScreen.style.width = '1200px'; 
+        offScreen.style.backgroundColor = '#ffffff';
+        offScreen.style.padding = '40px';
+        offScreen.style.zIndex = '-1';
+        
+        const styleFix = document.createElement('style');
+        styleFix.innerHTML = `
+            table th, table td {
+                vertical-align: middle !important;
+                padding: 0 !important;
+            }
+            .cell-wrapper {
+                display: flex;
+                align-items: center;
+                align-content: center;
+                flex-wrap: wrap; 
+                min-height: 32px;
+                padding: 8px 12px;
+                width: 100%;
+                height: 100%;
+                box-sizing: border-box;
+                white-space: normal !important;
+                word-break: break-word;
+            }
+            .cell-wrapper-center { justify-content: center; text-align: center; }
+            .cell-wrapper-left { justify-content: flex-start; text-align: left; }
+            .cell-wrapper-right { justify-content: flex-end; text-align: right; }
+        `;
+        offScreen.appendChild(styleFix);
+        
+        const headerHtml = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                <div style="background-color: #3b82f6; color: white; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-chart-bar" style="font-size: 16px;"></i>
+                </div>
+                <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0; font-family: 'Sarabun', sans-serif;">สรุปการเข้าพบลูกค้า</h2>
+            </div>
+        `;
+        
+        const titleContainer = document.createElement('div');
+        titleContainer.innerHTML = headerHtml;
+        offScreen.appendChild(titleContainer);
+        
+        const clone = targetEl.cloneNode(true);
+        clone.style.height = 'auto';
+        clone.style.overflow = 'visible';
+        clone.style.maxHeight = 'none';
+        
+        const cells = clone.querySelectorAll('td, th');
+        cells.forEach(cell => {
+            const inner = cell.innerHTML;
+            let wrapClass = 'cell-wrapper-center';
+            if (cell.classList.contains('text-left') || cell.style.textAlign === 'left') {
+                wrapClass = 'cell-wrapper-left';
+            } else if (cell.classList.contains('text-right') || cell.style.textAlign === 'right') {
+                wrapClass = 'cell-wrapper-right';
+            }
+            cell.innerHTML = `<div class="cell-wrapper ${wrapClass}">${inner}</div>`;
+        });
+        
+        offScreen.appendChild(clone);
+        document.body.appendChild(offScreen);
+        
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        offScreen.offsetHeight;
+        
+        const tbodyTrs = Array.from(clone.querySelectorAll('table tbody tr'));
+        for (let i = 0; i < tbodyTrs.length; i++) {
+            const tr = tbodyTrs[i];
+            const firstTd = tr.firstElementChild;
+            if (firstTd && firstTd.hasAttribute('rowspan') && !tr.classList.contains('font-bold')) {
+                const rowspan = parseInt(firstTd.getAttribute('rowspan'));
+                if (rowspan > 1) {
+                    let totalHeight = 0;
+                    for (let k = 0; k < rowspan; k++) {
+                        if (tbodyTrs[i + k]) {
+                            totalHeight += tbodyTrs[i + k].offsetHeight;
+                        }
+                    }
+                    
+                    firstTd.removeAttribute('rowspan');
+                    const cellContent = firstTd.textContent.trim();
+                    const className = firstTd.className;
+                    
+                    firstTd.style.position = 'relative';
+                    firstTd.style.setProperty('border-bottom', 'none', 'important');
+                    firstTd.innerHTML = `<div style="position: absolute; top: 0; left: 0; width: 100%; height: ${totalHeight}px; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 0 12px; box-sizing: border-box; background: transparent;">
+                        <div style="width: 100%; text-align: center; white-space: normal; word-break: break-word;">${cellContent}</div>
+                    </div>`;
+                    
+                    for (let j = 1; j < rowspan; j++) {
+                        const nextTr = tbodyTrs[i + j];
+                        if (nextTr) {
+                            const newTd = document.createElement('td');
+                            newTd.className = className;
+                            if (j < rowspan - 1) {
+                                newTd.style.setProperty('border-bottom', 'none', 'important');
+                            }
+                            newTd.style.setProperty('border-top', 'none', 'important');
+                            nextTr.insertBefore(newTd, nextTr.firstChild);
+                        }
+                    }
+                    i += rowspan - 1;
+                }
+            }
+        }
+        
+        await document.fonts.ready;
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        try {
+            const canvas = await html2canvas(offScreen, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+            document.body.removeChild(offScreen);
+            return canvas.toDataURL('image/jpeg', 0.95);
+        } catch (e) {
+            if(document.body.contains(offScreen)) document.body.removeChild(offScreen);
+            throw e;
+        }
+    }
+
+    async function downloadVisitSummary() {
+        if (typeof html2canvas === 'undefined') {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบไลบรารี html2canvas สำหรับบันทึกรูปภาพ', 'error');
+            return;
+        }
+        
+        try {
+            showGlobalLoader('กำลังบันทึกรูปภาพ...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const targetEl = document.querySelector('#visitSummaryContent');
+            const base64Data = await getVisitSummaryBase64(targetEl);
+            if (!base64Data) {
+                hideGlobalLoader();
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = `สรุปการเข้าพบลูกค้า_${new Date().toISOString().slice(0,10)}.jpg`;
+            link.href = base64Data;
+            link.click();
+
+            hideGlobalLoader();
+            if (typeof hideLoader === 'function') hideLoader();
+            Swal.fire('สำเร็จ', 'ดาวน์โหลดไฟล์ JPEG เรียบร้อยแล้ว', 'success');
+
+        } catch (err) {
+            hideGlobalLoader();
+            if (typeof hideLoader === 'function') hideLoader();
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพได้: ' + err.message, 'error');
+        }
+    }
+
+    async function sendVisitSummaryToLine() {
+        if (typeof html2canvas === 'undefined') {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบไลบรารี html2canvas สำหรับจับภาพ', 'error');
+            return;
+        }
+
+        try {
+            showGlobalLoader('กำลังเตรียมส่งรูปภาพ...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const tables = document.querySelectorAll('#visitSummaryContent > div.bg-white');
+            if (!tables || tables.length === 0) {
+                hideGlobalLoader();
+                return;
+            }
+
+            let imagesData = [];
+            for (let i = 0; i < tables.length; i++) {
+                showGlobalLoader(`กำลังสร้างรูปภาพตารางที่ ${i+1}/${tables.length}...`);
+                const base64Data = await getVisitSummaryBase64(tables[i]);
+                if (!base64Data) continue;
+                
+                let titleText = "สรุปการเข้าพบลูกค้า";
+                let dateText = "";
+                const headerDivs = tables[i].querySelectorAll('.bg-gray-50 > div');
+                if (headerDivs && headerDivs.length >= 2) {
+                    titleText = headerDivs[0].innerText.trim();
+                    dateText = headerDivs[1].innerText.trim();
+                }
+
+                let messageText = `📊 ${titleText}\n`;
+                if (dateText) messageText += `${dateText}\n`;
+
+                imagesData.push({ base64: base64Data, messageText: messageText });
+            }
+
+            if (imagesData.length === 0) {
+                hideGlobalLoader();
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้างรูปภาพได้', 'error');
+                return;
+            }
+
+            showGlobalLoader('กำลังอัปโหลดและส่งรูปภาพทั้งหมดไปยัง LINE...');
+            
+            await new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        if (response && response.status === 'success') {
+                            resolve();
+                        } else {
+                            reject(new Error(response ? response.message : 'Unknown Error'));
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        reject(error);
+                    })
+                    .sendVisitSummaryImagesToLine(imagesData);
+            });
+            
+            hideGlobalLoader();
+            Swal.fire({
+                icon: 'success',
+                title: 'ส่งสำเร็จ!',
+                text: `ระบบได้ส่งภาพตารางสรุปการเข้าพบลูกค้า (แบ่งเป็น ${tables.length} รูป) ไปยัง LINE OA เรียบร้อยแล้ว`,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            hideGlobalLoader();
+            console.error('Canvas Error:', err);
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการจับภาพและส่ง LINE: ' + err.message, 'error');
+        }
+    }
+
+    // ==========================================
+    // 5. สรุปการเข้าพบลูกค้า (Summary Modal)
+    // ==========================================
     function openVisitSummaryModal() {
         const modal = document.getElementById('visitSummaryModal');
+        
+        // Check if admin to show LINE OA button
+        const btnLineOA = document.getElementById('btnSendLineOA');
+        const btnDownload = document.getElementById('btnDownloadVisitSummary');
+        
+        if (btnLineOA) {
+            const isAdmin = typeof currentUserInfo !== 'undefined' && currentUserInfo.user && String(currentUserInfo.user).toLowerCase() === 'admin';
+            if (isAdmin) {
+                btnLineOA.classList.remove('hidden');
+                btnLineOA.classList.add('flex');
+            } else {
+                btnLineOA.classList.add('hidden');
+                btnLineOA.classList.remove('flex');
+            }
+        }
+        
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0');
@@ -3970,9 +4242,35 @@
             modal.querySelector('.bg-white').classList.add('scale-100');
         }, 10);
         
-        generateVisitSummary();
+        // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีให้ดึงข้อมูลก่อน
+        if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
+            // ปิดปุ่มไว้ก่อนระหว่างที่กำลังโหลด
+            if (btnLineOA) { btnLineOA.disabled = true; btnLineOA.classList.add('opacity-50', 'cursor-not-allowed'); }
+            if (btnDownload) { btnDownload.disabled = true; btnDownload.classList.add('opacity-50', 'cursor-not-allowed'); }
+            
+            const content = document.getElementById('visitSummaryContent');
+            content.innerHTML = `<div class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-blue-500"></i><br>กำลังดึงข้อมูล...</div>`;
+            
+            google.script.run
+                .withSuccessHandler((res) => {
+                    renderTable(res);
+                    generateVisitSummary();
+                    // เปิดปุ่มเมื่อโหลดเสร็จ
+                    if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                    if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                })
+                .withFailureHandler((err) => {
+                    content.innerHTML = `<div class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><br>เกิดข้อผิดพลาด: ${err.message}</div>`;
+                    // เปิดปุ่มกลับ (แม้จะเกิด error เพื่อป้องกันปุ่มค้าง) หรือปล่อยให้ปิดไว้ก็ได้ ในที่นี้เปิดกลับ
+                    if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                    if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                })
+                .getDataForTable();
+        } else {
+            generateVisitSummary();
+        }
     }
-    
+
     function closeVisitSummaryModal() {
         const modal = document.getElementById('visitSummaryModal');
         modal.classList.add('opacity-0');
@@ -3985,9 +4283,9 @@
 
     function generateVisitSummary() {
         const content = document.getElementById('visitSummaryContent');
-        if (typeof allFetchedRows === 'undefined' || !allFetchedRows || allFetchedRows.length === 0) {
+        if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
             let dbgType = typeof allFetchedRows;
-            let dbgLen = allFetchedRows ? allFetchedRows.length : 'N/A';
+            let dbgLen = globalAllFetchedRows ? globalAllFetchedRows.length : 'N/A';
             content.innerHTML = `<div class="text-center py-8 text-gray-500">ไม่มีข้อมูล หรือกำลังโหลดข้อมูล... <br><span class="text-xs text-gray-400">(Debug: Type=${dbgType}, Len=${dbgLen})</span></div>`;
             return;
         }
@@ -4010,7 +4308,7 @@
         const globalOfficeMap = {};
         
         // Build globalOfficeMap to ensure 1 office -> 1 team, and store ZIP code
-        allFetchedRows.forEach(row => {
+        globalAllFetchedRows.forEach(row => {
             const teamFull = String(row[6] || '').trim();
             if (!teamFull) return;
             
@@ -4066,7 +4364,7 @@
             });
             
             // Phase 3: Process the data
-            allFetchedRows.forEach(row => {
+            globalAllFetchedRows.forEach(row => {
                 const dateStr = row[0] ? String(row[0]).split(' ')[0] : ''; // DD/MM/YYYY
                 if (!dateStr) return;
                 
@@ -4160,7 +4458,7 @@
             let html = `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
                 <div class="text-center py-4 font-bold text-sm bg-gray-50 border-b border-gray-200">
-                    <div>สรุปการหา Lead และการเข้าพบลูกค้าของทีมขายในสังกัด ปข. 10</div>
+                    <div>สรุปการหาลูกค้ากลุ่มเป้าหมาย (Lead) และการเข้าพบลูกค้าของทีมขายในสังกัด ปข. 10</div>
                     <div class="text-xs font-normal mt-1">${dateRangeStr}</div>
                     <div class="text-[10px] text-gray-500 mt-1 text-right pr-4">หน่วย:ราย</div>
                 </div>
@@ -4192,6 +4490,21 @@
                     <tbody>
             `;
             
+            
+            const currentUser = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+            let allowedProv = null;
+            if (currentUser === 'admin' || currentUser === 'viewer') {
+                allowedProv = 'ALL';
+            } else {
+                const locFilter = getUserLocationFilter(currentUser);
+                if (locFilter && locFilter.type === 'province') {
+                    allowedProv = locFilter.value;
+                } else if (locFilter && locFilter.type === 'zipcode') {
+                    if (locFilter.value === '34010') allowedProv = 'ศป.อุบลราชธานี';
+                    if (locFilter.value === '47010') allowedProv = 'ศป.สกลนคร';
+                }
+            }
+
             let totalLeadEcom = 0, totalLeadInter = 0, totalLeadFuze = 0, totalLeadSum = 0;
             let totalVisitEcom = 0, totalVisitInter = 0, totalVisitFuze = 0, totalVisitSum = 0;
             let totalSuccess = 0, totalFail = 0;
@@ -4201,6 +4514,7 @@
                 if (!teamsData) return;
                 
                 const teams = Object.keys(teamsData).sort();
+                const isProvClickable = allowedProv === 'ALL' || allowedProv === prov;
                 let provLeadEcom = 0, provLeadInter = 0, provLeadFuze = 0, provLeadSum = 0;
                 let provVisitEcom = 0, provVisitInter = 0, provVisitFuze = 0, provVisitSum = 0;
                 let provSuccess = 0, provFail = 0;
@@ -4218,7 +4532,7 @@
                     
                     html += `<tr class="hover:bg-gray-50">`;
                     if (idx === 0) {
-                        html += `<td rowspan="${teams.length}" class="border border-gray-300 px-2 py-1 font-bold text-gray-800 align-middle text-center bg-white cursor-pointer hover:underline hover:bg-blue-50 hover:text-blue-600 transition" onclick="openProvVisitDetailPopup('${prov}', ${isPurple})">${prov}</td>`;
+                        html += `<td rowspan="${teams.length}" class="border border-gray-300 px-2 py-1 font-bold text-gray-800 align-middle text-center bg-white ${isProvClickable ? 'cursor-pointer hover:underline hover:bg-blue-50 hover:text-blue-600 transition' : ''}" ${isProvClickable ? `onclick="openProvVisitDetailPopup('${prov}', ${isPurple})"` : ''}>${prov}</td>`;
                     }
                     
                     let officeStr = 'ไม่ระบุ';
@@ -4231,7 +4545,7 @@
                             let zipB = globalOfficeMap[b] ? globalOfficeMap[b].zip : '';
                             return zipA.localeCompare(zipB);
                         });
-                        officeStr = officesArr.map(o => `<span class="whitespace-nowrap">${o}</span>`).join(', ');
+                        officeStr = officesArr.map(o => isProvClickable ? `<span class="whitespace-nowrap cursor-pointer hover:underline hover:text-blue-600 transition" onclick="openOfficeVisitDetailPopup('${prov}', '${team}', '${o}', ${isPurple})">${o}</span>` : `<span class="whitespace-nowrap text-gray-600">${o}</span>`).join(', ');
                     }
                     
                     let shortTeam = team;
@@ -4241,7 +4555,7 @@
                     }
                     
                     html += `
-                        <td class="border border-gray-300 px-2 py-1 text-center font-semibold text-gray-800 align-middle cursor-pointer hover:underline hover:text-blue-600 transition" onclick="openTeamVisitDetailPopup('${prov}', '${team}', ${isPurple})">${shortTeam}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-center font-semibold text-gray-800 align-middle ${isProvClickable ? 'cursor-pointer hover:underline hover:text-blue-600 transition' : ''}" ${isProvClickable ? `onclick="openTeamVisitDetailPopup('${prov}', '${team}', ${isPurple})"` : ''}>${shortTeam}</td>
                         <td class="border border-gray-300 px-2 py-1 text-left text-gray-600 align-top whitespace-normal min-w-[200px] max-w-[250px] w-[220px]">${officeStr}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_ecom)}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_inter)}</td>
@@ -4308,7 +4622,7 @@
         
         let monthStr = `ระหว่างวันที่ 1 - ${endDay} กรกฎาคม ${yearThai}`; // Fixed later to dynamic month
         monthStr = `ระหว่างวันที่ 1 - ${endDay} ${monthName} ${yearThai}`;
-        let yesterdayStr = `วันที่ ${endDay} ${monthName} ${yearThai}`;
+        let yesterdayStr = `ประจำวันที่ ${endDay} ${monthName} ${yearThai}`;
         
         content.innerHTML = renderTableHtml(dataMonth, monthStr) + renderTableHtml(dataYesterday, yesterdayStr, true);
     }
@@ -4316,6 +4630,219 @@
     window.showImagePopup = function(url) {
         window.open(url, '_blank');
     };
+
+    
+    window.currentVisitPopupData = [];
+    window.currentVisitPopupTitle = '';
+    window.currentVisitSortCol = -1;
+    window.currentVisitSortAsc = true;
+
+    window.sortVisitDetailTable = function(colIndex) {
+        if (colIndex === 13) return; // Do not sort image column
+        if (window.currentVisitSortCol === colIndex) {
+            window.currentVisitSortAsc = !window.currentVisitSortAsc;
+        } else {
+            window.currentVisitSortCol = colIndex;
+            window.currentVisitSortAsc = true;
+        }
+        
+        const parseDate = (dStr) => {
+            if (!dStr) return 0;
+            const cleanStr = String(dStr).replace(',', '').split(' ')[0];
+            const parts = cleanStr.split('/');
+            if (parts.length < 3) return 0;
+            return parseInt(parts[2] + parts[1].padStart(2, '0') + parts[0].padStart(2, '0'), 10);
+        };
+
+        window.currentVisitPopupData.sort((a,b) => {
+            const getVal = (row, colIdx) => {
+                if (colIdx === 0) return parseDate(row[0]);
+                if (colIdx === 1) return String(row[1] || '').trim();
+                if (colIdx === 2) return String(row[2] || '').trim();
+                if (colIdx === 3) {
+                    let colE = String(row[4] || '').trim();
+                    colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+                    return colE;
+                }
+                if (colIdx === 4) return String(row[5] || '').trim();
+                if (colIdx === 5) return String(row[6] || '').trim();
+                if (colIdx === 6) return String(row[7] || '').trim();
+                if (colIdx === 7) return String(row[8] || '').trim();
+                if (colIdx === 8) return String(row[9] || '').trim();
+                if (colIdx === 9) return String(row[10] || '').trim();
+                if (colIdx === 10) return String(row[11] || '').trim();
+                if (colIdx === 11) return String(row[16] || '').trim();
+                if (colIdx === 12) return String(row[17] || '').trim();
+                if (colIdx === 14) return String(row[19] || '').trim();
+                if (colIdx === 15) return String(row[20] || '').trim();
+                return '';
+            };
+
+            const valA = getVal(a, window.currentVisitSortCol);
+            const valB = getVal(b, window.currentVisitSortCol);
+            
+            let cmp = 0;
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                cmp = valA - valB;
+            } else {
+                cmp = String(valA).localeCompare(String(valB), 'th');
+            }
+            return window.currentVisitSortAsc ? cmp : -cmp;
+        });
+        
+        window.updateVisitDetailTable(false);
+    };
+
+    window.updateVisitDetailTable = function(isInitial) {
+        const container = document.getElementById('visitDetailTableContainer');
+        if (!container && !isInitial) return;
+        
+        const headers = [
+            'วันที่', 'หัวข้อเรื่อง', 'กลุ่มลูกค้า', 'ที่ทำการไปรษณีย์', 'รหัสไปรษณีย์', 
+            'ทีมขาย', 'ชื่อลูกค้า', 'เบอร์โทร', 'ประเภทสินค้า', 'ช่องทางจำหน่าย', 
+            'ปริมาณ', 'สมาชิก', 'หมายเลขสมาชิก', 'รูปภาพ', 'ผลการเข้าพบ', 'บริการที่แนะนำ'
+        ];
+
+        let theadHtml = headers.map((h, i) => {
+            let sortIcon = '';
+            if (window.currentVisitSortCol === i) {
+                sortIcon = window.currentVisitSortAsc ? ' <i class="fas fa-sort-up"></i>' : ' <i class="fas fa-sort-down"></i>';
+            } else if (i !== 13) {
+                sortIcon = ' <i class="fas fa-sort text-gray-400"></i>';
+            }
+            let pointerClass = i !== 13 ? 'cursor-pointer hover:bg-gray-700' : '';
+            let onclick = i !== 13 ? `onclick="sortVisitDetailTable(${i})"` : '';
+            return `<th class="border border-gray-700 px-2 py-2 sticky top-0 bg-gray-800 z-10 ${pointerClass}" ${onclick}>${h}${sortIcon}</th>`;
+        }).join('');
+
+        let tbodyHtml = '';
+        if (window.currentVisitPopupData.length === 0) {
+            tbodyHtml = `<tr><td colspan="16" class="border border-gray-200 px-2 py-6 text-center text-gray-500">ไม่มีข้อมูลการเข้าพบลูกค้า</td></tr>`;
+        } else {
+            tbodyHtml = window.currentVisitPopupData.map(row => {
+                const colA = row[0] || '';
+                const colB = row[1] || '';
+                const colC = row[2] || '';
+                let colE = String(row[4] || '').trim();
+                colE = colE.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+                colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+                const colF = row[5] || '';
+                const colG = row[6] || '';
+                const colH = row[7] || '';
+                const colI = row[8] || '';
+                const colJ = row[9] || '';
+                const colK = row[10] || '';
+                const colL = row[11] || '';
+                const colQ = row[16] || '';
+                const colR = row[17] || '';
+                const colS = row[18] || '';
+                const colT = row[19] || '';
+                const colU = row[20] || '';
+                
+                let statusClass = 'text-gray-700';
+                if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = 'text-green-600 font-bold';
+                else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = 'text-red-600 font-bold';
+                
+                let imgHtml = '-';
+                if (String(colS).startsWith('http')) {
+                    imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
+                } else if (colS) {
+                    imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
+                }
+                
+                return `
+                    <tr class="hover:bg-blue-50 transition border-b border-gray-100">
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5">${colB}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-[10px] text-gray-500">${colC}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colE}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500">${colF}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colG}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 font-semibold text-blue-900">${colH}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colI}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colJ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colK}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600 text-center">${colL}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colQ}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colR}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center">${imgHtml}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-center ${statusClass}">${colT}</td>
+                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500 text-[10px]">${colU}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        let html = `
+            <style>.visit-detail-scrollbar::-webkit-scrollbar {width: 8px; height: 8px; display: block !important; } .visit-detail-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; } .visit-detail-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; } .visit-detail-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; } </style><div class="overflow-auto max-h-[70vh] visit-detail-scrollbar pb-4 shadow-inner">
+                <table class="w-full text-xs text-left border-collapse mt-2 shadow-sm rounded-lg whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-gray-800 text-white">
+                            ${theadHtml}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tbodyHtml}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        if (container) {
+            container.innerHTML = html;
+        } else if (isInitial) {
+            let elem = document.getElementById('visitDetailTableContainer');
+            if (elem) elem.innerHTML = html;
+        }
+    };
+
+    window.renderVisitDetailPopup = function(filteredRows, titleHtml) {
+        window.currentVisitPopupData = filteredRows;
+        window.currentVisitPopupTitle = titleHtml;
+        window.currentVisitSortCol = -1; 
+        window.currentVisitSortAsc = true;
+        
+        const parseDate = (dStr) => {
+            if (!dStr) return 0;
+            const parts = String(dStr).split(' ')[0].split('/');
+            if (parts.length < 3) return 0;
+            return parseInt(parts[2] + parts[1].padStart(2, '0') + parts[0].padStart(2, '0'), 10);
+        };
+
+        window.currentVisitPopupData.sort((a,b) => {
+            const zipA = String(a[5] || '').trim();
+            const zipB = String(b[5] || '').trim();
+            if (zipA !== zipB) return zipA.localeCompare(zipB);
+            
+            const teamA = String(a[6] || '').trim();
+            const teamB = String(b[6] || '').trim();
+            if (teamA !== teamB) return teamA.localeCompare(teamB);
+            
+            const dateA = parseDate(a[0]);
+            const dateB = parseDate(b[0]);
+            if (dateA !== dateB) return dateA - dateB;
+            
+            const topicA = String(a[1] || '').trim();
+            const topicB = String(b[1] || '').trim();
+            return topicA.localeCompare(topicB, 'th');
+        });
+        
+        Swal.fire({
+            title: titleHtml,
+            html: '<div id="visitDetailTableContainer"></div>',
+            width: '95%',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+                popup: 'rounded-2xl shadow-2xl p-0 overflow-hidden',
+                htmlContainer: 'text-left m-0 p-4'
+            },
+            didOpen: () => {
+                window.updateVisitDetailTable(true);
+            }
+        });
+    };
+
 
     window.openProvVisitDetailPopup = function(provinceName, isYesterday) {
         if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
@@ -4374,113 +4901,14 @@
             return prov === provinceName;
         });
 
-        let tableHtml = `
-            <div class="overflow-x-auto pb-4">
-            <table class="w-full text-xs text-left border-collapse mt-2 shadow-sm rounded-lg overflow-hidden whitespace-nowrap">
-                <thead>
-                    <tr class="bg-gray-800 text-white">
-                        <th class="border border-gray-700 px-2 py-2">วันที่</th>
-                        <th class="border border-gray-700 px-2 py-2">หัวข้อเรื่อง</th>
-                        <th class="border border-gray-700 px-2 py-2">กลุ่มลูกค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">ที่ทำการไปรษณีย์</th>
-                        <th class="border border-gray-700 px-2 py-2">รหัสไปรษณีย์</th>
-                        <th class="border border-gray-700 px-2 py-2">ทีมขาย</th>
-                        <th class="border border-gray-700 px-2 py-2">ชื่อลูกค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">เบอร์โทร</th>
-                        <th class="border border-gray-700 px-2 py-2">ประเภทสินค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">ช่องทางจำหน่าย</th>
-                        <th class="border border-gray-700 px-2 py-2">ปริมาณ</th>
-                        <th class="border border-gray-700 px-2 py-2">สมาชิก</th>
-                        <th class="border border-gray-700 px-2 py-2">หมายเลขสมาชิก</th>
-                        <th class="border border-gray-700 px-2 py-2 text-center">รูปภาพ</th>
-                        <th class="border border-gray-700 px-2 py-2 text-center">ผลการเข้าพบ</th>
-                        <th class="border border-gray-700 px-2 py-2">บริการที่แนะนำ</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
         
-        if (filteredRows.length === 0) {
-            tableHtml += `<tr><td colspan="16" class="border border-gray-200 px-2 py-6 text-center text-gray-500">ไม่มีข้อมูลการเข้าพบลูกค้า</td></tr>`;
-        } else {
-            filteredRows.sort((a,b) => {
-                const da = a[0] ? String(a[0]).split(' ')[0] : '';
-                const db = b[0] ? String(b[0]).split(' ')[0] : '';
-                return db.localeCompare(da);
-            });
-            
-            filteredRows.forEach(row => {
-                const colA = row[0] || '';
-                const colB = row[1] || '';
-                const colC = row[2] || '';
-                let colE = String(row[4] || '').trim();
-                if (provinceName !== 'ศป.อุบลราชธานี' && provinceName !== 'ศป.สกลนคร') {
-                    colE = colE.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
-                }
-                colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
-                const colF = row[5] || '';
-                const colG = row[6] || '';
-                const colH = row[7] || '';
-                const colI = row[8] || '';
-                const colJ = row[9] || '';
-                const colK = row[10] || '';
-                const colL = row[11] || '';
-                const colQ = row[16] || '';
-                const colR = row[17] || '';
-                const colS = row[18] || '';
-                const colT = row[19] || '';
-                const colU = row[20] || '';
-                
-                let statusClass = "text-gray-700";
-                if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = "text-green-600 font-bold";
-                else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = "text-red-600 font-bold";
-                
-                let imgHtml = '-';
-                if (String(colS).startsWith('http')) {
-                    imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
-                } else if (colS) {
-                    imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
-                }
-                
-                tableHtml += `
-                    <tr class="hover:bg-blue-50 transition border-b border-gray-100">
-                        <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5">${colB}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-[10px] text-gray-500">${colC}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colE}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500">${colF}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colG}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 font-semibold text-blue-900">${colH}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colI}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colJ}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colK}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600 text-center">${colL}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colQ}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colR}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-center">${imgHtml}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-center ${statusClass}">${colT}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500 text-[10px]">${colU}</td>
-                    </tr>
-                `;
-            });
-        }
-        
-        tableHtml += `</tbody></table></div>`;
-        
-        const titleText = isYesterday ? `ข้อมูลเข้าพบลูกค้ารายวัน (เมื่อวาน) - ${provinceName}` : `ข้อมูลเข้าพบลูกค้าสะสมรายเดือน - ${provinceName}`;
-        
-        Swal.fire({
-            title: `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">${titleText}</div>`,
-            html: tableHtml,
-            width: '95%',
-            showCloseButton: true,
-            showConfirmButton: false,
-            customClass: {
-                popup: 'rounded-2xl shadow-2xl',
-                htmlContainer: 'max-h-[75vh] overflow-y-auto custom-scrollbar text-left m-0 p-4'
-            }
-        });
+
+        let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
+        let titleHtml = `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName}</div>`;
+
+        window.renderVisitDetailPopup(filteredRows, titleHtml);
     };
+
     window.openTeamVisitDetailPopup = function(provinceName, teamName, isYesterday) {
         if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
         
@@ -4538,118 +4966,95 @@
             return prov === provinceName && teamFull === teamName;
         });
 
-        let tableHtml = `
-            <div class="overflow-x-auto pb-4">
-            <table class="w-full text-xs text-left border-collapse mt-2 shadow-sm rounded-lg overflow-hidden whitespace-nowrap">
-                <thead>
-                    <tr class="bg-gray-800 text-white">
-                        <th class="border border-gray-700 px-2 py-2">วันที่</th>
-                        <th class="border border-gray-700 px-2 py-2">หัวข้อเรื่อง</th>
-                        <th class="border border-gray-700 px-2 py-2">กลุ่มลูกค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">ที่ทำการไปรษณีย์</th>
-                        <th class="border border-gray-700 px-2 py-2">รหัสไปรษณีย์</th>
-                        <th class="border border-gray-700 px-2 py-2">ทีมขาย</th>
-                        <th class="border border-gray-700 px-2 py-2">ชื่อลูกค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">เบอร์โทร</th>
-                        <th class="border border-gray-700 px-2 py-2">ประเภทสินค้า</th>
-                        <th class="border border-gray-700 px-2 py-2">ช่องทางจำหน่าย</th>
-                        <th class="border border-gray-700 px-2 py-2">ปริมาณ</th>
-                        <th class="border border-gray-700 px-2 py-2">สมาชิก</th>
-                        <th class="border border-gray-700 px-2 py-2">หมายเลขสมาชิก</th>
-                        <th class="border border-gray-700 px-2 py-2 text-center">รูปภาพ</th>
-                        <th class="border border-gray-700 px-2 py-2 text-center">ผลการเข้าพบ</th>
-                        <th class="border border-gray-700 px-2 py-2">บริการที่แนะนำ</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
         
-        if (filteredRows.length === 0) {
-            tableHtml += `<tr><td colspan="16" class="border border-gray-200 px-2 py-6 text-center text-gray-500">ไม่มีข้อมูลการเข้าพบลูกค้า</td></tr>`;
-        } else {
-            filteredRows.sort((a,b) => {
-                const da = a[0] ? String(a[0]).split(' ')[0] : '';
-                const db = b[0] ? String(b[0]).split(' ')[0] : '';
-                return db.localeCompare(da);
-            });
-            
-            filteredRows.forEach(row => {
-                const colA = row[0] || '';
-                const colB = row[1] || '';
-                const colC = row[2] || '';
-                let colE = String(row[4] || '').trim();
-                if (provinceName !== 'ศป.อุบลราชธานี' && provinceName !== 'ศป.สกลนคร') {
-                    colE = colE.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
-                }
-                colE = colE.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
-                const colF = row[5] || '';
-                const colG = row[6] || '';
-                const colH = row[7] || '';
-                const colI = row[8] || '';
-                const colJ = row[9] || '';
-                const colK = row[10] || '';
-                const colL = row[11] || '';
-                const colQ = row[16] || '';
-                const colR = row[17] || '';
-                const colS = row[18] || '';
-                const colT = row[19] || '';
-                const colU = row[20] || '';
-                
-                let statusClass = "text-gray-700";
-                if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = "text-green-600 font-bold";
-                else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = "text-red-600 font-bold";
-                
-                let imgHtml = '-';
-                if (String(colS).startsWith('http')) {
-                    imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
-                } else if (colS) {
-                    imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
-                }
-                
-                tableHtml += `
-                    <tr class="hover:bg-blue-50 transition border-b border-gray-100">
-                        <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5">${colB}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-[10px] text-gray-500">${colC}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colE}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-500">${colF}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colG}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 font-semibold text-blue-900">${colH}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colI}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colJ}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colK}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colL}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colQ}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colR}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-center">${imgHtml}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-center ${statusClass}">${colT}</td>
-                        <td class="border-x border-gray-200 px-2 py-1.5 text-gray-600">${colU}</td>
-                    </tr>
-                `;
-            });
-        }
-        tableHtml += `</tbody></table></div>`;
-        
+
         let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
-        
         let shortTeam = teamName;
         const numMatch = teamName.match(/\d+/);
         if (numMatch && teamName.includes('ทีม')) {
             shortTeam = "ทีม " + numMatch[0];
         }
+        let titleHtml = `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName} (${shortTeam})</div>`;
 
-        Swal.fire({
-            title: `<div class="text-lg font-bold text-gray-800 border-b pb-3 mb-2 flex items-center justify-between">
-                <span>ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName} (${shortTeam})</span>
-            </div>`,
-            html: tableHtml,
-            width: '95%',
-            showCloseButton: true,
-            showConfirmButton: false,
-            customClass: {
-                popup: 'rounded-xl shadow-2xl p-0',
-                htmlContainer: 'max-h-[75vh] overflow-y-auto custom-scrollbar text-left m-0 p-4'
-            }
-        });
+        window.renderVisitDetailPopup(filteredRows, titleHtml);
     };
+
+    
+    window.openOfficeVisitDetailPopup = function(provinceName, teamName, officeName, isYesterday) {
+        if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
+        
+        let today = new Date();
+        let yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        let endDay = yesterday.getDate();
+        
+        const predicate = (d) => {
+            if (isYesterday) {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() === yesterday.getDate();
+            } else {
+                return d.getFullYear() === yesterday.getFullYear() && 
+                       d.getMonth() === yesterday.getMonth() && 
+                       d.getDate() >= 1 && d.getDate() <= endDay;
+            }
+        };
+
+        const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
+        
+        let filteredRows = window.allFetchedRows.filter(row => {
+            const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
+            if (!dateStr) return false;
+            const parts = dateStr.split('/');
+            if (parts.length < 3) return false;
+            
+            const rDay = parseInt(parts[0], 10);
+            const rMonth = parseInt(parts[1], 10) - 1;
+            const rYear = parseInt(parts[2], 10);
+            const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
+            const rDate = new Date(rYearCE, rMonth, rDay);
+            
+            if (!predicate(rDate)) return false;
+            
+            const teamFull = String(row[6] || '').trim();
+            const zip = String(row[5] || '').trim().replace(/^'/, "");
+            
+            let prov = "ไม่ระบุ";
+            let foundProv = customProvOrder.find(p => teamFull.includes(p));
+            if (foundProv) {
+                prov = foundProv;
+            } else if (zip.startsWith('33')) prov = 'ศรีสะเกษ';
+            else if (zip.startsWith('34')) prov = 'อุบลราชธานี';
+            else if (zip.startsWith('35')) prov = 'ยโสธร';
+            else if (zip.startsWith('37')) prov = 'อำนาจเจริญ';
+            else if (zip.startsWith('47')) prov = 'สกลนคร';
+            else if (zip.startsWith('48')) prov = 'นครพนม';
+            else if (zip.startsWith('49')) prov = 'มุกดาหาร';
+            
+            if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
+            if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
+            
+            let rawOfficeName = String(row[4] || '').trim();
+            let officeNameRow = rawOfficeName;
+            if (prov !== 'ศป.อุบลราชธานี' && prov !== 'ศป.สกลนคร') {
+                officeNameRow = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
+            }
+            officeNameRow = officeNameRow.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
+            
+            return prov === provinceName && teamFull === teamName && officeNameRow === officeName;
+        });
+
+        
+
+        let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
+        let shortTeam = teamName;
+        const numMatch = teamName.match(/\d+/);
+        if (numMatch && teamName.includes('ทีม')) {
+            shortTeam = "ทีม " + numMatch[0];
+        }
+        let titleHtml = `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName} (${shortTeam}) - ${officeName}</div>`;
+
+        window.renderVisitDetailPopup(filteredRows, titleHtml);
+    };
+
 </script>
