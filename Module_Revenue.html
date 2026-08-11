@@ -1432,6 +1432,7 @@
         var customerRevenuePrev = {};
         var keyToName = {};
         var customerTeamRev = {}; // ตัวแปรเก็บรายได้แยกตามทีม
+        var totalRevenueThisYear = 0; // NEW: Total revenue for user
 
         // 💡 เตรียม Map รหัสไปรษณีย์ -> ทีม ด้วยเงื่อนไข ปี_เดือน_รหัสไปรษณีย์
         var targetTeamMap = {};
@@ -1487,11 +1488,18 @@
             if (year === currentYear) {
                 customerRevenue[groupKey] = (customerRevenue[groupKey] || 0) + revenue;
                 customerTeamRev[groupKey][teamName] += revenue; // บวกรายได้ให้ทีมนั้นๆ
+                totalRevenueThisYear += revenue; // NEW: add to total
             }
             else if (year === prevYear) {
                 customerRevenuePrev[groupKey] = (customerRevenuePrev[groupKey] || 0) + revenue;
             }
         });
+
+        // NEW: Update home summary revenue UI
+        var summaryRevEl = document.getElementById('homeSummaryRevenue');
+        if (summaryRevEl) {
+            summaryRevEl.innerText = totalRevenueThisYear.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
         var sortedKeys = Object.keys(customerRevenue).sort(function (a, b) { return customerRevenue[b] - customerRevenue[a]; }).slice(0, 10);
         var labels = sortedKeys.map(function (key) { return keyToName[key]; });

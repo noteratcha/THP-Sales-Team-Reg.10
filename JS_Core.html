@@ -569,6 +569,9 @@ const Toast = Swal.mixin({
                                 }
                             }
                         }
+                        setTimeout(() => {
+                            if (typeof updateHomeVisitSummary === 'function') updateHomeVisitSummary();
+                        }, 300);
                     }
                 },
                 'form': { page: 'page-form', menu: 'menu-form', title: 'เพิ่มข้อมูลการเข้าพบลูกค้า' },
@@ -680,6 +683,142 @@ const Toast = Swal.mixin({
             }
         } catch (e) {
             console.error("SwitchPage Error:", e);
+        }
+    }
+
+    function updateHomeVisitSummary() {
+        const card = document.getElementById('homeVisitSummaryCard');
+        const monthSpan = document.getElementById('homeSummaryMonth');
+        const countSpan = document.getElementById('homeSummaryCount');
+        const provinceSpan = document.getElementById('homeSummaryProvince');
+        const tableBody = document.getElementById('homeVisitTableBody');
+        const chartCanvas = document.getElementById('homeVisitChart');
+        
+        if (!card || !monthSpan || !countSpan || !provinceSpan || !tableBody || !chartCanvas) {
+            console.warn("Home Visit Summary Elements missing!", { card, monthSpan, countSpan, provinceSpan, tableBody, chartCanvas });
+            return;
+        }
+
+        card.style.display = 'flex';
+
+        // ตรวจสอบว่ามีข้อมูลใน globalAllFetchedRows หรือไม่ (กฎการ Auto-fetch)
+        if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
+            provinceSpan.textContent = 'กำลังโหลดข้อมูล...';
+            countSpan.textContent = '...';
+            tableBody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-xs"><i class="fas fa-spinner fa-spin text-theme-orange"></i> กำลังโหลด...</td></tr>';
+            // Auto-fetch if empty
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        if (typeof renderTable === 'function') renderTable(res);
+                        updateHomeVisitSummary();
+                    })
+                    .getDataForTable();
+            }
+            return;
+        }
+
+        const date = new Date();
+        const currentMonth = date.getMonth(); // 0-11
+        const currentYear = date.getFullYear();
+        const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        monthSpan.textContent = thaiMonths[currentMonth] + ' ' + (currentYear + 543);
+
+        let userProvince = (typeof currentUserInfo !== 'undefined' && currentUserInfo.team) ? currentUserInfo.team : '';
+        if (!userProvince && typeof currentUserInfo !== 'undefined' && currentUserInfo.name) {
+            userProvince = currentUserInfo.name;
+        }
+
+        let actualProvinceName = userProvince;
+        if (actualProvinceName.startsWith('ทีม')) {
+            actualProvinceName = actualProvinceName.replace('ทีม', '').replace(/\s*\d+$/, '').trim(); 
+        }
+
+        let monthlyCount = 0;
+        const groupCounts = {};
+
+        if (typeof allFetchedRows !== 'undefined') {
+            allFetchedRows.forEach(row => {
+                if (!row || !row[0]) return;
+                const dateParts = String(row[0]).split(' ')[0].split('/');
+                if (dateParts.length >= 3) {
+                    const rMonth = parseInt(dateParts[1], 10) - 1;
+                    let rYear = parseInt(dateParts[2], 10);
+                    if (rYear > 2500) rYear -= 543;
+                    
+                    if (rMonth === currentMonth && rYear === currentYear) {
+                        monthlyCount++;
+                        // Group by Branch (row[4]) or Team (row[6])
+                        let groupName = row[4] || row[6] || 'ไม่ระบุ';
+                        if (groupName.length > 20) groupName = groupName.substring(0, 20) + '...';
+                        groupCounts[groupName] = (groupCounts[groupName] || 0) + 1;
+                    }
+                }
+            });
+        }
+
+        countSpan.textContent = monthlyCount;
+        if (actualProvinceName && actualProvinceName.toLowerCase() !== 'admin') {
+            provinceSpan.textContent = 'พื้นที่: ' + actualProvinceName;
+        } else {
+            provinceSpan.textContent = 'ข้อมูลทั้งหมดในระบบ';
+        }
+
+        // Sort data descending
+        const sortedGroups = Object.entries(groupCounts).sort((a, b) => b[1] - a[1]);
+        
+        // Render Table
+        tableBody.innerHTML = '';
+        if (sortedGroups.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-gray-400">ไม่มีข้อมูลการเข้าพบในเดือนนี้</td></tr>';
+        } else {
+            sortedGroups.forEach(([name, count]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="py-2.5 px-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]" title="${name}">${name}</td><td class="py-2.5 px-3 text-center font-medium">${count}</td>`;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Render Chart
+        if (window.homeVisitChartInstance) {
+            window.homeVisitChartInstance.destroy();
+        }
+        
+        const labels = sortedGroups.map(item => item[0]);
+        const data = sortedGroups.map(item => item[1]);
+
+        if (typeof Chart !== 'undefined' && chartCanvas) {
+            const ctx = chartCanvas.getContext('2d');
+            window.homeVisitChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวนเข้าพบ',
+                        data: data,
+                        backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                        hoverBackgroundColor: 'rgba(249, 115, 22, 1)',
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return context.parsed.y + ' ครั้ง'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
+                        x: { ticks: { display: labels.length <= 10, maxRotation: 45, minRotation: 0 } }
+                    }
+                }
+            });
         }
     }
 
@@ -870,6 +1009,26 @@ const Toast = Swal.mixin({
             }
 
             switchPage(targetPage);
+            
+            // 💡 โหลดข้อมูล Dashboard สำหรับผู้ใช้ใหม่
+            if (typeof window.loadHomeDashboard === 'function') {
+                window.loadHomeDashboard();
+            }
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        if (typeof window.renderTable === 'function') window.renderTable(res);
+                        if (typeof window.updateHomeVisitSummary === 'function') window.updateHomeVisitSummary();
+                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    })
+                    .withFailureHandler((err) => {
+                        console.error(err);
+                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    })
+                    .getDataForTable();
+            }
+            
         } catch (error) {
             console.error("RestoreSession Error:", error);
             Swal.fire('ข้อผิดพลาดระบบ', 'การโหลดเซสชันผู้ใช้งานล้มเหลว', 'error');
@@ -880,6 +1039,16 @@ const Toast = Swal.mixin({
          SafeStorage.removeItem('thp_user_session');
         currentUserInfo = { user: '', zipcode: '', name: '', team: '' }; 
         window.postNewsInitialized = false; 
+        
+        // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
+        if (typeof window !== 'undefined') {
+            window.allFetchedRows = [];
+            window.globalAllFetchedRows = [];
+            window.globalVisitTargets = undefined;
+            window.filteredRows = [];
+            if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
+            if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+        }
 
         const mainApp = document.getElementById('mainApp');
         const loginSec = document.getElementById('loginSection');
