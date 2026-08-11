@@ -381,6 +381,12 @@ const Toast = Swal.mixin({
                         grp.classList.remove('flex');
                         icn.style.transform = 'rotate(0deg)';
                         icn.classList.remove('text-theme-orange');
+                        
+                        const trg = document.getElementById(allIcons[index].replace('icon-', 'nav-trigger-'));
+                        if (trg) {
+                            trg.classList.remove('text-theme-orange', 'font-bold');
+                            trg.classList.add('text-gray-400');
+                        }
                     }
                 });
 
@@ -391,12 +397,24 @@ const Toast = Swal.mixin({
                     tmsGroup.classList.remove('flex');
                     tmsIcon.style.transform = 'rotate(0deg)';
                     tmsIcon.classList.remove('text-theme-orange');
+                    
+                    const tmsTrg = document.getElementById('nav-trigger-tms');
+                    if (tmsTrg) {
+                        tmsTrg.classList.remove('text-theme-orange', 'font-bold');
+                        tmsTrg.classList.add('text-gray-400');
+                    }
                 }
             } else if (!isHidden) {
                 targetGroup.classList.add('hidden');
                 targetGroup.classList.remove('flex');
                 targetIcon.style.transform = 'rotate(0deg)';
                 targetIcon.classList.remove('text-theme-orange');
+                
+                const triggerEl = document.getElementById(iconId.replace('icon-', 'nav-trigger-'));
+                if (triggerEl) {
+                    triggerEl.classList.remove('text-theme-orange', 'font-bold');
+                    triggerEl.classList.add('text-gray-400');
+                }
             }
 
             if (isHidden) {
@@ -404,6 +422,12 @@ const Toast = Swal.mixin({
                 targetGroup.classList.add('flex');
                 targetIcon.style.transform = 'rotate(180deg)';
                 targetIcon.classList.add('text-theme-orange'); 
+                
+                const triggerEl = document.getElementById(iconId.replace('icon-', 'nav-trigger-'));
+                if (triggerEl) {
+                    triggerEl.classList.add('text-theme-orange', 'font-bold');
+                    triggerEl.classList.remove('text-gray-400');
+                }
             }
         }
     }
@@ -508,6 +532,14 @@ const Toast = Swal.mixin({
                 const menuId = 'menu-' + p.replace('page-', '');
                 const el = document.getElementById(menuId);
                 if(el) { el.classList.remove(...activeClasses); el.classList.add(...inactiveClasses); }
+            });
+
+            // 💡 ล้างสถานะ active ของเมนูย่อยและลิงก์ภายนอกทั้งหมดด้วย
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                if (!nav.id || !nav.id.startsWith('menu-')) {
+                    nav.classList.remove('text-theme-orange', 'font-bold');
+                    nav.classList.add('text-gray-400');
+                }
             });
 
             // 💡 แผนผังหน้าจอ
@@ -1657,4 +1689,32 @@ const Toast = Swal.mixin({
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
     };
+
+    // ?? �ѧ��ѹ�����������������ԧ����¹͡����¹������� (Active) ����ͤ�ԡ
+    document.addEventListener('DOMContentLoaded', function() {
+        const allNavItems = document.querySelectorAll('.nav-item');
+        const fullActiveClasses = ['bg-gradient-to-r', 'from-theme-orange/20', 'to-transparent', 'text-theme-orange', 'border-l-4', 'border-theme-orange', 'font-bold'];
+        
+        allNavItems.forEach(item => {
+            const onclickStr = item.getAttribute('onclick') || '';
+            // �������ٷ���� toggle dropdown (������ʶҹТͧ�ѹ�ͧ��������)
+            if (!onclickStr.includes('toggleSubMenu')) {
+                item.addEventListener('click', function() {
+                    // ��ҧʶҹ� active �ҡ�ء����
+                    allNavItems.forEach(nav => {
+                        nav.classList.remove(...fullActiveClasses);
+                        if (!nav.classList.contains('text-gray-400')) {
+                            nav.classList.add('text-gray-400');
+                        }
+                    });
+                    
+                    // ����Ѻ�������� / �ԧ����¹͡�������� ID menu- (����������ѡ switchPage �з�����ͧ)
+                    if (!this.id || !this.id.startsWith('menu-')) {
+                        this.classList.remove('text-gray-400');
+                        this.classList.add('text-theme-orange', 'font-bold');
+                    }
+                });
+            }
+        });
+    });
 </script>
