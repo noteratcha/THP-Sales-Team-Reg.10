@@ -1392,7 +1392,9 @@
     // ==========================================
     window.loadHomeDashboard = function () {
         if (typeof google !== 'undefined') {
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลหน้าหลัก...');
+            // 💡 Show Skeleton instead of Global Loader
+            var revEl = document.getElementById('homeSummaryRevenue');
+            if (revEl) revEl.innerHTML = '<div class="animate-pulse bg-gray-200 h-10 w-32 rounded-lg inline-block align-middle"></div>';
 
             // 💡 ดึงเป้าหมายมารอก่อน เพื่อใช้จัดกลุ่มชื่อทีม
             google.script.run.withSuccessHandler(function (targetRes) {
@@ -1400,20 +1402,20 @@
 
                 // จากนั้นค่อยดึงข้อมูลรายได้หลัก
                 google.script.run.withSuccessHandler(function (res) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     window.renderHomeChart(res);
                 }).withFailureHandler(function (err) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    var revEl = document.getElementById('homeSummaryRevenue');
+                    if (revEl) revEl.innerText = 'Error';
                     console.error(err);
                 }).getRevenueReportData(currentUserInfo);
 
             }).withFailureHandler(function (err) {
                 window.globalRevenueTargets = [];
                 google.script.run.withSuccessHandler(function (res) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     window.renderHomeChart(res);
                 }).withFailureHandler(function (err) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    var revEl = document.getElementById('homeSummaryRevenue');
+                    if (revEl) revEl.innerText = 'Error';
                     console.error(err);
                 }).getRevenueReportData(currentUserInfo);
             }).getRevenueTargets();
