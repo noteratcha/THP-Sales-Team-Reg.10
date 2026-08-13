@@ -3884,3 +3884,25 @@ function setupDailyTrigger() {
     .atHour(6)
     .create();
 }
+
+function getThaiHolidaysCalendar() {
+  try {
+    var cal = CalendarApp.getCalendarById('th.thai#holiday@group.v.calendar.google.com');
+    if (!cal) return [];
+    var year = new Date().getFullYear();
+    var start = new Date(year - 1, 0, 1);
+    var end = new Date(year + 1, 11, 31);
+    var events = cal.getEvents(start, end);
+    var holidays = [];
+    for (var i = 0; i < events.length; i++) {
+      var d = events[i].getStartTime();
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = String(d.getFullYear() + 543);
+      holidays.push(dd + '/' + mm + '/' + yyyy);
+    }
+    return holidays;
+  } catch (e) {
+    return [];
+  }
+}

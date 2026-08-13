@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0811.1742';
+    var APP_VERSION = 'Ver. 2026.0812.2148';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -758,17 +758,18 @@
                                 <div class="flex items-center justify-between border-b border-gray-50 pb-3 mb-1 relative z-10">
                                     <div class="flex items-center gap-2">
                                         <div class="w-8 h-8 rounded-xl bg-orange-100 text-theme-orange flex items-center justify-center shadow-sm">
-                                            <i class="fas fa-chart-pie text-sm"></i>
+                                            <i class="fas fa-handshake text-sm"></i>
                                         </div>
                                         <h3 class="text-theme-black text-lg font-bold">สถิติการเข้าพบลูกค้า</h3>
                                     </div>
+                                    <span class="text-[10px] text-theme-orange opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-full"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
                                 </div>
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
                                     <!-- Summary Section -->
                                     <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-gradient-to-b from-orange-50/50 to-transparent rounded-2xl py-4 border border-orange-50/50">
                                         <div class="text-[13px] text-gray-500 font-medium mb-1 flex items-center gap-1.5">
-                                            <i class="fas fa-calendar-alt text-orange-400"></i> รวมการเข้าพบ <span id="homeSummaryMonth" class="text-theme-orange font-bold">...</span>
+                                            <i class="fas fa-calendar-alt text-orange-400"></i> รวมการเข้าพบประจำเดือน <span id="homeSummaryMonth" class="text-theme-orange font-bold">...</span>
                                         </div>
                                         <div id="homeSummaryCountContainer" class="flex flex-col items-center justify-center mt-2">
                                             <div class="text-6xl font-black leading-none drop-shadow-sm flex items-baseline gap-2 pb-1">
@@ -782,11 +783,11 @@
                                     <div class="w-full flex flex-col h-full">
                                         <div class="flex items-center justify-between mb-2 px-2">
                                             <h3 class="text-gray-600 text-[13px] font-bold flex items-center gap-1.5">
-                                                <i class="fas fa-chart-line text-theme-orange"></i> แนวโน้ม 7 วันล่าสุด
+                                                <i class="fas fa-chart-line text-theme-orange"></i> สถิติการเข้าพบลูกค้า 7 วันล่าสุด
                                             </h3>
-                                            <span class="text-[10px] text-theme-orange opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-full"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
                                         </div>
                                         <div class="w-full relative flex-1 min-h-[150px] lg:min-h-[160px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
+                                            <div id="homeVisitChartSkeleton" class="absolute inset-0 animate-pulse bg-gray-100 rounded-xl hidden"></div>
                                             <canvas id="homeVisitChart" class="w-full h-full"></canvas>
                                         </div>
                                     </div>
@@ -1461,6 +1462,23 @@
         try {
             if (res && res.status === 'success') {
                 if (typeof successSound !== 'undefined') successSound.play().catch(e => { });
+                
+                // 💡 เคลียร์แคชข้อมูลเก่าทั้งหมดก่อนเข้าระบบใหม่
+                if (typeof window !== 'undefined') {
+                    window.allFetchedRows = [];
+                    window.globalAllFetchedRows = [];
+                    window.globalVisitTargets = undefined;
+                    window.filteredRows = [];
+                    if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
+                    if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+                    
+                    // Clear chart instances to prevent old data rendering
+                    if (window.homeVisitChartInstance) {
+                        window.homeVisitChartInstance.destroy();
+                        window.homeVisitChartInstance = null;
+                    }
+                }
+
                 res.loginTime = new Date().getTime();
                 SafeStorage.setItem('thp_user_session', JSON.stringify(res));
                 restoreSession(res);
@@ -1587,6 +1605,27 @@
             }
 
             switchPage(targetPage);
+            
+            // 💡 เรียกให้แสดง Skeleton ทันทีที่เข้าสู่ระบบ
+            if (typeof window.updateHomeVisitSummary === 'function') {
+                window.updateHomeVisitSummary();
+            }
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
+                google.script.run
+                    .withSuccessHandler((res) => {
+                        if (typeof window.renderTable === 'function') window.renderTable(res);
+                        if (typeof window.updateHomeVisitSummary === 'function') window.updateHomeVisitSummary();
+                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    })
+                    .withFailureHandler((err) => {
+                        console.error(err);
+                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    })
+                    .getDataForTable();
+            }
+
         } catch (error) {
             console.error("RestoreSession Error:", error);
             Swal.fire('ข้อผิดพลาดระบบ', 'การโหลดเซสชันผู้ใช้งานล้มเหลว', 'error');
@@ -1597,6 +1636,30 @@
         SafeStorage.removeItem('thp_user_session');
         currentUserInfo = { user: '', zipcode: '', name: '', team: '' };
         window.postNewsInitialized = false;
+        
+        // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
+        if (typeof window !== 'undefined') {
+            window.allFetchedRows = [];
+            window.globalAllFetchedRows = [];
+            window.globalVisitTargets = undefined;
+            window.filteredRows = [];
+            if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
+            if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+            
+            // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
+            const tableBody = document.getElementById('tableBody');
+            if (tableBody) tableBody.innerHTML = '';
+            const tableHeader = document.getElementById('tableHeader');
+            if (tableHeader) tableHeader.innerHTML = '';
+            
+            if (window.homeVisitChartInstance) {
+                window.homeVisitChartInstance.destroy();
+                window.homeVisitChartInstance = null;
+            }
+            if (typeof window.updateHomeVisitSummary === 'function') {
+                window.updateHomeVisitSummary();
+            }
+        }
 
         const mainApp = document.getElementById('mainApp');
         const loginSec = document.getElementById('loginSection');
@@ -2564,7 +2627,14 @@
         container.style.display = 'flex';
 
         if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0 || typeof globalVisitTargets === 'undefined') {
-            countSpan.textContent = '...';
+            const countContainer = document.getElementById('homeSummaryCountContainer');
+            if (countContainer) {
+                countContainer.innerHTML = '<div class="grid grid-cols-3 gap-2 w-full"><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div></div>';
+            }
+            const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
+            if (chartSkeleton) chartSkeleton.classList.remove('hidden');
+            if (chartCanvas) chartCanvas.classList.add('hidden');
+            
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler((res) => {
@@ -2593,11 +2663,14 @@
         let userName = (typeof currentUserInfo !== 'undefined' && currentUserInfo.name) ? currentUserInfo.name : '';
         let userTeam = (typeof currentUserInfo !== 'undefined' && currentUserInfo.team) ? currentUserInfo.team : '';
 
-        monthSpan.textContent = '(' + thaiMonths[currentMonth] + ' ' + (currentYear + 543) + ')';
+        monthSpan.textContent = thaiMonths[currentMonth] + ' ' + (currentYear + 543);
+
+        const thaiPublicHolidays = window.realTimeThaiHolidays || [];
 
         // คำนวณวันที่ 7 วันล่าสุด
         const last7Days = [];
         const last7DaysLabels = [];
+        const last7DaysColors = [];
         for (let i = 6; i >= 0; i--) {
             let d = new Date();
             d.setDate(d.getDate() - i);
@@ -2605,7 +2678,10 @@
             let mm = String(d.getMonth() + 1).padStart(2, '0');
             let yyyy = d.getFullYear() + 543;
             last7Days.push(`${dd}/${mm}/${yyyy}`);
-            last7DaysLabels.push(`${dd}/${mm}`);
+            last7DaysLabels.push(`${d.getDate()} ${thaiMonths[d.getMonth()]}`);
+            
+            let isHoliday = thaiPublicHolidays.includes(`${dd}/${mm}/${yyyy}`) || d.getDay() === 0 || d.getDay() === 6;
+            last7DaysColors.push(isHoliday ? '#ef4444' : '#6b7280');
         }
 
         let myMonthlyCount = 0;
@@ -2655,18 +2731,11 @@
                     let rowTeam = r[5] ? String(r[5]).trim() : '';
                     let rowProv = r[6] ? String(r[6]).trim() : '';
                     
-                    if (userName.toLowerCase() === 'admin' || userName.toLowerCase() === 'viewer') {
+                    let userId = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+                    if (userId === 'admin' || userId === 'viewer') {
                         myTarget += (parseInt(r[4]) || 0);
                     } else {
-                        let match = false;
-                        if (userTeam && (userTeam.includes(rowTeam) || rowTeam.includes(userTeam) || userTeam.includes(rowProv))) match = true;
-                        if (userName && (userName.includes(rowTeam) || rowTeam.includes(userName) || rowProv.includes(userName) || userName.includes(rowProv))) match = true;
-                        
-                        // พิเศษ: ถ้าเป็นชื่อที่ขึ้นต้นด้วยรหัสไปรษณีย์ เช่น currentUserInfo.user
-                        let userId = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user) : '';
-                        if (userId && (r[2] === userId || String(r[2]).includes(userId))) match = true;
-
-                        if (match) {
+                        if (userId && String(r[2]).trim().toLowerCase() === userId) {
                             myTarget += (parseInt(r[4]) || 0);
                         }
                     }
@@ -2677,22 +2746,84 @@
         // Removed province/recorder name display
 
         let targetHtml = '';
+        let pctHtml = '';
         if (myTarget > 0) {
-            targetHtml = `<div class="text-[12px] text-theme-orange font-medium mt-3 bg-orange-50 px-4 py-1.5 rounded-full border border-orange-100/50 flex items-center gap-1.5 shadow-sm"><i class="fas fa-bullseye"></i> เป้าหมาย: <span class="font-bold text-orange-600">${myTarget}</span> ครั้ง</div>`;
+            let pct = Math.round((myMonthlyCount / myTarget) * 100);
+            let pctColor = pct >= 100 ? 'text-green-700' : 'text-orange-600';
+            let bgPctColor = pct >= 100 ? 'bg-green-100' : 'bg-orange-100';
+            let barColor = pct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
+            let iconColor = pct >= 100 ? 'text-green-500' : 'text-orange-400';
+            
+            targetHtml = `
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                    <div class="flex justify-between items-center w-full mb-1">
+                        <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
+                    </div>
+                    
+                    <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
+                        <span class="text-3xl font-black text-gray-700 leading-none">${myTarget}</span>
+                    </div>
+
+                    <div class="w-full h-1.5"></div>
+                </div>
+            `;
+            
+            pctHtml = `
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                    <div class="flex justify-between items-center w-full mb-1">
+                        <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
+                    </div>
+                    
+                    <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
+                        <span class="text-3xl font-black ${pctColor} leading-none">${pct}%</span>
+                    </div>
+
+                    <div class="w-full bg-gray-100/80 rounded-full h-1.5 overflow-hidden shadow-inner relative">
+                        <div class="${barColor} h-full rounded-full transition-all duration-1000 ease-out relative" style="width: ${Math.min(pct, 100)}%">
+                            ${pct >= 100 ? '<div class="absolute inset-0 bg-white/30 animate-pulse"></div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         } else {
-            targetHtml = `<div class="text-[12px] text-gray-400 font-medium mt-3 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-100 flex items-center gap-1.5"><i class="fas fa-minus-circle"></i> ไม่มีเป้าหมายส่วนตัว</div>`;
+            targetHtml = `
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[64px]">
+                    <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> ไม่มีเป้า</span>
+                </div>
+            `;
+            pctHtml = `
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[64px]">
+                    <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
+                </div>
+            `;
         }
 
         const countContainer = document.getElementById('homeSummaryCountContainer');
         if (countContainer) {
+            countContainer.className = "flex flex-col items-center justify-center mt-3 w-full px-2";
             countContainer.innerHTML = `
-                <div class="text-6xl font-black leading-none drop-shadow-sm flex items-baseline gap-2 pb-1 mt-1">
-                    <span id="homeSummaryCount" class="text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-orange-600">${myMonthlyCount}</span> 
-                    <span class="text-xl font-bold text-gray-400">ครั้ง</span>
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <!-- Box 1: Visits -->
+                    <div class="bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                        <span class="text-[11px] text-gray-500 font-medium mb-1 flex items-center gap-1 whitespace-nowrap"><i class="fas fa-walking text-orange-400"></i> เข้าพบแล้ว</span>
+                        
+                        <div class="text-3xl font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
+                            <span id="homeSummaryCount" class="text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-orange-600">${myMonthlyCount}</span> 
+                        </div>
+                        
+                        <div class="w-full h-1.5"></div> <!-- Spacer to match Box 2 -->
+                    </div>
+                    <!-- Box 2: Target -->
+                    ${targetHtml}
+                    <!-- Box 3: % Success -->
+                    ${pctHtml}
                 </div>
-                ${targetHtml}
             `;
         }
+
+        const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
+        if (chartSkeleton) chartSkeleton.classList.add('hidden');
+        if (chartCanvas) chartCanvas.classList.remove('hidden');
 
         if (window.homeVisitChartInstance) {
             window.homeVisitChartInstance.destroy();
@@ -2700,6 +2831,7 @@
         
         const labels = last7DaysLabels;
         const data = last7Days.map(d => dailyCounts[d]);
+        const maxDataValue = Math.max(...data, 0);
 
         if (typeof Chart !== 'undefined' && chartCanvas) {
             const ctx = chartCanvas.getContext('2d');
@@ -2714,6 +2846,7 @@
                         backgroundColor: 'rgba(249, 115, 22, 0.1)',
                         borderWidth: 2,
                         pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+                        pointRadius: 4,
                         fill: true,
                         tension: 0.3
                     }]
@@ -2721,17 +2854,46 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 20 }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) { return context.parsed.y + ' ครั้ง'; }
                             }
+                        },
+                        datalabels: {
+                            color: '#c2410c', // orange-700 for better visibility
+                            align: 'top',
+                            anchor: 'end',
+                            offset: 4,
+                            font: {
+                                weight: '900',
+                                size: 14
+                            },
+                            formatter: function(value) {
+                                return value;
+                            }
                         }
                     },
                     scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } },
-                        x: { }
+                        y: { 
+                            beginAtZero: true, 
+                            max: maxDataValue + 2,
+                            ticks: { stepSize: 1, precision: 0 } 
+                        },
+                        x: { 
+                            ticks: {
+                                color: last7DaysColors,
+                                font: {
+                                    weight: function(context) {
+                                        return last7DaysColors[context.index] === '#ef4444' ? 'bold' : 'normal';
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             });

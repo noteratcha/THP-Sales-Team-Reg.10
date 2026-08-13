@@ -1196,8 +1196,7 @@
 
             // Admin และ Viewer มองเห็นข้อมูลทั้งหมด
             if (currentUser !== 'admin' && currentUser !== 'viewer') {
-                const requiredTeam = getTeamFilterForUser(currentUser); const rowSalesName = String(row[6]);
-                if (requiredTeam) { if (!rowSalesName.startsWith(requiredTeam)) isAllowed = false; } else { if (rowZip !== currentUser) isAllowed = false; }
+                if (rowZip !== currentUser) isAllowed = false; 
             }
             if (isAllowed) { window.allFetchedRows.push(row); if (row[6]) uniqueTeams.add(String(row[6]).trim()); }
             window.globalAllFetchedRows.push(row);
@@ -1218,23 +1217,10 @@
         if (allFetchedRows.length > 0 && typeof populatePostNewsSelector === 'function') populatePostNewsSelector();
     }
 
-    function getTeamFilterForUser(userId) { if (!userId) return null; userId = String(userId); if (userId === '34010') return "ทีม ศป.อุบลราชธานี "; if (userId === '47010') return "ทีม ศป.สกลนคร "; if (userId.startsWith('33')) return "ทีมศรีสะเกษ "; if (userId.startsWith('34')) return "ทีมอุบลราชธานี "; if (userId.startsWith('35')) return "ทีมยโสธร "; if (userId.startsWith('37')) return "ทีมอำนาจเจริญ "; if (userId.startsWith('47')) return "ทีมสกลนคร "; if (userId.startsWith('48')) return "ทีมนครพนม "; if (userId.startsWith('49')) return "ทีมมุกดาหาร "; return null; }
 
     function getUserLocationFilter(userId) {
         if (!userId || String(userId).toLowerCase() === 'admin' || String(userId).toLowerCase() === 'viewer') return null;
-        userId = String(userId);
-
-        if (userId === '34010') return { type: 'zipcode', value: '34010' };
-        if (userId === '47010') return { type: 'zipcode', value: '47010' };
-
-        if (userId.startsWith('33')) return { type: 'province', value: "ศรีสะเกษ" };
-        if (userId.startsWith('34')) return { type: 'province', value: "อุบลราชธานี", excludeZip: '34010' };
-        if (userId.startsWith('35')) return { type: 'province', value: "ยโสธร" };
-        if (userId.startsWith('37')) return { type: 'province', value: "อำนาจเจริญ" };
-        if (userId.startsWith('47')) return { type: 'province', value: "สกลนคร", excludeZip: '47010' };
-        if (userId.startsWith('48')) return { type: 'province', value: "นครพนม" };
-        if (userId.startsWith('49')) return { type: 'province', value: "มุกดาหาร" };
-        return null;
+        return { type: 'zipcode', value: String(userId).trim() };
     }
 
     window.updateDateDisplay = function (input) {
