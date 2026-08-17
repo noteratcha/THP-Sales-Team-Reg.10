@@ -3886,23 +3886,40 @@ function setupDailyTrigger() {
 }
 
 function getThaiHolidaysCalendar() {
+  var holidays = [];
   try {
     var cal = CalendarApp.getCalendarById('th.thai#holiday@group.v.calendar.google.com');
-    if (!cal) return [];
-    var year = new Date().getFullYear();
-    var start = new Date(year - 1, 0, 1);
-    var end = new Date(year + 1, 11, 31);
-    var events = cal.getEvents(start, end);
-    var holidays = [];
-    for (var i = 0; i < events.length; i++) {
-      var d = events[i].getStartTime();
-      var dd = String(d.getDate()).padStart(2, '0');
-      var mm = String(d.getMonth() + 1).padStart(2, '0');
-      var yyyy = String(d.getFullYear() + 543);
-      holidays.push(dd + '/' + mm + '/' + yyyy);
+    if (cal) {
+      var year = new Date().getFullYear();
+      var start = new Date(year - 1, 0, 1);
+      var end = new Date(year + 1, 11, 31);
+      var events = cal.getEvents(start, end);
+      for (var i = 0; i < events.length; i++) {
+        var d = events[i].getStartTime();
+        var dd = Utilities.formatDate(d, "Asia/Bangkok", "dd");
+        var mm = Utilities.formatDate(d, "Asia/Bangkok", "MM");
+        var yyStr = Utilities.formatDate(d, "Asia/Bangkok", "yyyy");
+        var yyyy = String(parseInt(yyStr) + 543);
+        holidays.push(dd + '/' + mm + '/' + yyyy);
+      }
     }
-    return holidays;
   } catch (e) {
-    return [];
+    // Ignore error and use fallback below
   }
+  
+  // Fallback for common fixed holidays if API fails or is empty
+  if (holidays.length === 0) {
+    var currentYear = new Date().getFullYear() + 543;
+    var fixedHolidays = [
+      "01/01/" + currentYear, "06/04/" + currentYear, "13/04/" + currentYear, 
+      "14/04/" + currentYear, "15/04/" + currentYear, "01/05/" + currentYear, 
+      "04/05/" + currentYear, "12/08/" + currentYear, "13/10/" + currentYear, 
+      "23/10/" + currentYear, "05/12/" + currentYear, "10/12/" + currentYear, 
+      "31/12/" + currentYear
+    ];
+    // We add these just to make sure there's always some data.
+    return fixedHolidays;
+  }
+  
+  return holidays;
 }

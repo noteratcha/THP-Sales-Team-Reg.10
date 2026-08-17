@@ -1751,9 +1751,18 @@
                 if (parts.length >= 3) {
                     const month = parseInt(parts[1]);
                     const year = parseInt(parts[2]);
+                    const group = String(row[2] || '').trim();
+                    let ecomCount = 0;
+                    if (group.includes('e-Commerce')) ecomCount++;
+                    if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                    let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
+                    let fuzeCount = group.includes('Fuze') ? 1 : 0;
+                    let totalCount = ecomCount + interCount + fuzeCount;
+                    if (totalCount === 0) totalCount = 1;
+
                     const key = `${month}/${year}`;
                     if (!salesStats[key]) salesStats[key] = {};
-                    salesStats[key][salesName] = (salesStats[key][salesName] || 0) + 1;
+                    salesStats[key][salesName] = (salesStats[key][salesName] || 0) + totalCount;
                 }
             } catch (e) { }
         }
@@ -2072,7 +2081,14 @@
                 },
                 scales: {
                     y: { stacked: true, suggestedMax: ySuggestedMax },
-                    x: { stacked: true, grid: { display: false } }
+                    x: { 
+                        stacked: true, 
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: window.innerWidth < 640 ? 90 : 0,
+                            minRotation: window.innerWidth < 640 ? 90 : 0
+                        }
+                    }
                 },
                 plugins: {
                     legend: { position: 'bottom' },
@@ -2212,9 +2228,18 @@
                         const office = String(row[4]).trim() || 'ไม่ระบุ';
                         const zip = String(row[5]).replace(/^'/, "").trim() || 'ไม่ระบุ';
 
+                        const group = String(row[2] || '').trim();
+                        let ecomCount = 0;
+                        if (group.includes('e-Commerce')) ecomCount++;
+                        if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                        let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
+                        let fuzeCount = group.includes('Fuze') ? 1 : 0;
+                        let totalCount = ecomCount + interCount + fuzeCount;
+                        if (totalCount === 0) totalCount = 1;
+
                         if (!teamOfficeDetails[team]) teamOfficeDetails[team] = {};
                         if (!teamOfficeDetails[team][zip]) teamOfficeDetails[team][zip] = { name: office, actual: 0, target: 0 };
-                        teamOfficeDetails[team][zip].actual += 1;
+                        teamOfficeDetails[team][zip].actual += totalCount;
                     }
                 }
             } catch (e) { }
@@ -2345,8 +2370,16 @@
                         const customerGroup = String(row[2] || '').trim(); // คอลัมน์ C (Index 2) - กลุ่มลูกค้า
                         const offerResult = String(row[19] || '').trim(); // คอลัมน์ T (Index 19) - ผลการนำเสนอ
 
+                        let ecomCount = 0;
+                        if (customerGroup.includes('e-Commerce')) ecomCount++;
+                        if (customerGroup.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                        let interCount = customerGroup.includes('ระหว่างประเทศ') ? 1 : 0;
+                        let fuzeCount = customerGroup.includes('Fuze') ? 1 : 0;
+                        let totalCount = ecomCount + interCount + fuzeCount;
+                        if (totalCount === 0) totalCount = 1;
+
                         zipToNameMap[zipCode] = officeName;
-                        officeActuals[zipCode] = (officeActuals[zipCode] || 0) + 1;
+                        officeActuals[zipCode] = (officeActuals[zipCode] || 0) + totalCount;
 
                         // จัดกลุ่มลูกค้าและนับยอดรวม
                         if (!officeGroups[zipCode]) {

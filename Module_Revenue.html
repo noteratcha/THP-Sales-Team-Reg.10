@@ -1423,8 +1423,11 @@
     }
 
     window.renderHomeChart = function (res) {
-        if (res.status !== 'success') return;
-        if (!res.data || res.data.length === 0) return;
+        var summaryRevEl = document.getElementById('homeSummaryRevenue');
+        if (res.status !== 'success' || !res.data || res.data.length === 0) {
+            if (summaryRevEl) summaryRevEl.innerText = '0.00';
+            return;
+        }
         var data = res.data;
         var allYears = [...new Set(data.map(function (r) { return parseInt(r[6]); }).filter(function (y) { return !isNaN(y); }))].sort(function (a, b) { return b - a; });
         var currentYear = allYears.length > 0 ? allYears[0] : new Date().getFullYear();

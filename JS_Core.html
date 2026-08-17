@@ -917,20 +917,7 @@ const Toast = Swal.mixin({
                 window.updateHomeVisitSummary();
             }
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        if (typeof window.renderTable === 'function') window.renderTable(res);
-                        if (typeof window.updateHomeVisitSummary === 'function') window.updateHomeVisitSummary();
-                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                    })
-                    .withFailureHandler((err) => {
-                        console.error(err);
-                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                    })
-                    .getDataForTable();
-            }
+
             
         } catch (error) {
             console.error("RestoreSession Error:", error);
@@ -987,22 +974,7 @@ const Toast = Swal.mixin({
         });
     }
 
-    window.originalLoadHomeDashboard = typeof window.loadHomeDashboard !== 'undefined' ? window.loadHomeDashboard : null;
-    window.loadHomeDashboard = function() {
-        // Set Skeleton for Revenue
-        const revEl = document.getElementById('homeSummaryRevenue');
-        if (revEl) {
-            revEl.innerHTML = '<div class="animate-pulse bg-gray-200 h-10 w-32 rounded-lg inline-block align-middle"></div>';
-        }
-        
-        google.script.run
-            .withSuccessHandler((res) => { if (typeof window.renderHomeChart !== 'undefined') window.renderHomeChart(res); })
-            .withFailureHandler((err) => { 
-                console.error(err); 
-                if (revEl) revEl.innerText = 'Error';
-            })
-            .getRevenueReportData(currentUserInfo);
-    };
+
 
     // ==========================================
     // 5. SYSTEM SETTINGS & EXTERNAL LINKS

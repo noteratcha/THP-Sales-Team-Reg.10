@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0812.2148';
+    var APP_VERSION = 'Ver. 2026.0817.1904';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -693,11 +693,13 @@
         <div class="p-4 sm:p-8 max-w-full mx-auto">
             <!-- PAGE: HOME -->
             <div id="page-home" class="animate-fade-in">
-                <!-- Flex Container for Greeting and Recommended Ads -->
-                <div class="flex flex-col lg:flex-row gap-6 mb-8 items-start w-full">
-                    <div class="flex-1 flex flex-col gap-6 w-full">
+                <!-- Flex Container for Layout -->
+                <div class="flex flex-col lg:flex-row gap-6 mb-8 items-start w-full" id="homeLayoutWrapper">
+                    
+                    <!-- Main Content Column (Greeting + Dashboards) -->
+                    <div class="flex-1 flex flex-col gap-6 w-full" id="mainContentColumn">
                         <!-- Greeting Section -->
-                        <div class="w-full bg-gradient-to-r from-theme-black to-theme-green custom-radius p-5 sm:p-6 text-white shadow-lg relative overflow-hidden">
+                        <div class="w-full bg-gradient-to-r from-theme-black to-theme-green custom-radius p-5 sm:p-6 text-white shadow-lg relative overflow-hidden" id="homeGreetingSection">
                             <div class="relative z-10">
                                 <h1 class="text-lg sm:text-2xl font-bold mb-1.5">สวัสดี, <span id="welcomeName">คุณ...</span> 👋
                                 </h1>
@@ -747,11 +749,11 @@
                             </div>
                         </div>
 
-                        <!-- NEW: Visit and Revenue Dashboard -->
-                        <div id="homeDashboardsContainer" style="display: none;" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <!-- Dashboards Container -->
+                    <div id="homeDashboardsContainer" style="display: none;" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-5">
                             
                             <!-- Visit Dashboard -->
-                            <div id="homeVisitSummaryCard" class="w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-5 relative flex flex-col gap-3 overflow-hidden cursor-pointer group transition-shadow" onclick="switchPage('data')" title="คลิกเพื่อดูข้อมูลการเข้าพบลูกค้าทั้งหมด">
+                            <div id="homeVisitSummaryCard" class="w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-5 relative flex flex-col gap-3 overflow-hidden cursor-pointer group transition-shadow" onclick="switchPage('data')">
                                 <!-- Background accent -->
                                 <div class="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                                 
@@ -783,7 +785,7 @@
                                     <div class="w-full flex flex-col h-full">
                                         <div class="flex items-center justify-between mb-2 px-2">
                                             <h3 class="text-gray-600 text-[13px] font-bold flex items-center gap-1.5">
-                                                <i class="fas fa-chart-line text-theme-orange"></i> สถิติการเข้าพบลูกค้า 7 วันล่าสุด
+                                                <i class="fas fa-chart-line text-theme-orange"></i> สถิติการเข้าพบลูกค้า 10 วันล่าสุด
                                             </h3>
                                         </div>
                                         <div class="w-full relative flex-1 min-h-[150px] lg:min-h-[160px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
@@ -795,29 +797,53 @@
                             </div>
                             
                             <!-- Revenue Dashboard -->
-                            <div id="homeRevenueSummaryCard" class="w-full bg-white rounded-3xl shadow-sm border border-gray-100 p-4 relative flex flex-col gap-3">
-                                <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
-                                    <div>
+                            <div id="homeRevenueSummaryCard" class="w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-5 relative flex flex-col gap-3 group cursor-pointer transition-shadow" onclick="switchPage('revenue-report')">
+                                <div class="flex items-center justify-between border-b border-gray-50 pb-3 mb-1 relative z-10">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-xl bg-green-100 text-green-600 flex items-center justify-center shadow-sm">
+                                            <i class="fas fa-chart-line text-sm"></i>
+                                        </div>
                                         <h3 class="text-theme-black text-lg font-bold">สถิติรายได้</h3>
                                     </div>
+                                    <span class="text-[10px] text-green-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full cursor-pointer" onclick="switchPage('revenue-report')"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
                                 </div>
                                 
-                                <div class="w-full bg-gray-50/50 rounded-2xl p-5 border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors flex-1 min-h-[180px]" onclick="switchPage('revenue-report')">
-                                    <div class="text-[13px] text-gray-500 font-medium mb-2">รายได้รวมทั้งหมดปีนี้</div>
-                                    <div class="flex flex-col items-center justify-center">
-                                        <div class="text-4xl lg:text-5xl font-black text-green-500 leading-none drop-shadow-sm flex items-baseline gap-2">
-                                            <span id="homeSummaryRevenue">0</span> 
-                                            <span class="text-lg font-bold text-gray-400">บาท</span>
+                                <div class="flex flex-col w-full flex-1 justify-center relative z-10">
+                                    <!-- Summary Section -->
+                                    <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-gradient-to-b from-green-50/50 to-transparent rounded-2xl py-4 border border-green-50/50">
+                                        <div class="text-[13px] text-gray-500 font-medium mb-1 flex items-center gap-1.5">
+                                            <i class="fas fa-calendar-alt text-green-500"></i> รายได้ประจำเดือน <span id="homeSummaryRevMonth" class="text-green-600 font-bold">...</span>
+                                        </div>
+                                        <div id="homeSummaryRevContainer" class="flex flex-col items-center justify-center mt-2 w-full px-2">
+                                            <div class="grid grid-cols-3 gap-2 w-full">
+                                                <div class="animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
+                                                <div class="animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
+                                                <div class="animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Chart Section -->
+                                    <div class="w-full flex flex-col h-full">
+                                        <div class="flex items-center justify-between mb-2 px-2">
+                                            <h3 class="text-gray-600 text-[13px] font-bold flex items-center gap-1.5">
+                                                <i class="fas fa-chart-bar text-green-500"></i> รายชื่อลูกค้า 10 อันดับสูงสุด
+                                            </h3>
+                                        </div>
+                                        <div class="w-full relative flex-1 min-h-[150px] lg:min-h-[160px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
+                                            <div id="homeRevenueChartSkeleton" class="absolute inset-0 animate-pulse bg-gray-100 rounded-xl"></div>
+                                            <canvas id="homeRevenueChart" class="w-full h-full hidden"></canvas>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                         </div>
-                    </div>
+                    </div> <!-- End of Main Content Column -->
                     
-                    <!-- Recommended Products Section (Ads) -->
-                    <div id="biglot-recommended-container" class="hidden shrink-0 w-full lg:w-[280px] xl:w-[320px] bg-white rounded-3xl shadow-sm border border-orange-100 p-3 pt-5 relative overflow-hidden">
+                    <!-- Right Sidebar (Big Lot) -->
+                    <div class="w-full lg:w-[280px] xl:w-[320px] shrink-0 hidden lg:flex flex-col gap-5" id="rightSidebarColumn">
+                        <div id="biglot-recommended-container" class="hidden w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-4 relative flex flex-col gap-3 group transition-shadow overflow-hidden">
                         <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-orange-50 to-transparent rounded-full -mr-16 -mt-16 z-0"></div>
                     <div class="flex flex-col items-center justify-center gap-2 mb-4 relative z-10 w-full text-center">
                         <h2 class="text-lg font-black flex items-center justify-center gap-2">
@@ -834,9 +860,49 @@
                         </div>
                         <div class="swiper-pagination" style="bottom: 0;"></div>
                     </div>
-                    </div>
+                    </div> <!-- End of Big Lot Card -->
+                    </div> <!-- End of Right Sidebar Column -->
                 </div>
             </div>
+
+            <!-- JS for Mobile Reordering of Big Lot Card -->
+            <script>
+                function adjustBigLotPosition() {
+                    const bigLot = document.getElementById('biglot-recommended-container');
+                    const mainCol = document.getElementById('mainContentColumn');
+                    const rightCol = document.getElementById('rightSidebarColumn');
+                    const dashboards = document.getElementById('homeDashboardsContainer');
+                    const sidebarWrapper = document.getElementById('rightSidebarColumn');
+                    
+                    if (!bigLot || !mainCol || !rightCol || !dashboards) return;
+                    
+                    let moved = false;
+                    if (window.innerWidth < 1024) {
+                        // Mobile: Put Big Lot before Dashboards
+                        if (bigLot.parentElement !== mainCol) {
+                            mainCol.insertBefore(bigLot, dashboards);
+                            sidebarWrapper.classList.add('hidden');
+                            sidebarWrapper.classList.remove('lg:flex');
+                            moved = true;
+                        }
+                    } else {
+                        // Desktop: Put Big Lot in Right Sidebar
+                        if (bigLot.parentElement !== rightCol) {
+                            rightCol.appendChild(bigLot);
+                            sidebarWrapper.classList.add('hidden', 'lg:flex');
+                            moved = true;
+                        }
+                    }
+                    
+                    if (moved && window.homeAdsSwiper) {
+                        setTimeout(() => window.homeAdsSwiper.update(), 100);
+                    }
+                }
+                
+                window.addEventListener('resize', adjustBigLotPosition);
+                // Also run on DOM load or dynamically via google script run eval
+                setTimeout(adjustBigLotPosition, 100);
+            </script>
 
             <?!= include('Module_Visit'); ?>
 
@@ -1611,20 +1677,6 @@
                 window.updateHomeVisitSummary();
             }
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        if (typeof window.renderTable === 'function') window.renderTable(res);
-                        if (typeof window.updateHomeVisitSummary === 'function') window.updateHomeVisitSummary();
-                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                    })
-                    .withFailureHandler((err) => {
-                        console.error(err);
-                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                    })
-                    .getDataForTable();
-            }
 
         } catch (error) {
             console.error("RestoreSession Error:", error);
@@ -1682,14 +1734,6 @@
         });
     }
 
-    window.originalLoadHomeDashboard = typeof window.loadHomeDashboard !== 'undefined' ? window.loadHomeDashboard : null;
-    window.loadHomeDashboard = function () {
-        showGlobalLoader('กำลังดึงข้อมูลหน้าหลัก...');
-        google.script.run
-            .withSuccessHandler((res) => { hideGlobalLoader(); if (typeof window.renderHomeChart !== 'undefined') window.renderHomeChart(res); })
-            .withFailureHandler((err) => { hideGlobalLoader(); console.error(err); })
-            .getRevenueReportData(currentUserInfo);
-    };
 
     // ==========================================
     // 5. SYSTEM SETTINGS & EXTERNAL LINKS
@@ -2624,34 +2668,72 @@
             return;
         }
 
-        container.style.display = 'flex';
+        container.style.display = '';
 
-        if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0 || typeof globalVisitTargets === 'undefined') {
-            const countContainer = document.getElementById('homeSummaryCountContainer');
-            if (countContainer) {
-                countContainer.innerHTML = '<div class="grid grid-cols-3 gap-2 w-full"><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div><div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div></div>';
-            }
-            const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
-            if (chartSkeleton) chartSkeleton.classList.remove('hidden');
-            if (chartCanvas) chartCanvas.classList.add('hidden');
+        const missingVisitData = typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0;
+        const missingVisitTargets = typeof globalVisitTargets === 'undefined' || !globalVisitTargets;
+        const missingRevTargets = typeof globalRevenueTargets === 'undefined' || !globalRevenueTargets;
+        const missingRevData = typeof window.globalRevenueData === 'undefined';
+
+        if (missingVisitData || missingVisitTargets || missingRevTargets || missingRevData) {
             
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
+
+            let pendingReqs = 0;
+            const checkDone = () => {
+                pendingReqs--;
+                if (pendingReqs <= 0) {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    updateHomeVisitSummary();
+                }
+            };
+
             if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler((res) => {
+                if (missingVisitData && !window.isFetchingVisitData) {
+                    window.isFetchingVisitData = true;
+                    pendingReqs++;
+                    google.script.run.withSuccessHandler((res) => {
+                        window.isFetchingVisitData = false;
                         if (typeof renderTable === 'function') renderTable(res);
-                        
-                        if (typeof globalVisitTargets === 'undefined' || !globalVisitTargets) {
-                            google.script.run.withSuccessHandler((tgtRes) => {
-                                window.globalVisitTargets = tgtRes.data;
-                                updateHomeVisitSummary();
-                            }).getVisitTargets();
-                        } else {
-                            updateHomeVisitSummary();
-                        }
-                    })
-                    .getDataForTable();
+                        checkDone();
+                    }).withFailureHandler(() => { window.isFetchingVisitData = false; checkDone(); }).getDataForTable();
+                } else if (missingVisitData && window.isFetchingVisitData) { pendingReqs++; }
+
+                if (missingVisitTargets && !window.isFetchingVisitTargets) {
+                    window.isFetchingVisitTargets = true;
+                    pendingReqs++;
+                    google.script.run.withSuccessHandler((tgtRes) => {
+                        window.isFetchingVisitTargets = false;
+                        window.globalVisitTargets = tgtRes.data;
+                        checkDone();
+                    }).withFailureHandler(() => { window.isFetchingVisitTargets = false; checkDone(); }).getVisitTargets();
+                } else if (missingVisitTargets && window.isFetchingVisitTargets) { pendingReqs++; }
+
+                if (missingRevTargets && !window.isFetchingRevTargets) {
+                    window.isFetchingRevTargets = true;
+                    pendingReqs++;
+                    google.script.run.withSuccessHandler((revTgtRes) => {
+                        window.isFetchingRevTargets = false;
+                        window.globalRevenueTargets = (revTgtRes && revTgtRes.status === 'success') ? revTgtRes.data : [];
+                        checkDone();
+                    }).withFailureHandler(() => { window.isFetchingRevTargets = false; checkDone(); }).getRevenueTargets();
+                } else if (missingRevTargets && window.isFetchingRevTargets) { pendingReqs++; }
+
+                if (missingRevData && !window.isFetchingRevData) {
+                    window.isFetchingRevData = true;
+                    pendingReqs++;
+                    google.script.run.withSuccessHandler(function(res) {
+                        window.isFetchingRevData = false;
+                        window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
+                        checkDone();
+                    }).withFailureHandler(() => { window.isFetchingRevData = false; checkDone(); }).getRevenueReportData({
+                        user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
+                        zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
+                    });
+                } else if (missingRevData && window.isFetchingRevData) { pendingReqs++; }
             }
-            return;
+            
+            if (pendingReqs > 0) return;
         }
 
         const date = new Date();
@@ -2667,27 +2749,35 @@
 
         const thaiPublicHolidays = window.realTimeThaiHolidays || [];
 
-        // คำนวณวันที่ 7 วันล่าสุด
-        const last7Days = [];
-        const last7DaysLabels = [];
-        const last7DaysColors = [];
-        for (let i = 6; i >= 0; i--) {
+        // คำนวณวันที่ 10 วันล่าสุด
+        const last10Days = [];
+        const last10DaysLabels = [];
+        const last10DaysColors = [];
+        for (let i = 9; i >= 0; i--) {
             let d = new Date();
             d.setDate(d.getDate() - i);
             let dd = String(d.getDate()).padStart(2, '0');
             let mm = String(d.getMonth() + 1).padStart(2, '0');
             let yyyy = d.getFullYear() + 543;
-            last7Days.push(`${dd}/${mm}/${yyyy}`);
-            last7DaysLabels.push(`${d.getDate()} ${thaiMonths[d.getMonth()]}`);
+            last10Days.push(`${dd}/${mm}/${yyyy}`);
+            last10DaysLabels.push(`${d.getDate()} ${thaiMonths[d.getMonth()]}`);
             
             let isHoliday = thaiPublicHolidays.includes(`${dd}/${mm}/${yyyy}`) || d.getDay() === 0 || d.getDay() === 6;
-            last7DaysColors.push(isHoliday ? '#ef4444' : '#6b7280');
+            last10DaysColors.push(isHoliday ? '#ef4444' : '#6b7280');
         }
 
         let myMonthlyCount = 0;
-        let my7DaysCount = 0;
+        let myMonthlyRevenue = 0;
+        let my10DaysCount = 0;
+        let my10DaysRevenue = 0;
         const dailyCounts = {};
-        last7Days.forEach(d => dailyCounts[d] = 0);
+        const dailyBreakdowns = {};
+        const dailyRevenues = {};
+        last10Days.forEach(d => {
+            dailyCounts[d] = 0;
+            dailyBreakdowns[d] = { ecom: 0, postal: 0, inter: 0, fuze: 0, other: 0 };
+            dailyRevenues[d] = 0;
+        });
 
         // ใช้ window.allFetchedRows ซึ่งถูกกรองตามสิทธิ์และพื้นที่ของ User ไว้แล้วในฝั่ง Visit Module
         const rowsToProcess = (typeof window !== 'undefined' && window.allFetchedRows && window.allFetchedRows.length > 0) ? window.allFetchedRows : 
@@ -2709,13 +2799,41 @@
                     
                     const normalizedDateStr = `${rDayStr}/${rMonthStr}/${rYear + 543}`;
                     
+                    const group = String(row[2] || '').trim();
+                    let isEcom = group.includes('e-Commerce');
+                    let isPostal = group.includes('ไปรษณียภัณฑ์');
+                    let isInter = group.includes('ระหว่างประเทศ');
+                    let isFuze = group.includes('Fuze');
+                    
+                    let ecomCount = 0;
+                    if (isEcom) ecomCount++;
+                    if (isPostal) ecomCount++;
+                    
+                    let interCount = isInter ? 1 : 0;
+                    let fuzeCount = isFuze ? 1 : 0;
+                    
+                    let totalCount = ecomCount + interCount + fuzeCount;
+                    if (totalCount === 0) totalCount = 1;
+
                     if (rMonth === currentMonth && rYear === currentYear) {
-                        myMonthlyCount++;
+                        myMonthlyCount += totalCount;
+                        let monthlyEstRev = parseFloat(String(row[11] || '0').replace(/,/g, '')) || 0;
+                        myMonthlyRevenue += monthlyEstRev;
                     }
 
                     if (dailyCounts[normalizedDateStr] !== undefined) {
-                        dailyCounts[normalizedDateStr]++;
-                        my7DaysCount++;
+                        dailyCounts[normalizedDateStr] += totalCount;
+                        my10DaysCount += totalCount;
+                        
+                        let estRev = parseFloat(String(row[11] || '0').replace(/,/g, '')) || 0;
+                        my10DaysRevenue += estRev;
+                        dailyRevenues[normalizedDateStr] += estRev;
+                        
+                        if (isEcom) dailyBreakdowns[normalizedDateStr].ecom++;
+                        if (isPostal) dailyBreakdowns[normalizedDateStr].postal++;
+                        if (isInter) dailyBreakdowns[normalizedDateStr].inter++;
+                        if (isFuze) dailyBreakdowns[normalizedDateStr].fuze++;
+                        if (totalCount === 1 && !isEcom && !isPostal && !isInter && !isFuze) dailyBreakdowns[normalizedDateStr].other++;
                     }
                 }
             });
@@ -2723,20 +2841,52 @@
 
         let myTarget = 0;
         if (typeof globalVisitTargets !== 'undefined' && globalVisitTargets.length > 0) {
+            const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             globalVisitTargets.forEach(r => {
                 if (!r || !r[0]) return;
                 let y = parseInt(r[0]); if (y > 2500) y -= 543;
                 let mStr = r[1] ? String(r[1]).trim() : '';
-                if (y === currentYear && mStr === currentThaiMonthName) {
-                    let rowTeam = r[5] ? String(r[5]).trim() : '';
-                    let rowProv = r[6] ? String(r[6]).trim() : '';
-                    
+                let mIdx = fullThaiMonths.indexOf(mStr);
+                if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mStr);
+                if (mIdx === -1 && !isNaN(parseInt(mStr))) mIdx = parseInt(mStr) - 1;
+
+                if (y === currentYear && (mStr === currentThaiMonthName || mIdx === currentMonth)) {
                     let userId = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
                     if (userId === 'admin' || userId === 'viewer') {
                         myTarget += (parseInt(r[4]) || 0);
                     } else {
                         if (userId && String(r[2]).trim().toLowerCase() === userId) {
                             myTarget += (parseInt(r[4]) || 0);
+                        }
+                    }
+                }
+            });
+        }
+
+        let myRevTarget = 0;
+        if (typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets.length > 1) {
+            let userId = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+            let isAdmin = (userId === 'admin' || userId === 'viewer');
+            let userZip = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
+            const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+            globalRevenueTargets.forEach((r, i) => {
+                if (i === 0) return;
+                let y = parseInt(r[0]); if (y > 2500) y -= 543;
+                let mStr = r[1] ? String(r[1]).trim() : '';
+                let mIdx = fullThaiMonths.indexOf(mStr);
+                if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mStr);
+                if (mIdx === -1 && !isNaN(parseInt(mStr))) mIdx = parseInt(mStr) - 1;
+
+                if (y === currentYear && (mStr === currentThaiMonthName || mIdx === currentMonth)) {
+                    let rZip = String(r[2]).trim();
+                    if (isAdmin) {
+                        myRevTarget += parseFloat(r[4]) || 0;
+                    } else {
+                        if (rZip === userZip) {
+                            myRevTarget += parseFloat(r[4]) || 0;
                         }
                     }
                 }
@@ -2804,10 +2954,10 @@
             countContainer.innerHTML = `
                 <div class="grid grid-cols-3 gap-2 w-full">
                     <!-- Box 1: Visits -->
-                    <div class="bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                    <div class="bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
                         <span class="text-[11px] text-gray-500 font-medium mb-1 flex items-center gap-1 whitespace-nowrap"><i class="fas fa-walking text-orange-400"></i> เข้าพบแล้ว</span>
                         
-                        <div class="text-3xl font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
+                        <div class="text-2xl xl:text-3xl tracking-tight font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
                             <span id="homeSummaryCount" class="text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-orange-600">${myMonthlyCount}</span> 
                         </div>
                         
@@ -2821,6 +2971,109 @@
             `;
         }
 
+        const monthRevSpan = document.getElementById('homeSummaryRevMonth');
+        if (monthRevSpan) monthRevSpan.textContent = thaiMonths[currentMonth] + ' ' + (currentYear + 543);
+
+        const revContainer = document.getElementById('homeSummaryRevContainer');
+        if (revContainer) {
+            const renderRevUI = function(actualRevVal) {
+                let revTargetHtml = '';
+                let revPctHtml = '';
+                if (myRevTarget > 0) {
+                    let revPct = Math.round((actualRevVal / myRevTarget) * 100);
+                    let pctColor = revPct >= 100 ? 'text-green-700' : 'text-orange-600';
+                    let barColor = revPct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
+                    let iconColor = revPct >= 100 ? 'text-green-500' : 'text-orange-400';
+                    
+                    let formattedTarget = myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    let textClass = formattedTarget.length > 8 ? 'text-[18px]' : 'text-2xl';
+                    
+                    revTargetHtml = `
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                            <div class="flex justify-between items-center w-full mb-1">
+                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
+                            </div>
+                            <div class="flex justify-center items-baseline gap-1 w-full mt-1 mb-1.5">
+                                <span class="${textClass} font-black text-gray-700 leading-none truncate w-full text-center" title="${formattedTarget}">${formattedTarget}</span>
+                            </div>
+                            <div class="w-full h-1.5"></div>
+                        </div>
+                    `;
+                    
+                    revPctHtml = `
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                            <div class="flex justify-between items-center w-full mb-1">
+                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
+                            </div>
+                            <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
+                                <span class="text-2xl font-black ${pctColor} leading-none">${revPct}%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="${barColor} h-1.5 rounded-full" style="width: ${Math.min(revPct, 100)}%"></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    revTargetHtml = `
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px]">
+                            <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> เป้าหมาย</span>
+                        </div>
+                    `;
+                    revPctHtml = `
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px]">
+                            <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
+                        </div>
+                    `;
+                }
+
+                let formattedMonthRev = actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                revContainer.innerHTML = `
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <div class="bg-white border border-green-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                            <div class="flex justify-between items-center w-full mb-1">
+                                <span class="text-[11px] text-green-600 font-medium flex items-center gap-1 whitespace-nowrap">
+                                    <i class="fas fa-coins opacity-70"></i> รายได้สะสม
+                                </span>
+                            </div>
+                            <div class="text-2xl xl:text-3xl tracking-tight font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
+                                <span id="homeSummaryRevenueMonth" class="text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600" title="${formattedMonthRev}">${formattedMonthRev}</span> 
+                            </div>
+                            <div class="w-full h-1.5"></div>
+                        </div>
+                        ${revTargetHtml}
+                        ${revPctHtml}
+                    </div>
+                `;
+            };
+
+            const calcActualRev = function(data) {
+                let sum = 0;
+                const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                
+                data.forEach(function(row) {
+                    if (!row || row.length < 9) return;
+                    
+                    let mName = String(row[5]).trim();
+                    let yYear = parseInt(row[6], 10);
+                    let rev = parseFloat(row[8]) || 0;
+                    
+                    if (yYear > 2500) yYear -= 543;
+                    
+                    let mIdx = fullThaiMonths.indexOf(mName);
+                    if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mName);
+                    
+                    if (mIdx === currentMonth && yYear === currentYear) {
+                        sum += rev;
+                    }
+                });
+                return sum;
+            };
+
+            renderRevUI(calcActualRev(window.globalRevenueData || []));
+        }
+
         const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
         if (chartSkeleton) chartSkeleton.classList.add('hidden');
         if (chartCanvas) chartCanvas.classList.remove('hidden');
@@ -2829,8 +3082,8 @@
             window.homeVisitChartInstance.destroy();
         }
         
-        const labels = last7DaysLabels;
-        const data = last7Days.map(d => dailyCounts[d]);
+        const labels = last10DaysLabels;
+        const data = last10Days.map(d => dailyCounts[d]);
         const maxDataValue = Math.max(...data, 0);
 
         if (typeof Chart !== 'undefined' && chartCanvas) {
@@ -2861,7 +3114,19 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) { return context.parsed.y + ' ครั้ง'; }
+                                label: function(context) { 
+                                    const dateKey = last10Days[context.dataIndex];
+                                    const bd = dailyBreakdowns[dateKey];
+                                    if (!bd) return context.parsed.y + ' ครั้ง';
+                                    
+                                    let lines = [`รวมทั้งหมด: ${context.parsed.y} รายการ`];
+                                    if (bd.ecom > 0) lines.push(`- e-Commerce: ${bd.ecom}`);
+                                    if (bd.postal > 0) lines.push(`- ไปรษณียภัณฑ์: ${bd.postal}`);
+                                    if (bd.inter > 0) lines.push(`- ระหว่างประเทศ: ${bd.inter}`);
+                                    if (bd.fuze > 0) lines.push(`- Fuze: ${bd.fuze}`);
+                                    if (bd.other > 0) lines.push(`- อื่นๆ: ${bd.other}`);
+                                    return lines;
+                                }
                             }
                         },
                         datalabels: {
@@ -2881,17 +3146,295 @@
                     scales: {
                         y: { 
                             beginAtZero: true, 
-                            max: maxDataValue + 2,
+                            max: Math.ceil(maxDataValue * 1.2) || 5,
                             ticks: { stepSize: 1, precision: 0 } 
                         },
                         x: { 
+                            offset: true,
                             ticks: {
-                                color: last7DaysColors,
+                                color: last10DaysColors,
                                 font: {
                                     weight: function(context) {
-                                        return last7DaysColors[context.index] === '#ef4444' ? 'bold' : 'normal';
+                                        return last10DaysColors[context.index] === '#ef4444' ? 'bold' : 'normal';
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Initialize Revenue Chart ---
+        const revChartCanvas = document.getElementById('homeRevenueChart');
+        const revChartSkeleton = document.getElementById('homeRevenueChartSkeleton');
+        
+        if (revChartSkeleton) revChartSkeleton.classList.add('hidden');
+        if (revChartCanvas) revChartCanvas.classList.remove('hidden');
+
+        if (window.homeRevenueChartInstance) {
+            window.homeRevenueChartInstance.destroy();
+        }
+        
+        // --- Calculate Top 10 Customers from Revenue Data ---
+        let topCustomers = {};
+        if (typeof window !== 'undefined' && window.globalRevenueData && window.globalRevenueData.length > 0) {
+            const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            
+            window.globalRevenueData.forEach(function(row) {
+                if (!row || row.length < 9) return;
+                let mName = String(row[5]).trim();
+                let yYear = parseInt(row[6], 10);
+                if (yYear > 2500) yYear -= 543;
+                
+                let mIdx = fullThaiMonths.indexOf(mName);
+                if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mName);
+                if (mIdx === -1 && !isNaN(parseInt(mName))) mIdx = parseInt(mName) - 1;
+                
+                let customerName = String(row[1]).trim(); // Column D from sheet is mapped to index 1 by backend
+                if (!customerName || customerName === '-') return;
+                let rev = parseFloat(String(row[8]).replace(/,/g, '')) || 0;
+                let serviceName = String(row[4]).trim() || "อื่นๆ"; // Column L (Item Name) is mapped to index 4
+                
+                if (!topCustomers[customerName]) {
+                    topCustomers[customerName] = { total: 0, services: {}, months: {} };
+                }
+                
+                // Track monthly history
+                let monthKey = `${shortThaiMonths[mIdx] || mName} ${yYear + 543}`;
+                let sortKey = yYear * 100 + mIdx;
+                if (!topCustomers[customerName].months[monthKey]) {
+                    topCustomers[customerName].months[monthKey] = { rev: 0, sortKey: sortKey };
+                }
+                topCustomers[customerName].months[monthKey].rev += rev;
+
+                if (mIdx === currentMonth && yYear === currentYear) {
+                    topCustomers[customerName].total += rev;
+                    if (!topCustomers[customerName].services[serviceName]) {
+                        topCustomers[customerName].services[serviceName] = 0;
+                    }
+                    topCustomers[customerName].services[serviceName] += rev;
+                }
+            });
+        }
+
+        let top10Arr = Object.keys(topCustomers)
+            .map(name => ({ name: name, rev: topCustomers[name].total, services: topCustomers[name].services, months: topCustomers[name].months }))
+            .sort((a, b) => b.rev - a.rev)
+            .slice(0, 10);
+
+        let top10Labels = top10Arr.map(item => {
+            let name = item.name.trim();
+            if (name.length <= 15) return name;
+            
+            let parts = name.split(' ');
+            if (parts.length > 1) {
+                let line1 = parts[0];
+                let line2 = parts.slice(1).join(' ');
+                if (line1.length > 18) line1 = line1.substring(0, 16) + '..';
+                if (line2.length > 18) line2 = line2.substring(0, 16) + '..';
+                return [line1, line2];
+            } else {
+                return [name.substring(0, 15), name.substring(15, 30) + (name.length > 30 ? '..' : '')];
+            }
+        });
+        let top10Data = top10Arr.map(item => item.rev);
+        const maxRevValue = top10Data.length > 0 ? Math.max(...top10Data, 0) : 0;
+
+        if (typeof Chart !== 'undefined' && revChartCanvas) {
+            const ctxRev = revChartCanvas.getContext('2d');
+            window.homeRevenueChartInstance = new Chart(ctxRev, {
+                type: 'bar',
+                data: {
+                    labels: top10Labels,
+                    datasets: [{
+                        label: 'รายได้',
+                        data: top10Data,
+                        backgroundColor: top10Data.map(val => (maxRevValue > 0 && val >= maxRevValue * 0.7) ? 'rgba(234, 179, 8, 0.9)' : 'rgba(34, 197, 94, 0.8)'),
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.75,
+                        categoryPercentage: 0.85
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 50 }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grace: '25%'
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                color: '#4b5563'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: false,
+                            external: function(context) {
+                                let tooltipEl = document.getElementById('chartjs-custom-tooltip');
+                                if (!tooltipEl) {
+                                    tooltipEl = document.createElement('div');
+                                    tooltipEl.id = 'chartjs-custom-tooltip';
+                                    tooltipEl.className = 'fixed z-[9999] pointer-events-none transition-all duration-200 ease-out opacity-0';
+                                    document.body.appendChild(tooltipEl);
+                                }
+
+                                const tooltipModel = context.tooltip;
+                                if (tooltipModel.opacity === 0) {
+                                    tooltipEl.style.opacity = 0;
+                                    return;
+                                }
+
+                                if (tooltipModel.body) {
+                                    const dataIndex = tooltipModel.dataPoints[0].dataIndex;
+                                    const customerData = top10Arr[dataIndex];
+                                    const isGold = (maxRevValue > 0 && customerData.rev >= maxRevValue * 0.7);
+                                    const themeColor = isGold ? 'text-yellow-600' : 'text-green-600';
+                                    const themeDot = isGold ? 'bg-yellow-400' : 'bg-green-400';
+                                    
+                                    let html = `
+                                        <div class="bg-white/95 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-100 rounded-2xl p-4 w-[320px]">
+                                            <div class="text-gray-800 font-bold text-[14px] leading-tight mb-1 pr-2">${customerData.name}</div>
+                                            <div class="flex items-baseline gap-1.5 mb-3">
+                                                <div class="text-2xl font-black ${themeColor}">${customerData.rev.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                <div class="text-[11px] text-gray-500 font-bold">บาท</div>
+                                            </div>
+                                            
+                                            <div class="w-full h-px bg-gray-100 my-2"></div>
+                                    `;
+                                    
+                                    const services = customerData.services;
+                                    const sortedServices = Object.keys(services).sort((a, b) => services[b] - services[a]);
+                                    if (sortedServices.length > 0) {
+                                        html += `
+                                            <div class="mt-2 mb-1.5 flex items-center gap-1.5">
+                                                <div class="w-1.5 h-1.5 rounded-full ${themeDot}"></div>
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">บริการเดือนนี้</div>
+                                            </div>
+                                            <div class="space-y-1 mb-2">
+                                        `;
+                                        sortedServices.forEach(srv => {
+                                            if (services[srv] > 0) {
+                                                html += `
+                                                <div class="flex justify-between items-center text-[11px]">
+                                                    <span class="text-gray-600 truncate pr-2" title="${srv}">${srv.length > 22 ? srv.substring(0, 22) + '...' : srv}</span>
+                                                    <span class="font-semibold text-gray-800 whitespace-nowrap">${services[srv].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>`;
+                                            }
+                                        });
+                                        html += `</div>`;
+                                    }
+                                    
+                                    const months = customerData.months;
+                                    const sortedMonths = Object.keys(months).sort((a, b) => months[b].sortKey - months[a].sortKey).slice(0, 12);
+                                    if (sortedMonths.length > 0) {
+                                        html += `
+                                            <div class="w-full h-px bg-gray-100 my-2"></div>
+                                            <div class="mt-2 mb-2 flex items-center gap-1.5">
+                                                <i class="fas fa-history text-[10px] text-gray-400"></i>
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">ย้อนหลัง 12 เดือน</div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 relative mt-1">
+                                                <div class="absolute inset-y-0 left-1/2 w-px bg-gray-100 -ml-px"></div>
+                                        `;
+                                        const half = Math.ceil(sortedMonths.length / 2);
+                                        for(let i=0; i<half; i++) {
+                                            const leftM = sortedMonths[i];
+                                            const rightM = sortedMonths[i + half];
+                                            
+                                            const renderMonth = (m) => {
+                                                if(!m) return '<div></div>';
+                                                let displayRev = months[m].rev;
+                                                let revStr = displayRev >= 10000 ? (displayRev/1000).toFixed(1) + 'k' : displayRev.toLocaleString('en-US');
+                                                let yearStr = m.split(' ').pop();
+                                                let colors = ['text-blue-600', 'text-emerald-600', 'text-violet-600', 'text-amber-600', 'text-rose-600'];
+                                                let yearColor = colors[parseInt(yearStr) % colors.length] || 'text-gray-600';
+                                                return `
+                                                    <div class="flex justify-between items-center text-[10px] relative z-10 pr-2 pl-1 hover:bg-gray-50 rounded transition-colors">
+                                                        <span class="${yearColor} font-bold">${m}</span>
+                                                        <span class="font-semibold text-gray-700">${revStr}</span>
+                                                    </div>`;
+                                            };
+                                            
+                                            html += renderMonth(leftM);
+                                            html += renderMonth(rightM);
+                                        }
+                                        html += `</div>`;
+                                    }
+                                    
+                                    html += `</div>`;
+                                    tooltipEl.innerHTML = html;
+                                }
+
+                                const position = context.chart.canvas.getBoundingClientRect();
+                                let left = position.left + tooltipModel.caretX;
+                                let top = position.top + tooltipModel.caretY;
+                                
+                                tooltipEl.style.opacity = 1;
+                                tooltipEl.style.left = left + 'px';
+                                tooltipEl.style.top = top + 'px';
+                                
+                                // Auto position logic
+                                let transformY = 'calc(-100% - 15px)';
+                                if (top - 200 < 0) { // If too close to top
+                                    transformY = '15px';
+                                }
+                                
+                                let transformX = '-50%';
+                                if (left < 160) transformX = 'calc(-50% + 100px)';
+                                else if (left + 160 > window.innerWidth) transformX = 'calc(-50% - 100px)';
+                                
+                                tooltipEl.style.transform = `translate(${transformX}, ${transformY})`;
+                            }
+                        },
+                        datalabels: {
+                            color: function(context) {
+                                const val = context.dataset.data[context.dataIndex];
+                                return (maxRevValue > 0 && val >= maxRevValue * 0.7) ? '#ca8a04' : '#15803d';
+                            },
+                            align: 'end',
+                            anchor: 'end',
+                            offset: 10,
+                            rotation: -90,
+                            font: {
+                                weight: '900',
+                                size: 10
+                            },
+                            formatter: function(value) {
+                                return value > 0 ? value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0';
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            max: Math.ceil(maxRevValue * 1.2) || 500,
+                            ticks: { 
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                    if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+                                    return value;
+                                }
+                            }
+                        },
+                        x: { 
+                            offset: true,
+                            ticks: {
+                                font: { size: 9 },
+                                maxRotation: 90,
+                                minRotation: 90
                             }
                         }
                     }
