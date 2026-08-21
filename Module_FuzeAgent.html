@@ -1,0 +1,375 @@
+﻿<div class="p-4 md:p-6 lg:p-8 w-full">
+
+
+    <!-- Table Section -->
+    <div class="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 shadow-sm overflow-hidden flex-1 flex flex-col">
+        <div class="overflow-x-auto custom-scrollbar flex-1">
+            <table class="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                    <tr class="bg-gray-50/80 border-b border-gray-100">
+                        <th id="fuzeAgentManageTh" class="py-3 px-4 text-white font-semibold text-sm w-24 text-center">จัดการ</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm w-12 text-center">ลำดับ</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm w-20">รหัสไปรษณีย์</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">ที่ทำการ</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">จังหวัด</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">รอบอนุมัติ</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">ตัวแทน</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">ธนาคาร</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm">เลขบัญชี</th>
+                        <th class="py-3 px-4 text-white font-semibold text-sm w-48">หมายเหตุ</th>
+                    </tr>
+                </thead>
+                <tbody id="fuzeAgentTableBody" class="divide-y divide-gray-50 text-sm text-gray-700">
+                    <tr>
+                        <td colspan="10" class="py-12 text-center text-gray-400">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2 text-theme-orange"></i>
+                            <p>กำลังโหลดข้อมูล...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+
+window.fuzeAgentData = [];
+
+    // Province to Drive Folder mapping
+    const fuzeDriveFolders = {
+        "จ.ศรีสะเกษ": "1PGs4YdALXLdI2VCQqaQJu04--h-sCNyi",
+        "จ.อุบลราชธานี": "1ImOO3nNLkFIspbNXB8renzr4TCrtrDTC",
+        "จ.ยโสธร": "1uuoc2mzfsrqd61XWS8rzihMFJXDIxdv0",
+        "จ.อำนาจเจริญ": "1ESWujQJv82cqvva0bFtH-ItxdGGpkfhG",
+        "จ.สกลนคร": "1dFDzgoLoFJUmstscdU1pFme_eLkYB-xu",
+        "จ.นครพนม": "1CvOhE-j_rLmBe2binqvHlrQ-9rgArjD4",
+        "จ.มุกดาหาร": "1ei9HZNwWseIoFQOUDtD37VOYuqfnm5Zz"
+    };
+
+    function initFuzeAgent() {
+        if (fuzeAgentData.length === 0) {
+            loadFuzeAgentData();
+        }
+    }
+
+    function loadFuzeAgentData(force = false) {
+        if (!force && window.fuzeAgentData.length > 0) return;
+        
+        const tbody = document.getElementById('fuzeAgentTableBody');
+        tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-theme-orange"></i><p>กำลังโหลดข้อมูล...</p></td></tr>`;
+        
+        google.script.run.withSuccessHandler(function(data) {
+            window.fuzeAgentData = data;
+            renderFuzeAgentTable();
+        }).withFailureHandler(function(error) {
+            tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p></td></tr>`;
+            Swal.fire('ข้อผิดพลาด', error.message, 'error');
+        }).getFuzeAgentData();
+    }
+
+    function renderFuzeAgentTable() {
+        const tbody = document.getElementById('fuzeAgentTableBody');
+        let isAdmin = typeof currentUserInfo !== 'undefined' && String(currentUserInfo.user).toLowerCase() === 'admin';
+        
+        let manageTh = document.getElementById('fuzeAgentManageTh');
+        if (manageTh) {
+            manageTh.style.display = isAdmin ? '' : 'none';
+        }
+
+        if (!window.fuzeAgentData || window.fuzeAgentData.length === 0) {
+            let colSpan = isAdmin ? 10 : 9;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="py-12 text-center text-gray-400">ไม่มีข้อมูล</td></tr>`;
+            return;
+        }
+
+        let agentMap = {};
+        let accountMap = {};
+
+        window.fuzeAgentData.forEach(row => {
+            let rowNum = row[0] || '';
+            let office = row[2] || '';
+            let agentName = (row[5] || '').replace(/\(.*?\)/g, '').trim();
+            let accountNum = (row[7] || '').trim();
+            
+            if (agentName) {
+                if (!agentMap[agentName]) agentMap[agentName] = [];
+                agentMap[agentName].push({ rowNum, office });
+            }
+            if (accountNum && accountNum !== '-') {
+                if (!accountMap[accountNum]) accountMap[accountNum] = [];
+                accountMap[accountNum].push({ rowNum, office });
+            }
+        });
+
+        let hasDuplicates = false;
+        let dupAgentCount = 0;
+        let dupAccountCount = 0;
+
+        let html = '';
+        window.fuzeAgentData.forEach((row, index) => {
+            // Data columns: [0] ลำดับ, [1] รหัสไปรษณีย์, [2] ที่ทำการ, [3] จังหวัด, [4] รอบอนุมัติ, [5] ตัวแทน, [6] ธนาคาร, [7] เลขบัญชี, [8] หมายเหตุ
+            let province = (row[3] || '').trim();
+            if (!province.startsWith('จ.')) province = 'จ.' + province;
+            
+            let rawAgent = row[5] || '';
+            let cleanAgentName = rawAgent.replace(/\(.*?\)/g, '').trim();
+            let isAgentDup = cleanAgentName && agentMap[cleanAgentName] && agentMap[cleanAgentName].length > 1;
+            
+            let rawAccount = row[7] || '';
+            let cleanAccountNum = rawAccount.trim();
+            let isAccountDup = cleanAccountNum && cleanAccountNum !== '-' && accountMap[cleanAccountNum] && accountMap[cleanAccountNum].length > 1;
+
+            if (isAgentDup) { hasDuplicates = true; dupAgentCount++; }
+            if (isAccountDup) { hasDuplicates = true; dupAccountCount++; }
+
+            let agentWarningIcon = '';
+            if (isAgentDup) {
+                let otherRows = agentMap[cleanAgentName].filter(r => r.rowNum !== (row[0] || '')).map(r => `${r.office} (ลำดับ ${r.rowNum})`).join(', ');
+                agentWarningIcon = `<i class="fas fa-exclamation-circle text-[12px] text-red-500 ml-1" title="พบชื่อตัวแทนซ้ำซ้อนกับที่ทำการ: ${otherRows}"></i>`;
+            }
+
+            let accountWarningIcon = '';
+            if (isAccountDup) {
+                let otherRows = accountMap[cleanAccountNum].filter(r => r.rowNum !== (row[0] || '')).map(r => `${r.office} (ลำดับ ${r.rowNum})`).join(', ');
+                accountWarningIcon = `<i class="fas fa-exclamation-circle text-[12px] text-red-500 ml-1" title="พบเลขบัญชีซ้ำซ้อนกับที่ทำการ: ${otherRows}"></i>`;
+            }
+
+            let manageTd = isAdmin ? `
+                <td class="py-3 px-4 whitespace-normal break-words">
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick="openEditFuzeAgentModal(${index})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center" title="แก้ไขข้อมูล">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
+                        <button onclick="openFuzeContractUpload('${province}')" class="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center" title="อัปโหลดสัญญา">
+                            <i class="fas fa-upload text-xs"></i>
+                        </button>
+                    </div>
+                </td>` : '';
+
+            html += `<tr class="hover:bg-blue-50/50 transition-colors group">
+                ${manageTd}
+                <td class="py-3 px-4 text-center text-gray-500 whitespace-normal break-words">${row[0] || ''}</td>
+                <td class="py-3 px-4 font-medium text-gray-800 whitespace-normal break-words">${row[1] || ''}</td>
+                <td class="py-3 px-4 whitespace-normal break-words">${row[2] || ''}</td>
+                <td class="py-3 px-4 whitespace-normal break-words">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 whitespace-normal break-words">
+                        ${row[3] || ''}
+                    </span>
+                </td>
+                <td class="py-3 px-4 whitespace-normal break-words">${row[4] || ''}</td>
+                <td class="py-3 px-4 whitespace-normal break-words">
+                    <a href="javascript:void(0)" onclick="openFuzeAgentPdf('${row[1]}', '${province}')" class="text-theme-orange hover:text-orange-700 font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors">
+                        ${row[5] || ''} <i class="fas fa-check-circle text-[11px] text-green-500" title="คลิกเพื่อเปิดดูไฟล์สัญญา PDF"></i>
+                    </a>
+                    ${agentWarningIcon}
+                </td>
+                <td class="py-3 px-4 whitespace-normal break-words">${row[6] || ''}</td>
+                <td class="py-3 px-4 font-mono text-xs whitespace-normal break-words break-all">${row[7] || ''} ${accountWarningIcon}</td>
+                <td class="py-3 px-4 text-xs text-gray-500 whitespace-normal break-words min-w-[150px]">${row[8] || ''}</td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+
+        if (hasDuplicates) {
+            let dupAgentHtml = '';
+            Object.keys(agentMap).forEach(key => {
+                if (agentMap[key].length > 1) {
+                    let dupDetails = agentMap[key].map(item => `<span class="whitespace-nowrap">${item.office} (ลำดับ ${item.rowNum})</span>`).join(', ');
+                    dupAgentHtml += `<div class="text-[13px] text-left mb-1.5 p-2 bg-red-50/50 rounded-lg"><div class="font-semibold text-red-600 mb-1"><i class="fas fa-user mr-1"></i>${key}</div><div class="text-gray-600 pl-4 text-xs leading-relaxed">ซ้ำที่: ${dupDetails}</div></div>`;
+                }
+            });
+
+            let dupAccountHtml = '';
+            Object.keys(accountMap).forEach(key => {
+                if (accountMap[key].length > 1) {
+                    let dupDetails = accountMap[key].map(item => `<span class="whitespace-nowrap">${item.office} (ลำดับ ${item.rowNum})</span>`).join(', ');
+                    dupAccountHtml += `<div class="text-[13px] text-left mb-1.5 p-2 bg-red-50/50 rounded-lg"><div class="font-semibold text-red-600 mb-1"><i class="fas fa-money-check mr-1"></i>${key}</div><div class="text-gray-600 pl-4 text-xs leading-relaxed">ซ้ำที่: ${dupDetails}</div></div>`;
+                }
+            });
+
+            let fullHtml = `<div class="text-sm text-gray-500 mb-3 border-b pb-2">กรุณาตรวจสอบไอคอน <i class="fas fa-exclamation-circle text-red-500 mx-1"></i> ในตาราง</div>`;
+            fullHtml += `<div class="overflow-y-auto custom-scrollbar p-1" style="max-height: 350px;">`;
+            if (dupAgentHtml) fullHtml += `<div class="font-bold text-gray-800 text-left mb-2 sticky top-0 bg-white z-10 py-1 border-b">รายชื่อตัวแทนซ้ำ</div>${dupAgentHtml}`;
+            if (dupAccountHtml) fullHtml += `<div class="font-bold text-gray-800 text-left mb-2 mt-4 sticky top-0 bg-white z-10 py-1 border-b">เลขบัญชีซ้ำ</div>${dupAccountHtml}`;
+            fullHtml += `</div>`;
+
+            setTimeout(() => {
+                Swal.fire({
+                    title: 'พบข้อมูลซ้ำซ้อน!',
+                    html: fullHtml,
+                    icon: 'warning',
+                    confirmButtonText: 'รับทราบ',
+                    width: '600px',
+                    customClass: {
+                        htmlContainer: 'text-left'
+                    }
+                });
+            }, 500);
+        }
+    }
+
+    window.openFuzeAgentPdf = function(zipCode, province) {
+        if (!zipCode || !province) {
+            Swal.fire('ข้อผิดพลาด', 'ข้อมูลรหัสไปรษณีย์หรือจังหวัดไม่ครบถ้วน', 'error');
+            return;
+        }
+        
+        const folderId = fuzeDriveFolders[province];
+        if (!folderId) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบโฟลเดอร์สำหรับจังหวัด ' + province, 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'กำลังค้นหาไฟล์...',
+            text: 'กรุณารอสักครู่ ระบบกำลังค้นหาไฟล์สัญญาของรหัสไปรษณีย์ ' + zipCode,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        google.script.run.withSuccessHandler(function(response) {
+            if (response.success && response.url) {
+                Swal.close();
+                window.open(response.url, '_blank');
+            } else {
+                Swal.fire('ไม่พบไฟล์', response.error || 'ไม่พบไฟล์สัญญา .pdf', 'warning');
+            }
+        }).withFailureHandler(function(error) {
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการค้นหาไฟล์: ' + error.message, 'error');
+        }).searchFuzeAgentContractPdf(folderId, zipCode);
+    }
+
+    function openEditFuzeAgentModal(index) {
+        const row = window.fuzeAgentData[index];
+        // Ensure array length
+        while(row.length < 9) row.push('');
+
+        Swal.fire({
+            title: 'แก้ไขข้อมูลตัวแทน',
+            html: `
+                <div class="grid grid-cols-2 gap-4 text-left mt-2">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">ลำดับ</label>
+                        <input id="swal-f-seq" type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[0]}" disabled>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
+                        <input id="swal-f-zip" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[1]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">ที่ทำการ</label>
+                        <input id="swal-f-office" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[2]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label>
+                        <input id="swal-f-prov" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[3]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">รอบอนุมัติ</label>
+                        <input id="swal-f-round" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[4]}">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">ตัวแทน</label>
+                        <input id="swal-f-agent" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[5]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">ธนาคาร</label>
+                        <input id="swal-f-bank" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[6]}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">เลขบัญชี</label>
+                        <input id="swal-f-acc" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[7]}">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ */</label>
+                        <input id="swal-f-note" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[8]}">
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึก',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#9ca3af',
+            width: '600px',
+            preConfirm: () => {
+                return {
+                    rowIndex: index, // To know which row to update
+                    seq: document.getElementById('swal-f-seq').value,
+                    zip: document.getElementById('swal-f-zip').value,
+                    office: document.getElementById('swal-f-office').value,
+                    prov: document.getElementById('swal-f-prov').value,
+                    round: document.getElementById('swal-f-round').value,
+                    agent: document.getElementById('swal-f-agent').value,
+                    bank: document.getElementById('swal-f-bank').value,
+                    acc: document.getElementById('swal-f-acc').value,
+                    note: document.getElementById('swal-f-note').value
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const data = result.value;
+                Swal.fire({
+                    title: 'กำลังบันทึก...',
+                    text: 'กรุณารอสักครู่',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
+                // Call backend
+                google.script.run.withSuccessHandler(function(response) {
+                    if (response.success) {
+                        // Update local data
+                        window.fuzeAgentData[data.rowIndex] = [
+                            data.seq, data.zip, data.office, data.prov, data.round, 
+                            data.agent, data.bank, data.acc, data.note
+                        ];
+                        renderFuzeAgentTable();
+                        Swal.fire('บันทึกสำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.error || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                    }
+                }).withFailureHandler(function(err) {
+                    Swal.fire('ข้อผิดพลาด', err.message, 'error');
+                }).updateFuzeAgentData(data.rowIndex, [
+                    data.seq, data.zip, data.office, data.prov, data.round, 
+                    data.agent, data.bank, data.acc, data.note
+                ]);
+            }
+        });
+    }
+
+    function openFuzeContractUpload(province) {
+        // Find matching drive folder
+        let folderId = "";
+        for (let key in fuzeDriveFolders) {
+            if (province.includes(key.replace('จ.', ''))) {
+                folderId = fuzeDriveFolders[key];
+                break;
+            }
+        }
+        
+        if (!folderId) {
+            // Default or alert if not found
+            Swal.fire({
+                title: 'ไม่พบโฟลเดอร์',
+                text: 'ไม่พบโฟลเดอร์สำหรับจังหวัด ' + province + ' กรุณาอัปโหลดด้วยตนเอง',
+                icon: 'warning'
+            });
+            return;
+        }
+        
+        const driveLink = "https://drive.google.com/drive/folders/" + folderId;
+        window.open(driveLink, "_blank");
+    }
+
+</script>

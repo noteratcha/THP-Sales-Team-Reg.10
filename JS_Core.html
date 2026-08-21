@@ -92,6 +92,9 @@ const Toast = Swal.mixin({
   if (typeof window.logout === 'undefined') {
     window.logout = function() { console.log('Mock logout'); };
   }
+
+
+
 </script>
 <script>
     // ==========================================
@@ -531,8 +534,8 @@ const Toast = Swal.mixin({
     // ==========================================
     function switchPage(pageId) {
         try {
-            // 💡 เพิ่ม 'page-rateprice', 'page-biglot' และ 'page-biglot-report' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report'];
+            // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report' และ 'page-fuze-agent' ในรายการที่ต้องซ่อนก่อนสลับหน้า
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent'];
             pages.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -609,6 +612,12 @@ const Toast = Swal.mixin({
                 'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
                 'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'ข้อมูลการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินการวัดผล', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
+                'fuze-agent': {
+                    page: 'page-fuze-agent',
+                    menu: 'menu-fuze-agent',
+                    title: 'รายชื่อตัวแทนขาย FUZE',
+                    action: () => typeof initFuzeAgent === 'function' && initFuzeAgent()
+                },
                 'settings': { 
                     page: 'page-settings', 
                     menu: 'menu-settings', 

@@ -3923,3 +3923,64 @@ function getThaiHolidaysCalendar() {
   
   return holidays;
 }
+
+// ==========================================
+// 📦 SECTION: Fuze Agent API
+// ==========================================
+
+var FUZE_AGENT_SS_ID = '1N8mMHy1CNbNMnVlMxm7kec2L6I8lg5GL8L0f8xAwPq0';
+
+function getFuzeAgentData() {
+  try {
+    var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
+    var sheet = ss.getSheetByName('ปข.10');
+    if (!sheet) throw new Error('ไม่พบชีต ปข.10');
+    
+    // ดึงข้อมูลตั้งแต่บรรทัดที่ 3 คอลัมน์ A ถึง I (9 คอลัมน์)
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 3) return []; // ไม่มีข้อมูล
+    
+    var data = sheet.getRange(3, 1, lastRow - 2, 9).getDisplayValues();
+    return data;
+  } catch (e) {
+    throw new Error('GetFuzeAgentData Error: ' + e.message);
+  }
+}
+
+function updateFuzeAgentData(rowIndex, rowData) {
+  try {
+    var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
+    var sheet = ss.getSheetByName('ปข.10');
+    if (!sheet) throw new Error('ไม่พบชีต ปข.10');
+    
+    // rowIndex จากอาร์เรย์ (0-indexed) ซึ่งแถวแรกของข้อมูลคือแถวที่ 3
+    // ดังนั้น row ใน Sheet = rowIndex + 3
+    var targetRow = parseInt(rowIndex) + 3;
+    
+        sheet.getRange(targetRow, 1, 1, 9).setValues([rowData]);
+        
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+function searchFuzeAgentContractPdf(folderId, zipCode) {
+    try {
+        if (!folderId || !zipCode) return { success: false, error: 'ข้อมูลไม่ครบถ้วน' };
+        
+        var folder = DriveApp.getFolderById(folderId);
+        // ค้นหาไฟล์ที่มีชื่อเหมือนกับรหัสไปรษณีย์ และเป็น PDF
+        // (สามารถใช้ contains หรือ '=' ก็ได้ ใช้ title contains zipCode เผื่อชื่อไฟล์อาจมีเว้นวรรค)
+        var files = folder.searchFiles('title contains "' + zipCode + '" and mimeType = "application/pdf"');
+        
+        if (files.hasNext()) {
+            var file = files.next();
+            return { success: true, url: file.getUrl() };
+        } else {
+            return { success: false, error: 'ไม่พบไฟล์สัญญา .pdf ของรหัสไปรษณีย์ ' + zipCode + ' ในโฟลเดอร์นี้' };
+        }
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
