@@ -16,7 +16,8 @@
                         <option value="นัดโทรหาลูกค้า">นัดโทรหาลูกค้า</option>
                         <option value="ส่งใบเสนอราคา">ส่งใบเสนอราคา</option>
                         <option value="ติดตามลูกค้าที่หายไป">ติดตามลูกค้าที่หายไป</option>
-                        <option value="ติดตามลูกค้าที่หายไป (ปก.)">ติดตามลูกค้าที่หายไป (ปก.)</option>
+                        <option value="ติดตามลูกค้าที่หายไป (ปก.)" disabled class="text-gray-400 bg-gray-50">ติดตามลูกค้าที่หายไป (ปก.)</option>
+                        <option value="ติดตามลูกค้าที่หายไป (ผ่าน โทรศัพท์, สื่อโซเชียล)">ติดตามลูกค้าที่หายไป (ผ่าน โทรศัพท์, สื่อโซเชียล)</option>
                         <option value="เข้าพบลูกค้ารายเดือน">เข้าพบลูกค้ารายเดือน</option>
                         <option value="ติดตามลูกค้ารายสำคัญ">ติดตามลูกค้ารายสำคัญ</option>
                         <option value="การติดตามผลจากการสนทนาก่อนหน้านี้">การติดตามผลจากการสนทนาก่อนหน้านี้</option>
@@ -528,11 +529,14 @@
 
         let reqList = [];
         const rulePK = ["1", "2", "3", "4", "5", "6", "7", "8", "13", "14", "15"];
+        const ruleSocial = ["1", "2", "3", "4", "5", "6", "8", "13", "14", "15"];
         const ruleNormal = ["1", "2", "3", "4", "5", "6", "7", "8", "12", "13", "14", "16"];
         const normalSubjects = ["ติดตามลูกค้าใหม่", "นัดโทรหาลูกค้า", "ส่งใบเสนอราคา", "ติดตามลูกค้าที่หายไป", "เข้าพบลูกค้ารายเดือน", "ติดตามลูกค้ารายสำคัญ", "การติดตามผลจากการสนทนาก่อนหน้านี้"];
 
         if (val === "ติดตามลูกค้าที่หายไป (ปก.)") {
             reqList = rulePK;
+        } else if (val === "ติดตามลูกค้าที่หายไป (ผ่าน โทรศัพท์, สื่อโซเชียล)") {
+            reqList = ruleSocial;
         } else if (normalSubjects.includes(val)) {
             reqList = ruleNormal;
         }
@@ -888,19 +892,21 @@
 
         const subjectVal = document.getElementById('subject') ? document.getElementById('subject').value : '';
         const rulePK = ["ติดตามลูกค้าที่หายไป (ปก.)"];
+        const ruleSocial = ["ติดตามลูกค้าที่หายไป (ผ่าน โทรศัพท์, สื่อโซเชียล)"];
         const ruleNormal = ["ติดตามลูกค้าใหม่", "นัดโทรหาลูกค้า", "ส่งใบเสนอราคา", "ติดตามลูกค้าที่หายไป", "เข้าพบลูกค้ารายเดือน", "ติดตามลูกค้ารายสำคัญ", "การติดตามผลจากการสนทนาก่อนหน้านี้"];
 
         const isPK = rulePK.includes(subjectVal);
+        const isSocial = ruleSocial.includes(subjectVal);
         const isNormal = ruleNormal.includes(subjectVal);
 
         const getValOrEmpty = (id) => { const el = document.getElementById(id); return el ? el.value : ''; }
         const getCheckedLen = (name) => { return document.querySelectorAll(`input[name="${name}"]:checked`).length; }
 
-        if (!isPK && !isNormal && !subjectVal) {
+        if (!isPK && !isSocial && !isNormal && !subjectVal) {
             Swal.fire('แจ้งเตือน', 'กรุณาเลือกหัวข้อเรื่อง', 'warning'); return;
         }
 
-        if (isPK || isNormal) {
+        if (isPK || isSocial || isNormal) {
             if (getCheckedLen('customerGroup') === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกกลุ่มลูกค้า (ข้อ 2)', 'warning'); return; }
             if (!getValOrEmpty('entrepreneurName')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุ ชื่อ-นามสกุล ผู้ประกอบการ (ข้อ 3)', 'warning'); return; }
 
@@ -909,13 +915,13 @@
 
             if (!getValOrEmpty('productType')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุประเภทสินค้า (ข้อ 5)', 'warning'); return; }
             if (!getValOrEmpty('salesChannel')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุช่องทางการจำหน่าย (ข้อ 6)', 'warning'); return; }
-            if (!getValOrEmpty('shippingVolume')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุปริมาณชิ้นงานฝากส่ง (ข้อ 7)', 'warning'); return; }
+            if (!isSocial && !getValOrEmpty('shippingVolume')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุปริมาณชิ้นงานฝากส่ง (ข้อ 7)', 'warning'); return; }
             if (!getValOrEmpty('currentCarrier')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุผู้ขนส่งที่ใช้ปัจจุบัน (ข้อ 8)', 'warning'); return; }
             if (getCheckedLen('offerResult') === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกผลการนำเสนอบริการ (ข้อ 13)', 'warning'); return; }
             if (!getValOrEmpty('recommendedService')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุบริการที่แนะนำ (ข้อ 14)', 'warning'); return; }
         }
 
-        if (isPK) {
+        if (isPK || isSocial) {
             const lostReason = getValOrEmpty('lostReason');
             if (!lostReason || lostReason === "") {
                 Swal.fire('แจ้งเตือน', 'กรุณาเลือกสาเหตุที่ยอดขายลดลงหรือลูกค้าหายไป (ข้อ 15)', 'warning'); return;
@@ -1619,23 +1625,25 @@
 
         const subjectVal = document.getElementById('editSubject') ? document.getElementById('editSubject').value : '';
         const rulePK = ["ติดตามลูกค้าที่หายไป (ปก.)"];
+        const ruleSocial = ["ติดตามลูกค้าที่หายไป (ผ่าน โทรศัพท์, สื่อโซเชียล)"];
         const ruleNormal = ["ติดตามลูกค้าใหม่", "นัดโทรหาลูกค้า", "ส่งใบเสนอราคา", "ติดตามลูกค้าที่หายไป", "เข้าพบลูกค้ารายเดือน", "ติดตามลูกค้ารายสำคัญ", "การติดตามผลจากการสนทนาก่อนหน้านี้"];
 
         const isPK = rulePK.includes(subjectVal);
+        const isSocial = ruleSocial.includes(subjectVal);
         const isNormal = ruleNormal.includes(subjectVal);
 
         const getValOrEmpty = (id) => { const el = document.getElementById(id); return el ? el.value : ''; }
         const getCheckedLen = (name) => { return document.querySelectorAll(`input[name="${name}"]:checked`).length; }
 
-        if (!isPK && !isNormal && !subjectVal) {
+        if (!isPK && !isSocial && !isNormal && !subjectVal) {
             Swal.fire('แจ้งเตือน', 'กรุณาเลือกหัวข้อเรื่อง', 'warning'); return;
         }
 
         const checkedGroups = document.querySelectorAll('input[name="editCustomerGroupCheckbox"]:checked');
-        if ((isPK || isNormal) && checkedGroups.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกกลุ่มลูกค้า (ข้อ 2)', 'warning'); return; }
+        if ((isPK || isSocial || isNormal) && checkedGroups.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกกลุ่มลูกค้า (ข้อ 2)', 'warning'); return; }
         const editCustomerGroupVal = Array.from(checkedGroups).map(cb => cb.value).join(', ');
 
-        if (isPK || isNormal) {
+        if (isPK || isSocial || isNormal) {
             if (!getValOrEmpty('editEntrepreneurName')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุ ชื่อ-นามสกุล ผู้ประกอบการ (ข้อ 3)', 'warning'); return; }
 
             const phone = getValOrEmpty('editEntrepreneurPhone');
@@ -1643,14 +1651,14 @@
 
             if (!getValOrEmpty('editProductType')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุประเภทสินค้า (ข้อ 5)', 'warning'); return; }
             if (!getValOrEmpty('editSalesChannel')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุช่องทางการจำหน่าย (ข้อ 6)', 'warning'); return; }
-            if (!getValOrEmpty('editShippingVolume')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุปริมาณชิ้นงานฝากส่ง (ข้อ 7)', 'warning'); return; }
+            if (!isSocial && !getValOrEmpty('editShippingVolume')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุปริมาณชิ้นงานฝากส่ง (ข้อ 7)', 'warning'); return; }
             if (!getValOrEmpty('editCurrentCarrier')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุผู้ขนส่งที่ใช้ปัจจุบัน (ข้อ 8)', 'warning'); return; }
             if (getCheckedLen('editOfferResult') === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกผลการนำเสนอบริการ (ข้อ 13)', 'warning'); return; }
             if (!getValOrEmpty('editRecommendedService')) { Swal.fire('แจ้งเตือน', 'กรุณาระบุบริการที่แนะนำ (ข้อ 14)', 'warning'); return; }
         }
 
         let editLostReasonVal = getValOrEmpty('editLostReason');
-        if (isPK) {
+        if (isPK || isSocial) {
             if (!editLostReasonVal || editLostReasonVal === "") {
                 Swal.fire('แจ้งเตือน', 'กรุณาเลือกสาเหตุที่ยอดขายลดลงหรือลูกค้าหายไป (ข้อ 15)', 'warning'); return;
             }
@@ -1751,9 +1759,18 @@
                 if (parts.length >= 3) {
                     const month = parseInt(parts[1]);
                     const year = parseInt(parts[2]);
+                    const group = String(row[2] || '').trim();
+                    let ecomCount = 0;
+                    if (group.includes('e-Commerce')) ecomCount++;
+                    if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                    let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
+                    let fuzeCount = group.includes('Fuze') ? 1 : 0;
+                    let totalCount = ecomCount + interCount + fuzeCount;
+                    if (totalCount === 0) totalCount = 1;
+
                     const key = `${month}/${year}`;
                     if (!salesStats[key]) salesStats[key] = {};
-                    salesStats[key][salesName] = (salesStats[key][salesName] || 0) + 1;
+                    salesStats[key][salesName] = (salesStats[key][salesName] || 0) + totalCount;
                 }
             } catch (e) { }
         }
@@ -2072,7 +2089,14 @@
                 },
                 scales: {
                     y: { stacked: true, suggestedMax: ySuggestedMax },
-                    x: { stacked: true, grid: { display: false } }
+                    x: { 
+                        stacked: true, 
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: window.innerWidth < 640 ? 90 : 0,
+                            minRotation: window.innerWidth < 640 ? 90 : 0
+                        }
+                    }
                 },
                 plugins: {
                     legend: { position: 'bottom' },
@@ -2212,9 +2236,18 @@
                         const office = String(row[4]).trim() || 'ไม่ระบุ';
                         const zip = String(row[5]).replace(/^'/, "").trim() || 'ไม่ระบุ';
 
+                        const group = String(row[2] || '').trim();
+                        let ecomCount = 0;
+                        if (group.includes('e-Commerce')) ecomCount++;
+                        if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                        let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
+                        let fuzeCount = group.includes('Fuze') ? 1 : 0;
+                        let totalCount = ecomCount + interCount + fuzeCount;
+                        if (totalCount === 0) totalCount = 1;
+
                         if (!teamOfficeDetails[team]) teamOfficeDetails[team] = {};
                         if (!teamOfficeDetails[team][zip]) teamOfficeDetails[team][zip] = { name: office, actual: 0, target: 0 };
-                        teamOfficeDetails[team][zip].actual += 1;
+                        teamOfficeDetails[team][zip].actual += totalCount;
                     }
                 }
             } catch (e) { }
@@ -2345,8 +2378,16 @@
                         const customerGroup = String(row[2] || '').trim(); // คอลัมน์ C (Index 2) - กลุ่มลูกค้า
                         const offerResult = String(row[19] || '').trim(); // คอลัมน์ T (Index 19) - ผลการนำเสนอ
 
+                        let ecomCount = 0;
+                        if (customerGroup.includes('e-Commerce')) ecomCount++;
+                        if (customerGroup.includes('ไปรษณียภัณฑ์')) ecomCount++;
+                        let interCount = customerGroup.includes('ระหว่างประเทศ') ? 1 : 0;
+                        let fuzeCount = customerGroup.includes('Fuze') ? 1 : 0;
+                        let totalCount = ecomCount + interCount + fuzeCount;
+                        if (totalCount === 0) totalCount = 1;
+
                         zipToNameMap[zipCode] = officeName;
-                        officeActuals[zipCode] = (officeActuals[zipCode] || 0) + 1;
+                        officeActuals[zipCode] = (officeActuals[zipCode] || 0) + totalCount;
 
                         // จัดกลุ่มลูกค้าและนับยอดรวม
                         if (!officeGroups[zipCode]) {

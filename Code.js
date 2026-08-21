@@ -3886,23 +3886,101 @@ function setupDailyTrigger() {
 }
 
 function getThaiHolidaysCalendar() {
+  var holidays = [];
   try {
     var cal = CalendarApp.getCalendarById('th.thai#holiday@group.v.calendar.google.com');
-    if (!cal) return [];
-    var year = new Date().getFullYear();
-    var start = new Date(year - 1, 0, 1);
-    var end = new Date(year + 1, 11, 31);
-    var events = cal.getEvents(start, end);
-    var holidays = [];
-    for (var i = 0; i < events.length; i++) {
-      var d = events[i].getStartTime();
-      var dd = String(d.getDate()).padStart(2, '0');
-      var mm = String(d.getMonth() + 1).padStart(2, '0');
-      var yyyy = String(d.getFullYear() + 543);
-      holidays.push(dd + '/' + mm + '/' + yyyy);
+    if (cal) {
+      var year = new Date().getFullYear();
+      var start = new Date(year - 1, 0, 1);
+      var end = new Date(year + 1, 11, 31);
+      var events = cal.getEvents(start, end);
+      for (var i = 0; i < events.length; i++) {
+        var d = events[i].getStartTime();
+        var dd = Utilities.formatDate(d, "Asia/Bangkok", "dd");
+        var mm = Utilities.formatDate(d, "Asia/Bangkok", "MM");
+        var yyStr = Utilities.formatDate(d, "Asia/Bangkok", "yyyy");
+        var yyyy = String(parseInt(yyStr) + 543);
+        holidays.push(dd + '/' + mm + '/' + yyyy);
+      }
     }
-    return holidays;
   } catch (e) {
-    return [];
+    // Ignore error and use fallback below
   }
+  
+  // Fallback for common fixed holidays if API fails or is empty
+  if (holidays.length === 0) {
+    var currentYear = new Date().getFullYear() + 543;
+    var fixedHolidays = [
+      "01/01/" + currentYear, "06/04/" + currentYear, "13/04/" + currentYear, 
+      "14/04/" + currentYear, "15/04/" + currentYear, "01/05/" + currentYear, 
+      "04/05/" + currentYear, "12/08/" + currentYear, "13/10/" + currentYear, 
+      "23/10/" + currentYear, "05/12/" + currentYear, "10/12/" + currentYear, 
+      "31/12/" + currentYear
+    ];
+    // We add these just to make sure there's always some data.
+    return fixedHolidays;
+  }
+  
+  return holidays;
+}
+
+// ==========================================
+// 📦 SECTION: Fuze Agent API
+// ==========================================
+
+var FUZE_AGENT_SS_ID = '1N8mMHy1CNbNMnVlMxm7kec2L6I8lg5GL8L0f8xAwPq0';
+
+function getFuzeAgentData() {
+  try {
+    var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
+    var sheet = ss.getSheetByName('ปข.10');
+    if (!sheet) throw new Error('ไม่พบชีต ปข.10');
+    
+    // ดึงข้อมูลตั้งแต่บรรทัดที่ 3 คอลัมน์ A ถึง I (9 คอลัมน์)
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 3) return []; // ไม่มีข้อมูล
+    
+    var data = sheet.getRange(3, 1, lastRow - 2, 9).getDisplayValues();
+    return data;
+  } catch (e) {
+    throw new Error('GetFuzeAgentData Error: ' + e.message);
+  }
+}
+
+function updateFuzeAgentData(rowIndex, rowData) {
+  try {
+    var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
+    var sheet = ss.getSheetByName('ปข.10');
+    if (!sheet) throw new Error('ไม่พบชีต ปข.10');
+    
+    // rowIndex จากอาร์เรย์ (0-indexed) ซึ่งแถวแรกของข้อมูลคือแถวที่ 3
+    // ดังนั้น row ใน Sheet = rowIndex + 3
+    var targetRow = parseInt(rowIndex) + 3;
+    
+        sheet.getRange(targetRow, 1, 1, 9).setValues([rowData]);
+        
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+function searchFuzeAgentContractPdf(folderId, zipCode) {
+    try {
+        if (!folderId || !zipCode) return { success: false, error: 'ข้อมูลไม่ครบถ้วน' };
+        
+        var folder = DriveApp.getFolderById(folderId);
+        // ค้นหาไฟล์ที่มีชื่อเหมือนกับรหัสไปรษณีย์ และเป็น PDF
+        // (สามารถใช้ contains หรือ '=' ก็ได้ ใช้ title contains zipCode เผื่อชื่อไฟล์อาจมีเว้นวรรค)
+        var files = folder.searchFiles('title contains "' + zipCode + '" and mimeType = "application/pdf"');
+        
+        if (files.hasNext()) {
+            var file = files.next();
+            return { success: true, url: file.getUrl() };
+        } else {
+            return { success: false, error: 'ไม่พบไฟล์สัญญา .pdf ของรหัสไปรษณีย์ ' + zipCode + ' ในโฟลเดอร์นี้' };
+        }
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
 }
