@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.2232';
+    var APP_VERSION = 'Ver. 2026.0824.2244';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2836,6 +2836,18 @@
             dailyRevenues[d] = 0;
         });
 
+        // กรองข้อมูล Revenue ตามสิทธิ์ของ User (Client-Side Filtering)
+        let revenueRowsToProcess = window.globalRevenueData || [];
+        const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+        if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
+            const userZipcode = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
+            revenueRowsToProcess = revenueRowsToProcess.filter(row => {
+                const officeStr = String(row[0] || '');
+                const rowZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : '';
+                return rowZip === userZipcode;
+            });
+        }
+
         // ใช้ window.allFetchedRows ซึ่งถูกกรองตามสิทธิ์และพื้นที่ของ User ไว้แล้วในฝั่ง Visit Module
         const rowsToProcess = (typeof window !== 'undefined' && window.allFetchedRows && window.allFetchedRows.length > 0) ? window.allFetchedRows : 
                               (typeof allFetchedRows !== 'undefined' && allFetchedRows && allFetchedRows.length > 0) ? allFetchedRows : 
@@ -3128,7 +3140,7 @@
                 return sum;
             };
 
-            renderRevUI(calcActualRev(window.globalRevenueData || []));
+            renderRevUI(calcActualRev(revenueRowsToProcess || []));
         }
 
         const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
@@ -3235,11 +3247,11 @@
         
         // --- Calculate Top 10 Customers from Revenue Data ---
         let topCustomers = {};
-        if (typeof window !== 'undefined' && window.globalRevenueData && window.globalRevenueData.length > 0) {
+        if (typeof window !== 'undefined' && revenueRowsToProcess && revenueRowsToProcess.length > 0) {
             const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             
-            window.globalRevenueData.forEach(function(row) {
+            revenueRowsToProcess.forEach(function(row) {
                 if (!row || row.length < 9) return;
                 let mName = String(row[5]).trim();
                 let yYear = parseInt(row[6], 10);

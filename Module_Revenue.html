@@ -931,6 +931,17 @@
                     return row;
                 });
 
+                // กรองข้อมูลตามสิทธิ์
+                const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+                if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
+                    const userZipcode = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
+                    allRevenueRows = allRevenueRows.filter(row => {
+                        const officeStr = String(row[0] || '');
+                        const rowZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : '';
+                        return rowZip === userZipcode;
+                    });
+                }
+
                 revenueFilteredRows = [...allRevenueRows];
                 currentRevenuePage = 1;
 

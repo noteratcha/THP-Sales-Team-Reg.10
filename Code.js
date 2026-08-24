@@ -759,9 +759,7 @@ function getRevenueReportData(requestingUser) {
     var data = sheet.getDataRange().getDisplayValues();
     var rows = data.slice(1);
 
-    var reqUserStr = requestingUser.user ? String(requestingUser.user).toLowerCase() : '';
-    var isAdmin = (reqUserStr === 'admin' || reqUserStr === 'viewer');
-    var userZip = requestingUser.zipcode ? String(requestingUser.zipcode).trim() : "";
+    
 
     var pivotedMap = {};
 
@@ -772,7 +770,7 @@ function getRevenueReportData(requestingUser) {
 
       if (EXCLUDED_ZIPCODES.indexOf(officeZip) !== -1) { continue; }
 
-      if (!isAdmin && officeZip !== userZip) { continue; }
+      
 
       var serviceGroup = (row.length > 11 && String(row[11]).trim() !== "") ? String(row[11]).trim() : String(row[2]).trim();
       var serviceType = (row.length > 12 && String(row[12]).trim() !== "") ? String(row[12]).trim() : "";
