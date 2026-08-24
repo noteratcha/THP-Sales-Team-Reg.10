@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.2208';
+    var APP_VERSION = 'Ver. 2026.0824.2223';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1748,6 +1748,8 @@
             window.filteredRows = [];
             if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
             if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+            window.globalRevenueData = undefined;
+            window.fuzeAgentData = [];
             
             // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
             const tableBody = document.getElementById('tableBody');
