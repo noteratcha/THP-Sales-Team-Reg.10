@@ -32,25 +32,33 @@ Never guess where code lives. Use this mapping:
    - When fetching data via `google.script.run`, DO NOT leave the screen blank or rely solely on a global spinner.
    - Replace the target DOM container with **Skeleton Loaders** immediately: `<div class="animate-pulse bg-orange-50 border border-orange-100/60 rounded-xl h-[88px] w-full"></div>`.
    - Ensure the skeleton perfectly mimics the final layout to prevent Layout Shift.
+4. **Chart.js Aesthetics & Layout:**
+   - Ensure Chart.js containers have adequate height (e.g., `min-h-[220px] lg:min-h-[260px]`).
+   - For X-axis labels (like dates or names), keep them horizontal and legible by explicitly setting `ticks: { maxRotation: 0, minRotation: 0 }`.
 
 ## 🛠️ 4. State Management & Frontend Caching
 1. **Aggressive Cache Clearing on SPA:**
    - Because it's an SPA, variables persist across "pages".
-   - **On Logout & Login:** You MUST reset all global JS arrays (e.g., `window.allFetchedRows = []`, `globalVisitTargets = undefined`) AND explicitly clear HTML DOM elements (`document.getElementById('tableBody').innerHTML = ''`).
-   - Failure to do this results in "Ghost Data" where the new user briefly sees the old user's data.
-2. **Role-Based Access Control (RBAC):**
+   - **On Logout & Login:** You MUST reset all global JS arrays (e.g., `window.allFetchedRows = []`, `globalRevenueData = []`) AND clear target objects (e.g., `globalVisitTargets = undefined`, `globalRevenueTargets = undefined`). Explicitly clear HTML DOM elements (`document.getElementById('tableBody').innerHTML = ''`).
+   - Failure to do this results in "Ghost Data" or `0.00` bugs when a new user logs in and the system tries to use the previous user's target/cache data.
+2. **Client-Side Filtering (Crucial Pattern):**
+   - Instead of filtering data on the server-side (`Code.js`) based on the user's role, the server should return the **FULL RAW DATASET**.
+   - Store this raw dataset in global variables on the frontend.
+   - Filter the dataset dynamically on the **client-side** (e.g., inside `fetchMainData()` or rendering functions) by checking if the row's ZIP code matches `currentUserInfo.zipCode` (unless the user is an 'admin' or 'viewer').
+   - This approach prevents stale data when switching users and makes rendering significantly faster.
+3. **Role-Based Access Control (RBAC):**
    - Always check `currentUserInfo.user` (the actual login ID, e.g., 'admin', 'viewer', or employee ID) to verify permissions.
    - **DO NOT** use `currentUserInfo.name` (Display Name) for logic gates. Example: `if (String(currentUserInfo.user).toLowerCase() === 'admin') { ... }`.
-3. **Admin Data Aggregation:**
-   - When an Admin or Viewer logs in, metrics (Visits, Revenue, Targets) must **aggregate across all teams/offices**. Never leave admin metrics blank just because they don't have a personal row in the targets sheet. Use `+=` loops over all valid rows when role is Admin/Viewer.
+4. **Admin Data Aggregation:**
+   - When an Admin or Viewer logs in, metrics (Visits, Revenue, Targets) must **aggregate across all teams/offices**. Never leave admin metrics blank just because they don't have a personal row in the targets sheet. Use `+=` loops over `Object.keys()` for all valid rows when role is Admin/Viewer.
 
 ## ⚠️ 5. Asynchronous Operations & Error Handling
 - Every `google.script.run` MUST have `.withSuccessHandler()` and `.withFailureHandler()`.
 - Use **SweetAlert2** (`Swal.fire`) for all alerts, confirmations, and error dialogs. Do not use native `alert()` or `confirm()`.
 - Example Confirmation:
-  ```javascript
+  \`\`\`javascript
   Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ลบแล้วกู้คืนไม่ได้!", icon: 'warning', showCancelButton: true }).then((res) => { if (res.isConfirmed) { ... } });
-  ```
+  \`\`\`
 
 ## ⚙️ 6. Deployment & Versioning Workflow
 1. **Force Cache Refresh:** 
