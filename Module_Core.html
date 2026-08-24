@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.2249';
+    var APP_VERSION = 'Ver. 2026.0824.2307';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3221,6 +3221,8 @@
                         x: { 
                             offset: true,
                             ticks: {
+                                maxRotation: -90,
+                                minRotation: -90,
                                 color: last10DaysColors,
                                 font: {
                                     weight: function(context) {
@@ -3340,6 +3342,8 @@
                         },
                         x: {
                             ticks: {
+                                maxRotation: -90,
+                                minRotation: -90,
                                 font: {
                                     size: 12
                                 },
