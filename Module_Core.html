@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.2057';
+    var APP_VERSION = 'Ver. 2026.0824.2103';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3628,39 +3628,9 @@ window.fuzeAgentData = [];
                 accountWarningIcon = `<i class="fas fa-exclamation-circle text-[12px] text-red-500 ml-1" title="พบเลขบัญชีซ้ำซ้อนกับที่ทำการ: ${otherRows}"></i>`;
             }
 
-            let manageTd = isAdmin ? `
-                <td class="py-3 px-4 whitespace-normal break-words">
-                    <div class="flex items-center justify-center gap-2">
-                        <button onclick="openEditFuzeAgentModal(${index})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center" title="แก้ไขข้อมูล">
-                            <i class="fas fa-edit text-xs"></i>
-                        </button>
-                        <button onclick="openFuzeContractUpload('${province}')" class="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center" title="อัปโหลดสัญญา">
-                            <i class="fas fa-upload text-xs"></i>
-                        </button>
-                    </div>
-                </td>` : '';
+            let manageTd = isAdmin ? `                <td class="py-3 px-4 whitespace-normal break-words">                    <div class="flex items-center justify-center gap-2">                        <button onclick="openEditFuzeAgentModal(${index})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center" title="แก้ไขข้อมูล">                            <i class="fas fa-edit text-xs"></i>                        </button>                        <button onclick="openFuzeContractUpload('${province}')" class="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center" title="อัปโหลดสัญญา">                            <i class="fas fa-upload text-xs"></i>                        </button>                    </div>                </td>` : '';
 
-            html += `<tr class="hover:bg-blue-50/50 transition-colors group">
-                ${manageTd}
-                <td class="py-3 px-4 text-center text-gray-500 whitespace-normal break-words">${row[0] || ''}</td>
-                <td class="py-3 px-4 font-medium text-gray-800 whitespace-normal break-words">${row[1] || ''}</td>
-                <td class="py-3 px-4 whitespace-normal break-words">${row[2] || ''}</td>
-                <td class="py-3 px-4 whitespace-normal break-words">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 whitespace-normal break-words">
-                        ${row[3] || ''}
-                    </span>
-                </td>
-                <td class="py-3 px-4 whitespace-normal break-words">${row[4] || ''}</td>
-                <td class="py-3 px-4 whitespace-normal break-words">
-                    <a href="javascript:void(0)" onclick="openFuzeAgentPdf('${row[1]}', '${province}')" class="text-theme-orange hover:text-orange-700 font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors">
-                        ${row[5] || ''} <i class="fas fa-check-circle text-[11px] text-green-500" title="คลิกเพื่อเปิดดูไฟล์สัญญา PDF"></i>
-                    </a>
-                    ${agentWarningIcon}
-                </td>
-                <td class="py-3 px-4 whitespace-normal break-words">${row[6] || ''}</td>
-                <td class="py-3 px-4 font-mono text-xs whitespace-normal break-words break-all">${row[7] || ''} ${accountWarningIcon}</td>
-                <td class="py-3 px-4 text-xs text-gray-500 whitespace-normal break-words min-w-[150px]">${row[8] || ''}</td>
-            </tr>`;
+            html += `<tr class="hover:bg-blue-50/50 transition-colors group">                ${manageTd}                <td class="py-3 px-4 text-center text-gray-500 whitespace-normal break-words">${row[0] || ''}</td>                <td class="py-3 px-4 font-medium text-gray-800 whitespace-normal break-words">${row[1] || ''}</td>                <td class="py-3 px-4 whitespace-normal break-words">${row[2] || ''}</td>                <td class="py-3 px-4 whitespace-normal break-words">                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 whitespace-normal break-words">                        ${row[3] || ''}                    </span>                </td>                <td class="py-3 px-4 whitespace-normal break-words">${row[4] || ''}</td>                <td class="py-3 px-4 whitespace-normal break-words">                    <a href="javascript:void(0)" onclick="openFuzeAgentPdf('${row[1]}', '${province}')" class="text-theme-orange hover:text-orange-700 font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors">                        ${row[5] || ''} <i class="fas fa-check-circle text-[11px] text-green-500" title="คลิกเพื่อเปิดดูไฟล์สัญญา PDF"></i>                    </a>                    ${agentWarningIcon}                </td>                <td class="py-3 px-4 whitespace-normal break-words">${row[6] || ''}</td>                <td class="py-3 px-4 font-mono text-xs whitespace-normal break-words break-all">${row[7] || ''} ${accountWarningIcon}</td>                <td class="py-3 px-4 text-xs text-gray-500 whitespace-normal break-words min-w-[150px]">${row[8] || ''}</td>            </tr>`;
         });
         tbody.innerHTML = html;
 
@@ -3742,46 +3712,7 @@ window.fuzeAgentData = [];
 
         Swal.fire({
             title: 'แก้ไขข้อมูลตัวแทน',
-            html: `
-                <div class="grid grid-cols-2 gap-4 text-left mt-2">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">ลำดับ</label>
-                        <input id="swal-f-seq" type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[0]}" disabled>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                        <input id="swal-f-zip" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[1]}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">ที่ทำการ</label>
-                        <input id="swal-f-office" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[2]}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label>
-                        <input id="swal-f-prov" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[3]}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">รอบอนุมัติ</label>
-                        <input id="swal-f-round" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[4]}">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">ตัวแทน</label>
-                        <input id="swal-f-agent" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[5]}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">ธนาคาร</label>
-                        <input id="swal-f-bank" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[6]}">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">เลขบัญชี</label>
-                        <input id="swal-f-acc" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[7]}">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ *</label>
-                        <input id="swal-f-note" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[8]}">
-                    </div>
-                </div>
-            `,
+            html: `                <div class="grid grid-cols-2 gap-4 text-left mt-2">                    <div class="col-span-2">                        <label class="block text-xs font-medium text-gray-700 mb-1">ลำดับ</label>                        <input id="swal-f-seq" type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[0]}" disabled>                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>                        <input id="swal-f-zip" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[1]}">                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">ที่ทำการ</label>                        <input id="swal-f-office" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[2]}">                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label>                        <input id="swal-f-prov" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[3]}">                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">รอบอนุมัติ</label>                        <input id="swal-f-round" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[4]}">                    </div>                    <div class="col-span-2">                        <label class="block text-xs font-medium text-gray-700 mb-1">ตัวแทน</label>                        <input id="swal-f-agent" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[5]}">                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">ธนาคาร</label>                        <input id="swal-f-bank" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[6]}">                    </div>                    <div>                        <label class="block text-xs font-medium text-gray-700 mb-1">เลขบัญชี</label>                        <input id="swal-f-acc" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[7]}">                    </div>                    <div class="col-span-2">                        <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ *</label>                        <input id="swal-f-note" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="${row[8]}">                    </div>                </div>            `,
             showCancelButton: true,
             confirmButtonText: 'บันทึก',
             cancelButtonText: 'ยกเลิก',
