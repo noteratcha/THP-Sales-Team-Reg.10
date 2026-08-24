@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.2152';
+    var APP_VERSION = 'Ver. 2026.0824.2203';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1210,6 +1210,9 @@
         const allGroups = ['menu-group-visits', 'menu-group-revenue', 'menu-group-tools', 'menu-group-biglot'];
         const allIcons = ['icon-visits', 'icon-revenue', 'icon-tools', 'icon-biglot'];
 
+        const subGroups = ['menu-group-cmp', 'menu-group-tms', 'menu-group-fuze'];
+        const subIcons = ['icon-cmp', 'icon-tms', 'icon-fuze'];
+
         const targetGroup = document.getElementById(groupId);
         const targetIcon = document.getElementById(iconId);
 
@@ -1228,14 +1231,27 @@
                     }
                 });
 
-                const tmsGroup = document.getElementById('menu-group-tms');
-                const tmsIcon = document.getElementById('icon-tms');
-                if (tmsGroup && tmsIcon) {
-                    tmsGroup.classList.add('hidden');
-                    tmsGroup.classList.remove('flex');
-                    tmsIcon.style.transform = 'rotate(0deg)';
-                    tmsIcon.classList.remove('text-theme-orange');
-                }
+                subGroups.forEach((id, index) => {
+                    const grp = document.getElementById(id);
+                    const icn = document.getElementById(subIcons[index]);
+                    if (grp && icn) {
+                        grp.classList.add('hidden');
+                        grp.classList.remove('flex');
+                        icn.style.transform = 'rotate(0deg)';
+                        icn.classList.remove('text-theme-orange');
+                    }
+                });
+            } else if (subGroups.includes(groupId)) {
+                subGroups.forEach((id, index) => {
+                    const grp = document.getElementById(id);
+                    const icn = document.getElementById(subIcons[index]);
+                    if (grp && icn) {
+                        grp.classList.add('hidden');
+                        grp.classList.remove('flex');
+                        icn.style.transform = 'rotate(0deg)';
+                        icn.classList.remove('text-theme-orange');
+                    }
+                });
             } else if (!isHidden) {
                 targetGroup.classList.add('hidden');
                 targetGroup.classList.remove('flex');
@@ -1250,6 +1266,7 @@
                 targetIcon.classList.add('text-theme-orange');
             }
         }
+    }
     }
 
     function showGlobalLoader(text = 'กำลังเตรียมข้อมูล...') {
