@@ -578,6 +578,29 @@ function processRevenueBatch(csvChunk, selectedYear) {
       var provinceVal = provinceMap.get(zipCodeLookup) || "";
 
       var csvItemName = String(csvRow[2]).trim();
+
+      // --- เงื่อนไขกรองยกเว้นการบันทึก (Exclude Rule) ---
+      // ถ้า Item Name ขึ้นต้นด้วย "กล่อง", "ส่วนลด", "ไส้ผลไม้และนัท", "บริการฝากส่งบรรจุ"
+      // และไม่มีคำว่า "ร็อคเก็ต", "Vrich", "Page365", "page 365" ให้ข้าม ไม่นำไปบันทึก
+      var isExcludedPrefix = 
+        csvItemName.startsWith("กล่อง") || 
+        csvItemName.startsWith("ส่วนลด") || 
+        csvItemName.startsWith("ไส้ผลไม้และนัท") || 
+        csvItemName.startsWith("บริการฝากส่งบรรจุ");
+
+      if (isExcludedPrefix) {
+        var lowerItem = csvItemName.toLowerCase();
+        var hasAllowedKeyword = 
+          csvItemName.indexOf("ร็อคเก็ต") !== -1 ||
+          lowerItem.indexOf("vrich") !== -1 ||
+          lowerItem.indexOf("page365") !== -1 ||
+          lowerItem.indexOf("page 365") !== -1;
+
+        if (!hasAllowedKeyword) {
+          continue; // ข้าม ไม่นำไปบันทึก
+        }
+      }
+
       var matchedGroup = "";
       var matchedType = "";
       
