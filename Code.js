@@ -572,19 +572,12 @@ function processRevenueBatch(csvChunk, selectedYear) {
       var csvRow = csvData[i];
       if (csvRow.length < 9) continue;
 
-      var csvItemName = String(csvRow[2]).trim();
-      var csvMemberId = String(csvRow[4]).trim();
-
-      // [เงื่อนไขเฉพาะ] ข้อมูล EMS (ลูกค้าเฉพาะราย) - ถ้าคอลัมน์ E (รหัสสมาชิก) เป็น "ไม่เป็นสมาชิก" หรือว่าง จะไม่นำไปบันทึก
-      if ((csvItemName.indexOf("เฉพาะราย") !== -1 || csvItemName.indexOf("ลูกค้าเฉพาะราย") !== -1) &&
-          (csvMemberId === "ไม่เป็นสมาชิก" || csvMemberId === "" || csvMemberId === "-")) {
-        continue;
-      }
-
       var newValue = parseFloat(String(csvRow[8]).replace(/,/g, ''));
       var officeNameFull = String(csvRow[1]).trim();
       var zipCodeLookup = officeNameFull.length >= 5 ? officeNameFull.substring(0, 5) : officeNameFull;
       var provinceVal = provinceMap.get(zipCodeLookup) || "";
+
+      var csvItemName = String(csvRow[2]).trim();
       var matchedGroup = "";
       var matchedType = "";
       
