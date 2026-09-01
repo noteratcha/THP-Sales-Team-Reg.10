@@ -567,39 +567,39 @@ function processRevenueBatch(csvChunk, selectedYear) {
     var selectedYearStr = String(selectedYear).trim();
     var unmatchedServices = new Set();
 
+    // รายการสินค้า/บริการที่ไม่ต้องการนำเข้า (เฉพาะข้อมูลลูกค้าเฉพาะราย)
+    var excludedFruitItems = [
+      "กล่องบรรจุผลไม้ ขนาด L",
+      "กล่องบรรจุผลไม้ ขนาด M",
+      "กล่องบรรจุผลไม้ ขนาด M+",
+      "กล่องบรรจุผลไม้ ขนาด S+",
+      "กล่องบรรจุผลไม้ขนาด S+ แนวตั้ง",
+      "ไส้ผลไม้และนัท",
+      "กล่องผลไม้ 5 กก.+ไส้ใน",
+      "กล่องผลไม้ 10 กก.+ไส้ใน",
+      "กล่องผลไม้ตามฤดูกาล ขนาด 5 กก.",
+      "กล่องผลไม้ตามฤดูกาล ขนาด 10 กก.",
+      "ส่วนลด 10% ผลไม้",
+      "ส่วนลดผลไม้ 5%",
+      "ส่วนลดผลไม้ 10%"
+    ];
+
     // 4. ลูปข้อมูลจาก CSV
     for (var i = 0; i < csvData.length; i++) {
       var csvRow = csvData[i];
       if (csvRow.length < 9) continue;
+      
+      var csvItemName = String(csvRow[2]).trim();
+      
+      // ข้ามการบันทึกถ้าชื่อบริการอยู่ในรายการที่ไม่ต้องการ
+      if (excludedFruitItems.indexOf(csvItemName) !== -1) {
+        continue;
+      }
 
       var newValue = parseFloat(String(csvRow[8]).replace(/,/g, ''));
       var officeNameFull = String(csvRow[1]).trim();
       var zipCodeLookup = officeNameFull.length >= 5 ? officeNameFull.substring(0, 5) : officeNameFull;
       var provinceVal = provinceMap.get(zipCodeLookup) || "";
-
-      var csvItemName = String(csvRow[2]).trim();
-
-      // --- เงื่อนไขกรองยกเว้นการบันทึก (Exclude Rule) ---
-      // ถ้า Item Name ขึ้นต้นด้วย "กล่อง", "ส่วนลด", "ไส้ผลไม้และนัท", "บริการฝากส่งบรรจุ"
-      // และไม่มีคำว่า "ร็อคเก็ต", "Vrich", "Page365", "page 365" ให้ข้าม ไม่นำไปบันทึก
-      var isExcludedPrefix = 
-        csvItemName.startsWith("กล่อง") || 
-        csvItemName.startsWith("ส่วนลด") || 
-        csvItemName.startsWith("ไส้ผลไม้และนัท") || 
-        csvItemName.startsWith("บริการฝากส่งบรรจุ");
-
-      if (isExcludedPrefix) {
-        var lowerItem = csvItemName.toLowerCase();
-        var hasAllowedKeyword = 
-          csvItemName.indexOf("ร็อคเก็ต") !== -1 ||
-          lowerItem.indexOf("vrich") !== -1 ||
-          lowerItem.indexOf("page365") !== -1 ||
-          lowerItem.indexOf("page 365") !== -1;
-
-        if (!hasAllowedKeyword) {
-          continue; // ข้าม ไม่นำไปบันทึก
-        }
-      }
 
       var matchedGroup = "";
       var matchedType = "";
