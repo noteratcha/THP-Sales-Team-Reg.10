@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0824.1641';
+    var APP_VERSION = 'Ver. 2026.0901.0948';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -44,6 +44,11 @@
             }
         }, 5000);
     });
+
+
+
+
+
 </script>
 
 <!-- PAGE: LOGIN -->
@@ -617,7 +622,7 @@
                         class="fas fa-chart-bar"></i> สรุปการเข้าพบลูกค้า</button>
                 <a href="https://drive.google.com/file/d/1yYi7KNIFR64ODi1fQw7xUG89QrnjoFqz/view?usp=drive_link" target="_blank" id="headerFuzeAgentDownloadBtn"
                     class="hidden text-[10px] sm:text-xs bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0 no-underline"><i
-                        class="fas fa-folder-open"></i> โฟลเดอร์สัญญาตัวแทน</a>
+                        class="fas fa-folder-open"></i> โหลดเอกสารสัญญา FUZE</a>
                 <button type="button" id="headerFuzeAgentReloadBtn" onclick="window.loadFuzeAgentData(true)"
                     class="hidden text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
@@ -800,7 +805,7 @@
                                                 <i class="fas fa-chart-line text-theme-orange"></i> สถิติการเข้าพบลูกค้า 10 วันล่าสุด
                                             </h3>
                                         </div>
-                                        <div class="w-full relative flex-1 min-h-[150px] lg:min-h-[160px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
+                                        <div class="w-full relative flex-1 min-h-[220px] lg:min-h-[260px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
                                             <div id="homeVisitChartSkeleton" class="absolute inset-0 animate-pulse bg-gray-100 rounded-xl hidden"></div>
                                             <canvas id="homeVisitChart" class="w-full h-full"></canvas>
                                         </div>
@@ -842,7 +847,7 @@
                                                 <i class="fas fa-chart-bar text-green-500"></i> รายชื่อลูกค้า 10 อันดับสูงสุด
                                             </h3>
                                         </div>
-                                        <div class="w-full relative flex-1 min-h-[150px] lg:min-h-[160px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
+                                        <div class="w-full relative flex-1 min-h-[220px] lg:min-h-[260px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
                                             <div id="homeRevenueChartSkeleton" class="absolute inset-0 animate-pulse bg-gray-100 rounded-xl"></div>
                                             <canvas id="homeRevenueChart" class="w-full h-full hidden"></canvas>
                                         </div>
@@ -1205,6 +1210,9 @@
         const allGroups = ['menu-group-visits', 'menu-group-revenue', 'menu-group-tools', 'menu-group-biglot'];
         const allIcons = ['icon-visits', 'icon-revenue', 'icon-tools', 'icon-biglot'];
 
+        const subGroups = ['menu-group-cmp', 'menu-group-tms', 'menu-group-fuze'];
+        const subIcons = ['icon-cmp', 'icon-tms', 'icon-fuze'];
+
         const targetGroup = document.getElementById(groupId);
         const targetIcon = document.getElementById(iconId);
 
@@ -1223,14 +1231,27 @@
                     }
                 });
 
-                const tmsGroup = document.getElementById('menu-group-tms');
-                const tmsIcon = document.getElementById('icon-tms');
-                if (tmsGroup && tmsIcon) {
-                    tmsGroup.classList.add('hidden');
-                    tmsGroup.classList.remove('flex');
-                    tmsIcon.style.transform = 'rotate(0deg)';
-                    tmsIcon.classList.remove('text-theme-orange');
-                }
+                subGroups.forEach((id, index) => {
+                    const grp = document.getElementById(id);
+                    const icn = document.getElementById(subIcons[index]);
+                    if (grp && icn) {
+                        grp.classList.add('hidden');
+                        grp.classList.remove('flex');
+                        icn.style.transform = 'rotate(0deg)';
+                        icn.classList.remove('text-theme-orange');
+                    }
+                });
+            } else if (subGroups.includes(groupId)) {
+                subGroups.forEach((id, index) => {
+                    const grp = document.getElementById(id);
+                    const icn = document.getElementById(subIcons[index]);
+                    if (grp && icn) {
+                        grp.classList.add('hidden');
+                        grp.classList.remove('flex');
+                        icn.style.transform = 'rotate(0deg)';
+                        icn.classList.remove('text-theme-orange');
+                    }
+                });
             } else if (!isHidden) {
                 targetGroup.classList.add('hidden');
                 targetGroup.classList.remove('flex');
@@ -1565,6 +1586,9 @@
                     window.filteredRows = [];
                     if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
                     if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+                    window.globalRevenueData = undefined;
+                    window.globalRevenueTargets = undefined;
+                    window.fuzeAgentData = [];
                     
                     // Clear chart instances to prevent old data rendering
                     if (window.homeVisitChartInstance) {
@@ -1727,6 +1751,9 @@
             window.filteredRows = [];
             if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
             if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
+            window.globalRevenueData = undefined;
+            window.globalRevenueTargets = undefined;
+            window.fuzeAgentData = [];
             
             // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
             const tableBody = document.getElementById('tableBody');
@@ -2809,6 +2836,18 @@
             dailyRevenues[d] = 0;
         });
 
+        // กรองข้อมูล Revenue ตามสิทธิ์ของ User (Client-Side Filtering)
+        let revenueRowsToProcess = window.globalRevenueData || [];
+        const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+        if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
+            const userZipcode = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
+            revenueRowsToProcess = revenueRowsToProcess.filter(row => {
+                const officeStr = String(row[0] || '');
+                const rowZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : '';
+                return rowZip === userZipcode;
+            });
+        }
+
         // ใช้ window.allFetchedRows ซึ่งถูกกรองตามสิทธิ์และพื้นที่ของ User ไว้แล้วในฝั่ง Visit Module
         const rowsToProcess = (typeof window !== 'undefined' && window.allFetchedRows && window.allFetchedRows.length > 0) ? window.allFetchedRows : 
                               (typeof allFetchedRows !== 'undefined' && allFetchedRows && allFetchedRows.length > 0) ? allFetchedRows : 
@@ -3101,7 +3140,7 @@
                 return sum;
             };
 
-            renderRevUI(calcActualRev(window.globalRevenueData || []));
+            renderRevUI(calcActualRev(revenueRowsToProcess || []));
         }
 
         const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
@@ -3182,6 +3221,8 @@
                         x: { 
                             offset: true,
                             ticks: {
+                                maxRotation: 0,
+                                minRotation: 0,
                                 color: last10DaysColors,
                                 font: {
                                     weight: function(context) {
@@ -3208,11 +3249,11 @@
         
         // --- Calculate Top 10 Customers from Revenue Data ---
         let topCustomers = {};
-        if (typeof window !== 'undefined' && window.globalRevenueData && window.globalRevenueData.length > 0) {
+        if (typeof window !== 'undefined' && revenueRowsToProcess && revenueRowsToProcess.length > 0) {
             const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
             
-            window.globalRevenueData.forEach(function(row) {
+            revenueRowsToProcess.forEach(function(row) {
                 if (!row || row.length < 9) return;
                 let mName = String(row[5]).trim();
                 let yYear = parseInt(row[6], 10);
@@ -3301,6 +3342,8 @@
                         },
                         x: {
                             ticks: {
+                                maxRotation: 0,
+                                minRotation: 0,
                                 font: {
                                     size: 12
                                 },
@@ -3514,5 +3557,247 @@
             modal.classList.add('opacity-0');
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
+    };
+</script>
+
+<script>
+    // === FuzeAgent Logic (Rewritten for GAS Minifier Compatibility) ===
+    // IMPORTANT: Do NOT use backtick template literals in this block.
+    // GAS HTML Service minifier corrupts them when they contain HTML tags.
+    // Always use string concatenation with single/double quotes instead.
+
+    window.fuzeAgentData = [];
+
+    // Province to Drive Folder mapping
+    var fuzeDriveFolders = {
+        "จ.ศรีสะเกษ": "1PGs4YdALXLdI2VCQqaQJu04--h-sCNyi",
+        "จ.อุบลราชธานี": "1ImOO3nNLkFIspbNXB8renzr4TCrtrDTC",
+        "จ.ยโสธร": "1uuoc2mzfsrqd61XWS8rzihMFJXDIxdv0",
+        "จ.อำนาจเจริญ": "1ESWujQJv82cqvva0bFtH-ItxdGGpkfhG",
+        "จ.สกลนคร": "1dFDzgoLoFJUmstscdU1pFme_eLkYB-xu",
+        "จ.นครพนม": "1CvOhE-j_rLmBe2binqvHlrQ-9rgArjD4",
+        "จ.มุกดาหาร": "1ei9HZNwWseIoFQOUDtD37VOYuqfnm5Zz"
+    };
+
+    window.initFuzeAgent = function() {
+        if (fuzeAgentData.length === 0) {
+            loadFuzeAgentData();
+        }
+    };
+
+    window.loadFuzeAgentData = function(force) {
+        if (!force && window.fuzeAgentData.length > 0) return;
+        showGlobalLoader('กำลังโหลดข้อมูลตัวแทนฯ...');
+        var tbody = document.getElementById('fuzeAgentTableBody');
+        tbody.innerHTML = '<tr><td colspan="10" class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-theme-orange"></i><p>กำลังโหลดข้อมูล...</p></td></tr>';
+        google.script.run.withSuccessHandler(function(data) {
+            window.fuzeAgentData = data;
+            renderFuzeAgentTable();
+            hideGlobalLoader();
+        }).withFailureHandler(function(error) {
+            tbody.innerHTML = '<tr><td colspan="10" class="py-12 text-center text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p></td></tr>';
+            hideGlobalLoader();
+            Swal.fire('ข้อผิดพลาด', error.message, 'error');
+        }).getFuzeAgentData();
+    };
+
+    window.renderFuzeAgentTable = function() {
+        var tbody = document.getElementById('fuzeAgentTableBody');
+        var isAdmin = typeof currentUserInfo !== 'undefined' && String(currentUserInfo.user).toLowerCase() === 'admin';
+        var manageTh = document.getElementById('fuzeAgentManageTh');
+        if (manageTh) { manageTh.style.display = isAdmin ? '' : 'none'; }
+        if (!window.fuzeAgentData || window.fuzeAgentData.length === 0) {
+            var colSpan = isAdmin ? 10 : 9;
+            tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="py-12 text-center text-gray-400">ไม่มีข้อมูล</td></tr>';
+            return;
+        }
+        var agentMap = {};
+        var accountMap = {};
+        window.fuzeAgentData.forEach(function(row) {
+            var rowNum = row[0] || '';
+            var office = row[2] || '';
+            var agentName = (row[5] || '').replace(/\(.*?\)/g, '').trim();
+            var accountNum = (row[7] || '').trim();
+            if (agentName) {
+                if (!agentMap[agentName]) agentMap[agentName] = [];
+                agentMap[agentName].push({ rowNum: rowNum, office: office });
+            }
+            if (accountNum && accountNum !== '-') {
+                if (!accountMap[accountNum]) accountMap[accountNum] = [];
+                accountMap[accountNum].push({ rowNum: rowNum, office: office });
+            }
+        });
+        var hasDuplicates = false;
+        var html = '';
+        window.fuzeAgentData.forEach(function(row, index) {
+            var province = (row[3] || '').trim();
+            if (province.indexOf('จ.') !== 0) province = 'จ.' + province;
+            var rawAgent = row[5] || '';
+            var cleanAgentName = rawAgent.replace(/\(.*?\)/g, '').trim();
+            var isAgentDup = cleanAgentName && agentMap[cleanAgentName] && agentMap[cleanAgentName].length > 1;
+            var rawAccount = row[7] || '';
+            var cleanAccountNum = rawAccount.trim();
+            var isAccountDup = cleanAccountNum && cleanAccountNum !== '-' && accountMap[cleanAccountNum] && accountMap[cleanAccountNum].length > 1;
+            if (isAgentDup) { hasDuplicates = true; }
+            if (isAccountDup) { hasDuplicates = true; }
+            var agentWarningIcon = '';
+            if (isAgentDup) {
+                var otherRowsA = agentMap[cleanAgentName].filter(function(r) { return r.rowNum !== (row[0] || ''); }).map(function(r) { return r.office + ' (ลำดับ ' + r.rowNum + ')'; }).join(', ');
+                agentWarningIcon = '<i class="fas fa-exclamation-circle text-[12px] text-red-500 ml-1" title="พบชื่อตัวแทนซ้ำซ้อนกับที่ทำการ: ' + otherRowsA + '"></i>';
+            }
+            var accountWarningIcon = '';
+            if (isAccountDup) {
+                var otherRowsB = accountMap[cleanAccountNum].filter(function(r) { return r.rowNum !== (row[0] || ''); }).map(function(r) { return r.office + ' (ลำดับ ' + r.rowNum + ')'; }).join(', ');
+                accountWarningIcon = '<i class="fas fa-exclamation-circle text-[12px] text-red-500 ml-1" title="พบเลขบัญชีซ้ำซ้อนกับที่ทำการ: ' + otherRowsB + '"></i>';
+            }
+            var manageTd = '';
+            if (isAdmin) {
+                manageTd = '<td class="py-3 px-4 whitespace-normal break-words"><div class="flex items-center justify-center gap-2"><button onclick="openEditFuzeAgentModal(' + index + ')" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center" title="แก้ไขข้อมูล"><i class="fas fa-edit text-xs"></i></button><button onclick="openFuzeContractUpload(\'' + province + '\')" class="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition-colors flex items-center justify-center" title="อัปโหลดสัญญา"><i class="fas fa-upload text-xs"></i></button></div></td>';
+            }
+            html += '<tr class="hover:bg-blue-50/50 transition-colors group">'
+                + manageTd
+                + '<td class="py-3 px-4 text-center text-gray-500 whitespace-normal break-words">' + (row[0] || '') + '</td>'
+                + '<td class="py-3 px-4 font-medium text-gray-800 whitespace-normal break-words">' + (row[1] || '') + '</td>'
+                + '<td class="py-3 px-4 whitespace-normal break-words">' + (row[2] || '') + '</td>'
+                + '<td class="py-3 px-4 whitespace-normal break-words"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 whitespace-normal break-words">' + (row[3] || '') + '</span></td>'
+                + '<td class="py-3 px-4 whitespace-normal break-words">' + (row[4] || '') + '</td>'
+                + '<td class="py-3 px-4 whitespace-normal break-words"><a href="javascript:void(0)" onclick="openFuzeAgentPdf(\'' + (row[1] || '') + '\', \'' + province + '\')" class="text-theme-orange hover:text-orange-700 font-medium cursor-pointer inline-flex items-center gap-1.5 transition-colors">' + (row[5] || '') + ' <i class="fas fa-check-circle text-[11px] text-green-500" title="คลิกเพื่อเปิดดูไฟล์สัญญา PDF"></i></a>' + agentWarningIcon + '</td>'
+                + '<td class="py-3 px-4 whitespace-normal break-words">' + (row[6] || '') + '</td>'
+                + '<td class="py-3 px-4 font-mono text-xs whitespace-normal break-words break-all">' + (row[7] || '') + ' ' + accountWarningIcon + '</td>'
+                + '<td class="py-3 px-4 text-xs text-gray-500 whitespace-normal break-words min-w-[150px]">' + (row[8] || '') + '</td>'
+                + '</tr>';
+        });
+        tbody.innerHTML = html;
+        if (hasDuplicates) {
+            var dupAgentHtml = '';
+            Object.keys(agentMap).forEach(function(key) {
+                if (agentMap[key].length > 1) {
+                    var dupDetails = agentMap[key].map(function(item) { return '<span class="whitespace-nowrap">' + item.office + ' (ลำดับ ' + item.rowNum + ')</span>'; }).join(', ');
+                    dupAgentHtml += '<div class="text-[13px] text-left mb-1.5 p-2 bg-red-50/50 rounded-lg"><div class="font-semibold text-red-600 mb-1"><i class="fas fa-user mr-1"></i>' + key + '</div><div class="text-gray-600 pl-4 text-xs leading-relaxed">ซ้ำที่: ' + dupDetails + '</div></div>';
+                }
+            });
+            var dupAccountHtml = '';
+            Object.keys(accountMap).forEach(function(key) {
+                if (accountMap[key].length > 1) {
+                    var dupDetails = accountMap[key].map(function(item) { return '<span class="whitespace-nowrap">' + item.office + ' (ลำดับ ' + item.rowNum + ')</span>'; }).join(', ');
+                    dupAccountHtml += '<div class="text-[13px] text-left mb-1.5 p-2 bg-red-50/50 rounded-lg"><div class="font-semibold text-red-600 mb-1"><i class="fas fa-money-check mr-1"></i>' + key + '</div><div class="text-gray-600 pl-4 text-xs leading-relaxed">ซ้ำที่: ' + dupDetails + '</div></div>';
+                }
+            });
+            var fullHtml = '<div class="text-sm text-gray-500 mb-3 border-b pb-2">กรุณาตรวจสอบไอคอน <i class="fas fa-exclamation-circle text-red-500 mx-1"></i> ในตาราง</div>';
+            fullHtml += '<div class="overflow-y-auto custom-scrollbar p-1" style="max-height: 350px;">';
+            if (dupAgentHtml) fullHtml += '<div class="font-bold text-gray-800 text-left mb-2 sticky top-0 bg-white z-10 py-1 border-b">รายชื่อตัวแทนซ้ำ</div>' + dupAgentHtml;
+            if (dupAccountHtml) fullHtml += '<div class="font-bold text-gray-800 text-left mb-2 mt-4 sticky top-0 bg-white z-10 py-1 border-b">เลขบัญชีซ้ำ</div>' + dupAccountHtml;
+            fullHtml += '</div>';
+            setTimeout(function() {
+                Swal.fire({
+                    title: 'พบข้อมูลซ้ำซ้อน!',
+                    html: fullHtml,
+                    icon: 'warning',
+                    confirmButtonText: 'รับทราบ',
+                    width: '600px',
+                    customClass: { htmlContainer: 'text-left' }
+                });
+            }, 500);
+        }
+    };
+
+    window.openFuzeAgentPdf = function(zipCode, province) {
+        if (!zipCode || !province) {
+            Swal.fire('ข้อผิดพลาด', 'ข้อมูลรหัสไปรษณีย์หรือจังหวัดไม่ครบถ้วน', 'error');
+            return;
+        }
+        var folderId = fuzeDriveFolders[province];
+        if (!folderId) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบโฟลเดอร์สำหรับจังหวัด ' + province, 'error');
+            return;
+        }
+        Swal.fire({
+            title: 'กำลังค้นหาไฟล์...',
+            text: 'กรุณารอสักครู่ ระบบกำลังค้นหาไฟล์สัญญาของรหัสไปรษณีย์ ' + zipCode,
+            allowOutsideClick: false,
+            didOpen: function() { Swal.showLoading(); }
+        });
+        google.script.run.withSuccessHandler(function(response) {
+            if (response.success && response.url) {
+                Swal.close();
+                window.open(response.url, '_blank');
+            } else {
+                Swal.fire('ไม่พบไฟล์', response.error || 'ไม่พบไฟล์สัญญา .pdf', 'warning');
+            }
+        }).withFailureHandler(function(error) {
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการค้นหาไฟล์: ' + error.message, 'error');
+        }).searchFuzeAgentContractPdf(folderId, zipCode);
+    };
+
+    window.openEditFuzeAgentModal = function(index) {
+        var row = window.fuzeAgentData[index];
+        while(row.length < 9) row.push('');
+        var modalHtml = '<div class="grid grid-cols-2 gap-4 text-left mt-2">'
+            + '<div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">ลำดับ</label><input id="swal-f-seq" type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[0] + '" disabled></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label><input id="swal-f-zip" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[1] + '"></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">ที่ทำการ</label><input id="swal-f-office" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[2] + '"></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">จังหวัด</label><input id="swal-f-prov" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[3] + '"></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">รอบอนุมัติ</label><input id="swal-f-round" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[4] + '"></div>'
+            + '<div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">ตัวแทน</label><input id="swal-f-agent" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[5] + '"></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">ธนาคาร</label><input id="swal-f-bank" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[6] + '"></div>'
+            + '<div><label class="block text-xs font-medium text-gray-700 mb-1">เลขบัญชี</label><input id="swal-f-acc" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[7] + '"></div>'
+            + '<div class="col-span-2"><label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ</label><input id="swal-f-note" type="text" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + row[8] + '"></div>'
+            + '</div>';
+        Swal.fire({
+            title: 'แก้ไขข้อมูลตัวแทน',
+            html: modalHtml,
+            showCancelButton: true,
+            confirmButtonText: 'บันทึก',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#9ca3af',
+            width: '600px',
+            preConfirm: function() {
+                return {
+                    rowIndex: index,
+                    seq: document.getElementById('swal-f-seq').value,
+                    zip: document.getElementById('swal-f-zip').value,
+                    office: document.getElementById('swal-f-office').value,
+                    prov: document.getElementById('swal-f-prov').value,
+                    round: document.getElementById('swal-f-round').value,
+                    agent: document.getElementById('swal-f-agent').value,
+                    bank: document.getElementById('swal-f-bank').value,
+                    acc: document.getElementById('swal-f-acc').value,
+                    note: document.getElementById('swal-f-note').value
+                };
+            }
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                var data = result.value;
+                Swal.fire({ title: 'กำลังบันทึก...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+                google.script.run.withSuccessHandler(function(response) {
+                    if (response.success) {
+                        window.fuzeAgentData[data.rowIndex] = [data.seq, data.zip, data.office, data.prov, data.round, data.agent, data.bank, data.acc, data.note];
+                        renderFuzeAgentTable();
+                        Swal.fire('บันทึกสำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success');
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.error || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                    }
+                }).withFailureHandler(function(err) {
+                    Swal.fire('ข้อผิดพลาด', err.message, 'error');
+                }).updateFuzeAgentData(data.rowIndex, [data.seq, data.zip, data.office, data.prov, data.round, data.agent, data.bank, data.acc, data.note]);
+            }
+        });
+    };
+
+    window.openFuzeContractUpload = function(province) {
+        var folderId = "";
+        for (var key in fuzeDriveFolders) {
+            if (province.indexOf(key.replace('จ.', '')) !== -1) {
+                folderId = fuzeDriveFolders[key];
+                break;
+            }
+        }
+        if (!folderId) {
+            Swal.fire({ title: 'ไม่พบโฟลเดอร์', text: 'ไม่พบโฟลเดอร์สำหรับจังหวัด ' + province + ' กรุณาอัปโหลดด้วยตนเอง', icon: 'warning' });
+            return;
+        }
+        var driveLink = "https://drive.google.com/drive/folders/" + folderId;
+        window.open(driveLink, "_blank");
     };
 </script>

@@ -555,7 +555,7 @@ function processRevenueBatch(csvChunk, selectedYear) {
         dataMapCustomer.set(keyCust, i);
 
         var memberId = String(row[4]).trim();
-        if (memberId && memberId !== "-") {
+        if (memberId && memberId !== "-" && memberId !== "ไม่เป็นสมาชิก") {
           dataMapMember.set(memberId + keyBase, i);
         }
       }
@@ -567,17 +567,55 @@ function processRevenueBatch(csvChunk, selectedYear) {
     var selectedYearStr = String(selectedYear).trim();
     var unmatchedServices = new Set();
 
+    // รายการสินค้า/บริการที่ไม่ต้องการนำเข้า (เฉพาะข้อมูลลูกค้าเฉพาะราย)
+    var excludedFruitItems = [
+      "กล่องบรรจุผลไม้ ขนาด L",
+      "กล่องบรรจุผลไม้ ขนาด M",
+      "กล่องบรรจุผลไม้ ขนาด M+",
+      "กล่องบรรจุผลไม้ ขนาด S+",
+      "กล่องบรรจุผลไม้ขนาด S+ แนวตั้ง",
+      "ไส้ผลไม้และนัท",
+      "กล่องผลไม้ 5 กก.+ไส้ใน",
+      "กล่องผลไม้ 10 กก.+ไส้ใน",
+      "กล่องผลไม้ตามฤดูกาล ขนาด 5 กก.",
+      "กล่องผลไม้ตามฤดูกาล ขนาด 10 กก.",
+      "ส่วนลด 10% ผลไม้",
+      "ส่วนลดผลไม้ 5%",
+      "ส่วนลดผลไม้ 10%",
+      "ตะกร้าพลาสติกสำหรับใส่ผลไม้ 5 กก.",
+      "ตะกร้าพลาสติกสำหรับใส่ผลไม้ 10 กก.",
+      "ตะกร้าพลาสติกสำหรับใส่ผลไม้ 3 กก.",
+      "บริการฝากส่งบรรจุภัณฑ์ผลไม้ DIT  (กล่อง M)",
+      "บริการฝากส่งบรรจุภัณฑ์ผลไม้ DIT (กล่อง M)"
+    ];
+
     // 4. ลูปข้อมูลจาก CSV
     for (var i = 0; i < csvData.length; i++) {
       var csvRow = csvData[i];
       if (csvRow.length < 9) continue;
+      
+      var csvItemName = String(csvRow[2]).trim();
+      var normalizedItemName = csvItemName.replace(/\s+/g, ' ');
+      
+      // 1. ข้ามการบันทึกถ้าชื่อบริการอยู่ในรายการที่ไม่ต้องการ
+      if (excludedFruitItems.indexOf(csvItemName) !== -1 || excludedFruitItems.indexOf(normalizedItemName) !== -1) {
+        continue;
+      }
+
+      // 2. ข้ามการบันทึกถ้าคอลัมน์ D (รายชื่อลูกค้า) และ คอลัมน์ E (รหัสสมาชิก) เป็น "ไม่เป็นสมาชิก" ทั้งคู่ (หรือไม่มีข้อมูลทั้งคู่)
+      var csvCustName = String(csvRow[3] || "").trim();
+      var csvMemberId = String(csvRow[4] || "").trim();
+      var isCustNonMember = (csvCustName === "ไม่เป็นสมาชิก" || csvCustName === "-" || csvCustName === "");
+      var isMemNonMember = (csvMemberId === "ไม่เป็นสมาชิก" || csvMemberId === "-" || csvMemberId === "");
+      if (isCustNonMember && isMemNonMember) {
+        continue;
+      }
 
       var newValue = parseFloat(String(csvRow[8]).replace(/,/g, ''));
       var officeNameFull = String(csvRow[1]).trim();
       var zipCodeLookup = officeNameFull.length >= 5 ? officeNameFull.substring(0, 5) : officeNameFull;
       var provinceVal = provinceMap.get(zipCodeLookup) || "";
 
-      var csvItemName = String(csvRow[2]).trim();
       var matchedGroup = "";
       var matchedType = "";
       
@@ -590,9 +628,8 @@ function processRevenueBatch(csvChunk, selectedYear) {
       }
 
       var keyBaseCSV = "_" + csvItemName + "_" + officeNameFull + "_" + String(csvRow[6]).trim() + "_" + String(csvRow[7]).trim() + "_" + selectedYearStr;
-      var csvCustKey = String(csvRow[3]).trim() + keyBaseCSV;
-      var csvMemberId = String(csvRow[4]).trim();
-      var csvMemKey = (csvMemberId && csvMemberId !== "-") ? (csvMemberId + keyBaseCSV) : "";
+      var csvCustKey = csvCustName + keyBaseCSV;
+      var csvMemKey = (csvMemberId && csvMemberId !== "-" && csvMemberId !== "ไม่เป็นสมาชิก") ? (csvMemberId + keyBaseCSV) : "";
 
       var foundIndex = -1;
       // ค้นหาแบบความเร็วสูง O(1)
@@ -759,9 +796,7 @@ function getRevenueReportData(requestingUser) {
     var data = sheet.getDataRange().getDisplayValues();
     var rows = data.slice(1);
 
-    var reqUserStr = requestingUser.user ? String(requestingUser.user).toLowerCase() : '';
-    var isAdmin = (reqUserStr === 'admin' || reqUserStr === 'viewer');
-    var userZip = requestingUser.zipcode ? String(requestingUser.zipcode).trim() : "";
+    
 
     var pivotedMap = {};
 
@@ -772,7 +807,7 @@ function getRevenueReportData(requestingUser) {
 
       if (EXCLUDED_ZIPCODES.indexOf(officeZip) !== -1) { continue; }
 
-      if (!isAdmin && officeZip !== userZip) { continue; }
+      
 
       var serviceGroup = (row.length > 11 && String(row[11]).trim() !== "") ? String(row[11]).trim() : String(row[2]).trim();
       var serviceType = (row.length > 12 && String(row[12]).trim() !== "") ? String(row[12]).trim() : "";
