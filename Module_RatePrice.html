@@ -67,7 +67,7 @@
 
         <!-- หน้าต่างโหลดข้อมูล -->
         <div id="ratePriceLoader"
-            class="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            class="hidden flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
             <i class="fas fa-circle-notch fa-spin text-emerald-500 text-5xl mb-4"></i>
             <p class="font-bold text-lg text-gray-600">กำลังซิงค์ข้อมูลอัตราค่าบริการ...</p>
             <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังดึงข้อมูลจากฐานข้อมูล</p>
@@ -101,13 +101,18 @@
         const noData = document.getElementById('ratePriceNoData');
 
         if (selector) { selector.disabled = true; selector.innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>'; }
-        if (loader) loader.classList.remove('hidden');
+        if (loader) loader.classList.add('hidden');
         if (container) container.classList.add('hidden');
         if (noData) noData.classList.add('hidden');
+
+        if (typeof showGlobalLoader === 'function') {
+            showGlobalLoader('กำลังซิงค์ข้อมูลอัตราค่าบริการ...');
+        }
 
         if (typeof google !== 'undefined') {
             google.script.run
                 .withSuccessHandler(res => {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (res.status === 'success') {
                         window.globalRateData = res.data;
                         populateRateDropdown();
@@ -117,15 +122,22 @@
                     }
                 })
                 .withFailureHandler(err => {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (loader) loader.classList.add('hidden');
                     Swal.fire('ข้อผิดพลาดการเชื่อมต่อ', err.toString(), 'error');
                 })
                 .getRatePriceData();
+        } else {
+            setTimeout(() => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                populateRateDropdown();
+            }, 1000);
         }
     };
 
     // ฟังก์ชันสร้าง Dropdown ให้เลือก "บริการ"
     window.populateRateDropdown = function () {
+        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
         const selector = document.getElementById('rateServiceSelector');
         const loader = document.getElementById('ratePriceLoader');
         const noData = document.getElementById('ratePriceNoData');

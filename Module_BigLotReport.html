@@ -142,7 +142,7 @@
     <div class="w-full">
         <!-- Loading State -->
         <div id="bigLotReportLoading"
-            class="glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[350px] shadow-lg">
+            class="hidden glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[350px] shadow-lg">
             <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
             <p class="font-bold text-lg text-gray-700">กำลังดาวน์โหลดข้อมูลรายงาน...</p>
             <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังประมวลผลบทสรุปของท่าน</p>
@@ -249,7 +249,10 @@
         const exportPdfBtn = document.getElementById('bigLotExportPdfBtn');
         const pageSizeSelect = document.getElementById('bigLotReportPageSize');
 
-        if (loading) loading.classList.remove('hidden');
+        if (loading) loading.classList.add('hidden');
+        if (typeof showGlobalLoader === 'function') {
+            showGlobalLoader('กำลังดาวน์โหลดข้อมูลรายงาน...');
+        }
         if (empty) empty.classList.add('hidden');
         if (table) table.classList.add('hidden');
         if (searchInput) searchInput.value = '';
@@ -316,6 +319,7 @@
                             // Render UI elements
                             window.renderBigLotReportUI();
                         } else {
+                            if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                             const loading = document.getElementById('bigLotReportLoading');
                             if (loading) loading.classList.add('hidden');
                             Swal.fire({
@@ -326,6 +330,7 @@
                             });
                         }
                     } catch (frontendError) {
+                        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                         console.error('Frontend Error:', frontendError);
                         const loading = document.getElementById('bigLotReportLoading');
                         if (loading) loading.classList.add('hidden');
@@ -338,6 +343,7 @@
                     }
                 })
                 .withFailureHandler(err => {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (loading) loading.classList.add('hidden');
                     Swal.fire({
                         title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
@@ -375,6 +381,7 @@
 
     // 🖥️ UI RENDERER: Table & KPI updates with Pagination
     window.renderBigLotReportUI = function () {
+        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
         const loading = document.getElementById('bigLotReportLoading');
         const empty = document.getElementById('bigLotReportEmpty');
         const table = document.getElementById('bigLotReportTableContainer');

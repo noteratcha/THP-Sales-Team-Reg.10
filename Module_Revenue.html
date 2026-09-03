@@ -457,8 +457,17 @@
                                 <div>เมนู <span class="font-semibold">รายงาน >
                                         รายงานสรุปปริมาณการรับฝากของแต่ละบริษัท</span></div>
                             </li>
+                            <li class="flex gap-2"><span class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</span>
+                                <div class="w-full">
+                                    เลือกบริษัท (ทั้งหมด):
+                                    <ul class="mt-1.5 space-y-1 text-blue-700 border-l-2 border-blue-300 pl-3 ml-1">
+                                        <li>- เลือกทีละเดือน</li>
+                                        <li>- <span class="text-red-600 font-bold">แปลงสกุลไฟล์จาก .xlsx เป็น .csv</span></li>
+                                    </ul>
+                                </div>
+                            </li>
                             <li class="flex gap-2"><span
-                                    class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">4</span>
+                                    class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">5</span>
                                 <div class="w-full">
                                     กำหนดค่าดังนี้:
                                     <ul class="mt-1.5 space-y-1 text-blue-700 border-l-2 border-blue-300 pl-3 ml-1">
@@ -466,16 +475,14 @@
                                         <li>• Vendor : 191226 (DropOff)</li>
                                         <li>• Vendor : 191227 (PickUp)</li>
                                         <li>• Vendor : 191228 (Fruit)</li>
-                                        <li>• Vendor : 198702</li>
+                                        <li>• Vendor : 198702 (สำนักงานตำรวจแห่งชาติ 'งานจราจร')</li>
                                     </ul>
                                 </div>
                             </li>
-                            <li class="flex gap-2"><span
-                                    class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">5</span>
+                            <li class="flex gap-2"><span class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">6</span>
                                 <div>เลือกเขตที่รับฝาก : ปข.10</div>
                             </li>
-                            <li class="flex gap-2"><span
-                                    class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">6</span>
+                            <li class="flex gap-2"><span class="bg-blue-200 text-blue-800 rounded-full w-4 h-4 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">7</span>
                                 <div>ประมวลผลรายงาน และดาวน์โหลดไฟล์</div>
                             </li>
                         </ul>
@@ -483,7 +490,7 @@
                         <div
                             class="mt-4 pt-3 border-t border-blue-200/50 text-[10px] text-gray-600 font-medium space-y-1">
                             <p class="flex items-center gap-1.5"><i class="fas fa-check-circle text-green-500"></i>
-                                รองรับไฟล์ .xls ที่ดึงมาจากระบบ</p>
+                                รองรับไฟล์ .xls ที่ดึงมาจากระบบ และ .csv ที่ save as..</p>
                             <p class="flex items-center gap-1.5"><i class="fas fa-check-circle text-green-500"></i>
                                 เลือกไฟล์หลายไฟล์พร้อมกันได้</p>
                         </div>
@@ -506,7 +513,7 @@
                                     class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 border border-gray-100 group-hover/upload:scale-110 transition-transform">
                                     <i class="fas fa-file-excel text-3xl text-blue-500"></i>
                                 </div>
-                                <p class="text-sm font-bold text-gray-700 mb-1">คลิกหรือลากไฟล์ .xls มาวางที่นี่</p>
+                                <p class="text-sm font-bold text-gray-700 mb-1">คลิกหรือลากไฟล์ .xls หรือ .csv มาวางที่นี่</p>
                                 <p
                                     class="text-[10px] text-gray-500 font-mono mt-1 bg-white px-2 py-1 rounded shadow-sm border border-gray-100">
                                     สามารถเลือกหลายไฟล์พร้อมกันได้</p>
@@ -538,7 +545,7 @@
                                 </div>
                             </div>
 
-                            <input id="dropoffUpload" type="file" class="hidden" accept="application/vnd.ms-excel"
+                            <input id="dropoffUpload" type="file" class="hidden" accept="application/vnd.ms-excel, .csv"
                                 multiple onchange="handleTiktokFileUpload(this)" />
                         </label>
 
@@ -828,7 +835,16 @@
                 setTimeout(autoSelectAllServices, 100); // ดีเลย์นิดนึงแล้วค่อยสั่งเลือกบริการทั้งหมดใหม่
             };
         }
-    </script>
+    
+    window.clearAllUploads = function() {
+        if (typeof window.resetTableauUI === 'function') window.resetTableauUI();
+        if (typeof window.resetLogisticsUI === 'function') window.resetLogisticsUI();
+        if (typeof window.resetAddLogisticsUI === 'function') window.resetAddLogisticsUI();
+        if (typeof window.resetTiktokUI === 'function') window.resetTiktokUI();
+        if (typeof window.resetKhorLorUI === 'function') window.resetKhorLorUI();
+    };
+    
+</script>
 </div>
 
 
@@ -884,7 +900,7 @@
     // ==========================================
     function loadRevenueReport() {
         const tbody = document.getElementById('revenueReportBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-gray-500 bg-gray-50"><i class="fas fa-circle-notch fa-spin text-theme-orange text-2xl mb-2"></i><br>กำลังโหลดข้อมูล...</td></tr>';
+        if (tbody) tbody.innerHTML = '';
 
         const noDataEl = document.getElementById('revenueNoData'); const pagEl = document.getElementById('revenuePaginationControls'); const topSec = document.getElementById('topCustomersSection');
         if (noDataEl) noDataEl.classList.add('hidden'); if (pagEl) pagEl.classList.add('hidden'); if (topSec) topSec.classList.add('hidden');
@@ -3945,11 +3961,11 @@
             var date = new Date(); var timestamp = date.getFullYear() + String(date.getMonth() + 1).padStart(2, '0') + String(date.getDate()).padStart(2, '0');
             pdf.save("Revenue_Charts_Summary_" + timestamp + ".pdf");
 
-            restoreUI(); Swal.close();
+            restoreUI(); if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
             Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว', timer: 2000, showConfirmButton: false });
 
         } catch (err) {
-            restoreUI(); Swal.close();
+            restoreUI(); if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้าง PDF ได้: ' + err.message, 'error');
         }
     }
@@ -4297,11 +4313,11 @@
             var safeMonthNameForFile = monthLabel.replace(/[\/\s]/g, '_');
             pdf.save("Detail_" + typeStrFile + "_" + safeMonthNameForFile + ".pdf");
 
-            Swal.close();
+            if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
             Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว', timer: 2000, showConfirmButton: false });
 
         } catch (err) {
-            Swal.close();
+            if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
             console.error(err);
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถสร้าง PDF ได้: ' + err.message, 'error');
         }
@@ -4589,7 +4605,7 @@
         if (!window.globalVolumeThresholds) {
             Swal.fire({ title: 'กำลังดึงข้อมูลเกณฑ์ขั้นต่ำ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             google.script.run.withSuccessHandler(res => {
-                Swal.close();
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
                 if (res.status === 'success') {
                     window.globalVolumeThresholds = res.data;
                     initVolAlertFilters();
@@ -4944,7 +4960,7 @@
 
         google.script.run
             .withSuccessHandler(function(response) {
-                Swal.close();
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
                 if (response.status === 'success') {
                     window.expensesDataMap = response.data;
                 } else {
@@ -4967,7 +4983,7 @@
                 renderKhorLorReport();
             })
             .withFailureHandler(function(error) {
-                Swal.close();
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); Swal.close();
                 Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลค่าใช้จ่ายได้ จะแสดงผลโดยไม่มีข้อมูลส่วนนี้', 'warning');
                 window.expensesDataMap = {};
                 
@@ -6073,7 +6089,7 @@
         const dropoffZone = document.getElementById('dropoffDropZone');
         const dropoffInput = document.getElementById('dropoffUpload');
         if (dropoffZone && dropoffInput) {
-            dropoffInput.setAttribute('accept', 'application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            dropoffInput.setAttribute('accept', 'application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, .csv');
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dropoffZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false));
             ['dragenter', 'dragover'].forEach(eventName => dropoffZone.addEventListener(eventName, () => dropoffZone.classList.add('border-blue-500', 'bg-blue-50'), false));
             ['dragleave', 'drop'].forEach(eventName => dropoffZone.addEventListener(eventName, () => dropoffZone.classList.remove('border-blue-500', 'bg-blue-50'), false));
@@ -6116,7 +6132,7 @@
     };
 
     window.handleLogisticsFileUpload = function (input) {
-        if (!input.files || input.files.length === 0) return window.resetLogisticsUI();
+        if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
         document.getElementById('logisticsUploadDefault')?.classList.add('hidden');
         document.getElementById('logisticsFileInfo')?.classList.remove('hidden');
@@ -6136,7 +6152,7 @@
 
     // --- UI Handler: Additional Logistics (เพิ่มเติม) ---
     window.handleAddLogisticsFileUpload = function (input) {
-        if (!input.files || input.files.length === 0) return window.resetAddLogisticsUI();
+        if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
         document.getElementById('addLogisticsUploadDefault')?.classList.add('hidden');
         document.getElementById('addLogisticsFileInfo')?.classList.remove('hidden');
@@ -6155,7 +6171,7 @@
     }
 
     window.handleTiktokFileUpload = function (input) {
-        if (!input.files || input.files.length === 0) return window.resetTiktokUI();
+        if (!input.files || input.files.length === 0) return;
         document.getElementById('tiktokUploadDefault')?.classList.add('hidden');
         document.getElementById('tiktokFileInfo')?.classList.remove('hidden');
         document.getElementById('dropoffDropZone')?.classList.add('border-blue-500', 'bg-blue-50');
@@ -6285,7 +6301,6 @@
                                      `อัปเดต: ${grandTotalUpdated.toLocaleString()} รายการ\n` +
                                      `ใช้เวลา: ${timeString}`;
                 google.script.run.withFailureHandler(console.error).sendSuccessToLine(successMessage);
-                window.resetTableauUI();
                 return;
             }
             
@@ -6451,7 +6466,7 @@
             const allLines = e.target.result.split(/\r\n|\n/);
             if (allLines.length <= 1) {
                 if (timerInterval) clearInterval(timerInterval);
-                Swal.fire('ข้อมูลว่างเปล่า', 'ไฟล์ CSV ไม่มีข้อมูล', 'error'); return window.resetLogisticsUI();
+                Swal.fire('ข้อมูลว่างเปล่า', 'ไฟล์ CSV ไม่มีข้อมูล', 'error'); return;
             }
 
             let headers = allLines[0].split(',').map(h => h.replace(/^[\uFEFF\xA0]+/, '').replace(/^"|"$/g, '').trim());
@@ -6463,7 +6478,7 @@
                 if (timerInterval) clearInterval(timerInterval);
                 if (typeof window.errorSound !== 'undefined') window.errorSound.play().catch(e => { });
                 Swal.fire({ icon: 'error', title: 'รูปแบบไฟล์ไม่ถูกต้อง', html: 'หัวตารางไม่ตรงตามที่ระบบกำหนด กรุณาตรวจสอบไฟล์อีกครั้ง', confirmButtonColor: '#d33', confirmButtonText: 'รับทราบ' });
-                window.resetLogisticsUI(); return;
+                return;
             }
 
             const dataLines = allLines.slice(1).filter(line => line.trim() !== "");
@@ -6505,7 +6520,6 @@
                     confirmButtonColor: '#d33', 
                     confirmButtonText: 'รับทราบ' 
                 });
-                window.resetLogisticsUI(); 
                 return;
             }
 
@@ -6632,7 +6646,7 @@
             const allLines = e.target.result.split(/\r\n|\n/);
             if (allLines.length <= 1) {
                 if (timerInterval) clearInterval(timerInterval);
-                Swal.fire('ข้อมูลว่างเปล่า', 'ไฟล์ CSV ไม่มีข้อมูล', 'error'); return window.resetAddLogisticsUI();
+                Swal.fire('ข้อมูลว่างเปล่า', 'ไฟล์ CSV ไม่มีข้อมูล', 'error'); return;
             }
 
             let headers = allLines[0].split(',').map(h => h.replace(/^[\uFEFF\xA0]+/, '').replace(/^"|"$/g, '').trim());
@@ -6642,7 +6656,7 @@
                 if (timerInterval) clearInterval(timerInterval);
                 if (typeof errorSound !== 'undefined') errorSound.play().catch(e => { });
                 Swal.fire({ icon: 'error', title: 'รูปแบบไฟล์ไม่ถูกต้อง', html: 'หัวตารางของไฟล์ CSV ไม่ตรงตามที่ระบบกำหนด กรุณาตรวจสอบไฟล์อีกครั้ง', confirmButtonColor: '#d33' });
-                window.resetAddLogisticsUI(); return;
+                return;
             }
 
             const thaiMonthsFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -6726,7 +6740,7 @@
 
             if (totalRows === 0) {
                 if (timerInterval) clearInterval(timerInterval);
-                Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลที่สามารถจัดกลุ่มได้', 'warning'); return window.resetAddLogisticsUI();
+                Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลที่สามารถจัดกลุ่มได้', 'warning'); return;
             }
 
             const BATCH_SIZE = 5000;
@@ -6821,12 +6835,10 @@
         Swal.fire({
             title: 'กำลังอัปโหลดและประมวลผล...',
             html: `<div class="mb-2 text-sm font-bold text-center text-blue-600">ข้อมูลรายได้ E-PARCEL (Tiktok)</div>
+                   <div class="text-xs font-bold text-gray-600 text-center mb-2" id="swalTikPhase"><i class="fas fa-spinner fa-spin mr-2"></i>เตรียมไฟล์...</div>
                    <div class="mb-3 text-sm text-gray-700 text-left bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-inner">
                        <div class="flex justify-between items-center mb-2 border-b border-blue-100 pb-2">
-                           <span class="font-bold text-blue-800" id="swalTikPhase"><i class="fas fa-spinner fa-spin mr-2"></i>เตรียมไฟล์...</span>
-                       </div>
-                       <div class="flex justify-between items-center mb-2 border-b border-blue-100 pb-2">
-                           <span class="font-bold"><i class="fas fa-tasks text-gray-500 mr-2"></i>อัปโหลดแล้ว:</span>
+                           <span class="font-bold"><i class="fas fa-tasks text-gray-500 mr-2"></i>ตรวจสอบแล้ว:</span>
                            <span class="font-mono bg-white px-2 py-0.5 rounded border border-blue-200 shadow-sm"><b id="swalTikProcessed" class="text-blue-600">0</b> / <span id="swalTikTotal">-</span></span>
                        </div>
                        <div class="flex justify-between items-center mb-2">
@@ -6854,7 +6866,82 @@
             willClose: () => { if (timerInterval) clearInterval(timerInterval); }
         });
 
-        let allExtractedJson = [];
+        const groupedDataMap = {}; // ตัวแปรเก็บผลรวม Grouping ของทุกไฟล์ย่อย
+        const thaiMonthsLocal = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+        // ฟังก์ชันในการประมวลผลข้อมูลแต่ละบรรทัด (ย้ายออกมาเพื่อให้ทั้ง CSV และ XLS เรียกใช้ได้)
+        const processRow = (rowObj) => {
+            const barcode = String(rowObj['BARCODE'] || '').trim();
+            let postCode = String(rowObj['POST_CODE'] || '').trim();
+            const regionDesc = String(rowObj['REGION_DESC'] || '').trim();
+            const vendorName = String(rowObj['VNDR_NAME'] || '').trim();
+            let receiveTimeRaw = rowObj['RECEIVE_TIME'];
+
+            if (!barcode || !postCode || !regionDesc) return;
+            if (postCode.length > 0 && postCode.length < 5) postCode = postCode.padStart(5, '0');
+
+            let emsPrice = parseFloat(rowObj['EMS_PRICE']) || 0;
+            let monthName = ""; let yearNum = "";
+
+            if (receiveTimeRaw !== undefined && receiveTimeRaw !== "") {
+                if (typeof receiveTimeRaw === 'number') {
+                    let dateObj = new Date(Math.round((receiveTimeRaw - 25569) * 86400 * 1000));
+                    monthName = thaiMonthsLocal[dateObj.getMonth()] || "";
+                    let y = dateObj.getFullYear();
+                    yearNum = (y > 2500 ? y - 543 : y).toString();
+                } else {
+                    let receiveTimeStr = String(receiveTimeRaw).trim();
+                    let dateOnly = receiveTimeStr.split(' ')[0]; // ตัดเอาเฉพาะวันที่ (ทิ้งเวลา)
+
+                    if (dateOnly.includes('/')) {
+                        let parts = dateOnly.split('/');
+                        if (parts.length >= 3) {
+                            let d = parseInt(parts[0], 10);
+                            let m = parseInt(parts[1], 10);
+                            let y = parseInt(parts[2], 10);
+
+                            if (m > 12 && d <= 12) {
+                                let temp = d; d = m; m = temp;
+                            }
+
+                            if (y > 2500) y -= 543;
+                            yearNum = y.toString();
+                            monthName = thaiMonthsLocal[m - 1] || "";
+                        }
+                    } else if (dateOnly.includes('-')) {
+                        let parts = dateOnly.split('-');
+                        if (parts.length >= 3) {
+                            let y = parseInt(parts[0], 10);
+                            let p1 = parseInt(parts[1], 10);
+                            let p2 = parseInt(parts[2], 10);
+
+                            let m = 1;
+                            if (p1 > 12 && p2 <= 12) {
+                                m = p2;
+                            } else if (p1 <= 12 && p2 > 12) {
+                                m = p1;
+                            } else {
+                                m = p2;
+                            }
+
+                            if (y > 2500) y -= 543;
+                            yearNum = y.toString();
+                            monthName = thaiMonthsLocal[m - 1] || "";
+                        }
+                    }
+                }
+            }
+
+            const key = `${postCode}_${regionDesc}_${vendorName}_${monthName}_${yearNum}`;
+            if (!groupedDataMap[key]) {
+                groupedDataMap[key] = { region: regionDesc, postCode: postCode, vendorName: vendorName, month: monthName, year: yearNum, barcodes: new Set(), totalRevenue: 0 };
+            }
+
+            if (!groupedDataMap[key].barcodes.has(barcode)) {
+                groupedDataMap[key].barcodes.add(barcode);
+                groupedDataMap[key].totalRevenue += emsPrice;
+            }
+        };
 
         const processAllFiles = async () => {
             try {
@@ -6864,52 +6951,94 @@
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    if (document.getElementById('swalTikPhase')) document.getElementById('swalTikPhase').innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>อ่านไฟล์ Excel (${i + 1}/${files.length})...`;
+                    if (document.getElementById('swalTikPhase')) document.getElementById('swalTikPhase').innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>อ่านไฟล์ ${file.name}...`;
 
-                    const percent = Math.round((bytesProcessed / totalBytesAllFiles) * 100);
-                    if (document.getElementById('swalTikProgressBar')) document.getElementById('swalTikProgressBar').style.width = percent + '%';
-                    if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = percent + '% (กำลังอ่านไฟล์ ' + (i+1) + '/' + files.length + ')';
+                    // หากเป็นไฟล์ .csv (ใช้ระบบหั่นไฟล์ / Chunking)
+                    if (file.name.toLowerCase().endsWith('.csv')) {
+                        const CHUNK_SIZE = 5 * 1024 * 1024; // หั่นทีละ 5 MB
+                        let offset = 0;
+                        let remainder = '';
+                        let headers = [];
 
-                    await new Promise(r => setTimeout(r, 50));
+                        while (offset < file.size) {
+                            const chunk = file.slice(offset, offset + CHUNK_SIZE);
+                            const text = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = e => resolve(e.target.result);
+                                reader.onerror = e => reject(e);
+                                reader.readAsText(chunk, 'TIS-620'); // รองรับภาษาไทยจาก Excel CSV
+                            });
 
+                            let lines = (remainder + text).split(/\r?\n/);
+                            // เก็บประโยคสุดท้ายที่อาจจะถูกหั่นขาดครึ่งไว้ต่อกับรอบถัดไป
+                            remainder = lines.pop(); 
 
-                    const fileJson = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = percent + '% (กำลังแยกข้อมูลไฟล์ที่ ' + (i+1) + '/' + files.length + ')';
+                            if (offset === 0) {
+                                // รอบแรกสุดคือส่วนหัวคอลัมน์
+                                headers = lines.shift().split(',').map(h => h.replace(/^"|"$/g, '').trim());
+                            }
+
+                            for (let j = 0; j < lines.length; j++) {
+                                if (!lines[j].trim()) continue;
+                                const values = lines[j].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
+                                const rowObj = {};
+                                headers.forEach((h, idx) => { rowObj[h] = values[idx] !== undefined ? values[idx] : ""; });
+                                processRow(rowObj); // นำไป Grouping ทันที
+                            }
+
+                            offset += CHUNK_SIZE;
+                            bytesProcessed += chunk.size;
+                            const percent = Math.round((bytesProcessed / totalBytesAllFiles) * 100);
+                            if (document.getElementById('swalTikProgressBar')) document.getElementById('swalTikProgressBar').style.width = percent + '%';
+                            if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = percent + '% (กำลังซอยย่อยไฟล์ที่ ' + (i+1) + '/' + files.length + ')';
                             
-                            setTimeout(() => {
-                                try {
-                                    const data = new Uint8Array(e.target.result);
-                                    const workbook = XLSX.read(data, { type: 'array' });
-                                    const firstSheetName = workbook.SheetNames[0];
-                                    const worksheet = workbook.Sheets[firstSheetName];
-                                    const csvString = XLSX.utils.sheet_to_csv(worksheet);
-                                    const csvWorkbook = XLSX.read(csvString, { type: 'string', raw: true });
-                                    const jsonData = XLSX.utils.sheet_to_json(csvWorkbook.Sheets[csvWorkbook.SheetNames[0]], { defval: "" });
-                                    resolve(jsonData);
-                                } catch (err) { reject(err); }
-                            }, 50);
-                        };
-                        reader.onerror = (e) => reject(e);
-                        reader.readAsArrayBuffer(file);
-                    });
-                    
-                    bytesProcessed += file.size;
-                    allExtractedJson = allExtractedJson.concat(fileJson);
-                    
-                    const percentAfter = Math.round((bytesProcessed / totalBytesAllFiles) * 100);
-                    if (document.getElementById('swalTikProgressBar')) document.getElementById('swalTikProgressBar').style.width = percentAfter + '%';
-                    if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = percentAfter + '% (เสร็จสิ้น ' + (i+1) + '/' + files.length + ')';
-                    
-                    await new Promise(r => setTimeout(r, 50));
+                            await new Promise(r => setTimeout(r, 10)); // พักให้เบราว์เซอร์หายใจ ไม่ค้าง
+                        }
+                        
+                        // ประมวลผลบรรทัดสุดท้ายที่เหลืออยู่
+                        if (remainder.trim()) {
+                            const values = remainder.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
+                            const rowObj = {};
+                            headers.forEach((h, idx) => { rowObj[h] = values[idx] !== undefined ? values[idx] : ""; });
+                            processRow(rowObj);
+                        }
+
+                    } 
+                    // หากยังเป็นไฟล์ .xls (ใช้ระบบ SheetJS แบบเดิม)
+                    else {
+                        const fileJson = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                setTimeout(() => {
+                                    try {
+                                        const data = new Uint8Array(e.target.result);
+                                        const workbook = XLSX.read(data, { type: 'array' });
+                                        const firstSheetName = workbook.SheetNames[0];
+                                        const worksheet = workbook.Sheets[firstSheetName];
+                                        const csvString = XLSX.utils.sheet_to_csv(worksheet);
+                                        const csvWorkbook = XLSX.read(csvString, { type: 'string', raw: true });
+                                        const jsonData = XLSX.utils.sheet_to_json(csvWorkbook.Sheets[csvWorkbook.SheetNames[0]], { defval: "" });
+                                        resolve(jsonData);
+                                    } catch (err) { reject(err); }
+                                }, 50);
+                            };
+                            reader.onerror = (e) => reject(e);
+                            reader.readAsArrayBuffer(file);
+                        });
+                        
+                        fileJson.forEach(row => processRow(row)); // นำไป Grouping
+                        
+                        bytesProcessed += file.size;
+                        const percentAfter = Math.round((bytesProcessed / totalBytesAllFiles) * 100);
+                        if (document.getElementById('swalTikProgressBar')) document.getElementById('swalTikProgressBar').style.width = percentAfter + '%';
+                        if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = percentAfter + '% (เสร็จสิ้น ' + (i+1) + '/' + files.length + ')';
+                    }
                 }
                 
-                // Reset progress bar for the next phase
                 if (document.getElementById('swalTikProgressBar')) document.getElementById('swalTikProgressBar').style.width = '0%';
                 if (document.getElementById('swalTikProgressText')) document.getElementById('swalTikProgressText').innerText = '0%';
                 
-                processExtractedData(allExtractedJson);
+                finishProcessing(); // ส่งไปเซิร์ฟเวอร์
             } catch (error) {
                 if (timerInterval) clearInterval(timerInterval);
                 Swal.fire('เกิดข้อผิดพลาดในการอ่านไฟล์', error.message, 'error');
@@ -6917,92 +7046,8 @@
             }
         };
 
-        function processExtractedData(extractedJson) {
-            if (extractedJson.length === 0) {
-                if (timerInterval) clearInterval(timerInterval);
-                Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลในไฟล์ที่อัปโหลด', 'warning');
-                return window.resetTiktokUI();
-            }
-
-            if (document.getElementById('swalTikPhase')) document.getElementById('swalTikPhase').innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>จัดกลุ่มข้อมูล ${extractedJson.length.toLocaleString()} แถว...`;
-
-            const groupedDataMap = {};
-            const thaiMonthsLocal = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-
-            extractedJson.forEach(row => {
-                const barcode = String(row['BARCODE'] || '').trim();
-                let postCode = String(row['POST_CODE'] || '').trim();
-                const regionDesc = String(row['REGION_DESC'] || '').trim();
-                const vendorName = String(row['VNDR_NAME'] || '').trim();
-                let receiveTimeRaw = row['RECEIVE_TIME'];
-
-                if (!barcode || !postCode || !regionDesc) return;
-                if (postCode.length > 0 && postCode.length < 5) postCode = postCode.padStart(5, '0');
-
-                let emsPrice = parseFloat(row['EMS_PRICE']) || 0;
-
-                // 💡 ปรับปรุงตรรกะการอ่านวันที่ให้รองรับทุกรูปแบบอย่างแม่นยำ
-                let monthName = ""; let yearNum = "";
-                if (receiveTimeRaw !== undefined && receiveTimeRaw !== "") {
-                    if (typeof receiveTimeRaw === 'number') {
-                        let dateObj = new Date(Math.round((receiveTimeRaw - 25569) * 86400 * 1000));
-                        monthName = thaiMonthsLocal[dateObj.getMonth()] || "";
-                        let y = dateObj.getFullYear();
-                        yearNum = (y > 2500 ? y - 543 : y).toString();
-                    } else {
-                        let receiveTimeStr = String(receiveTimeRaw).trim();
-                        let dateOnly = receiveTimeStr.split(' ')[0]; // ตัดเอาเฉพาะวันที่ (ทิ้งเวลา)
-
-                        if (dateOnly.includes('/')) {
-                            let parts = dateOnly.split('/');
-                            if (parts.length >= 3) {
-                                let d = parseInt(parts[0], 10);
-                                let m = parseInt(parts[1], 10);
-                                let y = parseInt(parts[2], 10);
-
-                                if (m > 12 && d <= 12) {
-                                    let temp = d; d = m; m = temp;
-                                }
-
-                                if (y > 2500) y -= 543;
-                                yearNum = y.toString();
-                                monthName = thaiMonthsLocal[m - 1] || "";
-                            }
-                        } else if (dateOnly.includes('-')) {
-                            let parts = dateOnly.split('-');
-                            if (parts.length >= 3) {
-                                let y = parseInt(parts[0], 10);
-                                let p1 = parseInt(parts[1], 10);
-                                let p2 = parseInt(parts[2], 10);
-
-                                let m = 1;
-                                if (p1 > 12 && p2 <= 12) {
-                                    m = p2;
-                                } else if (p1 <= 12 && p2 > 12) {
-                                    m = p1;
-                                } else {
-                                    m = p2;
-                                }
-
-                                if (y > 2500) y -= 543;
-                                yearNum = y.toString();
-                                monthName = thaiMonthsLocal[m - 1] || "";
-                            }
-                        }
-                    }
-                }
-
-                const key = `${postCode}_${regionDesc}_${vendorName}_${monthName}_${yearNum}`;
-                if (!groupedDataMap[key]) {
-                    groupedDataMap[key] = { region: regionDesc, postCode: postCode, vendorName: vendorName, month: monthName, year: yearNum, barcodes: new Set(), totalRevenue: 0 };
-                }
-
-                if (!groupedDataMap[key].barcodes.has(barcode)) {
-                    groupedDataMap[key].barcodes.add(barcode);
-                    groupedDataMap[key].totalRevenue += emsPrice;
-                }
-            });
-
+        function finishProcessing() {
+            // ดึงผลลัพธ์ที่รวมยอด (Grouping) เสร็จแล้วทั้งหมดมาส่งขึ้น Apps Script
             const compressedData = Object.values(groupedDataMap).map(g => ({
                 region: g.region, postCode: g.postCode, vendorName: g.vendorName, month: g.month, year: g.year, uniqueQty: g.barcodes.size, totalRevenue: g.totalRevenue
             }));
@@ -7010,7 +7055,7 @@
             if (compressedData.length === 0) {
                 if (timerInterval) clearInterval(timerInterval);
                 Swal.fire('ข้อมูลว่างเปล่า', 'ไม่พบข้อมูลที่ตรงตามเงื่อนไขในไฟล์', 'warning');
-                return window.resetTiktokUI();
+                return;
             }
 
             if (document.getElementById('swalTikPhase')) document.getElementById('swalTikPhase').innerHTML = `<i class="fas fa-cloud-upload-alt text-blue-800 mr-2"></i>บันทึกข้อมูล (${compressedData.length.toLocaleString()} กลุ่ม)...`;
@@ -7030,17 +7075,17 @@
                             google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).processDropOffExcelData(JSON.stringify(chunk));
                         });
 
-                            if (result.status === 'success') {
-                                finalGroups += result.totalGroups || 0;
-                                finalUniqueBarcodes += result.totalUniqueBarcodes || 0;
-                                finalNewRowsAdded += result.newRowsAdded || 0;
-                                finalRowsUpdated += result.rowsUpdated || 0;
-                                totalUnmatchedTiktok += result.unmatchedCount || 0;
-                                if (result.newServicesAdded) {
-                                    result.newServicesAdded.forEach(s => allNewServicesTiktok.add(s));
-                                }
+                        if (result.status === 'success') {
+                            finalGroups += result.totalGroups || 0;
+                            finalUniqueBarcodes += result.totalUniqueBarcodes || 0;
+                            finalNewRowsAdded += result.newRowsAdded || 0;
+                            finalRowsUpdated += result.rowsUpdated || 0;
+                            totalUnmatchedTiktok += result.unmatchedCount || 0;
+                            if (result.newServicesAdded) {
+                                result.newServicesAdded.forEach(s => allNewServicesTiktok.add(s));
+                            }
 
-                                processedRows += chunk.length;
+                            processedRows += chunk.length;
                             const percent = Math.round((processedRows / totalRows) * 100);
 
                             if (document.getElementById('swalTikProcessed')) document.getElementById('swalTikProcessed').innerText = processedRows.toLocaleString();
@@ -7059,7 +7104,7 @@
 
                     let unmatchedHtml = "";
                     if (allNewServicesTiktok.size > 0) {
-                        unmatchedHtml = `<li class="text-red-600 font-bold mt-2">พบรายชื่อบริการใหม่ที่ยังไม่ได้ผูกกลุ่ม (เพิ่มลงในฐานข้อมูลแล้ว): <b>${totalUnmatchedTiktok.toLocaleString()}</b> รายการ</li>`;
+                        unmatchedHtml = `<li class="text-red-600 font-bold mt-2"><a href="https://docs.google.com/spreadsheets/d/1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs/edit?gid=928748719#gid=928748719" target="_blank" class="text-red-600 hover:text-red-800 underline"><i class="fas fa-external-link-alt mr-1"></i>พบรายชื่อบริการใหม่ที่ยังไม่ได้ผูกกลุ่ม (เพิ่มลงในฐานข้อมูลแล้ว): <b>${totalUnmatchedTiktok.toLocaleString()}</b> รายการ</a></li>`;
                     }
 
                     Swal.fire({
@@ -7075,16 +7120,22 @@
                                 </ul>
                                 <div class="bg-white p-2 rounded border border-blue-100 flex items-center gap-2 text-xs text-blue-700 font-bold"><i class="fas fa-stopwatch text-blue-50 text-base"></i> ใช้เวลาทั้งหมด: ${timeString}</div>
                                </div>`,
-                        icon: 'success'
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-redo mr-1"></i> ส่งข้อมูลซ้ำอีกครั้ง',
+                        cancelButtonText: '<i class="fas fa-times mr-1"></i> ปิด (เคลียร์ข้อมูล)',
+                        confirmButtonColor: '#2563eb', // blue-600
+                        cancelButtonColor: '#ef4444', // red-500
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            setTimeout(() => { uploadDropOffData(); }, 300);
+                        } else {
+                            window.resetTiktokUI();
+                        }
                     });
-                    let successMessage = `ไฟล์: E-PARCEL (Tiktok)\n` +
-                                         `พบลูกค้ารวม: ${finalGroups.toLocaleString()} ราย\n` +
-                                         `จำนวน Barcode ไม่ซ้ำรวม: ${finalUniqueBarcodes.toLocaleString()} ชิ้น\n` +
-                                         `เพิ่มข้อมูลใหม่: ${finalNewRowsAdded.toLocaleString()} แถว\n` +
-                                         `อัปเดตข้อมูลเดิม: ${finalRowsUpdated.toLocaleString()} แถว\n` +
-                                         `ใช้เวลา: ${timeString}`;
+                    let successMessage = `ไฟล์: E-PARCEL (Tiktok)\nพบลูกค้ารวม: ${finalGroups.toLocaleString()} ราย\nจำนวน Barcode ไม่ซ้ำรวม: ${finalUniqueBarcodes.toLocaleString()} ชิ้น\nเพิ่มข้อมูลใหม่: ${finalNewRowsAdded.toLocaleString()} แถว\nอัปเดตข้อมูลเดิม: ${finalRowsUpdated.toLocaleString()} แถว\nใช้เวลา: ${timeString}`;
                     google.script.run.withFailureHandler(console.error).sendSuccessToLine(successMessage);
-                    window.resetTiktokUI();
 
                 } catch (error) {
                     if (timerInterval) clearInterval(timerInterval);
@@ -7098,7 +7149,6 @@
         }
         processAllFiles();
     };
-
     // ==========================================
     // 7. A1-A14 EXTRACTION LOGIC
     // ==========================================

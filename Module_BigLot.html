@@ -237,7 +237,7 @@
         <div class="w-full lg:w-3/4 flex-1">
             <!-- Loading skeleton state -->
             <div id="bigLotLoadingState"
-                class="glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[400px] shadow-lg">
+                class="hidden glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[400px] shadow-lg">
                 <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
                 <p class="font-bold text-lg text-gray-700">กำลังดาวน์โหลดข้อมูลคลังสินค้า...</p>
                 <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังสื่อสารกับฐานข้อมูล Google Sheets</p>
@@ -318,7 +318,12 @@
 
 <script>
     // Module Global State
-    window.bigLotProducts = [];
+    try {
+        const _cachedBL = typeof SafeStorage !== 'undefined' ? SafeStorage.getItem('thp_biglot_products') : null;
+        window.bigLotProducts = _cachedBL ? JSON.parse(_cachedBL) : [];
+    } catch(e) {
+        window.bigLotProducts = [];
+    }
     window.bigLotCart = [];
     window.bigLotSidebarActiveTab = 'cart';
     window.bigLotSearchQuery = '';
@@ -330,12 +335,19 @@
         if (typeof google !== 'undefined') {
             google.script.run
                 .withSuccessHandler(res => {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (res && res.status === 'success') {
                         window.bigLotProducts = res.data || [];
+                        try {
+                            if (typeof SafeStorage !== 'undefined') SafeStorage.setItem('thp_biglot_products', JSON.stringify(window.bigLotProducts));
+                        } catch(e) {}
                         // Automatically update home ads whenever products are loaded
                         if (typeof window.renderHomeAds === 'function') {
                             window.renderHomeAds(window.bigLotProducts);
-                        }
+                          }
+                          if (typeof window.updateGlobalLoaderAds === 'function') {
+                              window.updateGlobalLoaderAds();
+                          }
                         if (callback) callback(window.bigLotProducts);
                     } else {
                         if (loadingState) loadingState.classList.add('hidden');
@@ -351,6 +363,7 @@
                     }
                 })
                 .withFailureHandler(err => {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (loadingState) loadingState.classList.add('hidden');
                     if (!silent) {
                         Swal.fire({
@@ -374,13 +387,16 @@
                 ];
                 if (typeof window.renderHomeAds === 'function') {
                     window.renderHomeAds(window.bigLotProducts);
-                }
+                          }
+                          if (typeof window.updateGlobalLoaderAds === 'function') {
+                              window.updateGlobalLoaderAds();
+                          }
                 if (callback) callback(window.bigLotProducts);
             }, 600);
         }
     };
     // Module Global State
-    window.bigLotProducts = [];
+    if (!window.bigLotProducts || window.bigLotProducts.length === 0) window.bigLotProducts = [];
     window.bigLotCart = [];
     window.bigLotSidebarActiveTab = 'cart';
     window.bigLotSearchQuery = '';
@@ -394,9 +410,13 @@
         const emptyState = document.getElementById('bigLotEmptyState');
         const grid = document.getElementById('bigLotCatalogGrid');
 
-        if (loadingState) loadingState.classList.remove('hidden');
+        if (loadingState) loadingState.classList.add('hidden');
         if (emptyState) emptyState.classList.add('hidden');
         if (grid) grid.classList.add('hidden');
+
+        if (typeof showGlobalLoader === 'function') {
+            showGlobalLoader('กำลังดาวน์โหลดข้อมูลคลังสินค้า...');
+        }
 
         // Check and setup Admin view permissions
         const isAdmin = typeof currentUserInfo !== 'undefined' && String(currentUserInfo.user).toLowerCase() === 'admin';
@@ -455,6 +475,7 @@
 
     // 🖥️ RENDER FUNCTION: Catalog Grid
     window.renderBigLotGrid = function () {
+        if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
         const grid = document.getElementById('bigLotCatalogGrid');
         const loadingState = document.getElementById('bigLotLoadingState');
         const emptyState = document.getElementById('bigLotEmptyState');
@@ -1023,7 +1044,10 @@
             window.renderBigLotGrid();
             if (typeof window.renderHomeAds === 'function') {
                 window.renderHomeAds(window.bigLotProducts);
-            }
+                          }
+                          if (typeof window.updateGlobalLoaderAds === 'function') {
+                              window.updateGlobalLoaderAds();
+                          }
         }
 
         if (typeof google !== 'undefined') {
@@ -1074,7 +1098,10 @@
             window.renderBigLotGrid();
             if (typeof window.renderHomeAds === 'function') {
                 window.renderHomeAds(window.bigLotProducts);
-            }
+                          }
+                          if (typeof window.updateGlobalLoaderAds === 'function') {
+                              window.updateGlobalLoaderAds();
+                          }
         }
 
         if (typeof google !== 'undefined') {

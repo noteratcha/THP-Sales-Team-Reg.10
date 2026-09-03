@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0901.0948';
+    var APP_VERSION = 'Ver. 2026.0903.1638';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -860,7 +860,7 @@
                     
                     <!-- Right Sidebar (Big Lot) -->
                     <div class="w-full lg:w-[280px] xl:w-[320px] shrink-0 hidden lg:flex flex-col gap-5" id="rightSidebarColumn">
-                        <div id="biglot-recommended-container" class="hidden w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-4 relative flex flex-col gap-3 group transition-shadow overflow-hidden">
+                        <div id="biglot-recommended-container" class="hidden w-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100/50 p-4 relative z-10 flex flex-col gap-3 group transition-shadow overflow-hidden">
                         <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-orange-50 to-transparent rounded-full -mr-16 -mt-16 z-0"></div>
                     <div class="flex flex-col items-center justify-center gap-2 mb-4 relative z-10 w-full text-center">
                         <h2 class="text-lg font-black flex items-center justify-center gap-2">
@@ -963,9 +963,31 @@
         </div>
     </main>
     <div id="globalLoader"
-        class="hidden fixed top-0 right-0 bottom-0 left-0 lg:left-[260px] z-[100] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center">
-        <i class="fas fa-circle-notch fa-spin text-theme-orange text-5xl mb-4"></i>
-        <p id="globalLoaderText" class="text-lg font-bold">กำลังเตรียมข้อมูล...</p>
+        class="hidden fixed top-0 right-0 bottom-0 left-0 lg:left-[260px] z-[100] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-300 p-4 lg:p-8">
+        
+        <!-- Fallback Spinner -->
+        <div id="globalLoaderSpinnerOnly" class="flex flex-col items-center justify-center shrink-0 bg-white p-8 rounded-2xl shadow-xl">
+            <i class="fas fa-circle-notch fa-spin text-theme-orange text-5xl mb-4 drop-shadow-sm"></i>
+            <p id="globalLoaderText" class="text-xl font-bold text-gray-800 tracking-wide drop-shadow-sm">กำลังเตรียมข้อมูล...</p>
+        </div>
+        
+        <!-- Big Lot Ads Popup Container -->
+        <div id="globalLoaderAdsContainer" class="hidden w-full max-w-5xl relative flex-col shrink-0 transform scale-95 opacity-0 transition-all duration-500 mx-auto">
+            <div class="text-center mb-6 px-4 animate-fade-in-up">
+                <h2 class="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-theme-orange via-red-500 to-yellow-500 drop-shadow-md tracking-tight">
+                    <i class="fas fa-gift text-theme-orange mr-3 drop-shadow-sm"></i>สินค้าแนะนำ ระหว่างโหลดข้อมูล
+                </h2>
+                <div class="mt-3 inline-flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-sm">
+                    <i class="fas fa-circle-notch fa-spin text-theme-orange text-sm"></i> 
+                    <span class="global-loader-slide-text text-sm font-semibold text-white tracking-wide">กำลังดึงข้อมูล...</span>
+                </div>
+            </div>
+            <div class="swiper global-loader-swiper-container overflow-hidden w-full mx-auto relative z-10 !pb-12">
+                <div id="globalLoaderAdsGrid" class="swiper-wrapper flex items-stretch"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- Script จำลองฟังก์ชันชั่วคราวสำหรับแก้ Error ในโหมด Preview ของ Canvas -->
@@ -1268,16 +1290,150 @@
         }
     }
 
-    function showGlobalLoader(text = 'กำลังเตรียมข้อมูล...') {
+    
+    window.updateGlobalLoaderAds = function() {
+        const loader = document.getElementById('globalLoader');
+        if (!loader || loader.classList.contains('hidden')) return; // Only update if currently showing
+        
+        const text = document.getElementById('globalLoaderText') ? document.getElementById('globalLoaderText').innerText : 'กำลังดึงข้อมูล...';
+        const spinnerOnly = document.getElementById('globalLoaderSpinnerOnly');
+        const adsContainer = document.getElementById('globalLoaderAdsContainer');
+        const adsGrid = document.getElementById('globalLoaderAdsGrid');
+        
+        if (adsContainer && adsGrid && window.bigLotProducts && window.bigLotProducts.length > 0) {
+            const recommendedList = window.bigLotProducts.filter(p => p.recommend === 'Recommend' && (p.status || '').toLowerCase() === 'in stock');
+            
+            if (recommendedList.length > 0) {
+                if (spinnerOnly) spinnerOnly.classList.add('hidden');
+                
+                let slidesHtml = '';
+                recommendedList.forEach(p => {
+                    const processedImageUrl = typeof window.transformGoogleDriveUrl === 'function' ? window.transformGoogleDriveUrl(p.image) : p.image;
+                    const priceFormatted = Number(p.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    
+                    slidesHtml += `
+                    <div class="swiper-slide h-auto">
+                        <div class="flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-10 p-0 h-full bg-white rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 overflow-hidden relative border-4 border-orange-100">
+                            
+                            
+                            <!-- Image -->
+                            <div class="w-full md:w-[45%] lg:w-[50%] flex items-center justify-center bg-gradient-to-br from-orange-50 to-white rounded-xl relative border border-gray-100/50 p-4">
+                                <img src="${window.escapeHtml ? window.escapeHtml(processedImageUrl) : processedImageUrl}" alt="${window.escapeHtml ? window.escapeHtml(p.name) : p.name}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10">
+                            </div>
+                            
+                            <!-- Details -->
+                            <div class="w-full md:w-[55%] lg:w-[50%] flex-shrink-0 text-left flex flex-col justify-center space-y-4 py-2 md:py-4">
+                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 md:pb-3 mt-4 md:mt-0">
+                                    <span class="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg border border-orange-100"><i class="fas fa-map-marker-alt mr-1"></i>${window.escapeHtml ? window.escapeHtml(p.sourceOffice) : p.sourceOffice}</span>
+                                    <span class="text-[10px] text-gray-400 font-mono">${window.escapeHtml ? window.escapeHtml(p.code) : p.code}</span>
+                                </div>
+                                <h3 class="text-xl md:text-3xl font-black text-gray-800 leading-tight">${window.escapeHtml ? window.escapeHtml(p.name) : p.name}</h3>
+                                <div class="bg-gray-50 rounded-xl p-3 md:p-4 border border-gray-100/80">
+                                    <p class="text-xs md:text-sm text-gray-500 font-medium mb-1">ราคาจัดจำหน่าย</p>
+                                    <div class="flex items-end gap-2">
+                                        <span class="text-3xl md:text-5xl font-black text-theme-orange tracking-tighter drop-shadow-sm">${priceFormatted}</span>
+                                        <span class="text-sm md:text-base font-bold text-gray-600 mb-1 md:mb-2">บาท</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                });
+                
+                if (window.globalLoaderSwiper) {
+                    try { window.globalLoaderSwiper.destroy(true, true); } catch(e) {}
+                    window.globalLoaderSwiper = null;
+                }
+
+                adsGrid.innerHTML = slidesHtml;
+                
+                adsContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    adsContainer.classList.add('flex');
+                    adsContainer.classList.remove('scale-95', 'opacity-0');
+                    adsContainer.classList.add('scale-100', 'opacity-100');
+                    
+                    if (typeof Swiper !== 'undefined') {
+                        if (window.globalLoaderSwiper) {
+                            try { window.globalLoaderSwiper.destroy(true, true); } catch(e) {}
+                        }
+                        window.globalLoaderSwiper = new Swiper('.global-loader-swiper-container', {
+                            slidesPerView: 1,
+                            centeredSlides: true,
+                            spaceBetween: 20,
+                            loop: recommendedList.length > 1,
+                            observer: true,
+                            observeParents: true,
+                            autoplay: {
+                                delay: 3500,
+                                disableOnInteraction: false,
+                                pauseOnMouseEnter: false
+                            },
+                            pagination: {
+                                el: '.global-loader-swiper-container .swiper-pagination',
+                                clickable: true
+                            }
+                        });
+                    }
+                }, 100);
+            }
+        }
+    };
+    
+    function showGlobalLoader(text = 'กำลังดึงข้อมูล...') {
         const loader = document.getElementById('globalLoader');
         const loaderText = document.getElementById('globalLoaderText');
+        const spinnerOnly = document.getElementById('globalLoaderSpinnerOnly');
+        
+        // Hide right sidebar Big Lot card during data update
+        const rightSidebarCard = document.getElementById('biglot-recommended-container');
+        if (rightSidebarCard) {
+            rightSidebarCard.classList.add('!hidden');
+        }
+        
         if (loaderText) loaderText.innerText = text;
+        document.querySelectorAll('.global-loader-slide-text').forEach(el => el.innerText = text);
+        
+        if (spinnerOnly) spinnerOnly.classList.remove('hidden');
         if (loader) loader.classList.remove('hidden');
+        
+        if (typeof window.updateGlobalLoaderAds === 'function') {
+            window.updateGlobalLoaderAds();
+        }
     }
-
+    
     function hideGlobalLoader() {
         const loader = document.getElementById('globalLoader');
+        const adsContainer = document.getElementById('globalLoaderAdsContainer');
+        
+        if (adsContainer) {
+            adsContainer.classList.remove('scale-100', 'opacity-100');
+            adsContainer.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                adsContainer.classList.remove('flex');
+                adsContainer.classList.add('hidden');
+                if (window.globalLoaderSwiper) {
+                    try { window.globalLoaderSwiper.destroy(true, true); } catch(e) {}
+                    window.globalLoaderSwiper = null;
+                }
+            }, 300);
+        }
+        
         if (loader) loader.classList.add('hidden');
+        
+        // Restore right sidebar Big Lot card after loading finishes (only on home page)
+        const rightSidebarCard = document.getElementById('biglot-recommended-container');
+        const homePage = document.getElementById('page-home');
+        if (rightSidebarCard) {
+            rightSidebarCard.classList.remove('!hidden');
+            if (homePage && !homePage.classList.contains('hidden') && window.bigLotProducts && window.bigLotProducts.length > 0) {
+                const recList = window.bigLotProducts.filter(p => p.recommend === 'Recommend' && (p.status || '').toLowerCase() === 'in stock');
+                if (recList.length > 0) {
+                    rightSidebarCard.classList.remove('hidden');
+                }
+            }
+        }
     }
 
     // ==========================================
@@ -1354,6 +1510,12 @@
     // 4. NAVIGATION & AUTH
     // ==========================================
     function switchPage(pageId) {
+        try {
+            if (!window.bigLotProducts || window.bigLotProducts.length === 0) {
+                const _cachedBL = typeof SafeStorage !== 'undefined' ? SafeStorage.getItem('thp_biglot_products') : null;
+                if (_cachedBL) window.bigLotProducts = JSON.parse(_cachedBL);
+            }
+        } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report' และ 'page-fuze-agent' ในรายการที่ต้องซ่อนก่อนสลับหน้า
             const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent'];
@@ -1867,10 +2029,12 @@
     window.loadServicesManagerList = function () {
         const list = document.getElementById('serviceManagerList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...</div>';
+        list.innerHTML = '';
+        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดบริการ...');
 
         if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.currentServicesList = res.data;
                     window.renderServicesManagerList(res.data);
@@ -1878,6 +2042,7 @@
                     list.innerHTML = `<div class="text-center text-red-500 py-4">${res.message}</div>`;
                 }
             }).withFailureHandler(err => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 list.innerHTML = `<div class="text-center text-red-500 py-4">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getServicesList();
         }
@@ -2003,15 +2168,20 @@
     window.loadPostNewsTemplates = function () {
         const list = document.getElementById('postNewsTemplateList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-8 w-full col-span-full"><i class="fas fa-circle-notch fa-spin text-theme-orange mb-2 text-2xl"></i><br>กำลังโหลดข้อมูลแม่แบบ...</div>';
+        list.innerHTML = '';
+        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดบริการ...');
 
         if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.renderPostNewsTemplateList(res.data);
                 } else {
                     list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">${res.message}</div>`;
                 }
+            }).withFailureHandler(err => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getPostNewsTemplates();
         }
     };
@@ -2579,7 +2749,13 @@
             return;
         }
         
-        container.classList.remove('hidden');
+        const globalLoaderEl = document.getElementById('globalLoader');
+        const isGlobalLoading = globalLoaderEl && !globalLoaderEl.classList.contains('hidden');
+        if (isGlobalLoading) {
+            container.classList.add('!hidden');
+        } else {
+            container.classList.remove('hidden', '!hidden');
+        }
         
         let adsHtml = '';
         recommendedList.forEach(p => {
@@ -3292,6 +3468,7 @@
 
         let top10Arr = Object.keys(topCustomers)
             .map(name => ({ name: name, rev: topCustomers[name].total, services: topCustomers[name].services, months: topCustomers[name].months }))
+            .filter(item => item.rev > 0)
             .sort((a, b) => b.rev - a.rev)
             .slice(0, 10);
 

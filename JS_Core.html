@@ -533,6 +533,7 @@ const Toast = Swal.mixin({
     // 4. NAVIGATION & AUTH
     // ==========================================
     function switchPage(pageId) {
+        if (typeof window.clearAllUploads === 'function') window.clearAllUploads();
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report' และ 'page-fuze-agent' ในรายการที่ต้องซ่อนก่อนสลับหน้า
             const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent'];
@@ -623,448 +624,15 @@ const Toast = Swal.mixin({
                     menu: 'menu-settings', 
                     title: 'การตั้งค่าระบบ',
                     action: () => {
-                        if (typeof window.loadPostNewsTemplates === 'function') window.loadPostNewsTemplates();
-                        if (typeof window.checkAutoTriggerStatus === 'function') window.checkAutoTriggerStatus();
-                    }
-                },
-                // 💡 แก้ไข title ตรงนี้
-                'rateprice': { 
-                    page: 'page-rateprice', 
-                    menu: 'menu-rateprice', 
-                    title: 'อัตราค่าบริการ (Rate Price)', 
-                    action: () => { if(typeof window.loadRatePricePage === 'function') window.loadRatePricePage(); } 
-                },
-                'biglot': { 
-                    page: 'page-biglot', 
-                    menu: 'menu-biglot', 
-                    title: 'สั่งสินค้า BigLot', 
-                    action: () => { 
-                        if(typeof window.loadBigLotPage === 'function') window.loadBigLotPage(); 
-                        // Auto-expand parent group
-                        const grp = document.getElementById('menu-group-biglot');
-                        const icn = document.getElementById('icon-biglot');
-                        if (grp && icn && grp.classList.contains('hidden')) {
-                            grp.classList.remove('hidden');
-                            grp.classList.add('flex');
-                            icn.style.transform = 'rotate(180deg)';
-                            icn.classList.add('text-theme-orange');
-                        }
-                    } 
-                },
-                'biglot-report': { 
-                    page: 'page-biglot-report', 
-                    menu: 'menu-biglot-report', 
-                    title: 'รายงานการสั่งซื้อ BigLot', 
-                    action: () => { 
-                        if(typeof window.loadBigLotReportPage === 'function') window.loadBigLotReportPage(); 
-                        // Auto-expand parent group
-                        const grp = document.getElementById('menu-group-biglot');
-                        const icn = document.getElementById('icon-biglot');
-                        if (grp && icn && grp.classList.contains('hidden')) {
-                            grp.classList.remove('hidden');
-                            grp.classList.add('flex');
-                            icn.style.transform = 'rotate(180deg)';
-                            icn.classList.add('text-theme-orange');
-                        }
-                    } 
-                }
-            };
-            
-            const target = mapping[pageId];
-            if (target) {
-                const pageEl = document.getElementById(target.page);
-                if (pageEl) pageEl.classList.remove('hidden');
-                const menuEl = document.getElementById(target.menu);
-                if(menuEl) { menuEl.classList.remove(...inactiveClasses); menuEl.classList.add(...activeClasses); }
-                const pageTitleEl = document.getElementById('pageTitle');
-                if (pageTitleEl) pageTitleEl.innerText = target.title;
-                if(target.action) target.action();
-            }
-
-            const headerBtns = ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn'];
-            headerBtns.forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
-
-            if (pageId === 'revenue-report') {
-                ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('hidden'); });
-                if (typeof currentUserInfo !== 'undefined' && currentUserInfo.user && currentUserInfo.user.toLowerCase() === 'admin') {
-                    const el = document.getElementById('headerKhorLorReportBtn'); if (el) el.classList.remove('hidden');
-                }
-            } else if (pageId === 'postnews') {
-                ['headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('hidden'); });
-            } else if (pageId === 'form') {
-                const el = document.getElementById('headerMergeImageBtn'); if(el) el.classList.remove('hidden');
-            } else if (pageId === 'revenue') {
-                ['headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer'].forEach(id => { 
-                    const el = document.getElementById(id); 
-                    if(el) {
-                        el.classList.remove('hidden');
-                        if(id === 'headerYearSelectorContainer') el.classList.add('flex');
-                    }
-                });
-                if (typeof fetchLastUpdateA1A14 === 'function') fetchLastUpdateA1A14();
-            } else if (pageId === 'pk-admin') {
-                const el = document.getElementById('headerPKChartBtn');
-                if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
-            } else if (pageId === 'data') {
-                const el = document.getElementById('headerVisitSummaryBtn');
-                if (el) { el.classList.remove('hidden'); }
-            }
-        } catch (e) {
-            console.error("SwitchPage Error:", e);
-        }
-    }
-
-
-
-    function handleLogin(e) {
-        if (e && typeof e.preventDefault === 'function') {
-            e.preventDefault();
-        }
-        
-        try {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ title: 'กำลังเข้าสู่ระบบ', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            }
-        } catch (err) {
-            console.warn("Swal loading error:", err);
-        }
-        
-        const form = document.getElementById('loginForm');
-        const userObj = {
-            username: form.username.value,
-            password: form.password.value
-        };
-
-        const timeoutId = setTimeout(() => {
-            if (typeof Swal !== 'undefined') Swal.close();
-            Swal.fire({
-                icon: 'error',
-                title: 'เซิร์ฟเวอร์ไม่ตอบสนอง',
-                text: 'หมดเวลาการเชื่อมต่อ (Timeout) กรุณาลองเข้าสู่ระบบใหม่อีกครั้ง หรือเช็คอินเทอร์เน็ต',
-                confirmButtonColor: '#e27d3d'
-            });
-        }, 15000);
-
-        try {
-            if (typeof google === 'undefined' || !google.script || !google.script.run || typeof google.script.run.checkLogin !== 'function') {
-                clearTimeout(timeoutId);
-                if (typeof Swal !== 'undefined') Swal.close();
-                throw new Error("ฟังก์ชันเข้าสู่ระบบไม่พร้อมใช้งาน (กรุณาไปกด Deploy > New Version ใน Apps Script)");
-            }
-
-            google.script.run
-                .withSuccessHandler(res => {
-                    clearTimeout(timeoutId);
-                    loginSuccess(res);
-                })
-                .withFailureHandler(err => {
-                    clearTimeout(timeoutId);
-                    if (typeof Swal !== 'undefined') Swal.close();
-                    Swal.fire('ข้อผิดพลาดเซิร์ฟเวอร์', 'ไม่สามารถเชื่อมต่อได้: ' + err.toString(), 'error');
-                })
-                .checkLogin(userObj); 
-        } catch (error) {
-            clearTimeout(timeoutId);
-            if (typeof Swal !== 'undefined') Swal.close();
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาดระบบ',
-                text: error.message,
-                confirmButtonColor: '#e27d3d'
-            });
-        }
-    }
-
-    function loginSuccess(res) {
-        try {
-            if (res && res.status === 'success') {
-                if (typeof successSound !== 'undefined') successSound.play().catch(e=>{});
-                 
-                // 💡 เคลียร์แคชข้อมูลเก่าทั้งหมดก่อนเข้าระบบใหม่
-                if (typeof window !== 'undefined') {
-                    window.allFetchedRows = [];
-                    window.globalAllFetchedRows = [];
-                    window.globalVisitTargets = undefined;
-                    window.filteredRows = [];
-                    if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
-                    if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
-                    
-                    // Clear chart instances to prevent old data rendering
-                    if (window.homeVisitChartInstance) {
-                        window.homeVisitChartInstance.destroy();
-                        window.homeVisitChartInstance = null;
-                    }
-                }
-
-                 res.loginTime = new Date().getTime();
-                 SafeStorage.setItem('thp_user_session', JSON.stringify(res));
-                restoreSession(res);
-                Toast.fire({ icon: 'success', title: 'ยินดีต้อนรับ', timer: 1000, showConfirmButton: false });
-            } else {
-                if (typeof errorSound !== 'undefined') errorSound.play().catch(e=>{});
-                Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบล้มเหลว', text: res ? res.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ' });
-            }
-        } catch (error) {
-            console.error("LoginSuccess Error:", error);
-            Swal.fire('ข้อผิดพลาดหน้าเว็บ', 'เกิดปัญหาขณะเตรียมหน้าจอ: ' + error.message, 'error');
-        }
-    }
-
-    function restoreSession(res) {
-        try {
-            currentUserInfo = { user: res.user, zipcode: res.zipcode, name: res.name, team: res.team || '' }; 
-            
-            const trySetText = (id, text) => { const el = document.getElementById(id); if (el) el.innerText = text; };
-
-            trySetText('navName', res.name);
-            trySetText('menuNavName', res.name);
-            
-            let teamAndUser = '';
-            if (currentUserInfo.team && currentUserInfo.team.trim() !== '') {
-                teamAndUser += currentUserInfo.team + ' • ';
-            }
-            teamAndUser += res.user;
-            trySetText('navUser', teamAndUser);
-            trySetText('menuNavUser', teamAndUser);
-            trySetText('welcomeName', res.name);
-            
-            const loginSection = document.getElementById('loginSection');
-            if (loginSection) loginSection.classList.add('hidden'); 
-            
-            const mainApp = document.getElementById('mainApp');
-            if (mainApp) mainApp.classList.remove('hidden'); 
-            
-            const userRole = String(res.user).toLowerCase();
-            
-            // เรียก Element ควบคุมเมนู Sidebar ให้ครบถ้วน
-            const elHome = document.getElementById('menu-home');
-            const navDivider1 = document.getElementById('nav-divider-1');
-            const triggerVisits = document.getElementById('nav-trigger-visits');
-            const triggerRevenue = document.getElementById('nav-trigger-revenue');
-            const navDivider2 = document.getElementById('nav-divider-2');
-            const triggerTools = document.getElementById('nav-trigger-tools');
-            const menuGroupTools = document.getElementById('menu-group-tools');
-            const navDividerEval = document.getElementById('nav-divider-eval');
-            const elPrePostGuide = document.getElementById('menu-prepost-guide');
-            const elRatePrice = document.getElementById('menu-rateprice'); // 💡 เพิ่มตัวแปรเมนูเรตราคา
-            const navDividerBigLot = document.getElementById('nav-divider-biglot');
-            const triggerBigLot = document.getElementById('nav-trigger-biglot');
-            const menuGroupBigLot = document.getElementById('menu-group-biglot');
-            const elBigLotReport = document.getElementById('menu-biglot-report');
-            
-            const toolsGeneral = [
-                document.getElementById('tool-adv'), document.getElementById('tool-manual'), 
-                document.getElementById('tool-survey'), document.getElementById('tool-pr'), 
-                document.getElementById('tool-postinter')
-            ];
-
-            const elForm = document.getElementById('menu-form');
-            const elPostNews = document.getElementById('menu-postnews');
-            const elRevAdmin = document.getElementById('menu-revenue');
-            const elSysSettings = document.getElementById('section-system');
-            const elEval = document.getElementById('profile-evaluation'); 
-            const homeAddBtn = document.querySelector('button[onclick="switchPage(\'form\')"]');
-
-            // --- Reset Default Visibility (เปิดแสดงให้หมดก่อนค่อยสั่งปิด) ---
-            [elHome, navDivider1, triggerVisits, triggerRevenue, navDivider2, triggerTools, navDividerEval, elForm, elPostNews, elEval, homeAddBtn, elPrePostGuide, elRatePrice, ...toolsGeneral, triggerBigLot, navDividerBigLot, elBigLotReport].forEach(el => {
-                if (el) el.classList.remove('hidden');
-            });
-            if (menuGroupTools) {
-                menuGroupTools.classList.add('hidden');
-                menuGroupTools.classList.remove('flex');
-            }
-            if (menuGroupBigLot) {
-                menuGroupBigLot.classList.add('hidden');
-                menuGroupBigLot.classList.remove('flex');
-            }
-
-            let targetPage = 'home';
-
-            if (userRole === 'prepost') {
-                // ซ่อนเมนูที่ไม่เกี่ยวข้องสำหรับ user "prepost"
-                [elHome, navDivider1, triggerVisits, triggerRevenue, navDivider2, elForm, elPostNews, elRevAdmin, elSysSettings, homeAddBtn, ...toolsGeneral].forEach(el => {
-                    if (el) el.classList.add('hidden');
-                });
-                const menuBigLotOnly = document.getElementById('menu-biglot');
-                if (menuBigLotOnly) menuBigLotOnly.classList.add('hidden');
-                
-                // กางเมนูเครื่องมืออื่นๆ อัตโนมัติ
-                if (menuGroupTools) {
-                    menuGroupTools.classList.remove('hidden');
-                    menuGroupTools.classList.add('flex');
-                    const iconTools = document.getElementById('icon-tools');
-                    if(iconTools) {
-                        iconTools.style.transform = 'rotate(180deg)';
-                        iconTools.classList.add('text-theme-orange');
-                    }
-                }
-                
-                targetPage = 'evaluation';
-                
-            } else if (userRole === 'admin') {
-                if(elRevAdmin) elRevAdmin.classList.remove('hidden');
-                if(elSysSettings) elSysSettings.classList.remove('hidden');
-                
-            } else if (userRole === 'viewer') {
-                if(elForm) elForm.classList.add('hidden');
-                if(elPostNews) elPostNews.classList.add('hidden');
-                if(elRevAdmin) elRevAdmin.classList.add('hidden');
-                if(elSysSettings) elSysSettings.classList.add('hidden');
-                if(homeAddBtn) homeAddBtn.classList.add('hidden');
-                if(elEval) elEval.classList.add('hidden'); 
-                if(navDividerEval) navDividerEval.classList.add('hidden'); 
-                
-            } else {
-                if(elRevAdmin) elRevAdmin.classList.add('hidden');
-                if(elSysSettings) elSysSettings.classList.add('hidden');
-            }
-
-            switchPage(targetPage);
-            
-            // 💡 เรียกให้แสดง Skeleton ทันทีที่เข้าสู่ระบบ
-            if (typeof window.updateHomeVisitSummary === 'function') {
-                window.updateHomeVisitSummary();
-
-            }
-
-
-            
-        } catch (error) {
-            console.error("RestoreSession Error:", error);
-            Swal.fire('ข้อผิดพลาดระบบ', 'การโหลดเซสชันผู้ใช้งานล้มเหลว', 'error');
-        }
-    }
-
-    function logout() {
-         SafeStorage.removeItem('thp_user_session');
-        currentUserInfo = { user: '', zipcode: '', name: '', team: '' }; 
-        window.postNewsInitialized = false; 
-        
-        // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
-        if (typeof window !== 'undefined') {
-            window.allFetchedRows = [];
-            window.globalAllFetchedRows = [];
-            window.globalVisitTargets = undefined;
-            window.filteredRows = [];
-            if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
-            if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
-            
-            // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
-            const tableBody = document.getElementById('tableBody');
-            if (tableBody) tableBody.innerHTML = '';
-            const tableHeader = document.getElementById('tableHeader');
-            if (tableHeader) tableHeader.innerHTML = '';
-            
-            if (window.homeVisitChartInstance) {
-                window.homeVisitChartInstance.destroy();
-                window.homeVisitChartInstance = null;
-            }
-            if (typeof window.updateHomeVisitSummary === 'function') {
-                window.updateHomeVisitSummary();
-            }
-        }
-
-        const mainApp = document.getElementById('mainApp');
-        const loginSec = document.getElementById('loginSection');
-        
-        if (mainApp) mainApp.classList.add('hidden');
-        if (loginSec) loginSec.classList.remove('hidden');
-
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) loginForm.reset();
-        
-        const mainForm = document.getElementById('mainForm');
-        if (mainForm) mainForm.reset();
-
-        Toast.fire({ icon: 'success',
-            title: 'ออกจากระบบสำเร็จ',
-            text: 'พบกันใหม่โอกาสหน้าครับ',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
-
-
-
-    // ==========================================
-    // 5. SYSTEM SETTINGS & EXTERNAL LINKS
-    // ==========================================
-    
-    // เปิดหน้าต่างใหม่แบบแท็บปกติ
-    window.openNotebookLMPopup = function() {
-        const chatUrl = "https://notebooklm.google.com/notebook/223df399-a482-4e12-9f24-0e7771f22bbc/preview?pli=1";
-        window.open(chatUrl, '_blank');
-    };
-
-    // --- Service Manager (จัดการรายการบริการที่แนะนำ) ---
-    window.openServiceManagerModal = function() {
-        let modal = document.getElementById('serviceManagerModal');
-        
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'serviceManagerModal';
-            modal.className = 'hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[120] px-4 backdrop-blur-md transition-opacity duration-300';
-            modal.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-green-500">
-                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-green-50 text-green-600 w-10 h-10 rounded-full flex items-center justify-center border border-green-100 shadow-inner">
-                                <i class="fas fa-list-ul text-lg"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-800 leading-tight">จัดการรายการบริการที่แนะนำ</h3>
-                                <p class="text-xs text-gray-500 mt-0.5 font-bold">เพิ่ม, แก้ไข หรือลบ ข้อมูลสำหรับหน้าฟอร์มเข้าพบลูกค้า</p>
-                            </div>
-                        </div>
-                        <button type="button" onclick="closeServiceManagerModal()" class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
-                            <i class="fas fa-times text-lg"></i>
-                        </button>
-                    </div>
-                    <div class="flex-1 flex flex-col bg-gray-50/50 p-6 relative overflow-hidden">
-                        <div class="mb-4 flex flex-col sm:flex-row gap-2 shrink-0">
-                            <input type="text" id="newServiceInput" placeholder="พิมพ์ชื่อบริการใหม่ที่ต้องการเพิ่ม..." class="flex-1 p-3 border border-gray-300 rounded-xl outline-none focus:border-green-500 transition text-sm font-sans" onkeypress="if(event.key==='Enter') addNewService()">
-                            <button onclick="addNewService()" class="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-green-700 transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
-                                <i class="fas fa-plus"></i> เพิ่มบริการ
-                            </button>
-                        </div>
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-0">
-                            <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="serviceManagerList">
-                                <div class="text-center text-gray-400 py-8"><i class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            const innerDiv = modal.querySelector('div');
-            if (innerDiv) innerDiv.classList.remove('scale-95');
-        }, 10);
-        window.loadServicesManagerList();
-    };
-
-    window.closeServiceManagerModal = function() {
-        const modal = document.getElementById('serviceManagerModal');
-        if (!modal) return;
-        modal.classList.add('opacity-0');
-        const innerDiv = modal.querySelector('div');
-        if (innerDiv) innerDiv.classList.add('scale-95');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-        
-        if (typeof loadServicesDropdown === 'function') loadServicesDropdown();
-    };
-
-    window.loadServicesManagerList = function() {
-        const list = document.getElementById('serviceManagerList');
+                        if (typeof window.loadPostNewsTemplates = function() {
+        const list = document.getElementById('postNewsTemplateList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-circle-notch fa-spin text-green-500 mb-2 text-2xl"></i><br>กำลังโหลดข้อมูล...</div>';
-        
-        if(typeof google !== 'undefined') {
+        list.innerHTML = '';
+        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดรูปแบบข่าว...');
+
+        if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.currentServicesList = res.data;
                     window.renderServicesManagerList(res.data);
@@ -1072,6 +640,7 @@ const Toast = Swal.mixin({
                     list.innerHTML = `<div class="text-center text-red-500 py-4">${res.message}</div>`;
                 }
             }).withFailureHandler(err => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 list.innerHTML = `<div class="text-center text-red-500 py-4">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getServicesList();
         }
@@ -1197,15 +766,20 @@ const Toast = Swal.mixin({
     window.loadPostNewsTemplates = function() {
         const list = document.getElementById('postNewsTemplateList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-8 w-full col-span-full"><i class="fas fa-circle-notch fa-spin text-theme-orange mb-2 text-2xl"></i><br>กำลังโหลดข้อมูลแม่แบบ...</div>';
-        
+        list.innerHTML = '';
+        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดบริการ...');
+
         if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.renderPostNewsTemplateList(res.data);
                 } else {
                     list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">${res.message}</div>`;
                 }
+            }).withFailureHandler(err => {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getPostNewsTemplates();
         }
     };
