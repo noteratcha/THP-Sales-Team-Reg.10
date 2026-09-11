@@ -1138,29 +1138,53 @@
 
     function loadVisitData() {
         const tbody = document.getElementById('tableBody');
-        if (tbody) tbody.innerHTML = '';
-
         const pagControls = document.getElementById('paginationControls');
         const noDataMsg = document.getElementById('noDataMessage');
-        if (pagControls) pagControls.classList.add('hidden');
-        if (noDataMsg) noDataMsg.classList.add('hidden');
 
-        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลการเข้าพบลูกค้า...');
+        // SWR Cache: แสดงผลทันทีหากมีข้อมูลแคชอยู่แล้ว (0ms)
+        let hasCache = false;
+        if (typeof SafeStorage !== 'undefined') {
+            try {
+                const cachedRaw = SafeStorage.getItem('thp_cache_visit_raw');
+                if (cachedRaw) {
+                    const parsed = JSON.parse(cachedRaw);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        renderTable({ status: 'success', data: parsed });
+                        hasCache = true;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        if (!hasCache) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="15" class="py-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-theme-orange"></i><p class="text-xs">กำลังโหลดข้อมูล...</p></td></tr>`;
+            if (pagControls) pagControls.classList.add('hidden');
+            if (noDataMsg) noDataMsg.classList.add('hidden');
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลการเข้าพบลูกค้า...');
+        }
 
         google.script.run
             .withSuccessHandler((res) => {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                    if (typeof SafeStorage !== 'undefined') {
+                        try { SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data)); } catch(e) {}
+                    }
+                }
                 renderTable(res);
             })
             .withFailureHandler((err) => {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                dataLoadFailed(err);
+                if (!hasCache) dataLoadFailed(err);
             })
             .getDataForTable();
 
         google.script.run.withSuccessHandler(res => {
             if (res.status === 'success') {
                 globalVisitTargets = res.data;
+                if (typeof SafeStorage !== 'undefined' && Array.isArray(res.data)) {
+                    try { SafeStorage.setItem('thp_cache_visit_targets', JSON.stringify(res.data)); } catch(e) {}
+                }
                 if (typeof filteredRows !== 'undefined' && filteredRows.length > 0 && typeof updateChartFromData === 'function') {
                     updateChartFromData(filteredRows);
                 }

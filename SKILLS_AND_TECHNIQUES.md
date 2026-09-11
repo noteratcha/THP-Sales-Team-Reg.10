@@ -147,10 +147,20 @@ graph TD
   - กำหนด `loop: recommendedList.length > 1` (ถ้ามีสไลด์เดียวห้ามเปิด Loop)
   - ซ่อนวิดเจ็ตแนะนำสินค้าบนหน้าหลัก (`#biglot-recommended-container.classList.add('!hidden')`) ระหว่างที่ Global Loader แสดง เพื่อไม่ให้เกิดภาพซ้อนทับกัน
 
-### 3.3 ระบบแคชความเร็วสูง (Instant SafeStorage Cache Strategy)
-- ใช้ `SafeStorage` ในการเก็บ `localStorage` อย่างปลอดภัยแม้รันใน iframe หรือ private browsing mode
-- โหลดข้อมูลสินค้าแนะนำจากแคชทันทีที่เปิดหน้าเว็บ เพื่อให้การ์ดใน Global Loader แสดงผลได้ทันทีแบบ **0ms delay**
-- เมื่อได้ข้อมูลใหม่จาก Server ให้อัปเดตแคชพร้อมเรียก `window.updateGlobalLoaderAds()` ทันที
+### 3.3 ระบบแคชความเร็วสูงและ SWR (Instant SafeStorage SWR Cache Strategy)
+- **แนวคิด Stale-While-Revalidate (SWR)**:
+  - ใช้ `SafeStorage` (Wrapper รอบ `localStorage` ที่ปลอดภัยแม้รันใน iframe หรือ Private Browsing)
+  - **เปิดปุ๊บ ติดปั๊บ (0ms Instant Display)**: เมื่อเปิดหน้าแดชบอร์ดหลัก หรือคลิกเข้าหน้ารายการ ฟังก์ชัน `hydrateDashboardCache()` จะดึงข้อมูลจากแคชมาแสดงผลทันทีภายใน 0 มิลลิวินาที โดยไม่ต้องรอโหลด:
+    - `thp_cache_visit_raw`: ข้อมูลประวัติการเข้าพบลูกค้า (`getDataForTable`)
+    - `thp_cache_visit_targets`: เป้าหมายการเข้าพบลูกค้า (`getVisitTargets`)
+    - `thp_cache_rev_targets`: เป้าหมายรายได้ประจำเดือน (`getRevenueTargets`)
+    - `thp_cache_rev_data`: สรุปข้อมูลรายได้ Tableau (`getRevenueReportData`)
+    - `thp_biglot_products`: สินค้าแนะนำ BigLot
+  - **Silent Background Sync**: ในขณะที่ผู้ใช้กำลังดูข้อมูลจากแคช ระบบจะสั่ง `triggerSilentBackgroundSync()` ไปดึงข้อมูลสดจาก Server ในเบื้องหลังอย่างเงียบๆ โดยไม่แสดง Loader บังจอ
+  - แสดงป้ายสถานะแคชเล็กๆ มุมขวาบนของหัวข้อการ์ด (`#dashboardSyncStatus`):
+    - ขณะซิงค์: `🔄 ซิงค์สด...` (สีส้ม กะพริบเบาๆ)
+    - เมื่อเสร็จ: `✔ ข้อมูลล่าสุด` (สีเขียว และค่อยๆ จางหายไปใน 3.5 วินาที)
+  - เมื่อข้อมูลสดมาถึง จะอัปเดตทับลงในแคช และสั่งรีเฟรชหน้าจออย่างราบรื่นโดยที่หน้าจอไม่กระพริบ
 
 ### 3.4 นโยบายการจัดการไฟล์ที่อัปโหลด (File Resend Policy)
 - หลังจากการอัปโหลดไฟล์ (Tableau, Logistics, DropOff) สำเร็จหรือไม่สำเร็จ **ห้ามเคลียร์ไฟล์ออกจาก input** เพื่อให้ผู้ใช้สามารถกดส่งซ้ำได้ทันทีหากต้องการ

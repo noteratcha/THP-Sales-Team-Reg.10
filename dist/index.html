@@ -1207,11 +1207,12 @@
                                 <div class="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                                 
                                 <div class="flex items-center justify-between border-b border-gray-50 pb-3 mb-1 relative z-10">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <div class="w-8 h-8 rounded-xl bg-orange-100 text-theme-orange flex items-center justify-center shadow-sm">
                                             <i class="fas fa-handshake text-sm"></i>
                                         </div>
                                         <h3 class="text-theme-black text-lg font-bold">สถิติการเข้าพบลูกค้า</h3>
+                                        <span id="dashboardSyncStatus" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-full transition-all"></span>
                                     </div>
                                     <span class="text-[10px] text-theme-orange opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-full"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
                                 </div>
@@ -2493,29 +2494,53 @@
 
     function loadVisitData() {
         const tbody = document.getElementById('tableBody');
-        if (tbody) tbody.innerHTML = '';
-
         const pagControls = document.getElementById('paginationControls');
         const noDataMsg = document.getElementById('noDataMessage');
-        if (pagControls) pagControls.classList.add('hidden');
-        if (noDataMsg) noDataMsg.classList.add('hidden');
 
-        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลการเข้าพบลูกค้า...');
+        // SWR Cache: แสดงผลทันทีหากมีข้อมูลแคชอยู่แล้ว (0ms)
+        let hasCache = false;
+        if (typeof SafeStorage !== 'undefined') {
+            try {
+                const cachedRaw = SafeStorage.getItem('thp_cache_visit_raw');
+                if (cachedRaw) {
+                    const parsed = JSON.parse(cachedRaw);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        renderTable({ status: 'success', data: parsed });
+                        hasCache = true;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        if (!hasCache) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="15" class="py-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-theme-orange"></i><p class="text-xs">กำลังโหลดข้อมูล...</p></td></tr>`;
+            if (pagControls) pagControls.classList.add('hidden');
+            if (noDataMsg) noDataMsg.classList.add('hidden');
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลการเข้าพบลูกค้า...');
+        }
 
         google.script.run
             .withSuccessHandler((res) => {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                    if (typeof SafeStorage !== 'undefined') {
+                        try { SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data)); } catch(e) {}
+                    }
+                }
                 renderTable(res);
             })
             .withFailureHandler((err) => {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                dataLoadFailed(err);
+                if (!hasCache) dataLoadFailed(err);
             })
             .getDataForTable();
 
         google.script.run.withSuccessHandler(res => {
             if (res.status === 'success') {
                 globalVisitTargets = res.data;
+                if (typeof SafeStorage !== 'undefined' && Array.isArray(res.data)) {
+                    try { SafeStorage.setItem('thp_cache_visit_targets', JSON.stringify(res.data)); } catch(e) {}
+                }
                 if (typeof filteredRows !== 'undefined' && filteredRows.length > 0 && typeof updateChartFromData === 'function') {
                     updateChartFromData(filteredRows);
                 }
@@ -8659,91 +8684,122 @@
     // ==========================================
     function loadRevenueReport() {
         const tbody = document.getElementById('revenueReportBody');
-        if (tbody) tbody.innerHTML = '';
-
         const noDataEl = document.getElementById('revenueNoData'); const pagEl = document.getElementById('revenuePaginationControls'); const topSec = document.getElementById('topCustomersSection');
         if (noDataEl) noDataEl.classList.add('hidden'); if (pagEl) pagEl.classList.add('hidden'); if (topSec) topSec.classList.add('hidden');
 
-        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลเป้าหมายและการใช้บริการ...');
+        const processAndRenderRevenueData = function (res) {
+            if (res.status !== 'success') { if (tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">${res.message}</td></tr>`; return; }
+
+            // สร้าง targetTeamMap ด้วยเงื่อนไข ปี_เดือน_รหัสไปรษณีย์
+            var targetTeamMap = {};
+            zipToTeamMap = {}; // ล้างค่า Map สากล
+            if (typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets.length > 1) {
+                for (var i = 1; i < globalRevenueTargets.length; i++) {
+                    var r = globalRevenueTargets[i];
+                    var tYear = String(r[0]).trim();
+                    if (parseInt(tYear) > 2500) {
+                        tYear = String(parseInt(tYear) - 543);
+                    }
+                    var tMonth = String(r[1]).trim();
+                    var tZip = String(r[2]).trim();
+                    var tTeam = String(r[6]).trim();
+                    if (tZip && tTeam) {
+                        zipToTeamMap[tZip] = tTeam;
+                        if (tYear && tMonth) {
+                            var mapKey = tYear + "_" + tMonth + "_" + tZip;
+                            targetTeamMap[mapKey] = tTeam;
+                        }
+                    }
+                }
+            }
+
+            allRevenueRows = res.data.map(row => {
+                var officeNameFull = String(row[0]).trim();
+                var zipCodeMatch = officeNameFull.match(/^\d{5}/);
+                var zip = zipCodeMatch ? zipCodeMatch[0] : officeNameFull.substring(0, 5);
+                var rMonth = String(row[5]).trim();
+                var rYear = String(row[6]).trim();
+                var lookupKey = rYear + "_" + rMonth + "_" + zip;
+                
+                var teamName = targetTeamMap[lookupKey] || zipToTeamMap[zip] || 'ไม่ระบุทีม';
+                row.push(teamName);
+                return row;
+            });
+
+            const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
+            if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
+                const userZipcode = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
+                allRevenueRows = allRevenueRows.filter(row => {
+                    const officeStr = String(row[0] || '');
+                    const rowZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : '';
+                    return rowZip === userZipcode;
+                });
+            }
+
+            revenueFilteredRows = [...allRevenueRows];
+            currentRevenuePage = 1;
+
+            populateServiceDropdown(allRevenueRows); populateLevelDropdown(allRevenueRows);
+            populateTeamDropdown(allRevenueRows);
+
+            const today = new Date(); const lastYear = today.getFullYear() - 1; const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+            const startInput = document.getElementById('revFilterDateStart'); const endInput = document.getElementById('revFilterDateEnd');
+            if (startInput && !startInput.value) startInput.value = `${lastYear}-01`;
+            if (endInput && !endInput.value) endInput.value = `${today.getFullYear()}-${currentMonth}`;
+
+            applyRevenueFilters();
+        };
+
+        // SWR Cache: แสดงผลทันทีจากแคชหากมีข้อมูลอยู่แล้ว (0ms)
+        let hasCache = false;
+        if (typeof SafeStorage !== 'undefined') {
+            try {
+                const cachedRevData = SafeStorage.getItem('thp_cache_rev_data');
+                const cachedRevTgts = SafeStorage.getItem('thp_cache_rev_targets');
+                if (cachedRevTgts) {
+                    const parsedTgts = JSON.parse(cachedRevTgts);
+                    if (Array.isArray(parsedTgts) && parsedTgts.length > 1) {
+                        window.globalRevenueTargets = globalRevenueTargets = parsedTgts;
+                    }
+                }
+                if (cachedRevData) {
+                    const parsedData = JSON.parse(cachedRevData);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        processAndRenderRevenueData({ status: 'success', data: parsedData });
+                        hasCache = true;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        if (!hasCache) {
+            if (tbody) tbody.innerHTML = '';
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลเป้าหมายและการใช้บริการ...');
+        }
 
         const fetchMainData = function () {
             google.script.run.withSuccessHandler(function (res) {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-
-                if (res.status !== 'success') { if (tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">${res.message}</td></tr>`; return; }
-
-                // สร้าง targetTeamMap ด้วยเงื่อนไข ปี_เดือน_รหัสไปรษณีย์
-                var targetTeamMap = {};
-                zipToTeamMap = {}; // ล้างค่า Map สากล
-                if (typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets.length > 1) {
-                    for (var i = 1; i < globalRevenueTargets.length; i++) {
-                        var r = globalRevenueTargets[i];
-                        var tYear = String(r[0]).trim();
-                        // แปลงปี พ.ศ. ให้เป็น ค.ศ. (AD)
-                        if (parseInt(tYear) > 2500) {
-                            tYear = String(parseInt(tYear) - 543);
-                        }
-                        var tMonth = String(r[1]).trim();
-                        var tZip = String(r[2]).trim();
-                        var tTeam = String(r[6]).trim();
-                        if (tZip && tTeam) {
-                            zipToTeamMap[tZip] = tTeam;
-                            if (tYear && tMonth) {
-                                var mapKey = tYear + "_" + tMonth + "_" + tZip;
-                                targetTeamMap[mapKey] = tTeam;
-                            }
-                        }
+                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                    if (typeof SafeStorage !== 'undefined') {
+                        try { SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data)); } catch(e) {}
                     }
                 }
-
-                // แนบ "ทีม" เข้าไปใน row[10] ของทุกรายการข้อมูลหลัก
-                allRevenueRows = res.data.map(row => {
-                    var officeNameFull = String(row[0]).trim();
-                    var zipCodeMatch = officeNameFull.match(/^\d{5}/);
-                    var zip = zipCodeMatch ? zipCodeMatch[0] : officeNameFull.substring(0, 5);
-                    var rMonth = String(row[5]).trim();
-                    var rYear = String(row[6]).trim();
-                    var lookupKey = rYear + "_" + rMonth + "_" + zip;
-                    
-                    var teamName = targetTeamMap[lookupKey] || zipToTeamMap[zip] || 'ไม่ระบุทีม';
-                    row.push(teamName);
-                    return row;
-                });
-
-                // กรองข้อมูลตามสิทธิ์
-                const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
-                if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
-                    const userZipcode = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
-                    allRevenueRows = allRevenueRows.filter(row => {
-                        const officeStr = String(row[0] || '');
-                        const rowZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : '';
-                        return rowZip === userZipcode;
-                    });
-                }
-
-                revenueFilteredRows = [...allRevenueRows];
-                currentRevenuePage = 1;
-
-                populateServiceDropdown(allRevenueRows); populateLevelDropdown(allRevenueRows);
-                populateTeamDropdown(allRevenueRows);
-
-                const today = new Date(); const lastYear = today.getFullYear() - 1; const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
-                const startInput = document.getElementById('revFilterDateStart'); const endInput = document.getElementById('revFilterDateEnd');
-                if (startInput && !startInput.value) startInput.value = `${lastYear}-01`;
-                if (endInput && !endInput.value) endInput.value = `${today.getFullYear()}-${currentMonth}`;
-
-                applyRevenueFilters();
+                processAndRenderRevenueData(res);
             }).withFailureHandler(err => {
                 if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                if (tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">Error: ${err}</td></tr>`;
+                if (!hasCache && tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">Error: ${err}</td></tr>`;
             }).getRevenueReportData(currentUserInfo);
         };
 
         google.script.run.withSuccessHandler(function (targetRes) {
-            window.globalRevenueTargets = globalRevenueTargets = (targetRes && targetRes.status === 'success') ? targetRes.data : [];
+            const targets = (targetRes && targetRes.status === 'success') ? targetRes.data : [];
+            window.globalRevenueTargets = globalRevenueTargets = targets;
+            if (targets.length > 1 && typeof SafeStorage !== 'undefined') {
+                try { SafeStorage.setItem('thp_cache_rev_targets', JSON.stringify(targets)); } catch(e) {}
+            }
             fetchMainData();
         }).withFailureHandler(err => {
-            window.globalRevenueTargets = globalRevenueTargets = [];
             fetchMainData();
         }).getRevenueTargets();
     }
@@ -24401,9 +24457,154 @@
     };
 
     // ==========================================
+    // SWR FRONTEND CACHE UTILS (INSTANT 0MS DISPLAY)
+    // ==========================================
+    function hydrateDashboardCache() {
+        if (typeof SafeStorage === 'undefined') return false;
+        let hydrated = false;
+        try {
+            // 1. Visit Data
+            if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
+                const cachedVisitRaw = SafeStorage.getItem('thp_cache_visit_raw');
+                if (cachedVisitRaw) {
+                    const parsed = JSON.parse(cachedVisitRaw);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        if (typeof renderTable === 'function') {
+                            renderTable({ status: 'success', data: parsed });
+                            hydrated = true;
+                        }
+                    }
+                }
+            }
+            // 2. Visit Targets
+            if (typeof globalVisitTargets === 'undefined' || !globalVisitTargets || globalVisitTargets.length === 0) {
+                const cachedVisitTgts = SafeStorage.getItem('thp_cache_visit_targets');
+                if (cachedVisitTgts) {
+                    const parsed = JSON.parse(cachedVisitTgts);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        window.globalVisitTargets = parsed;
+                        hydrated = true;
+                    }
+                }
+            }
+            // 3. Revenue Targets
+            const curRev = (typeof window.globalRevenueTargets !== 'undefined' && window.globalRevenueTargets && window.globalRevenueTargets.length > 0)
+                ? window.globalRevenueTargets
+                : ((typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets && globalRevenueTargets.length > 0) ? globalRevenueTargets : null);
+            if (!curRev || curRev.length <= 1) {
+                const cachedRevTgts = SafeStorage.getItem('thp_cache_rev_targets');
+                if (cachedRevTgts) {
+                    const parsed = JSON.parse(cachedRevTgts);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        window.globalRevenueTargets = parsed;
+                        if (typeof globalRevenueTargets !== 'undefined') {
+                            try { globalRevenueTargets = parsed; } catch(e) {}
+                        }
+                        hydrated = true;
+                    }
+                }
+            }
+            // 4. Revenue Data
+            if (typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData) {
+                const cachedRevData = SafeStorage.getItem('thp_cache_rev_data');
+                if (cachedRevData) {
+                    const parsed = JSON.parse(cachedRevData);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        window.globalRevenueData = parsed;
+                        hydrated = true;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("hydrateDashboardCache warning:", e);
+        }
+        return hydrated;
+    }
+
+    function triggerSilentBackgroundSync() {
+        if (window.isSyncingDashboardData) return;
+        if (typeof SafeStorage === 'undefined') return;
+
+        // ไม่ต้องซิงค์ซ้ำถ้าเพิ่งซิงค์ไปภายใน 45 วินาที
+        const lastSync = parseInt(SafeStorage.getItem('thp_cache_last_sync') || '0', 10);
+        if (Date.now() - lastSync < 45000) return;
+
+        window.isSyncingDashboardData = true;
+        const statusEl = document.getElementById('dashboardSyncStatus');
+        if (statusEl) {
+            statusEl.className = "inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-full animate-pulse";
+            statusEl.innerHTML = '<i class="fas fa-sync-alt fa-spin text-[10px]"></i> ซิงค์สด...';
+            statusEl.classList.remove('hidden', 'opacity-0');
+        }
+
+        let pending = 4;
+        const checkDone = () => {
+            pending--;
+            if (pending <= 0) {
+                window.isSyncingDashboardData = false;
+                SafeStorage.setItem('thp_cache_last_sync', Date.now().toString());
+                if (statusEl) {
+                    statusEl.className = "inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full transition-opacity duration-500";
+                    statusEl.innerHTML = '<i class="fas fa-check-circle text-[10px]"></i> ข้อมูลล่าสุด';
+                    setTimeout(() => {
+                        statusEl.classList.add('opacity-0');
+                        setTimeout(() => statusEl.classList.add('hidden'), 500);
+                    }, 3500);
+                }
+                updateHomeVisitSummary(true);
+            }
+        };
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            // 1. Visit Data
+            google.script.run.withSuccessHandler((res) => {
+                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                    SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                    if (typeof renderTable === 'function') renderTable(res);
+                }
+                checkDone();
+            }).withFailureHandler(() => checkDone()).getDataForTable();
+
+            // 2. Visit Targets
+            google.script.run.withSuccessHandler((tgtRes) => {
+                if (tgtRes && tgtRes.status === 'success' && Array.isArray(tgtRes.data)) {
+                    SafeStorage.setItem('thp_cache_visit_targets', JSON.stringify(tgtRes.data));
+                    window.globalVisitTargets = tgtRes.data;
+                }
+                checkDone();
+            }).withFailureHandler(() => checkDone()).getVisitTargets();
+
+            // 3. Revenue Targets
+            google.script.run.withSuccessHandler((revTgtRes) => {
+                const targets = (revTgtRes && revTgtRes.status === 'success' && Array.isArray(revTgtRes.data)) ? revTgtRes.data : [];
+                if (targets.length > 1) {
+                    SafeStorage.setItem('thp_cache_rev_targets', JSON.stringify(targets));
+                    window.globalRevenueTargets = targets;
+                    if (typeof globalRevenueTargets !== 'undefined') {
+                        try { globalRevenueTargets = targets; } catch(e) {}
+                    }
+                }
+                checkDone();
+            }).withFailureHandler(() => checkDone()).getRevenueTargets();
+
+            // 4. Revenue Report Data
+            google.script.run.withSuccessHandler((res) => {
+                if (res && res.status === 'success' && Array.isArray(res.data)) {
+                    SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data));
+                    window.globalRevenueData = res.data;
+                }
+                checkDone();
+            }).withFailureHandler(() => checkDone()).getRevenueReportData({
+                user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
+                zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
+            });
+        }
+    }
+
+    // ==========================================
     // HOME VISIT SUMMARY
     // ==========================================
-    function updateHomeVisitSummary() {
+    function updateHomeVisitSummary(isSilent) {
         const card = document.getElementById('homeVisitSummaryCard');
         const monthSpan = document.getElementById('homeSummaryMonth');
         const countSpan = document.getElementById('homeSummaryCount');
@@ -24417,6 +24618,9 @@
 
         container.style.display = '';
 
+        // พยายามดึงข้อมูลจากแคชเบื้องต้นทันทีแบบ 0ms
+        hydrateDashboardCache();
+
         const missingVisitData = typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0;
         const missingVisitTargets = typeof globalVisitTargets === 'undefined' || !globalVisitTargets || globalVisitTargets.length === 0;
         const currentRevTargets = (typeof window.globalRevenueTargets !== 'undefined' && window.globalRevenueTargets && window.globalRevenueTargets.length > 0) 
@@ -24425,9 +24629,9 @@
         const missingRevTargets = !currentRevTargets || currentRevTargets.length <= 1;
         const missingRevData = typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData;
 
+        // ถ้ายังไม่มีข้อมูลในแคชเลย (เช่น เพิ่งเปิดเครื่องใหม่ครั้งแรก) ให้แสดงตัวโหลดเต็มจอ
         if (missingVisitData || missingVisitTargets || missingRevTargets || missingRevData) {
-            
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
+            if (!isSilent && typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
 
             let pendingReqs = 0;
             const checkDone = () => {
@@ -24444,6 +24648,9 @@
                     pendingReqs++;
                     google.script.run.withSuccessHandler((res) => {
                         window.isFetchingVisitData = false;
+                        if (res && res.status === 'success' && Array.isArray(res.data)) {
+                            SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                        }
                         if (typeof renderTable === 'function') renderTable(res);
                         checkDone();
                     }).withFailureHandler(() => { window.isFetchingVisitData = false; checkDone(); }).getDataForTable();
@@ -24454,6 +24661,9 @@
                     pendingReqs++;
                     google.script.run.withSuccessHandler((tgtRes) => {
                         window.isFetchingVisitTargets = false;
+                        if (tgtRes && tgtRes.status === 'success' && Array.isArray(tgtRes.data)) {
+                            SafeStorage.setItem('thp_cache_visit_targets', JSON.stringify(tgtRes.data));
+                        }
                         window.globalVisitTargets = tgtRes.data;
                         checkDone();
                     }).withFailureHandler(() => { window.isFetchingVisitTargets = false; checkDone(); }).getVisitTargets();
@@ -24465,6 +24675,9 @@
                     google.script.run.withSuccessHandler((revTgtRes) => {
                         window.isFetchingRevTargets = false;
                         const targets = (revTgtRes && revTgtRes.status === 'success' && Array.isArray(revTgtRes.data)) ? revTgtRes.data : [];
+                        if (targets.length > 1) {
+                            SafeStorage.setItem('thp_cache_rev_targets', JSON.stringify(targets));
+                        }
                         window.globalRevenueTargets = targets;
                         if (typeof globalRevenueTargets !== 'undefined') {
                             try { globalRevenueTargets = targets; } catch(e) {}
@@ -24478,6 +24691,9 @@
                     pendingReqs++;
                     google.script.run.withSuccessHandler(function(res) {
                         window.isFetchingRevData = false;
+                        if (res && res.status === 'success' && Array.isArray(res.data)) {
+                            SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data));
+                        }
                         window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
                         checkDone();
                     }).withFailureHandler(() => { window.isFetchingRevData = false; checkDone(); }).getRevenueReportData({
@@ -24488,6 +24704,9 @@
             }
             
             if (pendingReqs > 0) return;
+        } else if (!isSilent) {
+            // หากมีข้อมูลจากแคชพร้อมแล้ว ให้สั่งซิงค์ข้อมูลใหม่ล่าสุดในเบื้องหลังแบบเงียบๆ
+            setTimeout(triggerSilentBackgroundSync, 600);
         }
 
         const date = new Date();
