@@ -9,6 +9,9 @@
 # Specifically ignore local Node.js and configuration files
 update-version.js
 apply_cache.js
+build-web.js
+vercel.json
+dist/**
 package.json
 package-lock.json
 node_modules/**

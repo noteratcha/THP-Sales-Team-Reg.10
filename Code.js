@@ -3681,6 +3681,38 @@ function doPost(e) {
     var json = {};
     try { json = JSON.parse(textData); } catch (e) {}
 
+    // 0. API Execution for External Web (Vercel / Frontend)
+    if (json && (json.action === 'executeFunction' || json.__gas_function__)) {
+      var funcName = json.functionName || json.__gas_function__;
+      var args = json.args || [];
+      try {
+        var fn = this[funcName];
+        if (typeof fn !== 'function') {
+          fn = (typeof globalThis !== 'undefined' && globalThis[funcName]) || (typeof global !== 'undefined' && global[funcName]);
+        }
+        if (typeof fn === 'function') {
+          var res = fn.apply(this, args);
+          return ContentService.createTextOutput(JSON.stringify({
+            __gas_execution__: true,
+            success: true,
+            result: res
+          })).setMimeType(ContentService.MimeType.JSON);
+        } else {
+          return ContentService.createTextOutput(JSON.stringify({
+            __gas_execution__: true,
+            success: false,
+            error: 'Server function not found: ' + funcName
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      } catch (fnErr) {
+        return ContentService.createTextOutput(JSON.stringify({
+          __gas_execution__: true,
+          success: false,
+          error: fnErr.toString()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     // 1. ตรวจสอบว่าเป็นการส่ง Bug Report จากหน้าเว็บ (มี action = bugReport)
     if (json && json.action === 'bugReport') {
       sendBugReportToLine(json.message, json.imageB64);
