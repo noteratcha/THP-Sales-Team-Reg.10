@@ -3075,7 +3075,38 @@ function getBigLotOrders(username, zipcode, officeName) {
   }
 }
 
-function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate, newRemark) {
+// Helper: ตรวจสอบว่าคำสั่งซื้อสร้างขึ้นในวันนี้หรือไม่ (อิงเวลา Asia/Bangkok)
+function isOrderCreatedToday(timestampVal) {
+  if (!timestampVal) return false;
+  try {
+    var orderDateStr = '';
+    if (timestampVal instanceof Date) {
+      orderDateStr = Utilities.formatDate(timestampVal, "Asia/Bangkok", "dd/MM/yyyy");
+    } else {
+      var str = String(timestampVal || '').trim();
+      var match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (match) {
+        var d = parseInt(match[1], 10);
+        var m = parseInt(match[2], 10);
+        var y = parseInt(match[3], 10);
+        if (y > 2500) y -= 543;
+        orderDateStr = (d < 10 ? '0' : '') + d + '/' + (m < 10 ? '0' : '') + m + '/' + y;
+      } else {
+        var dObj = new Date(str);
+        if (!isNaN(dObj.getTime())) {
+          orderDateStr = Utilities.formatDate(dObj, "Asia/Bangkok", "dd/MM/yyyy");
+        }
+      }
+    }
+    var todayBangkok = Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy");
+    return orderDateStr === todayBangkok;
+  } catch (err) {
+    console.error("isOrderCreatedToday error:", err);
+    return false;
+  }
+}
+
+function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate, newRemark, userInfo) {
   try {
     if (!rowIndex) return {status: 'error', message: 'ข้อมูลไม่ครบถ้วน'};
     
@@ -3087,15 +3118,38 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
         return {status: 'error', message: 'แถวที่ต้องการแก้ไขไม่ถูกต้อง'};
     }
     
-    // ดึงข้อมูลเดิมก่อนทำการแก้ไขเพื่อนำมาแจ้งเตือน LINE
+    // ดึงข้อมูลเดิมก่อนทำการแก้ไขเพื่อตรวจสอบสิทธิ์และนำมาแจ้งเตือน LINE
     var rowData = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
+    var orderTimestamp = rowData[0];
     var orderZip = String(rowData[1] || '').trim();
     var office = String(rowData[2] || '').trim();
     var productCode = String(rowData[4] || '').trim();
     var oldQty = parseInt(rowData[5]) || 0;
     var oldTotal = parseFloat(rowData[6]) || 0;
-    var oldDate = String(rowData[7] || '').trim();
-    var oldRemark = String(rowData[8] || '').trim();
+
+    // ตรวจสอบสิทธิ์การแก้ไข
+    var uName = userInfo ? String(userInfo.user || '').trim().toLowerCase() : '';
+    var isAdmin = uName === 'admin';
+
+    if (!isAdmin) {
+      // 1. ตรวจสอบว่ารายการถูกสร้างขึ้นในวันนี้หรือไม่
+      if (!isOrderCreatedToday(orderTimestamp)) {
+        return { status: 'error', message: 'ไม่สามารถแก้ไขได้ รายการนี้ไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่แก้ไขได้)' };
+      }
+
+      // 2. ตรวจสอบว่าเป็นรายการของ User ที่ล็อกอินหรือไม่
+      var userZip = userInfo ? String(userInfo.zipcode || userInfo.user || '').trim() : '';
+      var userName = userInfo ? String(userInfo.name || '').trim() : '';
+
+      var isOwner = false;
+      if (userZip && orderZip === userZip) isOwner = true;
+      if (userName && office.indexOf(userName) !== -1) isOwner = true;
+      if (userZip && office.indexOf(userZip) !== -1) isOwner = true;
+
+      if (!isOwner) {
+        return { status: 'error', message: 'ท่านไม่มีสิทธิ์แก้ไขรายการนี้ (สามารถแก้ไขได้เฉพาะรายการของตนเองเท่านั้น)' };
+      }
+    }
 
     // ค้นชื่อสินค้าภาษาไทย
     var stockSheet = ss.getSheetByName('Stock');
@@ -3112,8 +3166,12 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
 
     sheet.getRange(rowIndex, 6).setValue(newQuantity);
     sheet.getRange(rowIndex, 7).setValue(newTotalPrice);
-    sheet.getRange(rowIndex, 8).setValue(String(newDeliveryDate || '').trim());
-    sheet.getRange(rowIndex, 9).setValue(String(newRemark || '').trim());
+    if (newDeliveryDate !== undefined && newDeliveryDate !== null && String(newDeliveryDate).trim() !== '') {
+      sheet.getRange(rowIndex, 8).setValue(String(newDeliveryDate).trim());
+    }
+    if (newRemark !== undefined && newRemark !== null && String(newRemark).trim() !== '') {
+      sheet.getRange(rowIndex, 9).setValue(String(newRemark).trim());
+    }
     
     var lineMsg = "✏️ มีการแก้ไขรายการสั่งสินค้า Big Lot!\n";
     lineMsg += "📍 ที่ทำการ: " + office + " (" + orderZip + ")\n";
@@ -3123,6 +3181,9 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
     lineMsg += "💰 ราคารวมเดิม: " + oldTotal.toLocaleString() + " ➡️ ใหม่: " + parseFloat(newTotalPrice).toLocaleString() + " บาท\n";
     if (newDeliveryDate) lineMsg += "📅 วันที่ต้องการ: " + newDeliveryDate + "\n";
     if (newRemark) lineMsg += "💬 หมายเหตุ: " + newRemark + "\n";
+    if (userInfo && (userInfo.name || userInfo.user)) {
+      lineMsg += "👤 ผู้แก้ไข: " + (userInfo.name || userInfo.user) + (isAdmin ? ' (Admin)' : '') + "\n";
+    }
 
     sendBigLotLineNotification(lineMsg);
 
@@ -3133,7 +3194,11 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
   }
 }
 
-function deleteBigLotOrder(rowIndex) {
+function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice, userInfo) {
+  return updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, null, null, userInfo);
+}
+
+function deleteBigLotOrder(rowIndex, userInfo) {
   try {
     if (!rowIndex) return {status: 'error', message: 'ข้อมูลไม่ครบถ้วน'};
     
@@ -3145,13 +3210,38 @@ function deleteBigLotOrder(rowIndex) {
         return {status: 'error', message: 'แถวที่ต้องการลบไม่ถูกต้อง'};
     }
     
-    // ดึงข้อมูลก่อนลบเพื่อใช้แจ้งเตือน LINE
+    // ดึงข้อมูลก่อนลบเพื่อตรวจสอบสิทธิ์และใช้แจ้งเตือน LINE
     var rowData = sheet.getRange(rowIndex, 1, 1, 7).getValues()[0];
+    var orderTimestamp = rowData[0];
     var orderZip = String(rowData[1] || '').trim();
     var office = String(rowData[2] || '').trim();
     var productCode = String(rowData[4] || '').trim();
     var qty = parseInt(rowData[5]) || 0;
     var total = parseFloat(rowData[6]) || 0;
+
+    // ตรวจสอบสิทธิ์การลบ
+    var uName = userInfo ? String(userInfo.user || '').trim().toLowerCase() : '';
+    var isAdmin = uName === 'admin';
+
+    if (!isAdmin) {
+      // 1. ตรวจสอบว่ารายการถูกสร้างขึ้นในวันนี้หรือไม่
+      if (!isOrderCreatedToday(orderTimestamp)) {
+        return { status: 'error', message: 'ไม่สามารถยกเลิกได้ รายการนี้ไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่ยกเลิกได้)' };
+      }
+
+      // 2. ตรวจสอบว่าเป็นรายการของ User ที่ล็อกอินหรือไม่
+      var userZip = userInfo ? String(userInfo.zipcode || userInfo.user || '').trim() : '';
+      var userName = userInfo ? String(userInfo.name || '').trim() : '';
+
+      var isOwner = false;
+      if (userZip && orderZip === userZip) isOwner = true;
+      if (userName && office.indexOf(userName) !== -1) isOwner = true;
+      if (userZip && office.indexOf(userZip) !== -1) isOwner = true;
+
+      if (!isOwner) {
+        return { status: 'error', message: 'ท่านไม่มีสิทธิ์ยกเลิกรายการนี้ (สามารถยกเลิกได้เฉพาะรายการของตนเองเท่านั้น)' };
+      }
+    }
 
     // ค้นชื่อสินค้าภาษาไทย
     var stockSheet = ss.getSheetByName('Stock');
@@ -3173,14 +3263,162 @@ function deleteBigLotOrder(rowIndex) {
     lineMsg += "📦 สินค้าที่ยกเลิก: " + prodName + "\n";
     lineMsg += "---------------------------\n";
     lineMsg += "🔢 จำนวน: " + qty + " ชิ้น\n";
-    lineMsg += "💰 ราคารวม: " + total.toLocaleString() + " บาท";
+    lineMsg += "💰 ราคารวม: " + total.toLocaleString() + " บาท\n";
+    if (userInfo && (userInfo.name || userInfo.user)) {
+      lineMsg += "👤 ผู้ยกเลิก: " + (userInfo.name || userInfo.user) + (isAdmin ? ' (Admin)' : '') + "\n";
+    }
 
     sendBigLotLineNotification(lineMsg);
 
-    return {status: 'success', message: 'ลบข้อมูลสำเร็จ'};
+    return {status: 'success', message: 'ยกเลิกรายการสำเร็จ'};
   } catch (e) {
     if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
     return {status: 'error', message: e.toString()};
+  }
+}
+
+function deleteMultipleBigLotOrders(rowIndices, userInfo) {
+  try {
+    if (!rowIndices || !Array.isArray(rowIndices) || rowIndices.length === 0) {
+      return { status: 'error', message: 'กรุณาเลือกรายการที่ต้องการยกเลิก' };
+    }
+
+    var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
+    var sheet = ss.getSheetByName('BigLot');
+    if (!sheet) {
+      return { status: 'error', message: 'ไม่พบชีต BigLot ในฐานข้อมูล' };
+    }
+
+    var maxRows = sheet.getMaxRows();
+    var cleanIndices = [];
+    var seen = {};
+    for (var k = 0; k < rowIndices.length; k++) {
+      var r = parseInt(rowIndices[k], 10);
+      if (!isNaN(r) && r > 1 && r <= maxRows && !seen[r]) {
+        seen[r] = true;
+        cleanIndices.push(r);
+      }
+    }
+
+    if (cleanIndices.length === 0) {
+      return { status: 'error', message: 'ไม่พบแถวรายการที่ถูกต้องในการยกเลิก' };
+    }
+
+    var uName = userInfo ? String(userInfo.user || '').trim().toLowerCase() : '';
+    var isAdmin = uName === 'admin';
+    var userZip = userInfo ? String(userInfo.zipcode || userInfo.user || '').trim() : '';
+    var userName = userInfo ? String(userInfo.name || '').trim() : '';
+
+    // Cache Stock data for product names in LINE notification
+    var stockSheet = ss.getSheetByName('Stock');
+    var stockMap = {};
+    if (stockSheet) {
+      var stockData = stockSheet.getDataRange().getValues();
+      for (var s = 1; s < stockData.length; s++) {
+        var code = String(stockData[s][0] || '').trim();
+        var name = String(stockData[s][1] || '').trim();
+        stockMap[code] = name;
+      }
+    }
+
+    // Read all rows once for validation
+    var allData = sheet.getDataRange().getValues();
+
+    var rowsToDelete = [];
+    var totalQty = 0;
+    var grandTotal = 0;
+
+    for (var i = 0; i < cleanIndices.length; i++) {
+      var rIdx = cleanIndices[i];
+      var dataIdx = rIdx - 1; // 0-based index in allData
+      if (dataIdx >= allData.length) continue;
+
+      var rowData = allData[dataIdx];
+      var orderTimestamp = rowData[0];
+      var orderZip = String(rowData[1] || '').trim();
+      var office = String(rowData[2] || '').trim();
+      var productCode = String(rowData[4] || '').trim();
+      var qty = parseInt(rowData[5]) || 0;
+      var total = parseFloat(rowData[6]) || 0;
+
+      // Check permission
+      if (!isAdmin) {
+        if (!isOrderCreatedToday(orderTimestamp)) {
+          return {
+            status: 'error',
+            message: 'ไม่สามารถยกเลิกได้ มีบางรายการไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่ยกเลิกได้)'
+          };
+        }
+
+        var isOwner = false;
+        if (userZip && orderZip === userZip) isOwner = true;
+        if (userName && office.indexOf(userName) !== -1) isOwner = true;
+        if (userZip && office.indexOf(userZip) !== -1) isOwner = true;
+
+        if (!isOwner) {
+          return {
+            status: 'error',
+            message: 'ท่านไม่มีสิทธิ์ยกเลิกบางรายการ (สามารถยกเลิกได้เฉพาะรายการของตนเองเท่านั้น)'
+          };
+        }
+      }
+
+      var prodName = stockMap[productCode] || productCode;
+      rowsToDelete.push({
+        rowIndex: rIdx,
+        office: office,
+        orderZip: orderZip,
+        prodName: prodName,
+        qty: qty,
+        total: total
+      });
+      totalQty += qty;
+      grandTotal += total;
+    }
+
+    if (rowsToDelete.length === 0) {
+      return { status: 'error', message: 'ไม่พบรายการที่ตรงกับเงื่อนไขการยกเลิก' };
+    }
+
+    // CRITICAL: Sort descending by rowIndex so deleting rows doesn't shift remaining row indices
+    rowsToDelete.sort(function(a, b) {
+      return b.rowIndex - a.rowIndex;
+    });
+
+    for (var d = 0; d < rowsToDelete.length; d++) {
+      sheet.deleteRow(rowsToDelete[d].rowIndex);
+    }
+
+    // Send LINE Notification summary
+    var lineMsg = "❌ ยกเลิกรายการสั่งสินค้า Big Lot (ลบแบบเลือกหลายรายการ)!\n";
+    lineMsg += "🔢 จำนวนที่ยกเลิก: " + rowsToDelete.length + " รายการ\n";
+    lineMsg += "📦 ยอดชิ้นรวม: " + totalQty.toLocaleString() + " ชิ้น\n";
+    lineMsg += "💰 ยอดเงินรวม: " + grandTotal.toLocaleString() + " บาท\n";
+    lineMsg += "---------------------------\n";
+    
+    var showCount = Math.min(rowsToDelete.length, 5);
+    for (var m = 0; m < showCount; m++) {
+      var item = rowsToDelete[m];
+      lineMsg += "• " + item.office + " : " + item.prodName + " (" + item.qty + " ชิ้น)\n";
+    }
+    if (rowsToDelete.length > 5) {
+      lineMsg += "... และอีก " + (rowsToDelete.length - 5) + " รายการ\n";
+    }
+
+    if (userInfo && (userInfo.name || userInfo.user)) {
+      lineMsg += "👤 ผู้ยกเลิก: " + (userInfo.name || userInfo.user) + (isAdmin ? ' (Admin)' : '') + "\n";
+    }
+
+    sendBigLotLineNotification(lineMsg);
+
+    return {
+      status: 'success',
+      message: 'ยกเลิกรายการสั่งซื้อสำเร็จ ' + rowsToDelete.length + ' รายการ',
+      deletedCount: rowsToDelete.length
+    };
+  } catch (e) {
+    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    return { status: 'error', message: e.toString() };
   }
 }
 

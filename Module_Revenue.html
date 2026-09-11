@@ -859,7 +859,8 @@
     // ==========================================
     let allRevenueRows = [];
     let revenueFilteredRows = [];
-    let globalRevenueTargets = [];
+    window.globalRevenueTargets = window.globalRevenueTargets || [];
+    var globalRevenueTargets = window.globalRevenueTargets;
     var zipToTeamMap = {};
     let currentRevenuePage = 1;
     let revenueRowsPerPage = 10;
@@ -981,10 +982,10 @@
         };
 
         google.script.run.withSuccessHandler(function (targetRes) {
-            globalRevenueTargets = (targetRes && targetRes.status === 'success') ? targetRes.data : [];
+            window.globalRevenueTargets = globalRevenueTargets = (targetRes && targetRes.status === 'success') ? targetRes.data : [];
             fetchMainData();
         }).withFailureHandler(err => {
-            globalRevenueTargets = [];
+            window.globalRevenueTargets = globalRevenueTargets = [];
             fetchMainData();
         }).getRevenueTargets();
     }

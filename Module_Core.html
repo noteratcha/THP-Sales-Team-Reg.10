@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0903.1638';
+    var APP_VERSION = 'Ver. 2026.0911.1156';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1750,6 +1750,7 @@
                     if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
                     window.globalRevenueData = undefined;
                     window.globalRevenueTargets = undefined;
+                    try { if (typeof globalRevenueTargets !== 'undefined') globalRevenueTargets = []; } catch(e) {}
                     window.fuzeAgentData = [];
                     
                     // Clear chart instances to prevent old data rendering
@@ -1915,6 +1916,7 @@
             if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
             window.globalRevenueData = undefined;
             window.globalRevenueTargets = undefined;
+            try { if (typeof globalRevenueTargets !== 'undefined') globalRevenueTargets = []; } catch(e) {}
             window.fuzeAgentData = [];
             
             // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
@@ -2904,9 +2906,12 @@
         container.style.display = '';
 
         const missingVisitData = typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0;
-        const missingVisitTargets = typeof globalVisitTargets === 'undefined' || !globalVisitTargets;
-        const missingRevTargets = typeof globalRevenueTargets === 'undefined' || !globalRevenueTargets;
-        const missingRevData = typeof window.globalRevenueData === 'undefined';
+        const missingVisitTargets = typeof globalVisitTargets === 'undefined' || !globalVisitTargets || globalVisitTargets.length === 0;
+        const currentRevTargets = (typeof window.globalRevenueTargets !== 'undefined' && window.globalRevenueTargets && window.globalRevenueTargets.length > 0) 
+            ? window.globalRevenueTargets 
+            : ((typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets && globalRevenueTargets.length > 0) ? globalRevenueTargets : null);
+        const missingRevTargets = !currentRevTargets || currentRevTargets.length <= 1;
+        const missingRevData = typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData;
 
         if (missingVisitData || missingVisitTargets || missingRevTargets || missingRevData) {
             
@@ -2947,7 +2952,11 @@
                     pendingReqs++;
                     google.script.run.withSuccessHandler((revTgtRes) => {
                         window.isFetchingRevTargets = false;
-                        window.globalRevenueTargets = (revTgtRes && revTgtRes.status === 'success') ? revTgtRes.data : [];
+                        const targets = (revTgtRes && revTgtRes.status === 'success' && Array.isArray(revTgtRes.data)) ? revTgtRes.data : [];
+                        window.globalRevenueTargets = targets;
+                        if (typeof globalRevenueTargets !== 'undefined') {
+                            try { globalRevenueTargets = targets; } catch(e) {}
+                        }
                         checkDone();
                     }).withFailureHandler(() => { window.isFetchingRevTargets = false; checkDone(); }).getRevenueTargets();
                 } else if (missingRevTargets && window.isFetchingRevTargets) { pendingReqs++; }
@@ -3110,14 +3119,18 @@
         }
 
         let myRevTarget = 0;
-        if (typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets.length > 1) {
+        const targetsToProcess = (typeof window.globalRevenueTargets !== 'undefined' && window.globalRevenueTargets && window.globalRevenueTargets.length > 1)
+            ? window.globalRevenueTargets
+            : ((typeof globalRevenueTargets !== 'undefined' && globalRevenueTargets && globalRevenueTargets.length > 1) ? globalRevenueTargets : []);
+
+        if (targetsToProcess && targetsToProcess.length > 1) {
             let userId = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
             let isAdmin = (userId === 'admin' || userId === 'viewer');
             let userZip = (typeof currentUserInfo !== 'undefined' && currentUserInfo.zipcode) ? String(currentUserInfo.zipcode).trim() : '';
             const fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
             const shortThaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-            globalRevenueTargets.forEach((r, i) => {
+            targetsToProcess.forEach((r, i) => {
                 if (i === 0) return;
                 let y = parseInt(r[0]); if (y > 2500) y -= 543;
                 let mStr = r[1] ? String(r[1]).trim() : '';
@@ -3127,11 +3140,12 @@
 
                 if (y === currentYear && (mStr === currentThaiMonthName || mIdx === currentMonth)) {
                     let rZip = String(r[2]).trim();
+                    let tVal = parseFloat(String(r[4]).replace(/,/g, '')) || 0;
                     if (isAdmin) {
-                        myRevTarget += parseFloat(String(r[4]).replace(/,/g, '')) || 0;
+                        myRevTarget += tVal;
                     } else {
                         if (rZip === userZip) {
-                            myRevTarget += parseFloat(String(r[4]).replace(/,/g, '')) || 0;
+                            myRevTarget += tVal;
                         }
                     }
                 }

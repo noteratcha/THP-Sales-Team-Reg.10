@@ -31,6 +31,10 @@
             </div>
 
             <div class="flex flex-row flex-wrap items-center justify-end gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
+                <button type="button" id="bigLotBulkDeleteBtn" onclick="window.deleteSelectedBigLotOrders()" style="display: none;"
+                    class="text-xs bg-white text-red-600 hover:text-white border border-red-200 px-4 py-2.5 rounded-xl transition-all shadow-sm font-bold flex items-center justify-center gap-2 hover:bg-red-600 btn-pop shrink-0 animate-fade-in">
+                    <i class="fas fa-trash-alt"></i> ยกเลิกรายการที่เลือก <span id="bigLotBulkDeleteCount" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full text-[10px] ml-0.5 font-black">0</span>
+                </button>
                 <button type="button" onclick="window.loadBigLotReportPage()"
                     class="text-xs bg-white text-gray-600 hover:text-orange-600 border border-gray-200 px-4 py-2.5 rounded-xl transition-all shadow-sm font-bold flex items-center justify-center gap-2 hover:bg-orange-50 btn-pop shrink-0">
                     <i class="fas fa-sync-alt text-orange-500"></i> รีเฟรชข้อมูล
@@ -160,6 +164,32 @@
                 ไม่พบประวัติการสั่งสินค้าสั่งซื้อใดๆ ในขอบเขตระดับบัญชีของท่านในขณะนี้</p>
         </div>
 
+        <!-- 📌 Bulk Selection Sticky Action Bar -->
+        <div id="bigLotSelectionBar"
+            class="hidden bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white px-5 py-3 rounded-2xl shadow-xl mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in sticky top-4 z-30 border border-red-400/40">
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm shadow-inner shrink-0">
+                        <i class="fas fa-check"></i>
+                    </span>
+                    <div>
+                        <span class="font-black text-sm text-yellow-300" id="bigLotSelectionBarCountText">เลือกไว้ 0 รายการ</span>
+                        <span class="text-xs text-white/90 ml-1.5 hidden md:inline" id="bigLotSelectionBarSummaryText">(0 ชิ้น • 0.00 บาท)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button type="button" onclick="window.clearBigLotSelection()"
+                    class="text-xs bg-white/15 hover:bg-white/25 text-white border border-white/30 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5">
+                    <i class="fas fa-times text-[10px]"></i> ล้างการเลือก
+                </button>
+                <button type="button" onclick="window.deleteSelectedBigLotOrders()"
+                    class="text-xs bg-white hover:bg-red-50 text-red-600 px-4 py-2 rounded-xl font-black transition shadow hover:shadow-lg flex items-center gap-1.5 active:scale-95">
+                    <i class="fas fa-trash-alt text-red-600"></i> ยกเลิกรายการที่เลือกทั้งหมด
+                </button>
+            </div>
+        </div>
+
         <!-- Table View Container -->
         <div id="bigLotReportTableContainer"
             class="hidden report-table-container custom-radius shadow-xl overflow-hidden animate-fade-in border border-gray-150">
@@ -168,6 +198,9 @@
                     <thead>
                         <tr
                             class="bg-gradient-to-r from-theme-black via-[#083c2c] to-theme-black text-white font-bold uppercase tracking-wider align-middle">
+                            <th id="bigLotSelectColHeader" style="width: 3%; min-width: 40px;" class="hidden py-4 px-2 font-bold border-b border-[#041d15] shrink-0 text-center align-middle">
+                                <input type="checkbox" id="bigLotSelectAll" onchange="window.toggleSelectAllBigLot(this)" class="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-gray-300 cursor-pointer transition" title="เลือกทั้งหมดในหน้านี้">
+                            </th>
                             <th style="width: 5%; min-width: 50px;" class="py-4 px-4 font-bold border-b border-[#041d15] shrink-0 text-center align-middle">#</th>
                             <th style="width: 12%; min-width: 110px;" class="py-4 px-4 font-bold border-b border-[#041d15] shrink-0 text-center align-middle">วันที่สั่งซื้อ</th>
                             <th style="width: 20%; min-width: 180px;" class="py-4 px-4 font-bold border-b border-[#041d15] text-center align-middle">ที่ทำการ</th>
@@ -236,6 +269,63 @@
     window.bigLotReportSearchQuery = '';
     window.bigLotReportCurrentPage = 1;
     window.bigLotReportPageSize = 10;
+    window.bigLotSelectedIndices = new Set();
+
+    // 🗓️ Helper: ตรวจสอบว่าคำสั่งซื้อสร้างขึ้นในวันนี้หรือไม่
+    window.isOrderCreatedToday = function(timestampStr) {
+        if (!timestampStr) return false;
+        try {
+            const parts = String(timestampStr).trim().split(/[\s,T]+/);
+            const datePart = parts[0];
+            let day, month, year;
+            if (datePart.includes('/')) {
+                const dmy = datePart.split('/');
+                if (dmy.length === 3) {
+                    day = parseInt(dmy[0], 10);
+                    month = parseInt(dmy[1], 10);
+                    year = parseInt(dmy[2], 10);
+                }
+            } else if (datePart.includes('-')) {
+                const ymd = datePart.split('-');
+                if (ymd.length === 3) {
+                    year = parseInt(ymd[0], 10);
+                    month = parseInt(ymd[1], 10);
+                    day = parseInt(ymd[2], 10);
+                }
+            }
+            if (!day || !month || !year) return false;
+            if (year > 2500) year -= 543;
+            const now = new Date();
+            return (day === now.getDate() && month === (now.getMonth() + 1) && year === now.getFullYear());
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // 🔒 Helper: ตรวจสอบสิทธิ์การแก้ไขหรือยกเลิกคำสั่งซื้อ
+    // - Admin สามารถจัดการได้ทุกรายการ ทุกวัน
+    // - ผู้ใช้ทั่วไป จัดการได้เฉพาะรายการที่สั่งในวันนี้ และต้องเป็นรายการของตนเองเท่านั้น
+    window.canEditOrDeleteBigLotOrder = function(o) {
+        if (!o) return false;
+
+        const isAdmin = (typeof window.bigLotIsAdmin !== 'undefined' && window.bigLotIsAdmin) ||
+                        (typeof currentUserInfo !== 'undefined' && currentUserInfo && String(currentUserInfo.user).toLowerCase() === 'admin');
+        if (isAdmin) return true;
+
+        if (!window.isOrderCreatedToday(o.timestamp)) return false;
+
+        if (typeof currentUserInfo === 'undefined' || !currentUserInfo) return false;
+        const myZip = String(currentUserInfo.zipcode || currentUserInfo.user || '').trim();
+        const myName = String(currentUserInfo.name || '').trim();
+        const orderZip = String(o.zipcode || '').trim();
+        const orderOffice = String(o.officeName || '').trim();
+
+        const isOwner = (myZip && orderZip === myZip) ||
+                        (myName && orderOffice.includes(myName)) ||
+                        (myZip && orderOffice.includes(myZip));
+
+        return isOwner;
+    };
 
     // 🚀 ENTRY POINT: Switch Page callback
     window.loadBigLotReportPage = function () {
@@ -262,6 +352,8 @@
 
         window.bigLotReportCurrentPage = 1;
         window.bigLotReportPageSize = 10;
+        if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+        if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
 
         const startDateInput = document.getElementById('bigLotReportStartDate');
         const endDateInput = document.getElementById('bigLotReportEndDate');
@@ -476,6 +568,8 @@
                     ? 'ไม่พบผลลัพธ์ที่ตรงกับตัวกรองที่ระบุ'
                     : 'ไม่พบประวัติการสั่งสินค้าสั่งซื้อใดๆ ในขอบเขตระดับบัญชีของท่านในขณะนี้';
             }
+            if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+            if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
             // Reset KPIs
             window.updateKPIs(0, 0, 0);
             if (exportBtn) exportBtn.disabled = true;
@@ -533,18 +627,35 @@
             tableBody.innerHTML = '';
             
             const adminHeader = document.getElementById('bigLotAdminHeader');
+            const selectColHeader = document.getElementById('bigLotSelectColHeader');
+            const hasAnyActionPerm = window.bigLotIsAdmin || (window.bigLotOrders && window.bigLotOrders.some(item => window.canEditOrDeleteBigLotOrder(item)));
             if (adminHeader) {
-                if (window.bigLotIsAdmin) adminHeader.classList.remove('hidden');
+                if (hasAnyActionPerm) adminHeader.classList.remove('hidden');
                 else adminHeader.classList.add('hidden');
+            }
+            if (selectColHeader) {
+                if (hasAnyActionPerm) selectColHeader.classList.remove('hidden');
+                else selectColHeader.classList.add('hidden');
             }
 
             paginatedOrders.forEach((o, index) => {
                 const realIndex = startIdx + index + 1;
                 const absoluteIndex = startIdx + index;
+                const canManage = window.canEditOrDeleteBigLotOrder(o);
+                const isSelected = window.bigLotSelectedIndices && window.bigLotSelectedIndices.has(o.rowIndex);
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-orange-500/10 transition duration-200 text-gray-700 border-b border-gray-100 cursor-pointer';
                 tr.onclick = () => window.showBigLotOrderDetails(absoluteIndex);
                 tr.innerHTML = `
+                    ${hasAnyActionPerm ? `
+                    \x3Ctd class="py-3.5 px-2 text-center" onclick="event.stopPropagation()">
+                        ${canManage ? `
+                        \x3Cinput type="checkbox" class="biglot-row-checkbox w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-gray-300 cursor-pointer transition" data-rowindex="${o.rowIndex}" ${isSelected ? 'checked' : ''} onchange="window.handleBigLotRowSelect(${o.rowIndex}, this.checked)">
+                        ` : `
+                        \x3Cspan class="inline-block w-4 h-4">\x3C/span>
+                        `}
+                    \x3C/td>
+                    ` : ''}
                     \x3Ctd class="py-3.5 px-4 text-center">
                         \x3Cspan class="w-6 h-6 rounded-full bg-slate-100/90 text-slate-500 flex items-center justify-center font-mono mx-auto text-xs border border-slate-200/40">${realIndex}\x3C/span>
                     \x3C/td>
@@ -570,21 +681,43 @@
                     \x3Ctd class="py-3.5 px-4 text-right">
                         \x3Cspan class="font-mono text-emerald-600">${window.formatCurrency(o.totalPrice)}\x3C/span>
                     \x3C/td>
-                    ${window.bigLotIsAdmin ? `
+                    ${hasAnyActionPerm ? `
                     \x3Ctd class="py-3.5 px-4 text-center">
+                        ${canManage ? `
                         \x3Cdiv class="flex items-center justify-center space-x-1">
-                            \x3Cbutton onclick="event.stopPropagation(); window.openEditBigLotOrderModal(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 transition flex items-center justify-center" title="แก้ไข">
+                            \x3Cbutton onclick="event.stopPropagation(); window.openEditBigLotOrderModal(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 transition flex items-center justify-center shadow-sm" title="แก้ไขจำนวนสินค้า">
                                 \x3Ci class="fas fa-edit">\x3C/i>
                             \x3C/button>
-                            \x3Cbutton onclick="event.stopPropagation(); window.deleteBigLotOrder(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:scale-105 transition flex items-center justify-center" title="ลบ">
+                            \x3Cbutton onclick="event.stopPropagation(); window.deleteBigLotOrder(${absoluteIndex})" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:scale-105 transition flex items-center justify-center shadow-sm" title="ยกเลิกรายการสั่งซื้อ">
                                 \x3Ci class="fas fa-trash-alt">\x3C/i>
                             \x3C/button>
                         \x3C/div>
+                        ` : `
+                        \x3Cdiv class="flex items-center justify-center" title="${!window.isOrderCreatedToday(o.timestamp) ? 'แก้ไข/ยกเลิกได้เฉพาะรายการที่สั่งในวันนี้เท่านั้น (วันอื่นต้องเป็น Admin)' : 'แก้ไข/ยกเลิกได้เฉพาะรายการของตนเองเท่านั้น'}">
+                            \x3Cspan class="w-8 h-8 flex items-center justify-center text-gray-300 cursor-not-allowed opacity-40">
+                                \x3Ci class="fas fa-lock text-xs">\x3C/i>
+                            \x3C/span>
+                        \x3C/div>
+                        `}
                     \x3C/td>
                     ` : ''}
                 `;
                 tableBody.appendChild(tr);
             });
+
+            // Update select-all checkbox state for current page
+            const selectableOrdersOnPage = paginatedOrders.filter(item => window.canEditOrDeleteBigLotOrder(item));
+            const selectAllEl = document.getElementById('bigLotSelectAll');
+            if (selectAllEl) {
+                if (selectableOrdersOnPage.length > 0) {
+                    selectAllEl.disabled = false;
+                    selectAllEl.checked = selectableOrdersOnPage.every(item => window.bigLotSelectedIndices && window.bigLotSelectedIndices.has(item.rowIndex));
+                } else {
+                    selectAllEl.checked = false;
+                    selectAllEl.disabled = true;
+                }
+            }
+            if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
         }
 
         // Render Pagination controls in footer
@@ -642,6 +775,8 @@
     window.handleBigLotReportSearch = function (val) {
         window.bigLotReportSearchQuery = val || '';
         window.bigLotReportCurrentPage = 1; // Reset to page 1 on search query changes
+        if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+        if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
         window.renderBigLotReportUI();
     };
 
@@ -1020,6 +1155,8 @@
 
     window.handleBigLotReportDateChange = function () {
         window.bigLotReportCurrentPage = 1; // Reset to page 1 on date filter changes
+        if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+        if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
         window.renderBigLotReportUI();
     };
 
@@ -1082,7 +1219,7 @@
     window.showBigLotOrderDetails = function (index) {
         if (!window.bigLotOrders || !window.bigLotOrders[index]) return;
         const o = window.bigLotOrders[index];
-        const isAdmin = typeof currentUserInfo !== 'undefined' && String(currentUserInfo.user).toLowerCase() === 'admin';
+        const canManage = window.canEditOrDeleteBigLotOrder(o);
         
         let imageHTML = '';
         if (o.productImage && o.productImage.trim() !== '') {
@@ -1095,13 +1232,13 @@
                 '</div>';
         }
 
-        const editBtnHtml = isAdmin ? '<button type="button" onclick="window.editBigLotQuantity(' + index + ')" class="text-amber-500 hover:text-amber-600 transition-colors ml-1 hover:scale-110 active:scale-95" title="แก้ไขจำนวน"><i class="fas fa-edit"></i></button>' : '';
+        const editBtnHtml = canManage ? '<button type="button" onclick="window.editBigLotQuantity(' + index + ')" class="text-amber-500 hover:text-amber-600 transition-colors ml-1 hover:scale-110 active:scale-95" title="แก้ไขจำนวน"><i class="fas fa-edit"></i></button>' : '';
 
         let footerHtml = '';
-        if (isAdmin) {
+        if (canManage) {
             footerHtml = '<div class="flex justify-start items-center w-full px-2">' +
                 '<button type="button" onclick="window.deleteBigLotOrderFrontend(' + index + ')" class="group relative flex items-center justify-center rounded-2xl px-5 py-2.5 font-bold shadow-sm hover:shadow-md transition-all duration-300 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/60 overflow-hidden">' +
-                '<i class="fas fa-trash-alt mr-2 text-red-400 group-hover:scale-110 group-hover:-rotate-3 transition-transform"></i> ลบรายการสั่งซื้อ' +
+                '<i class="fas fa-trash-alt mr-2 text-red-400 group-hover:scale-110 group-hover:-rotate-3 transition-transform"></i> ยกเลิกรายการสั่งซื้อ' +
                 '</button>' +
                 '</div>';
         }
@@ -1275,14 +1412,14 @@
                     google.script.run
                     .withSuccessHandler(res => {
                         if (res && res.status === 'success') {
-                            Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', confirmButtonColor: '#10B981' })
+                            Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', text: res.message, confirmButtonColor: '#10B981' })
                             .then(() => window.loadBigLotReportPage());
                         } else {
-                            Swal.fire('ผิดพลาด', res.message, 'error');
+                            Swal.fire('ผิดพลาด', res ? res.message : 'ไม่ทราบสาเหตุ', 'error');
                         }
                     })
                     .withFailureHandler(err => Swal.fire('ข้อผิดพลาดระบบ', err.toString(), 'error'))
-                    .updateBigLotOrderQuantity(o.rowIndex, result.value.quantity, result.value.totalPrice);
+                    .updateBigLotOrder(o.rowIndex, result.value.quantity, result.value.totalPrice, o.deliveryDate, o.remark, (typeof currentUserInfo !== 'undefined' ? currentUserInfo : null));
                 } else {
                     Swal.fire('สำเร็จ (จำลอง)', 'บันทึกสำเร็จ (Offline Mode)', 'success');
                 }
@@ -1291,51 +1428,9 @@
     };
 
     window.deleteBigLotOrderFrontend = function (index) {
-        if (!window.bigLotOrders || !window.bigLotOrders[index]) return;
-        const o = window.bigLotOrders[index];
-        if (!o.rowIndex) {
-            Swal.fire('ข้อผิดพลาด', 'ไม่พบตำแหน่งข้อมูล ไม่สามารถลบได้', 'error');
-            return;
+        if (typeof window.deleteBigLotOrder === 'function') {
+            window.deleteBigLotOrder(index);
         }
-
-        Swal.fire({
-            title: 'ยืนยันการลบรายการ',
-            text: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการสั่งซื้อนี้? (ไม่สามารถกู้คืนได้)',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            cancelButtonColor: '#6B7280',
-            confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> ใช่, ลบเลย!',
-            cancelButtonText: 'ยกเลิก',
-            customClass: {
-                popup: 'rounded-3xl shadow-2xl border border-gray-100',
-                title: 'text-lg font-bold text-gray-800',
-                confirmButton: 'rounded-xl px-6 py-2.5 font-bold shadow-md hover:shadow-lg transition-all',
-                cancelButton: 'rounded-xl px-6 py-2.5 font-bold transition-all'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังลบข้อมูล...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                });
-                
-                if (typeof google !== 'undefined') {
-                    google.script.run
-                    .withSuccessHandler(res => {
-                        if (res && res.status === 'success') {
-                            Swal.fire({ icon: 'success', title: 'ลบสำเร็จ!', text: 'รายการถูกลบออกจากระบบแล้ว', confirmButtonColor: '#10B981' })
-                            .then(() => window.loadBigLotReportPage());
-                        } else {
-                            Swal.fire('ผิดพลาด', res.message, 'error');
-                        }
-                    })
-                    .withFailureHandler(err => Swal.fire('ข้อผิดพลาดระบบ', err.toString(), 'error'))
-                    .deleteBigLotOrder(o.rowIndex);
-                }
-            }
-        });
     };
 
     let bigLotMonthlyChartInstance;
@@ -2359,29 +2454,61 @@
         const o = window.bigLotOrders[index];
         if (!o) return;
 
+        const pricePerUnit = o.quantity > 0 ? (o.totalPrice / o.quantity) : 0;
+
         Swal.fire({
             title: 'แก้ไขรายการสั่งซื้อ',
             html: `
                 <div class="text-left mt-2 text-sm">
-                    <p class="mb-1"><b>สินค้า:</b> ${o.productName}</p>
-                    <p class="mb-4"><b>ที่ทำการ:</b> ${o.officeName} (${o.zipcode})</p>
-                    <label class="block font-bold text-gray-700 mb-1">จำนวน (หน่วย):</label>
-                    <input type="number" id="edit-qty" value="${o.quantity}" class="w-full p-2 border border-gray-300 rounded-lg mb-3" min="1">
+                    <p class="mb-1 text-gray-700"><b>สินค้า:</b> ${window.escapeHtml(o.productName)}</p>
+                    <p class="mb-3 text-gray-500 text-xs"><b>ที่ทำการ:</b> ${window.escapeHtml(o.officeName)} (${window.escapeHtml(o.zipcode)})</p>
                     
+                    <label class="block font-bold text-gray-700 mb-1">จำนวนสินค้า (หน่วย):</label>
+                    <input type="number" id="edit-qty" value="${o.quantity}" class="w-full p-2.5 border border-gray-300 rounded-xl mb-3 font-bold text-base focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none" min="1">
+                    
+                    <div class="mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-xs">
+                        <div class="flex justify-between text-gray-500 mb-1">
+                            <span>ราคาต่อหน่วย:</span>
+                            <span>฿${pricePerUnit.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-emerald-600 text-sm">
+                            <span>ยอดรวมใหม่:</span>
+                            <span id="edit-new-total-price">฿${o.totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+
                     <label class="block font-bold text-gray-700 mb-1">วันที่ต้องการสินค้า:</label>
-                    <input type="date" id="edit-date" value="${o.deliveryDate || ''}" class="w-full p-2 border border-gray-300 rounded-lg mb-3">
+                    <input type="date" id="edit-date" value="${o.deliveryDate || ''}" class="w-full p-2 border border-gray-300 rounded-xl mb-3 text-xs">
                     
                     <label class="block font-bold text-gray-700 mb-1">หมายเหตุ:</label>
-                    <textarea id="edit-remark" rows="2" class="w-full p-2 border border-gray-300 rounded-lg">${o.remark || ''}</textarea>
+                    <textarea id="edit-remark" rows="2" class="w-full p-2 border border-gray-300 rounded-xl text-xs" placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)">${window.escapeHtml(o.remark || '')}</textarea>
                 </div>
             `,
             showCancelButton: true,
-            confirmButtonText: 'บันทึกการแก้ไข',
+            confirmButtonText: '<i class="fas fa-save mr-1"></i> บันทึกการแก้ไข',
             cancelButtonText: 'ยกเลิก',
             confirmButtonColor: '#2563EB',
+            didOpen: () => {
+                const qtyInput = document.getElementById('edit-qty');
+                const totalSpan = document.getElementById('edit-new-total-price');
+                if (qtyInput && totalSpan) {
+                    qtyInput.addEventListener('input', (e) => {
+                        const newQty = parseInt(e.target.value) || 0;
+                        const newTotal = newQty * pricePerUnit;
+                        totalSpan.textContent = '฿' + newTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    });
+                }
+            },
             preConfirm: () => {
+                const newQty = parseInt(document.getElementById('edit-qty').value) || 0;
+                if (newQty <= 0) {
+                    Swal.showValidationMessage('กรุณาระบุจำนวนสินค้าให้ถูกต้อง (ต้องมากกว่า 0)');
+                    return false;
+                }
+                const newTotal = newQty * pricePerUnit;
                 return {
-                    quantity: document.getElementById('edit-qty').value,
+                    quantity: newQty,
+                    totalPrice: newTotal,
                     deliveryDate: document.getElementById('edit-date').value,
                     remark: document.getElementById('edit-remark').value
                 };
@@ -2389,56 +2516,415 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 const vals = result.value;
-                if (!vals.quantity || vals.quantity <= 0) {
-                    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุจำนวนให้ถูกต้อง', 'error');
-                    return;
-                }
                 Swal.fire({title: 'กำลังอัปเดตข้อมูล...', didOpen: () => Swal.showLoading(), allowOutsideClick: false});
                 
-                const pricePerUnit = o.totalPrice / o.quantity;
-                const newTotal = parseInt(vals.quantity) * pricePerUnit;
-
-                google.script.run
-                    .withSuccessHandler(res => {
-                        if (res.status === 'success') {
-                            Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
-                        } else {
-                            Swal.fire('ผิดพลาด', res.message, 'error');
-                        }
-                    })
-                    .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
-                    .updateBigLotOrder(o.rowIndex, vals.quantity, newTotal, vals.deliveryDate, vals.remark);
+                if (typeof google !== 'undefined') {
+                    google.script.run
+                        .withSuccessHandler(res => {
+                            if (res && res.status === 'success') {
+                                Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
+                            } else {
+                                Swal.fire('ผิดพลาด', res ? res.message : 'ไม่ทราบสาเหตุ', 'error');
+                            }
+                        })
+                        .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
+                        .updateBigLotOrder(o.rowIndex, vals.quantity, vals.totalPrice, vals.deliveryDate, vals.remark, (typeof currentUserInfo !== 'undefined' ? currentUserInfo : null));
+                } else {
+                    Swal.fire('สำเร็จ (จำลอง)', 'บันทึกเรียบร้อย', 'success');
+                }
             }
         });
     };
 
     window.deleteBigLotOrder = function(index) {
-        const o = window.bigLotOrders[index];
-        if (!o) return;
+        const o = window.bigLotOrders ? window.bigLotOrders[index] : null;
+        if (!o || !o.rowIndex) {
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลรายการที่ต้องการยกเลิก', 'error');
+            return;
+        }
+
+        // 🌟 ตรวจสอบว่าผู้ใช้กำลังเลือกหลายรายการอยู่หรือไม่ และแถวนี้เป็นหนึ่งในรายการที่เลือกหรือไม่
+        const hasMultipleSelected = window.bigLotSelectedIndices && window.bigLotSelectedIndices.size > 1;
+        const isCurrentRowSelected = window.bigLotSelectedIndices && window.bigLotSelectedIndices.has(o.rowIndex);
+
+        if (hasMultipleSelected && isCurrentRowSelected) {
+            const selectedRows = [];
+            let totalQty = 0;
+            let totalPrice = 0;
+            window.bigLotOrders.forEach(item => {
+                if (window.bigLotSelectedIndices.has(item.rowIndex)) {
+                    selectedRows.push(item);
+                    totalQty += (parseInt(item.quantity, 10) || 0);
+                    totalPrice += (parseFloat(item.totalPrice) || 0);
+                }
+            });
+
+            Swal.fire({
+                title: 'ยืนยันการยกเลิกรายการ',
+                html: `
+                    \x3Cdiv class="text-left bg-red-50/70 border border-red-200 p-4 rounded-2xl mb-2 text-xs sm:text-sm text-gray-700">
+                        \x3Cdiv class="flex items-center gap-2 font-bold text-red-600 mb-2">
+                            \x3Ci class="fas fa-exclamation-triangle text-base">\x3C/i>
+                            \x3Cspan>ท่านกำลังเลือกรายการสั่งซื้อไว้ \x3Cb class="text-red-700 text-sm">${selectedRows.length}\x3C/b> รายการ\x3C/span>
+                        \x3C/div>
+                        \x3Cp class="text-gray-600 text-xs mb-3">ต้องการยกเลิกรายการสั่งซื้อ BigLot ที่เลือกไว้ทั้งหมด \x3Cb class="text-gray-900">(${selectedRows.length} รายการ)\x3C/b> หรือต้องการยกเลิกเฉพาะรายการนี้?\x3C/p>
+
+                        \x3Cdiv class="bg-white/95 p-3 rounded-xl border border-red-100 shadow-sm space-y-1.5 text-xs mb-3">
+                            \x3Cdiv class="font-bold text-gray-800 pb-1 border-b border-gray-100 flex items-center justify-between">
+                                \x3Cspan>รายการนี้:\x3C/span>
+                                \x3Cspan class="text-emerald-600 font-mono">${window.formatCurrency(o.totalPrice)} บ.\x3C/span>
+                            \x3C/div>
+                            \x3Cdiv class="text-gray-700 font-medium truncate">${window.escapeHtml(window.cleanOfficeName(o.productName))}\x3C/div>
+                            \x3Cdiv class="text-[11px] text-gray-500">${window.escapeHtml(window.cleanOfficeName(o.officeName))} (${window.escapeHtml(o.zipcode)}) • ${o.quantity} หน่วย\x3C/div>
+                        \x3C/div>
+
+                        \x3Cdiv class="grid grid-cols-2 gap-2 bg-red-100/60 p-2.5 rounded-xl border border-red-200 text-xs font-mono">
+                            \x3Cdiv>รวมที่เลือก: \x3Cb class="text-gray-900">${totalQty.toLocaleString('th-TH')}\x3C/b> ชิ้น\x3C/div>
+                            \x3Cdiv class="text-right">ยอดรวม: \x3Cb class="text-red-700 font-bold">${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\x3C/b> บาท\x3C/div>
+                        \x3C/div>
+                    \x3C/div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonColor: '#DC2626',
+                denyButtonColor: '#4B5563',
+                cancelButtonColor: '#9CA3AF',
+                confirmButtonText: `<i class="fas fa-trash-alt mr-1"></i> ยกเลิกทั้ง ${selectedRows.length} รายการที่เลือก`,
+                denyButtonText: '<i class="fas fa-trash mr-1"></i> ยกเลิกเฉพาะรายการนี้',
+                cancelButtonText: 'ปิดหน้าต่าง',
+                customClass: {
+                    popup: 'rounded-3xl shadow-2xl border border-gray-100 max-w-md',
+                    title: 'text-lg font-bold text-gray-800',
+                    confirmButton: 'rounded-xl px-4 py-2.5 font-bold shadow-md hover:shadow-lg transition-all text-xs sm:text-sm',
+                    denyButton: 'rounded-xl px-4 py-2.5 font-bold transition-all text-xs sm:text-sm',
+                    cancelButton: 'rounded-xl px-4 py-2.5 font-bold transition-all text-xs sm:text-sm'
+                }
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    window.deleteSelectedBigLotOrders();
+                } else if (res.isDenied) {
+                    executeSingleOrderDelete(o);
+                }
+            });
+            return;
+        }
+
+        executeSingleOrderDelete(o);
+    };
+
+    function executeSingleOrderDelete(o) {
+        const formattedDate = window.formatDateOnly ? window.formatDateOnly(o.timestamp) : (o.timestamp || '-');
+        const officeText = window.cleanOfficeName ? window.cleanOfficeName(o.officeName) : (o.officeName || '-');
+        const prodNameText = window.cleanOfficeName ? window.cleanOfficeName(o.productName) : (o.productName || o.productCode || '-');
+        const qtyText = (parseInt(o.quantity, 10) || 0).toLocaleString('th-TH');
+        const priceText = window.formatCurrency ? window.formatCurrency(o.totalPrice) : (parseFloat(o.totalPrice) || 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         Swal.fire({
-            title: 'ยืนยันการลบ',
-            text: 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการสั่งซื้อสินค้านี้?',
+            title: 'ยืนยันการยกเลิกรายการ',
+            html: `
+                \x3Cdiv class="text-left bg-red-50/70 border border-red-200 p-4 rounded-2xl mb-2 text-xs sm:text-sm text-gray-700">
+                    \x3Cdiv class="flex items-center gap-2 font-bold text-red-600 mb-3">
+                        \x3Ci class="fas fa-exclamation-triangle text-base">\x3C/i>
+                        \x3Cspan>ท่านแน่ใจหรือไม่ว่าต้องการยกเลิกรายการสั่งซื้อนี้?\x3C/span>
+                    \x3C/div>
+                    
+                    \x3Cdiv class="bg-white/95 p-3.5 rounded-xl border border-red-100 shadow-sm space-y-2 text-xs">
+                        \x3Cdiv class="flex justify-between items-start pb-2 border-b border-gray-100">
+                            \x3Cspan class="text-gray-500 shrink-0">สินค้า:\x3C/span>
+                            \x3Cspan class="font-bold text-gray-800 text-right ml-2 leading-snug">${window.escapeHtml(prodNameText)}\x3C/span>
+                        \x3C/div>
+                        \x3Cdiv class="flex justify-between items-center pb-2 border-b border-gray-100">
+                            \x3Cspan class="text-gray-500">รหัสสินค้า:\x3C/span>
+                            \x3Cspan class="font-mono font-bold text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-200/60">${window.escapeHtml(o.productCode || '-')}\x3C/span>
+                        \x3C/div>
+                        \x3Cdiv class="flex justify-between items-center pb-2 border-b border-gray-100">
+                            \x3Cspan class="text-gray-500">ที่ทำการ:\x3C/span>
+                            \x3Cspan class="font-semibold text-gray-800">${window.escapeHtml(officeText)} \x3Cspan class="font-mono text-blue-600 font-bold">(${window.escapeHtml(o.zipcode || '-')})\x3C/span>\x3C/span>
+                        \x3C/div>
+                        \x3Cdiv class="flex justify-between items-center pb-2 border-b border-gray-100">
+                            \x3Cspan class="text-gray-500">วันที่สั่งซื้อ:\x3C/span>
+                            \x3Cspan class="font-mono text-gray-700 font-medium">${window.escapeHtml(formattedDate)}\x3C/span>
+                        \x3C/div>
+                        \x3Cdiv class="flex justify-between items-center pb-2 border-b border-gray-100">
+                            \x3Cspan class="text-gray-500">จำนวนที่สั่ง:\x3C/span>
+                            \x3Cspan class="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">${qtyText} หน่วย\x3C/span>
+                        \x3C/div>
+                        \x3Cdiv class="flex justify-between items-center pt-0.5">
+                            \x3Cspan class="text-gray-700 font-bold">ยอดเงินรวม:\x3C/span>
+                            \x3Cspan class="font-mono font-black text-emerald-600 text-sm">${priceText} บาท\x3C/span>
+                        \x3C/div>
+                    \x3C/div>
+                    
+                    \x3Cp class="text-[11px] text-gray-500 mt-3 text-center italic">* รายการที่ถูกยกเลิกจะไม่สามารถกู้คืนได้\x3C/p>
+                \x3C/div>
+            `,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'ใช่, ลบเลย!',
-            cancelButtonText: 'ยกเลิก'
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> ใช่, ยกเลิกรายการนี้!',
+            cancelButtonText: 'ยกเลิก',
+            customClass: {
+                popup: 'rounded-3xl shadow-2xl border border-gray-100 max-w-md',
+                title: 'text-lg font-bold text-gray-800',
+                confirmButton: 'rounded-xl px-6 py-2.5 font-bold shadow-md hover:shadow-lg transition-all',
+                cancelButton: 'rounded-xl px-6 py-2.5 font-bold transition-all'
+            }
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({title: 'กำลังลบข้อมูล...', didOpen: () => Swal.showLoading(), allowOutsideClick: false});
+                Swal.fire({title: 'กำลังยกเลิกรายการ...', didOpen: () => Swal.showLoading(), allowOutsideClick: false});
                 
-                google.script.run
-                    .withSuccessHandler(res => {
-                        if (res.status === 'success') {
-                            Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
-                        } else {
-                            Swal.fire('ผิดพลาด', res.message, 'error');
-                        }
-                    })
-                    .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
-                    .deleteBigLotOrder(o.rowIndex);
+                if (typeof google !== 'undefined') {
+                    google.script.run
+                        .withSuccessHandler(res => {
+                            if (res && res.status === 'success') {
+                                if (window.bigLotSelectedIndices) {
+                                    window.bigLotSelectedIndices.delete(o.rowIndex);
+                                    if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
+                                }
+                                Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
+                            } else {
+                                Swal.fire('ผิดพลาด', res ? res.message : 'ไม่ทราบสาเหตุ', 'error');
+                            }
+                        })
+                        .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
+                        .deleteBigLotOrder(o.rowIndex, (typeof currentUserInfo !== 'undefined' ? currentUserInfo : null));
+                } else {
+                    if (window.bigLotSelectedIndices) {
+                        window.bigLotSelectedIndices.delete(o.rowIndex);
+                        if (typeof window.updateBigLotBulkDeleteBtn === 'function') window.updateBigLotBulkDeleteBtn();
+                    }
+                    Swal.fire('สำเร็จ (จำลอง)', 'ยกเลิกเรียบร้อย', 'success');
+                }
+            }
+        });
+    }
+
+    window.clearBigLotSelection = function() {
+        if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+        document.querySelectorAll('.biglot-row-checkbox').forEach(cb => cb.checked = false);
+        const masterCb = document.getElementById('bigLotSelectAll');
+        if (masterCb) masterCb.checked = false;
+        window.updateBigLotBulkDeleteBtn();
+    };
+
+    window.updateBigLotBulkDeleteBtn = function() {
+        const btn = document.getElementById('bigLotBulkDeleteBtn');
+        const badge = document.getElementById('bigLotBulkDeleteCount');
+        const selBar = document.getElementById('bigLotSelectionBar');
+        const selCountText = document.getElementById('bigLotSelectionBarCountText');
+        const selSummaryText = document.getElementById('bigLotSelectionBarSummaryText');
+
+        const count = window.bigLotSelectedIndices ? window.bigLotSelectedIndices.size : 0;
+        
+        let totalPieces = 0;
+        let totalPrice = 0;
+        if (count > 0 && window.bigLotOrders) {
+            window.bigLotOrders.forEach(o => {
+                if (window.bigLotSelectedIndices.has(o.rowIndex)) {
+                    totalPieces += (parseInt(o.quantity, 10) || 0);
+                    totalPrice += (parseFloat(o.totalPrice) || 0);
+                }
+            });
+        }
+
+        // Header button
+        if (btn) {
+            if (count > 0) {
+                btn.style.display = 'inline-flex';
+                if (badge) badge.innerText = count.toLocaleString('th-TH');
+            } else {
+                btn.style.display = 'none';
+                if (badge) badge.innerText = '0';
+            }
+        }
+
+        // Sticky Table Selection Bar
+        if (selBar) {
+            if (count > 0) {
+                selBar.classList.remove('hidden');
+                if (selCountText) selCountText.innerText = `เลือกไว้ ${count.toLocaleString('th-TH')} รายการ`;
+                if (selSummaryText) selSummaryText.innerText = `(รวม ${totalPieces.toLocaleString('th-TH')} ชิ้น • ${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท)`;
+            } else {
+                selBar.classList.add('hidden');
+            }
+        }
+    };
+
+    window.toggleSelectAllBigLot = function(masterCheckbox) {
+        if (!window.bigLotSelectedIndices) window.bigLotSelectedIndices = new Set();
+        const isChecked = masterCheckbox ? masterCheckbox.checked : false;
+
+        const startIdx = (window.bigLotReportCurrentPage - 1) * window.bigLotReportPageSize;
+        const pageSizeVal = window.bigLotReportPageSize;
+        const totalOrders = window.bigLotOrders ? window.bigLotOrders.length : 0;
+        const endIdx = pageSizeVal === 'all' ? totalOrders : Math.min(startIdx + (parseInt(pageSizeVal, 10) || 10), totalOrders);
+        const paginatedOrders = window.bigLotOrders ? window.bigLotOrders.slice(startIdx, endIdx) : [];
+
+        paginatedOrders.forEach(o => {
+            if (window.canEditOrDeleteBigLotOrder(o)) {
+                if (isChecked) {
+                    window.bigLotSelectedIndices.add(o.rowIndex);
+                } else {
+                    window.bigLotSelectedIndices.delete(o.rowIndex);
+                }
+            }
+        });
+
+        document.querySelectorAll('.biglot-row-checkbox').forEach(cb => {
+            const rIdx = parseInt(cb.dataset.rowindex, 10);
+            cb.checked = window.bigLotSelectedIndices.has(rIdx);
+        });
+
+        window.updateBigLotBulkDeleteBtn();
+    };
+
+    window.handleBigLotRowSelect = function(rowIndex, isChecked) {
+        if (!window.bigLotSelectedIndices) window.bigLotSelectedIndices = new Set();
+        const rIdx = parseInt(rowIndex, 10);
+        if (isChecked) {
+            window.bigLotSelectedIndices.add(rIdx);
+        } else {
+            window.bigLotSelectedIndices.delete(rIdx);
+        }
+
+        const startIdx = (window.bigLotReportCurrentPage - 1) * window.bigLotReportPageSize;
+        const pageSizeVal = window.bigLotReportPageSize;
+        const totalOrders = window.bigLotOrders ? window.bigLotOrders.length : 0;
+        const endIdx = pageSizeVal === 'all' ? totalOrders : Math.min(startIdx + (parseInt(pageSizeVal, 10) || 10), totalOrders);
+        const paginatedOrders = window.bigLotOrders ? window.bigLotOrders.slice(startIdx, endIdx) : [];
+        const selectableOrdersOnPage = paginatedOrders.filter(item => window.canEditOrDeleteBigLotOrder(item));
+
+        const selectAllEl = document.getElementById('bigLotSelectAll');
+        if (selectAllEl && selectableOrdersOnPage.length > 0) {
+            selectAllEl.checked = selectableOrdersOnPage.every(item => window.bigLotSelectedIndices.has(item.rowIndex));
+        }
+
+        window.updateBigLotBulkDeleteBtn();
+    };
+
+    window.deleteSelectedBigLotOrders = function() {
+        if (!window.bigLotSelectedIndices || window.bigLotSelectedIndices.size === 0) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่ต้องการยกเลิกอย่างน้อย 1 รายการ', 'info');
+            return;
+        }
+
+        const selectedRows = [];
+        let totalQty = 0;
+        let totalPrice = 0;
+
+        if (window.bigLotOrders) {
+            window.bigLotOrders.forEach(o => {
+                if (window.bigLotSelectedIndices.has(o.rowIndex)) {
+                    selectedRows.push(o);
+                    totalQty += (parseInt(o.quantity, 10) || 0);
+                    totalPrice += (parseFloat(o.totalPrice) || 0);
+                }
+            });
+        }
+
+        if (selectedRows.length === 0) {
+            Swal.fire('แจ้งเตือน', 'ไม่พบข้อมูลรายการที่เลือก', 'warning');
+            return;
+        }
+
+        const itemsHtml = selectedRows.map((item, idx) => {
+            const prodName = window.cleanOfficeName ? window.cleanOfficeName(item.productName) : (item.productName || item.productCode || '-');
+            const office = window.cleanOfficeName ? window.cleanOfficeName(item.officeName) : (item.officeName || '-');
+            const dateStr = window.formatDateOnly ? window.formatDateOnly(item.timestamp) : (item.timestamp || '-');
+            const q = (parseInt(item.quantity, 10) || 0).toLocaleString('th-TH');
+            const p = window.formatCurrency ? window.formatCurrency(item.totalPrice) : (parseFloat(item.totalPrice) || 0).toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            return `
+                \x3Cdiv class="p-2.5 hover:bg-orange-50/50 transition flex items-start justify-between gap-2 text-xs">
+                    \x3Cdiv class="flex items-start gap-2 min-w-0">
+                        \x3Cspan class="w-5 h-5 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-mono text-[10px] font-bold shrink-0 mt-0.5">${idx + 1}\x3C/span>
+                        \x3Cdiv class="min-w-0">
+                            \x3Cdiv class="font-bold text-gray-800 truncate" title="${window.escapeHtml(prodName)}">${window.escapeHtml(prodName)}\x3C/div>
+                            \x3Cdiv class="text-[11px] text-gray-500 mt-0.5 flex flex-wrap items-center gap-1">
+                                \x3Cspan class="font-mono text-orange-600 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-100 text-[10px]">${window.escapeHtml(item.productCode || '-')}\x3C/span>
+                                \x3Cspan>${window.escapeHtml(office)}\x3C/span>
+                                \x3Cspan class="text-blue-600 font-mono">(${window.escapeHtml(item.zipcode || '-')})\x3C/span>
+                                \x3Cspan class="text-gray-300">•\x3C/span>
+                                \x3Cspan class="font-mono text-gray-400">${window.escapeHtml(dateStr)}\x3C/span>
+                            \x3C/div>
+                        \x3C/div>
+                    \x3C/div>
+                    \x3Cdiv class="text-right shrink-0 font-mono">
+                        \x3Cdiv class="font-bold text-gray-800">${q} หน่วย\x3C/div>
+                        \x3Cdiv class="text-emerald-600 font-semibold text-[11px]">${p} บ.\x3C/div>
+                    \x3C/div>
+                \x3C/div>
+            `;
+        }).join('');
+
+        Swal.fire({
+            title: 'ยืนยันการยกเลิกรายการที่เลือก',
+            html: `
+                \x3Cdiv class="text-left bg-red-50/70 border border-red-200 p-4 rounded-2xl mb-2 text-xs sm:text-sm text-gray-700">
+                    \x3Cdiv class="flex items-center gap-2 font-bold text-red-600 mb-2.5">
+                        \x3Ci class="fas fa-exclamation-triangle text-base">\x3C/i>
+                        \x3Cspan>ท่านกำลังจะยกเลิกรายการสั่งซื้อ BigLot จำนวน \x3Cb class="text-red-700 text-sm">${selectedRows.length}\x3C/b> รายการ\x3C/span>
+                    \x3C/div>
+                    
+                    \x3Cdiv class="grid grid-cols-2 gap-2 bg-white/95 p-3 rounded-xl border border-red-100 mb-3 font-mono text-xs shadow-sm">
+                        \x3Cdiv>จำนวนชิ้นรวม: \x3Cb class="text-gray-900">${totalQty.toLocaleString('th-TH')}\x3C/b> ชิ้น\x3C/div>
+                        \x3Cdiv class="text-right">ยอดเงินรวม: \x3Cb class="text-emerald-600">${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}\x3C/b> บาท\x3C/div>
+                    \x3C/div>
+                    
+                    \x3Cdiv class="text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between px-1">
+                        \x3Cspan>\x3Ci class="fas fa-list-ul mr-1 text-orange-500">\x3C/i> รายการสินค้าที่จะถูกยกเลิก:\x3C/span>
+                        \x3Cspan class="text-[11px] font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">${selectedRows.length} รายการ\x3C/span>
+                    \x3C/div>
+                    
+                    \x3Cdiv class="max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 shadow-inner">
+                        ${itemsHtml}
+                    \x3C/div>
+                    
+                    \x3Cp class="text-[11px] text-gray-500 mt-2.5 text-center italic">* รายการที่ถูกยกเลิกจะไม่สามารถกู้คืนได้\x3C/p>
+                \x3C/div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: `\x3Ci class="fas fa-trash-alt mr-1">\x3C/i> ใช่, ยืนยันยกเลิก ${selectedRows.length} รายการ`,
+            cancelButtonText: 'ยกเลิก',
+            customClass: {
+                popup: 'rounded-3xl shadow-2xl border border-gray-100 max-w-lg',
+                title: 'text-lg font-bold text-gray-800',
+                confirmButton: 'rounded-xl px-6 py-2.5 font-bold shadow-md hover:shadow-lg transition-all',
+                cancelButton: 'rounded-xl px-6 py-2.5 font-bold transition-all'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังยกเลิกรายการ...',
+                    html: `กำลังดำเนินการลบข้อมูล ${selectedRows.length} รายการ กรุณารอสักครู่`,
+                    didOpen: () => Swal.showLoading(),
+                    allowOutsideClick: false
+                });
+
+                const rowIndices = Array.from(window.bigLotSelectedIndices);
+                if (typeof google !== 'undefined') {
+                    google.script.run
+                        .withSuccessHandler(res => {
+                            if (res && res.status === 'success') {
+                                if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+                                window.updateBigLotBulkDeleteBtn();
+                                Swal.fire('สำเร็จ', res.message, 'success').then(() => window.loadBigLotReportPage());
+                            } else {
+                                Swal.fire('ผิดพลาด', res ? res.message : 'ไม่ทราบสาเหตุ', 'error');
+                            }
+                        })
+                        .withFailureHandler(err => Swal.fire('ผิดพลาด', err.toString(), 'error'))
+                        .deleteMultipleBigLotOrders(rowIndices, (typeof currentUserInfo !== 'undefined' ? currentUserInfo : null));
+                } else {
+                    if (window.bigLotSelectedIndices) window.bigLotSelectedIndices.clear();
+                    window.updateBigLotBulkDeleteBtn();
+                    Swal.fire('สำเร็จ (จำลอง)', `ยกเลิก ${selectedRows.length} รายการเรียบร้อย`, 'success');
+                }
             }
         });
     };
