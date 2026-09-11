@@ -1579,19 +1579,27 @@
 
     // 🛠️ HELPER / UTILITY FUNCTIONS
     function transformGoogleDriveUrl(url) {
-        if (!url || url.trim() === '') return '';
-        // Match /file/d/FILE_ID/
-        const fileDMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (!url || typeof url !== 'string' || url.trim() === '') return '';
+        var cleanUrl = url.trim();
+        if (cleanUrl.indexOf('data:image') === 0 || cleanUrl.indexOf('lh3.googleusercontent.com') !== -1) {
+            return cleanUrl;
+        }
+        var fileId = null;
+        var fileDMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
         if (fileDMatch && fileDMatch[1]) {
-            return 'https://drive.google.com/thumbnail?id=' + fileDMatch[1] + '&sz=w600';
+            fileId = fileDMatch[1];
+        } else {
+            var idMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch && idMatch[1]) {
+                fileId = idMatch[1];
+            }
         }
-        // Match ?id=FILE_ID or &id=FILE_ID
-        const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (idMatch && idMatch[1]) {
-            return 'https://drive.google.com/thumbnail?id=' + idMatch[1] + '&sz=w600';
+        if (fileId) {
+            return 'https://lh3.googleusercontent.com/d/' + fileId + '=s600';
         }
-        return url;
+        return cleanUrl;
     }
+    window.transformGoogleDriveUrl = transformGoogleDriveUrl;
 
     function isProductInStock(status) {
         if (!status || status.trim() === '') return true;

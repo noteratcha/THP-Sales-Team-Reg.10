@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0911.1341';
+    var APP_VERSION = 'Ver. 2026.0911.1530';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1292,6 +1292,28 @@
     }
 
     
+    window.transformGoogleDriveUrl = window.transformGoogleDriveUrl || function(url) {
+        if (!url || typeof url !== 'string' || url.trim() === '') return '';
+        var cleanUrl = url.trim();
+        if (cleanUrl.indexOf('data:image') === 0 || cleanUrl.indexOf('lh3.googleusercontent.com') !== -1) {
+            return cleanUrl;
+        }
+        var fileId = null;
+        var fileDMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileDMatch && fileDMatch[1]) {
+            fileId = fileDMatch[1];
+        } else {
+            var idMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch && idMatch[1]) {
+                fileId = idMatch[1];
+            }
+        }
+        if (fileId) {
+            return 'https://lh3.googleusercontent.com/d/' + fileId + '=s600';
+        }
+        return cleanUrl;
+    };
+
     window.updateGlobalLoaderAds = function() {
         const loader = document.getElementById('globalLoader');
         if (!loader || loader.classList.contains('hidden')) return; // Only update if currently showing
@@ -1319,7 +1341,11 @@
                             
                             <!-- Image -->
                             <div class="w-full md:w-[45%] lg:w-[50%] flex items-center justify-center bg-gradient-to-br from-orange-50 to-white rounded-xl relative border border-gray-100/50 p-4">
-                                <img src="${window.escapeHtml ? window.escapeHtml(processedImageUrl) : processedImageUrl}" alt="${window.escapeHtml ? window.escapeHtml(p.name) : p.name}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10">
+                                <img src="${window.escapeHtml ? window.escapeHtml(processedImageUrl) : processedImageUrl}" alt="${window.escapeHtml ? window.escapeHtml(p.name) : p.name}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10" onerror="if(this.src.indexOf('lh3.googleusercontent.com')!==-1){var m=this.src.match(/\/d\/([a-zA-Z0-9_-]+)=/);if(m)this.src='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600';}else{this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.classList.remove('hidden');}">
+                                <div class="hidden flex-col items-center justify-center text-orange-300 py-10">
+                                    <i class="fas fa-gift text-5xl mb-2"></i>
+                                    <span class="text-xs text-gray-400 font-medium">ภาพสินค้าแนะนำ</span>
+                                </div>
                             </div>
                             
                             <!-- Details -->
