@@ -1314,6 +1314,42 @@
         return cleanUrl;
     };
 
+    window.escapeHtml = window.escapeHtml || function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    window.escapeJs = window.escapeJs || function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+    };
+
+    window.handleProductImageError = window.handleProductImageError || function(img) {
+        if (!img) return;
+        if (img.src && img.src.indexOf('lh3.googleusercontent.com') !== -1) {
+            var m = img.src.match(/\/d\/([a-zA-Z0-9_-]+)=/);
+            if (m && m[1]) {
+                img.src = 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w600';
+                return;
+            }
+        }
+        img.style.display = 'none';
+        if (img.nextElementSibling) {
+            img.nextElementSibling.classList.remove('hidden');
+            img.nextElementSibling.style.display = 'flex';
+        }
+    };
+
     window.updateGlobalLoaderAds = function() {
         const loader = document.getElementById('globalLoader');
         if (!loader || loader.classList.contains('hidden')) return; // Only update if currently showing
@@ -1341,7 +1377,7 @@
                             
                             <!-- Image -->
                             <div class="w-full md:w-[45%] lg:w-[50%] flex items-center justify-center bg-gradient-to-br from-orange-50 to-white rounded-xl relative border border-gray-100/50 p-4">
-                                <img src="${window.escapeHtml ? window.escapeHtml(processedImageUrl) : processedImageUrl}" alt="${window.escapeHtml ? window.escapeHtml(p.name) : p.name}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10" onerror="if(this.src.indexOf('lh3.googleusercontent.com')!==-1){var m=this.src.match(/\/d\/([a-zA-Z0-9_-]+)=/);if(m)this.src='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600';}else{this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.classList.remove('hidden');}">
+                                <img src="${window.escapeHtml(processedImageUrl)}" alt="${window.escapeHtml(p.name)}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10" onerror="window.handleProductImageError &amp;&amp; window.handleProductImageError(this)">
                                 <div class="hidden flex-col items-center justify-center text-orange-300 py-10">
                                     <i class="fas fa-gift text-5xl mb-2"></i>
                                     <span class="text-xs text-gray-400 font-medium">ภาพสินค้าแนะนำ</span>
@@ -1679,7 +1715,7 @@
 
             if (pageId === 'revenue-report') {
                 ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
-                if (typeof currentUserInfo !== 'undefined' && currentUserInfo.user && currentUserInfo.user.toLowerCase() === 'admin') {
+                if (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.user && String(currentUserInfo.user).trim().toLowerCase() === 'admin') {
                     const el = document.getElementById('headerKhorLorReportBtn'); if (el) el.classList.remove('hidden');
                 }
             } else if (pageId === 'postnews') {
@@ -2791,26 +2827,26 @@
             const priceFormatted = Number(p.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             
             let imageHTML = '';
-            const processedImageUrl = typeof transformGoogleDriveUrl === 'function' ? transformGoogleDriveUrl(p.image) : p.image;
+            const processedImageUrl = typeof window.transformGoogleDriveUrl === 'function' ? window.transformGoogleDriveUrl(p.image) : p.image;
             if (processedImageUrl && processedImageUrl.trim() !== '') {
-                imageHTML = `<img src="${escapeHtml(processedImageUrl)}" alt="${escapeHtml(p.name)}" class="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-700 ease-out" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                imageHTML = `<img src="${window.escapeHtml(processedImageUrl)}" alt="${window.escapeHtml(p.name)}" class="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-700 ease-out" onerror="window.handleProductImageError &amp;&amp; window.handleProductImageError(this)">
                              <div class="hidden absolute inset-0 bg-gradient-to-br from-orange-100 to-amber-50 flex-col items-center justify-center text-orange-400 z-0">
                                  <div class="absolute inset-0 bg-white/10 opacity-30 pointer-events-none" style="background-image: radial-gradient(#ea580c 0.75px, transparent 0.75px); background-size: 12px 12px;"></div>
                                  <i class="fas fa-box-open text-4xl mb-2 filter drop-shadow-sm"></i>
-                                 <span class="text-[10px] text-orange-600/70 font-bold tracking-wide">${escapeHtml(p.code)}</span>
+                                 <span class="text-[10px] text-orange-600/70 font-bold tracking-wide">${window.escapeHtml(p.code)}</span>
                              </div>`;
             } else {
                 imageHTML = `
                     <div class="absolute inset-0 bg-gradient-to-br from-orange-100 to-amber-50 flex flex-col items-center justify-center text-orange-400 z-0">
                         <div class="absolute inset-0 bg-white/10 opacity-30 pointer-events-none" style="background-image: radial-gradient(#ea580c 0.75px, transparent 0.75px); background-size: 12px 12px;"></div>
                         <i class="fas fa-box-open text-4xl mb-2 filter drop-shadow-sm"></i>
-                        <span class="text-[10px] text-orange-600/70 font-bold tracking-wide">${escapeHtml(p.code)}</span>
+                        <span class="text-[10px] text-orange-600/70 font-bold tracking-wide">${window.escapeHtml(p.code)}</span>
                     </div>`;
             }
             
             adsHtml += `
                 <div class="swiper-slide h-auto pt-2 pb-6">
-                    <div onclick="window.clickRecommendAd('${escapeJs(p.code)}')"
+                    <div onclick="window.clickRecommendAd('${window.escapeJs(p.code)}')"
                         class="bg-white flex flex-col h-full relative hover:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] transition-all duration-300 cursor-pointer border border-gray-100 group overflow-hidden rounded-2xl shadow-sm">
                         
                         <!-- Top Glowing Corner Light Effect -->

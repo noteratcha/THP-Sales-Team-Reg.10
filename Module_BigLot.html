@@ -1630,6 +1630,8 @@
             .replace(/\n/g, '\\n')
             .replace(/\r/g, '\\r');
     }
+    window.escapeHtml = window.escapeHtml || escapeHtml;
+    window.escapeJs = window.escapeJs || escapeJs;
 
     // 🖼️ Open Full Image Modal via SweetAlert2
     window.viewBigLotFullImage = function (productCode) {

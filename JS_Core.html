@@ -303,6 +303,44 @@ const Toast = Swal.mixin({
         return cleanUrl;
     };
 
+    window.escapeHtml = function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    window.escapeJs = function(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
+    };
+
+    window.handleProductImageError = function(img) {
+        if (!img) return;
+        // Step 1: If an lh3 Google CDN link failed, try Google Drive thumbnail API as second fallback
+        if (img.src && img.src.indexOf('lh3.googleusercontent.com') !== -1) {
+            var m = img.src.match(/\/d\/([a-zA-Z0-9_-]+)=/);
+            if (m && m[1]) {
+                img.src = 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w600';
+                return;
+            }
+        }
+        // Step 2: If thumbnail also fails or not a Drive link, hide img and display fallback icon gracefully
+        img.style.display = 'none';
+        if (img.nextElementSibling) {
+            img.nextElementSibling.classList.remove('hidden');
+            img.nextElementSibling.style.display = 'flex';
+        }
+    };
+
     // ==========================================
     // SAFE STORAGE UTILS (CORS & IFRAME IF BLOCK-COOKIES)
     // ==========================================
