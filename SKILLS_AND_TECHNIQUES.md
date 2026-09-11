@@ -220,8 +220,12 @@ graph TD
     ```
 
 ### 5.4 การแสดงรูปภาพจาก Google Drive บนหน้าเว็บ
-- เนื่องจากข้อจำกัด CORS และ Authentication ของ Google Drive ห้ามใช้แท็ก `<img src="drive_url">` โดยตรง
-- ให้สร้างปุ่มหรือลิงก์ให้ผู้ใช้คลิกเปิดภาพในแท็บใหม่ด้วย `window.open(url, '_blank')` แทน
+- **ข้อจำกัด**: ลิงก์มาตรฐานของ Google Drive (เช่น `/file/d/.../view?usp=drive_link`) เป็นหน้าเว็บพรีวิว HTML ไม่ใช่ไฟล์ภาพโดยตรง และหากใส่ใน `<img src="...">` จะทำให้ภาพแตกทันที
+- **เทคนิคการแปลง URL สากล (`window.transformGoogleDriveUrl`)**:
+  - สกัดรหัส `FILE_ID` จากลิงก์ Drive แล้วแปลงไปใช้ Google Usercontent CDN:
+    `https://lh3.googleusercontent.com/d/FILE_ID=s600`
+  - URL นี้มี Header `Access-Control-Allow-Origin: *` และไม่ต้องใช้ Cookie ยืนยันตัวตน ทำให้เบราว์เซอร์ทุกตัวแสดงผลรูปภาพผ่านแท็ก `<img>` ได้อย่างคมชัดและรวดเร็ว 100%
+  - กำหนด `onerror` สำรองไว้เสมอเพื่อสลับไปใช้ `drive.google.com/thumbnail?id=FILE_ID&sz=w600` หาก CDN ติดปัญหา ชั่วคราว
 
 ---
 
