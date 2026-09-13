@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0911.1619';
+    var APP_VERSION = 'Ver. 2026.0913.2159';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -5591,11 +5591,11 @@
 
             showGlobalLoader('กำลังอัปโหลดและส่งรูปภาพทั้งหมดไปยัง LINE...');
             
-            await new Promise((resolve, reject) => {
+            const result = await new Promise((resolve, reject) => {
                 google.script.run
                     .withSuccessHandler(function(response) {
                         if (response && response.status === 'success') {
-                            resolve();
+                            resolve(response);
                         } else {
                             reject(new Error(response ? response.message : 'Unknown Error'));
                         }
@@ -5610,14 +5610,27 @@
             Swal.fire({
                 icon: 'success',
                 title: 'ส่งสำเร็จ!',
-                text: `ระบบได้ส่งภาพตารางสรุปการเข้าพบลูกค้า (แบ่งเป็น ${tables.length} รูป) ไปยัง LINE OA เรียบร้อยแล้ว`,
-                timer: 2000,
-                showConfirmButton: false
+                text: result && result.message ? result.message : `ระบบได้ส่งภาพตารางสรุปการเข้าพบลูกค้าไปยัง LINE OA เรียบร้อยแล้ว`,
+                timer: 3000,
+                showConfirmButton: true,
+                confirmButtonColor: '#10b981'
             });
         } catch (err) {
             hideGlobalLoader();
-            console.error('Canvas Error:', err);
-            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการจับภาพและส่ง LINE: ' + err.message, 'error');
+            console.error('Send to LINE Error:', err);
+            const isQuota = err.message && (err.message.includes('โควตา') || err.message.includes('429') || err.message.includes('monthly limit'));
+            Swal.fire({
+                icon: 'error',
+                title: isQuota ? 'โควตาข้อความ LINE เต็ม' : 'ไม่สามารถส่งเข้า LINE ได้',
+                html: `<div class="text-left text-sm text-gray-700 space-y-2 mt-2">
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium">
+                        ${err.message}
+                    </div>
+                    ${isQuota ? '<p class="text-xs text-gray-500 pt-1">💡 <b>สาเหตุ:</b> บัญชี LINE Official Account แบบฟรี มีโควตาส่ง Push Message จำกัดที่ 300 ข้อความ/เดือน และขณะนี้ถูกใช้งานเต็ม 100% แล้ว กรุณารอรอบบิลใหม่ หรือเปลี่ยนไปใช้ Token บอทตัวใหม่</p>' : ''}
+                </div>`,
+                confirmButtonText: 'รับทราบ',
+                confirmButtonColor: '#ea580c'
+            });
         }
     }
 

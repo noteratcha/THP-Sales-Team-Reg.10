@@ -3425,8 +3425,79 @@ function deleteMultipleBigLotOrders(rowIndices, userInfo) {
 // ==========================================
 // 📦 SECTION: LINE Notify Error Reporting
 // ==========================================
-const LINE_CHANNEL_ACCESS_TOKEN = "V6dEZJroyfmC+bTC4w16Gv3pfcF14/a7vywuHTtRc59s+JOKAdw5UTlxR9jyv5tJQ9PL8QNNw/JOzvaHxQflFLCovzUnNdMDyNienKzcOhgd8wtkwVINcWDMujSAEwaf01UQROvHVFPDBUZIiCSOWQdB04t89/1O/w1cDnyilFU=";
+const LINE_CHANNEL_ACCESS_TOKENS = [
+  "V6dEZJroyfmC+bTC4w16Gv3pfcF14/a7vywuHTtRc59s+JOKAdw5UTlxR9jyv5tJQ9PL8QNNw/JOzvaHxQflFLCovzUnNdMDyNienKzcOhgd8wtkwVINcWDMujSAEwaf01UQROvHVFPDBUZIiCSOWQdB04t89/1O/w1cDnyilFU=",
+  "8E1PAerkzxCgbDHB4lEb8sYWQdrmkOBuhEm3ArTjCSXr99hWHobMOuq8R4qdVFQwpxw0ptzG9XvaHz1FYtJijXE3hlBdR2efCAh4zSs/irD6hvIfK6xC8ZK1yEdFKLarNEOK8Z3T7jwXoYMQ9q3zagdB04t89/1O/w1cDnyilFU="
+];
+const LINE_CHANNEL_ACCESS_TOKEN = LINE_CHANNEL_ACCESS_TOKENS[0];
 const LINE_USER_ID = "Udba02d86c39dfa195baeb0e7a4328d05";
+
+function getLineChannelAccessTokens() {
+  var list = [];
+  try {
+    var customTokens = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKENS');
+    if (customTokens) {
+      list = customTokens.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+    }
+  } catch (e) {}
+  if (!list || list.length === 0) {
+    list = LINE_CHANNEL_ACCESS_TOKENS.slice();
+  }
+  return list;
+}
+
+function getLineChannelAccessToken() {
+  var tokens = getLineChannelAccessTokens();
+  return tokens[0] || LINE_CHANNEL_ACCESS_TOKEN;
+}
+
+function getLineDestinationId() {
+  try {
+    var id = PropertiesService.getScriptProperties().getProperty('LINE_USER_ID');
+    if (id && id.trim() !== '') return id.trim();
+  } catch (e) {}
+  return LINE_USER_ID;
+}
+
+/**
+ * ส่งคำขอ Push Message ไปยัง LINE API พร้อมระบบสลับ Token อัตโนมัติเมื่อโควตาเต็ม (Auto-Failover)
+ * หาก Token แรกโควตาเต็ม (429) หรือมีปัญหา จะสลับไปใช้ Token ถัดไปทันที
+ */
+function sendLinePushWithFailover(payload) {
+  var tokens = getLineChannelAccessTokens();
+  var lastError = "";
+  var lastCode = 0;
+
+  for (var i = 0; i < tokens.length; i++) {
+    var token = tokens[i];
+    var options = {
+      method: 'post',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+    var code = response.getResponseCode();
+    var body = response.getContentText();
+
+    if (code === 200) {
+      return { success: true, responseCode: 200, usedTokenIndex: i };
+    }
+
+    lastCode = code;
+    lastError = body;
+    console.warn("LINE Push failed with Token " + (i + 1) + " (Code " + code + "): " + body);
+
+    // หากเกิด Error (เช่น 429 Monthly limit reached หรือ 400 Failed to send) ให้วนไปลอง Token ตัวถัดไป
+    console.log("Token " + (i + 1) + " returned code " + code + ". Attempting next token in pool...");
+  }
+
+  return { success: false, responseCode: lastCode, errorText: lastError };
+}
 
 function sendErrorToLine(errorObj, contextInfo) {
   try {
@@ -3434,6 +3505,17 @@ function sendErrorToLine(errorObj, contextInfo) {
     
     // แยกเฉพาะ Message สั้นๆ ออกมา
     var shortMessage = errorObj && errorObj.message ? errorObj.message : String(errorObj);
+    
+    // Throttling: ป้องกัน Error ส่งซ้ำๆ จนโควตาข้อความ LINE (300 ข้อความ/เดือน) หมดเกลี้ยง
+    try {
+      var cache = CacheService.getScriptCache();
+      var cacheKey = 'err_' + Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, shortMessage)).substring(0, 16);
+      if (cache && cache.get(cacheKey)) {
+        console.warn("Throttled duplicate error to LINE: " + shortMessage);
+        return;
+      }
+      if (cache) cache.put(cacheKey, '1', 600); // ไม่ส่ง Error ซ้ำเดิมภายใน 10 นาที
+    } catch(cErr) {}
     
     // พยายามดึงชื่อฟังก์ชันและบรรทัดที่เกิด Error จาก Stack Trace (ถ้ามี)
     var errorLocation = "ไม่ทราบตำแหน่ง";
@@ -3452,24 +3534,14 @@ function sendErrorToLine(errorObj, contextInfo) {
     fullText += "⚠️ ปัญหา: " + shortMessage + "\n\n";
     fullText += "🔍 Stack Trace เต็ม:\n" + errorMessage.substring(0, 400);
 
-    var url = 'https://api.line.me/v2/bot/message/push';
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: [{
         type: 'text',
         text: fullText
       }]
     };
-    var options = {
-      method: 'post',
-      headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    UrlFetchApp.fetch(url, options);
+    sendLinePushWithFailover(payload);
   } catch (errLine) {
     console.error("LINE Notify Error: " + errLine.toString());
   }
@@ -3480,21 +3552,11 @@ function sendSuccessToLine(message) {
     var nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy HH:mm:ss");
     var fullText = '✅ แจ้งเตือนการอัปโหลดสำเร็จ\n\n⏰ วัน/เวลา: ' + nowStr + '\n\n' + message;
 
-    var url = 'https://api.line.me/v2/bot/message/push';
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: [{ type: 'text', text: fullText }]
     };
-    var options = {
-      method: 'post',
-      headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    UrlFetchApp.fetch(url, options);
+    sendLinePushWithFailover(payload);
   } catch (errLine) {
     console.error("LINE Notify Error: " + errLine.toString());
   }
@@ -3504,6 +3566,17 @@ function sendSuccessToLine(message) {
  * ฟังก์ชันรับ Error จากฝั่ง Frontend (หน้าเว็บ) เพื่อส่งเข้า LINE
  */
 function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserInfo, base64Image) {
+  try {
+    // Throttling: ป้องกันหน้าเว็บ loop error ยิงรัวจนโควตา LINE 300 ข้อความ/เดือน หมด
+    var cache = CacheService.getScriptCache();
+    var cacheKey = 'fe_err_' + Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(msg) + String(line))).substring(0, 16);
+    if (cache && cache.get(cacheKey)) {
+      console.warn("Throttled duplicate frontend error to LINE: " + msg);
+      return;
+    }
+    if (cache) cache.put(cacheKey, '1', 600); // 10 นาที
+  } catch(cErr) {}
+
   // ดึงชื่อเบราว์เซอร์อย่างง่าย
   var browserName = browserInfo ? browserInfo.substring(0, 45) + "..." : "N/A";
   
@@ -3537,7 +3610,6 @@ function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserIn
   }
 
   try {
-    var apiUrl = 'https://api.line.me/v2/bot/message/push';
     var messages = [{ type: 'text', text: errorMessage }];
     
     // ลองส่งเป็นรูปภาพด้วย (ถ้า LINE รองรับ URL ของ Google Drive)
@@ -3546,25 +3618,16 @@ function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserIn
     }
     
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: messages
     };
-    var options = {
-      method: 'post',
-      headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    var response = UrlFetchApp.fetch(apiUrl, options);
     
-    // ถ้าส่งรูปไม่ผ่านเพราะ URL ไม่ถูกต้อง ให้ลองส่งแค่ข้อความอย่างเดียว
-    if (response.getResponseCode() !== 200 && imageUrl) {
+    var pushRes = sendLinePushWithFailover(payload);
+    
+    // ถ้าส่งรูปไม่ผ่าน ให้ลองส่งแค่ข้อความอย่างเดียว
+    if (!pushRes.success && imageUrl) {
        payload.messages = [{ type: 'text', text: errorMessage }];
-       options.payload = JSON.stringify(payload);
-       UrlFetchApp.fetch(apiUrl, options);
+       sendLinePushWithFailover(payload);
     }
   } catch (e) {
     console.error("LINE Frontend Notify Error: " + e.toString());
@@ -3837,13 +3900,13 @@ function sendBugReportToLine(message, base64Image) {
     // ส่งผ่าน LINE OA (Messaging API) ตัวเดิม
     var apiUrl = 'https://api.line.me/v2/bot/message/push';
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: [{ type: 'text', text: fullText }]
     };
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
+        'Authorization': 'Bearer ' + getLineChannelAccessToken(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -3915,35 +3978,40 @@ function sendVisitSummaryImageToLine(base64Image, messageText) {
     fullText += "\nข้อมูลอัปเดตล่าสุด: " + nowStr + "\n";
     fullText += "ดูภาพขนาดเต็ม (หรือดาวน์โหลด): " + fileUrl;
     
-    var apiUrl = 'https://api.line.me/v2/bot/message/push';
     var messages = [
       { type: 'text', text: fullText },
       { type: 'image', originalContentUrl: downloadUrl, previewImageUrl: downloadUrl }
     ];
     
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: messages
     };
-    var options = {
-      method: 'post',
-      headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
     
-    var response = UrlFetchApp.fetch(apiUrl, options);
+    var pushRes = sendLinePushWithFailover(payload);
     
-    if (response.getResponseCode() !== 200) {
+    if (!pushRes.success) {
        payload.messages = [{ type: 'text', text: fullText }];
-       options.payload = JSON.stringify(payload);
-       UrlFetchApp.fetch(apiUrl, options);
+       pushRes = sendLinePushWithFailover(payload);
     }
     
-    return {status: 'success'};
+    if (pushRes.success) {
+      return {status: 'success', message: 'ส่งข้อความเข้า LINE สำเร็จ (บอทที่ ' + (pushRes.usedTokenIndex + 1) + ')'};
+    } else {
+      var errMsg = pushRes.errorText;
+      var respCode = pushRes.responseCode;
+      try {
+        var j = JSON.parse(errMsg);
+        if (respCode === 429 || (j.message && j.message.indexOf("monthly limit") !== -1)) {
+          errMsg = "โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มทั้ง 2 บัญชีแล้ว";
+        } else if (respCode === 400 && j.message) {
+          errMsg = j.message + " (กรุณาตรวจสอบว่าผู้รับปลายทางได้เพิ่มเพื่อนบอททั้งสองตัวแล้วหรือยัง)";
+        } else if (j.message) {
+          errMsg = j.message;
+        }
+      } catch(e) {}
+      return {status: 'error', message: 'LINE API (' + respCode + '): ' + errMsg};
+    }
   } catch(e) {
     console.error("sendVisitSummaryImageToLine error: " + e.toString());
     return {status: 'error', message: e.toString()};
@@ -4062,6 +4130,9 @@ function saveFullMusicPlaylist(playlist) {
 
 function sendVisitSummaryImagesToLine(imagesData) {
   try {
+    var channelToken = getLineChannelAccessToken();
+    var destinationId = getLineDestinationId();
+
     var folderId = "15mVFyzJZ56Iza5xdwFbKoJfFBJWof96V";
     var folder;
     var maxRetries = 3;
@@ -4075,55 +4146,76 @@ function sendVisitSummaryImagesToLine(imagesData) {
       }
     }
 
+    var successCount = 0;
+    var lastError = "";
+
     for (var i = 0; i < imagesData.length; i++) {
       var item = imagesData[i];
       var base64Data = item.base64.indexOf(',') !== -1 ? item.base64.split(',')[1] : item.base64;
       var imageBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', 'visit_summary_' + new Date().getTime() + '_' + i + '.png');
 
-        var file;
-        for (var r = 0; r < maxRetries; r++) {
-          try {
-            file = folder.createFile(imageBlob);
-            // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
-            break;
-          } catch(e) {
-            if (r === maxRetries - 1) throw e;
-            Utilities.sleep(2000);
-          }
+      var file;
+      for (var r = 0; r < maxRetries; r++) {
+        try {
+          file = folder.createFile(imageBlob);
+          // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+          break;
+        } catch(e) {
+          if (r === maxRetries - 1) throw e;
+          Utilities.sleep(2000);
         }
+      }
 
       var fileUrl = file.getUrl();
       var downloadUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
 
       var fullText = item.messageText ? item.messageText : "📊 สรุปการเข้าพบลูกค้า\n";
-      fullText += fileUrl;
+      fullText += "\n🔗 ดูรูปภาพตารางฉบับเต็ม:\n" + fileUrl;
 
+      // พยายามส่งรูปภาพและข้อความ
       var messages = [
         { type: 'text', text: fullText },
         { type: 'image', originalContentUrl: downloadUrl, previewImageUrl: downloadUrl }
       ];
 
       var payload = {
-        to: LINE_USER_ID,
+        to: destinationId,
         messages: messages
       };
-      var options = {
-        method: 'post',
-        headers: {
-          'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        payload: JSON.stringify(payload),
-        muteHttpExceptions: true
-      };
 
-      var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
-      if (response.getResponseCode() !== 200) {
-         console.error("LINE API Error on image " + i + ": " + response.getContentText());
+      var pushRes = sendLinePushWithFailover(payload);
+
+      // กรณี LINE โหลดรูปจาก Google Drive ไม่ได้ ให้ Fallback ส่งเป็นข้อความ + ลิงก์ Drive
+      if (!pushRes.success) {
+        console.warn("LINE image push failed. Retrying with text only...");
+        payload.messages = [{ type: 'text', text: fullText }];
+        pushRes = sendLinePushWithFailover(payload);
+      }
+
+      if (pushRes.success) {
+        successCount++;
+      } else {
+        var respCode = pushRes.responseCode;
+        var respBody = pushRes.errorText;
+        console.error("LINE API Error on image " + i + " (Code " + respCode + "): " + respBody);
+        try {
+          var errJson = JSON.parse(respBody);
+          if (respCode === 429 || (errJson.message && errJson.message.indexOf("monthly limit") !== -1)) {
+            lastError = "โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มทั้ง 2 บัญชีแล้ว";
+          } else if (respCode === 401) {
+            lastError = "LINE Channel Access Token ไม่ถูกต้องหรือหมดอายุ (401 Unauthorized)";
+          } else if (respCode === 400 && errJson.message) {
+            lastError = "LINE API (400): " + errJson.message + " (กรุณาตรวจสอบว่าผู้รับปลายทางได้เพิ่มเพื่อนบอททั้งสองตัวแล้วหรือยัง)";
+          } else {
+            lastError = "LINE API Error (" + respCode + "): " + (errJson.message || respBody);
+          }
+        } catch(pErr) {
+          lastError = "LINE API Error (" + respCode + "): " + respBody;
+        }
       }
 
       if (i < imagesData.length - 1) {
-         Utilities.sleep(1500); // delay between LINE pushes
+        Utilities.sleep(1000);
       }
     }
 
@@ -4139,10 +4231,14 @@ function sendVisitSummaryImagesToLine(imagesData) {
       console.error("Auto cleanup error: " + cleanupErr.toString());
     }
 
-    return {status: 'success', message: 'ส่งรูปทั้งหมดสำเร็จ'};
+    if (successCount > 0) {
+      return { status: 'success', message: 'ส่งรูปภาพสรุปเข้า LINE สำเร็จ (' + successCount + '/' + imagesData.length + ' ภาพ)' };
+    } else {
+      return { status: 'error', message: lastError || 'ไม่สามารถส่งรูปภาพเข้า LINE ได้' };
+    }
   } catch (e) {
     console.error("sendVisitSummaryImagesToLine error: " + e.toString());
-    return {status: 'error', message: 'ไม่สามารถอัปโหลดรูปภาพไปยัง Drive ได้: ' + e.toString()};
+    return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.toString() };
   }
 }
 
@@ -4155,14 +4251,14 @@ function sendDailyLinkToLine() {
     ];
 
     var payload = {
-      to: LINE_USER_ID,
+      to: getLineDestinationId(),
       messages: messages
     };
     
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN,
+        'Authorization': 'Bearer ' + getLineChannelAccessToken(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -4172,6 +4268,49 @@ function sendDailyLinkToLine() {
     UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
   } catch (e) {
     if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+  }
+}
+
+function getLineConfigStatus() {
+  try {
+    var token = getLineChannelAccessToken();
+    var destinationId = getLineDestinationId();
+    
+    var quotaUrl = 'https://api.line.me/v2/bot/message/quota';
+    var consumptionUrl = 'https://api.line.me/v2/bot/message/quota/consumption';
+    var headers = { 'Authorization': 'Bearer ' + token };
+    
+    var quotaRes = UrlFetchApp.fetch(quotaUrl, { headers: headers, muteHttpExceptions: true });
+    var consumptionRes = UrlFetchApp.fetch(consumptionUrl, { headers: headers, muteHttpExceptions: true });
+    
+    var quota = quotaRes.getResponseCode() === 200 ? JSON.parse(quotaRes.getContentText()) : null;
+    var consumption = consumptionRes.getResponseCode() === 200 ? JSON.parse(consumptionRes.getContentText()) : null;
+    
+    return {
+      status: 'success',
+      destinationId: destinationId,
+      quotaType: quota ? quota.type : 'unknown',
+      quotaLimit: quota ? quota.value : 0,
+      totalUsage: consumption ? consumption.totalUsage : 0,
+      isExhausted: quota && consumption ? (consumption.totalUsage >= quota.value) : false
+    };
+  } catch (e) {
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+function updateLineConfig(newAccessToken, newDestinationId) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (newAccessToken && newAccessToken.trim() !== '') {
+      props.setProperty('LINE_CHANNEL_ACCESS_TOKEN', newAccessToken.trim());
+    }
+    if (newDestinationId && newDestinationId.trim() !== '') {
+      props.setProperty('LINE_USER_ID', newDestinationId.trim());
+    }
+    return { status: 'success', message: 'บันทึกการตั้งค่า LINE สำเร็จ' };
+  } catch (e) {
+    return { status: 'error', message: e.toString() };
   }
 }
 
