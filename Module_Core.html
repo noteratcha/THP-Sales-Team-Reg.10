@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0914.0032';
+    var APP_VERSION = 'Ver. 2026.0914.0042';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1128,33 +1128,116 @@
     }
 
     // ==========================================
-    // SAFE STORAGE UTILS (CORS & IFRAME IF BLOCK-COOKIES)
+    // SAFE STORAGE UTILS (HYBRID LOCALSTORAGE + INDEXEDDB)
     // ==========================================
     var SafeStorage = {
         _memoryStore: {},
+        _dbName: 'thp_sales_db',
+        _storeName: 'app_cache',
+        _dbPromise: null,
+
+        _getDb: function() {
+            if (this._dbPromise) return this._dbPromise;
+            if (typeof indexedDB === 'undefined') return Promise.resolve(null);
+            this._dbPromise = new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(this._dbName, 1);
+                    req.onupgradeneeded = function(e) {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('app_cache')) {
+                            db.createObjectStore('app_cache');
+                        }
+                    };
+                    req.onsuccess = function(e) { resolve(e.target.result); };
+                    req.onerror = function() { resolve(null); };
+                } catch(e) { resolve(null); }
+            });
+            return this._dbPromise;
+        },
+
+        init: function(callback) {
+            this._getDb().then(db => {
+                if (!db) {
+                    if (callback) callback();
+                    return;
+                }
+                try {
+                    const tx = db.transaction(this._storeName, 'readonly');
+                    const store = tx.objectStore(this._storeName);
+                    if (store.getAll && store.getAllKeys) {
+                        const valReq = store.getAll();
+                        const keyReq = store.getAllKeys();
+                        keyReq.onsuccess = (e) => {
+                            const keys = e.target.result || [];
+                            valReq.onsuccess = (ev) => {
+                                const vals = ev.target.result || [];
+                                for (let i = 0; i < keys.length; i++) {
+                                    SafeStorage._memoryStore[keys[i]] = vals[i];
+                                }
+                                if (callback) callback();
+                            };
+                        };
+                        keyReq.onerror = () => { if (callback) callback(); };
+                    } else {
+                        if (callback) callback();
+                    }
+                } catch(e) {
+                    if (callback) callback();
+                }
+            });
+        },
+
         setItem: function (key, value) {
+            this._memoryStore[key] = value;
             try {
                 localStorage.setItem(key, value);
             } catch (e) {
-                this._memoryStore[key] = value;
-                console.warn("localStorage is blocked. Using memory fallback.");
+                // Quota exceeded: เก็บใน IndexedDB แทน
             }
+            this._getDb().then(db => {
+                if (!db) return;
+                try {
+                    const tx = db.transaction(this._storeName, 'readwrite');
+                    tx.objectStore(this._storeName).put(value, key);
+                } catch(e) {}
+            });
         },
+
         getItem: function (key) {
-            try {
-                return localStorage.getItem(key);
-            } catch (e) {
-                return this._memoryStore[key] || null;
+            if (this._memoryStore[key] !== undefined && this._memoryStore[key] !== null) {
+                return this._memoryStore[key];
             }
+            try {
+                var localVal = localStorage.getItem(key);
+                if (localVal) {
+                    this._memoryStore[key] = localVal;
+                    return localVal;
+                }
+            } catch (e) {}
+            return null;
         },
+
         removeItem: function (key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (e) {
-                delete this._memoryStore[key];
-            }
+            delete this._memoryStore[key];
+            try { localStorage.removeItem(key); } catch (e) {}
+            this._getDb().then(db => {
+                if (!db) return;
+                try {
+                    const tx = db.transaction(this._storeName, 'readwrite');
+                    tx.objectStore(this._storeName).delete(key);
+                } catch(e) {}
+            });
         }
     };
+
+    // โหลดแคชจาก IndexedDB ทันทีเมื่อสคริปต์ทำงาน
+    try {
+        SafeStorage.init(function() {
+            if (typeof hydrateDashboardCache === 'function') {
+                hydrateDashboardCache();
+            }
+        });
+    } catch(e) {}
 
     // ==========================================
     // 1. GLOBAL VARIABLES

@@ -4095,7 +4095,7 @@
         offScreen.appendChild(clone);
         document.body.appendChild(offScreen);
         
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 80)));
         
         offScreen.offsetHeight;
         
@@ -4141,18 +4141,18 @@
         }
         
         await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
             const canvas = await html2canvas(offScreen, {
-                scale: 2,
+                scale: 1.6,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false
             });
             document.body.removeChild(offScreen);
-            return canvas.toDataURL('image/jpeg', 0.95);
+            return canvas.toDataURL('image/jpeg', 0.92);
         } catch (e) {
             if(document.body.contains(offScreen)) document.body.removeChild(offScreen);
             throw e;
@@ -4167,7 +4167,7 @@
         
         try {
             showGlobalLoader('กำลังบันทึกรูปภาพ...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 80));
             
             const targetEl = document.querySelector('#visitSummaryContent');
             const base64Data = await getVisitSummaryBase64(targetEl);
@@ -4200,7 +4200,7 @@
 
         try {
             showGlobalLoader('กำลังเตรียมส่งรูปภาพ...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 80));
             
             const tables = document.querySelectorAll('#visitSummaryContent > div.bg-white');
             if (!tables || tables.length === 0) {
@@ -4494,9 +4494,34 @@
             modal.querySelector('.bg-white').classList.add('scale-100');
         }, 10);
         
-        // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีให้ดึงข้อมูลก่อน
+        // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีในแรม ให้ตรวจจากแคชความเร็วสูงก่อน
         if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
-            // ปิดปุ่มไว้ก่อนระหว่างที่กำลังโหลด
+            const cachedVisitRaw = (typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_cache_visit_raw') : null;
+            if (cachedVisitRaw) {
+                try {
+                    const parsed = JSON.parse(cachedVisitRaw);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        if (typeof renderTable === 'function') renderTable({ status: 'success', data: parsed });
+                        generateVisitSummary();
+                        if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                        if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                        
+                        // แอบซิงค์สดเบื้องหลังแบบเงียบๆ เพื่อความสดใหม่ของข้อมูล
+                        google.script.run
+                            .withSuccessHandler((res) => {
+                                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 1) {
+                                    if (typeof SafeStorage !== 'undefined') SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                                    if (typeof renderTable === 'function') renderTable(res);
+                                    generateVisitSummary();
+                                }
+                            })
+                            .getDataForTable();
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // ถ้าไม่มีแคชจริงๆ ให้หมุนโหลดตามปกติ
             if (btnLineOA) { btnLineOA.disabled = true; btnLineOA.classList.add('opacity-50', 'cursor-not-allowed'); }
             if (btnDownload) { btnDownload.disabled = true; btnDownload.classList.add('opacity-50', 'cursor-not-allowed'); }
             
@@ -4505,6 +4530,9 @@
             
             google.script.run
                 .withSuccessHandler((res) => {
+                    if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 1) {
+                        if (typeof SafeStorage !== 'undefined') SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                    }
                     renderTable(res);
                     generateVisitSummary();
                     // เปิดปุ่มเมื่อโหลดเสร็จ
@@ -4513,7 +4541,6 @@
                 })
                 .withFailureHandler((err) => {
                     content.innerHTML = `<div class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><br>เกิดข้อผิดพลาด: ${err.message}</div>`;
-                    // เปิดปุ่มกลับ (แม้จะเกิด error เพื่อป้องกันปุ่มค้าง) หรือปล่อยให้ปิดไว้ก็ได้ ในที่นี้เปิดกลับ
                     if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
                     if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
                 })

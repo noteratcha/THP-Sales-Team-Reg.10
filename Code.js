@@ -4359,20 +4359,8 @@ function sendVisitSummaryImagesToLine(imagesData) {
       }
 
       if (i < imagesData.length - 1) {
-        Utilities.sleep(1000);
+        Utilities.sleep(150);
       }
-    }
-
-    try {
-      var sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
-      var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
-      while (oldFiles.hasNext()) {
-        oldFiles.next().setTrashed(true);
-      }
-    } catch (cleanupErr) {
-      console.error("Auto cleanup error: " + cleanupErr.toString());
     }
 
     if (successCount > 0) {

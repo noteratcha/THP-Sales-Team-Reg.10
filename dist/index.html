@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.0914.0032';
+    var APP_VERSION = 'Ver. 2026.0914.0042';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -5451,7 +5451,7 @@
         offScreen.appendChild(clone);
         document.body.appendChild(offScreen);
         
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 80)));
         
         offScreen.offsetHeight;
         
@@ -5497,18 +5497,18 @@
         }
         
         await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
             const canvas = await html2canvas(offScreen, {
-                scale: 2,
+                scale: 1.6,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false
             });
             document.body.removeChild(offScreen);
-            return canvas.toDataURL('image/jpeg', 0.95);
+            return canvas.toDataURL('image/jpeg', 0.92);
         } catch (e) {
             if(document.body.contains(offScreen)) document.body.removeChild(offScreen);
             throw e;
@@ -5523,7 +5523,7 @@
         
         try {
             showGlobalLoader('กำลังบันทึกรูปภาพ...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 80));
             
             const targetEl = document.querySelector('#visitSummaryContent');
             const base64Data = await getVisitSummaryBase64(targetEl);
@@ -5556,7 +5556,7 @@
 
         try {
             showGlobalLoader('กำลังเตรียมส่งรูปภาพ...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 80));
             
             const tables = document.querySelectorAll('#visitSummaryContent > div.bg-white');
             if (!tables || tables.length === 0) {
@@ -5850,9 +5850,34 @@
             modal.querySelector('.bg-white').classList.add('scale-100');
         }, 10);
         
-        // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีให้ดึงข้อมูลก่อน
+        // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีในแรม ให้ตรวจจากแคชความเร็วสูงก่อน
         if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
-            // ปิดปุ่มไว้ก่อนระหว่างที่กำลังโหลด
+            const cachedVisitRaw = (typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_cache_visit_raw') : null;
+            if (cachedVisitRaw) {
+                try {
+                    const parsed = JSON.parse(cachedVisitRaw);
+                    if (Array.isArray(parsed) && parsed.length > 1) {
+                        if (typeof renderTable === 'function') renderTable({ status: 'success', data: parsed });
+                        generateVisitSummary();
+                        if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                        if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
+                        
+                        // แอบซิงค์สดเบื้องหลังแบบเงียบๆ เพื่อความสดใหม่ของข้อมูล
+                        google.script.run
+                            .withSuccessHandler((res) => {
+                                if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 1) {
+                                    if (typeof SafeStorage !== 'undefined') SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                                    if (typeof renderTable === 'function') renderTable(res);
+                                    generateVisitSummary();
+                                }
+                            })
+                            .getDataForTable();
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // ถ้าไม่มีแคชจริงๆ ให้หมุนโหลดตามปกติ
             if (btnLineOA) { btnLineOA.disabled = true; btnLineOA.classList.add('opacity-50', 'cursor-not-allowed'); }
             if (btnDownload) { btnDownload.disabled = true; btnDownload.classList.add('opacity-50', 'cursor-not-allowed'); }
             
@@ -5861,6 +5886,9 @@
             
             google.script.run
                 .withSuccessHandler((res) => {
+                    if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 1) {
+                        if (typeof SafeStorage !== 'undefined') SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
+                    }
                     renderTable(res);
                     generateVisitSummary();
                     // เปิดปุ่มเมื่อโหลดเสร็จ
@@ -5869,7 +5897,6 @@
                 })
                 .withFailureHandler((err) => {
                     content.innerHTML = `<div class="text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><br>เกิดข้อผิดพลาด: ${err.message}</div>`;
-                    // เปิดปุ่มกลับ (แม้จะเกิด error เพื่อป้องกันปุ่มค้าง) หรือปล่อยให้ปิดไว้ก็ได้ ในที่นี้เปิดกลับ
                     if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
                     if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
                 })
@@ -22906,33 +22933,116 @@
     }
 
     // ==========================================
-    // SAFE STORAGE UTILS (CORS & IFRAME IF BLOCK-COOKIES)
+    // SAFE STORAGE UTILS (HYBRID LOCALSTORAGE + INDEXEDDB)
     // ==========================================
     var SafeStorage = {
         _memoryStore: {},
+        _dbName: 'thp_sales_db',
+        _storeName: 'app_cache',
+        _dbPromise: null,
+
+        _getDb: function() {
+            if (this._dbPromise) return this._dbPromise;
+            if (typeof indexedDB === 'undefined') return Promise.resolve(null);
+            this._dbPromise = new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(this._dbName, 1);
+                    req.onupgradeneeded = function(e) {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('app_cache')) {
+                            db.createObjectStore('app_cache');
+                        }
+                    };
+                    req.onsuccess = function(e) { resolve(e.target.result); };
+                    req.onerror = function() { resolve(null); };
+                } catch(e) { resolve(null); }
+            });
+            return this._dbPromise;
+        },
+
+        init: function(callback) {
+            this._getDb().then(db => {
+                if (!db) {
+                    if (callback) callback();
+                    return;
+                }
+                try {
+                    const tx = db.transaction(this._storeName, 'readonly');
+                    const store = tx.objectStore(this._storeName);
+                    if (store.getAll && store.getAllKeys) {
+                        const valReq = store.getAll();
+                        const keyReq = store.getAllKeys();
+                        keyReq.onsuccess = (e) => {
+                            const keys = e.target.result || [];
+                            valReq.onsuccess = (ev) => {
+                                const vals = ev.target.result || [];
+                                for (let i = 0; i < keys.length; i++) {
+                                    SafeStorage._memoryStore[keys[i]] = vals[i];
+                                }
+                                if (callback) callback();
+                            };
+                        };
+                        keyReq.onerror = () => { if (callback) callback(); };
+                    } else {
+                        if (callback) callback();
+                    }
+                } catch(e) {
+                    if (callback) callback();
+                }
+            });
+        },
+
         setItem: function (key, value) {
+            this._memoryStore[key] = value;
             try {
                 localStorage.setItem(key, value);
             } catch (e) {
-                this._memoryStore[key] = value;
-                console.warn("localStorage is blocked. Using memory fallback.");
+                // Quota exceeded: เก็บใน IndexedDB แทน
             }
+            this._getDb().then(db => {
+                if (!db) return;
+                try {
+                    const tx = db.transaction(this._storeName, 'readwrite');
+                    tx.objectStore(this._storeName).put(value, key);
+                } catch(e) {}
+            });
         },
+
         getItem: function (key) {
-            try {
-                return localStorage.getItem(key);
-            } catch (e) {
-                return this._memoryStore[key] || null;
+            if (this._memoryStore[key] !== undefined && this._memoryStore[key] !== null) {
+                return this._memoryStore[key];
             }
+            try {
+                var localVal = localStorage.getItem(key);
+                if (localVal) {
+                    this._memoryStore[key] = localVal;
+                    return localVal;
+                }
+            } catch (e) {}
+            return null;
         },
+
         removeItem: function (key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (e) {
-                delete this._memoryStore[key];
-            }
+            delete this._memoryStore[key];
+            try { localStorage.removeItem(key); } catch (e) {}
+            this._getDb().then(db => {
+                if (!db) return;
+                try {
+                    const tx = db.transaction(this._storeName, 'readwrite');
+                    tx.objectStore(this._storeName).delete(key);
+                } catch(e) {}
+            });
         }
     };
+
+    // โหลดแคชจาก IndexedDB ทันทีเมื่อสคริปต์ทำงาน
+    try {
+        SafeStorage.init(function() {
+            if (typeof hydrateDashboardCache === 'function') {
+                hydrateDashboardCache();
+            }
+        });
+    } catch(e) {}
 
     // ==========================================
     // 1. GLOBAL VARIABLES
