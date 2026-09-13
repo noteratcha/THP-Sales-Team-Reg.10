@@ -2463,7 +2463,8 @@
                     สรุปการเข้าพบลูกค้า
                 </h3>
                 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
                     <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-[10px] sm:text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm">
                         <i class="fab fa-line"></i> ส่ง LINE OA
                     </button>
@@ -5589,6 +5590,37 @@
                 return;
             }
 
+            // Pre-check Quota: ถ้าทราบว่าโควตาเต็มทุกบัญชีแล้ว ให้เตือนทันทีก่อนส่ง
+            if (window.__lineQuotaInfo && window.__lineQuotaInfo.allFull) {
+                hideGlobalLoader();
+                Swal.fire({
+                    icon: 'warning',
+                    title: '⚠️ โควตาส่งข้อความ LINE เต็มแล้ว!',
+                    html: `<div class="text-left text-sm text-gray-700 space-y-3">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-medium">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-1.5"></i>
+                            โควตาฟรีประจำเดือนของ LINE OA เต็มขีดจำกัดแล้วทุกบัญชี (300/300 ข้อความ)
+                        </div>
+                        <p class="text-xs text-gray-600">
+                            ระบบไม่สามารถส่งข้อความเข้า LINE ได้ในขณะนี้จนกว่าจะขึ้นรอบบิลเดือนใหม่ หรือเพิ่ม Channel Access Token สำรองในระบบ
+                        </p>
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                            💡 <b>คำแนะนำ:</b> สามารถกดปุ่ม <b>"บันทึกรูปภาพ"</b> สีส้ม เพื่อดาวน์โหลดภาพตารางสรุป แล้วแชร์ส่งเข้ากลุ่ม LINE ด้วยตนเองได้ทันทีครับ
+                        </div>
+                    </div>`,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-download mr-1"></i> บันทึกรูปภาพแทน',
+                    cancelButtonText: 'ปิดหน้าต่าง',
+                    confirmButtonColor: '#ea580c',
+                    cancelButtonColor: '#6b7280'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        downloadVisitSummary();
+                    }
+                });
+                return;
+            }
+
             showGlobalLoader('กำลังอัปโหลดและส่งรูปภาพทั้งหมดไปยัง LINE...');
             
             const result = await new Promise((resolve, reject) => {
@@ -5597,7 +5629,9 @@
                         if (response && response.status === 'success') {
                             resolve(response);
                         } else {
-                            reject(new Error(response ? response.message : 'Unknown Error'));
+                            var err = new Error(response ? response.message : 'Unknown Error');
+                            if (response && response.isQuotaFull) err.isQuotaFull = true;
+                            reject(err);
                         }
                     })
                     .withFailureHandler(function(error) {
@@ -5607,31 +5641,184 @@
             });
             
             hideGlobalLoader();
-            Swal.fire({
-                icon: 'success',
-                title: 'ส่งสำเร็จ!',
-                text: result && result.message ? result.message : `ระบบได้ส่งภาพตารางสรุปการเข้าพบลูกค้าไปยัง LINE OA เรียบร้อยแล้ว`,
-                timer: 3000,
-                showConfirmButton: true,
-                confirmButtonColor: '#10b981'
-            });
+            
+            // อัปเดตสถานะโควตาใหม่หลังส่งสำเร็จ
+            fetchLineQuotaStatus();
+
+            if (result && result.usedFailover) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งเข้า LINE สำเร็จ!',
+                    html: `<div class="text-left text-sm text-gray-700 space-y-2">
+                        <p class="font-medium text-green-700"><i class="fas fa-check-circle mr-1"></i> ${result.message || 'ส่งภาพตารางสรุปเข้า LINE เรียบร้อยแล้ว'}</p>
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                            <i class="fas fa-info-circle text-amber-600 mr-1"></i>
+                            <b>แจ้งเตือนโควตา:</b> บอทหลักโควตาเต็มแล้ว ระบบได้สลับไปส่งผ่าน <b>บอทสำรอง (@580islli)</b> ให้เรียบร้อยครับ
+                        </div>
+                    </div>`,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#10b981'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ส่งสำเร็จ!',
+                    text: result && result.message ? result.message : `ระบบได้ส่งภาพตารางสรุปการเข้าพบลูกค้าไปยัง LINE OA เรียบร้อยแล้ว`,
+                    timer: 3000,
+                    showConfirmButton: true,
+                    confirmButtonColor: '#10b981'
+                });
+            }
         } catch (err) {
             hideGlobalLoader();
             console.error('Send to LINE Error:', err);
-            const isQuota = err.message && (err.message.includes('โควตา') || err.message.includes('429') || err.message.includes('monthly limit'));
-            Swal.fire({
-                icon: 'error',
-                title: isQuota ? 'โควตาข้อความ LINE เต็ม' : 'ไม่สามารถส่งเข้า LINE ได้',
-                html: `<div class="text-left text-sm text-gray-700 space-y-2 mt-2">
-                    <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium">
-                        ${err.message}
-                    </div>
-                    ${isQuota ? '<p class="text-xs text-gray-500 pt-1">💡 <b>สาเหตุ:</b> บัญชี LINE Official Account แบบฟรี มีโควตาส่ง Push Message จำกัดที่ 300 ข้อความ/เดือน และขณะนี้ถูกใช้งานเต็ม 100% แล้ว กรุณารอรอบบิลใหม่ หรือเปลี่ยนไปใช้ Token บอทตัวใหม่</p>' : ''}
-                </div>`,
-                confirmButtonText: 'รับทราบ',
-                confirmButtonColor: '#ea580c'
-            });
+            const isQuota = err.isQuotaFull || (err.message && (err.message.includes('โควตา') || err.message.includes('429') || err.message.includes('monthly limit')));
+            
+            if (isQuota) {
+                fetchLineQuotaStatus();
+                Swal.fire({
+                    icon: 'warning',
+                    title: '⚠️ โควตาส่งข้อความ LINE เต็ม!',
+                    html: `<div class="text-left text-sm text-gray-700 space-y-3 mt-2">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-medium">
+                            <i class="fas fa-ban text-red-500 mr-1.5"></i>
+                            ${err.message || 'โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มทั้ง 2 บัญชีแล้ว'}
+                        </div>
+                        <div class="p-2.5 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
+                            <p>📌 บัญชี LINE OA ฟรีมีโควตา 300 ข้อความ/เดือน (รีเซ็ตทุกวันที่ 1 ของเดือน)</p>
+                            <p>🔄 ระบบได้พยายามส่งผ่านทั้งบัญชีหลักและบัญชีสำรองแล้ว แต่โควตาเต็มทั้งหมด</p>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                            💡 <b>ทางเลือกแนะนำ:</b> กดปุ่ม <b>"บันทึกรูปภาพแทน"</b> เพื่อดาวน์โหลดภาพตารางสรุป แล้วแชร์ส่งเข้ากลุ่ม LINE ด้วยตนเองได้ทันทีครับ
+                        </div>
+                    </div>`,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-download mr-1"></i> บันทึกรูปภาพแทน',
+                    cancelButtonText: 'รับทราบ',
+                    confirmButtonColor: '#ea580c',
+                    cancelButtonColor: '#6b7280'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        downloadVisitSummary();
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถส่งเข้า LINE ได้',
+                    html: `<div class="text-left text-sm text-gray-700 space-y-2 mt-2">
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-medium text-xs">
+                            ${err.message}
+                        </div>
+                    </div>`,
+                    confirmButtonText: 'รับทราบ',
+                    confirmButtonColor: '#ea580c'
+                });
+            }
         }
+    }
+
+    // ==========================================
+    // LINE QUOTA CHECK & BADGE
+    // ==========================================
+    function fetchLineQuotaStatus() {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    if (res && res.status === 'success') {
+                        updateLineQuotaUI(res);
+                    }
+                })
+                .withFailureHandler(function(err) {
+                    console.warn('fetchLineQuotaStatus failed:', err);
+                })
+                .checkLineQuotaStatus();
+        }
+    }
+
+    function updateLineQuotaUI(info) {
+        window.__lineQuotaInfo = info;
+        const badge = document.getElementById('lineQuotaBadge');
+        if (!badge) return;
+
+        badge.classList.remove('hidden');
+
+        if (info.allFull) {
+            badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-700 border border-red-300 items-center gap-1.5 cursor-pointer shadow-sm animate-pulse hover:bg-red-200 transition";
+            badge.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i> โควตาเต็ม (0/300)';
+            badge.title = "โควตาส่งข้อความฟรี LINE OA เต็มแล้วทุกบัญชี (คลิกดูรายละเอียด)";
+        } else if (info.activeTokenIndex > 0) {
+            const activeToken = info.tokens[info.activeTokenIndex];
+            badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-800 border border-amber-300 items-center gap-1.5 cursor-pointer shadow-sm hover:bg-amber-200 transition";
+            badge.innerHTML = `<i class="fas fa-shield-alt text-amber-600"></i> ใช้บอทสำรอง (เหลือ ${activeToken.remaining})`;
+            badge.title = "บอทหลักโควตาเต็ม ระบบกำลังใช้บอทสำรอง (คลิกดูรายละเอียด)";
+        } else {
+            const primary = info.tokens[0];
+            badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700 border border-green-200 items-center gap-1.5 cursor-pointer shadow-sm hover:bg-green-100 transition";
+            badge.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> โควตา ${primary.remaining}/${primary.limit}`;
+            badge.title = "สถานะโควตา LINE บอทหลัก (คลิกดูรายละเอียด)";
+        }
+    }
+
+    function showLineQuotaDetailModal() {
+        const info = window.__lineQuotaInfo;
+        if (!info) {
+            fetchLineQuotaStatus();
+            Swal.fire({
+                title: 'กำลังตรวจสอบโควตา...',
+                didOpen: () => Swal.showLoading(),
+                timer: 1500
+            });
+            return;
+        }
+
+        let tokensHtml = '';
+        if (info.tokens && info.tokens.length > 0) {
+            tokensHtml = info.tokens.map((t, idx) => {
+                const pct = Math.round((t.used / t.limit) * 100);
+                const isCurrent = idx === info.activeTokenIndex;
+                const statusBadge = t.isFull
+                    ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">โควตาเต็ม</span>'
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 text-green-700 font-bold">เหลือ ${t.remaining} ข้อความ</span>`;
+                
+                return `
+                    <div class="p-3 rounded-xl border ${isCurrent ? 'border-blue-400 bg-blue-50/50' : 'border-gray-200 bg-white'} space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 font-semibold text-xs text-gray-800">
+                                ${isCurrent ? '<i class="fas fa-check-circle text-blue-500"></i>' : '<i class="far fa-circle text-gray-400"></i>'}
+                                ${t.label}
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="${t.isFull ? 'bg-red-500' : 'bg-green-500'} h-2 rounded-full transition-all" style="width: ${pct}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-gray-500">
+                            <span>ใช้งานแล้ว: <b>${t.used}</b> / ${t.limit}</span>
+                            <span>คงเหลือ: <b>${t.remaining}</b> ข้อความ</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        Swal.fire({
+            title: '📊 สถานะโควตาส่งข้อความ LINE OA',
+            html: `<div class="text-left text-xs text-gray-700 space-y-3 mt-3">
+                <div class="p-2.5 rounded-xl ${info.allFull ? 'bg-red-50 text-red-800 border border-red-200' : (info.activeTokenIndex > 0 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-green-50 text-green-800 border border-green-200')} font-medium">
+                    ${info.summaryText}
+                </div>
+                <div class="space-y-2">
+                    ${tokensHtml}
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-lg text-[11px] text-gray-500 space-y-1">
+                    <p>💡 <b>ระบบ Multi-Token Auto-Failover:</b> เมื่อบอทหลักโควตาเต็ม 300 ข้อความ ระบบจะสลับไปใช้บอทสำรองตัวถัดไปให้อัตโนมัติ</p>
+                    <p>🔄 โควตาจะรีเซ็ตใหม่อัตโนมัติในวันแรกของทุกเดือน (00:00 น.)</p>
+                </div>
+            </div>`,
+            confirmButtonText: 'ปิด',
+            confirmButtonColor: '#3b82f6'
+        });
     }
 
     // ==========================================
@@ -5649,6 +5836,7 @@
             if (isAdmin) {
                 btnLineOA.classList.remove('hidden');
                 btnLineOA.classList.add('flex');
+                fetchLineQuotaStatus();
             } else {
                 btnLineOA.classList.add('hidden');
                 btnLineOA.classList.remove('flex');

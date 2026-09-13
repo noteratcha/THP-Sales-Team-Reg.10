@@ -3462,11 +3462,13 @@ function getLineDestinationId() {
 /**
  * ส่งคำขอ Push Message ไปยัง LINE API พร้อมระบบสลับ Token อัตโนมัติเมื่อโควตาเต็ม (Auto-Failover)
  * หาก Token แรกโควตาเต็ม (429) หรือมีปัญหา จะสลับไปใช้ Token ถัดไปทันที
+ * พร้อมส่งคืนสถานะแจ้งเตือนโควตา (Quota Alerts)
  */
 function sendLinePushWithFailover(payload) {
   var tokens = getLineChannelAccessTokens();
   var lastError = "";
   var lastCode = 0;
+  var all429 = true;
 
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i];
@@ -3485,19 +3487,115 @@ function sendLinePushWithFailover(payload) {
     var body = response.getContentText();
 
     if (code === 200) {
-      return { success: true, responseCode: 200, usedTokenIndex: i };
+      return {
+        success: true,
+        responseCode: 200,
+        usedTokenIndex: i,
+        switchedFromPrimary: i > 0,
+        notice: i > 0 ? "บอทหลักโควตาเต็ม ระบบได้สลับไปส่งผ่านบอทสำรอง (@580islli) สำเร็จ" : ""
+      };
     }
 
     lastCode = code;
     lastError = body;
+    if (code !== 429) {
+      all429 = false;
+    }
     console.warn("LINE Push failed with Token " + (i + 1) + " (Code " + code + "): " + body);
-
-    // หากเกิด Error (เช่น 429 Monthly limit reached หรือ 400 Failed to send) ให้วนไปลอง Token ตัวถัดไป
     console.log("Token " + (i + 1) + " returned code " + code + ". Attempting next token in pool...");
   }
 
-  return { success: false, responseCode: lastCode, errorText: lastError };
+  var isQuotaExhausted = all429 || (lastCode === 429) || (lastError && lastError.indexOf("monthly limit") !== -1);
+  return {
+    success: false,
+    responseCode: lastCode,
+    errorText: lastError,
+    isQuotaFull: isQuotaExhausted,
+    quotaMessage: isQuotaExhausted ? "โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทั้ง 2 บัญชี (300/300 ข้อความ)" : ""
+  };
 }
+
+/**
+ * ตรวจสอบสถานะโควตาส่งข้อความ LINE รายเดือนของทุก Token ในระบบ
+ * ดึงข้อมูลทั้ง Limit (300) และ Consumption (จำนวนที่ส่งไปแล้ว)
+ */
+function checkLineQuotaStatus() {
+  try {
+    var tokens = getLineChannelAccessTokens();
+    var result = {
+      status: 'success',
+      tokens: [],
+      allFull: true,
+      hasAvailable: false,
+      activeTokenIndex: -1,
+      summaryText: "",
+      alertType: "info"
+    };
+
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i];
+      var quotaInfo = {
+        index: i,
+        label: i === 0 ? "บอทหลัก (@963ytjpu)" : ("บอทสำรอง " + i + " (@580islli)"),
+        limit: 300,
+        used: 0,
+        remaining: 0,
+        isFull: true,
+        error: null
+      };
+
+      try {
+        var headers = { 'Authorization': 'Bearer ' + token };
+        var qRes = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/quota', { headers: headers, muteHttpExceptions: true });
+        if (qRes.getResponseCode() === 200) {
+          var qData = JSON.parse(qRes.getContentText());
+          if (qData.type === 'limited' && typeof qData.value === 'number') {
+            quotaInfo.limit = qData.value;
+          }
+        }
+
+        var cRes = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/quota/consumption', { headers: headers, muteHttpExceptions: true });
+        if (cRes.getResponseCode() === 200) {
+          var cData = JSON.parse(cRes.getContentText());
+          quotaInfo.used = typeof cData.totalUsage === 'number' ? cData.totalUsage : 0;
+        }
+
+        quotaInfo.remaining = Math.max(0, quotaInfo.limit - quotaInfo.used);
+        quotaInfo.isFull = quotaInfo.remaining <= 0;
+
+        if (!quotaInfo.isFull) {
+          result.allFull = false;
+          result.hasAvailable = true;
+          if (result.activeTokenIndex === -1) {
+            result.activeTokenIndex = i;
+          }
+        }
+      } catch (tErr) {
+        quotaInfo.error = tErr.toString();
+      }
+      result.tokens.push(quotaInfo);
+    }
+
+    if (result.allFull) {
+      result.alertType = "danger";
+      result.summaryText = "⚠️ โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทุกบัญชี (ไม่สามารถส่งได้จนกว่าจะขึ้นรอบบิลเดือนใหม่ หรือเพิ่ม Token สำรอง)";
+    } else if (result.activeTokenIndex > 0) {
+      result.alertType = "warning";
+      var activeToken = result.tokens[result.activeTokenIndex];
+      result.summaryText = "บอทหลักโควตาเต็ม (300/300) แล้ว ระบบกำลังส่งผ่าน " + activeToken.label + " (เหลือ " + activeToken.remaining + "/" + activeToken.limit + " ข้อความ)";
+    } else {
+      result.alertType = "success";
+      var primary = result.tokens[0];
+      result.summaryText = "บอทหลักพร้อมใช้งาน (เหลือโควตา " + primary.remaining + "/" + primary.limit + " ข้อความ)";
+    }
+
+    return result;
+  } catch (e) {
+    console.error("checkLineQuotaStatus error: " + e.toString());
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 
 function sendErrorToLine(errorObj, contextInfo) {
   try {
@@ -3996,21 +4094,36 @@ function sendVisitSummaryImageToLine(base64Image, messageText) {
     }
     
     if (pushRes.success) {
-      return {status: 'success', message: 'ส่งข้อความเข้า LINE สำเร็จ (บอทที่ ' + (pushRes.usedTokenIndex + 1) + ')'};
+      var successMsg = 'ส่งข้อความเข้า LINE สำเร็จ (บอทที่ ' + (pushRes.usedTokenIndex + 1) + ')';
+      if (pushRes.switchedFromPrimary) {
+        successMsg += '\n\n⚠️ แจ้งเตือน: ' + pushRes.notice;
+      }
+      return {
+        status: 'success',
+        message: successMsg,
+        usedFailover: pushRes.switchedFromPrimary,
+        failoverNotice: pushRes.notice
+      };
     } else {
       var errMsg = pushRes.errorText;
       var respCode = pushRes.responseCode;
+      var isQuota = pushRes.isQuotaFull;
       try {
         var j = JSON.parse(errMsg);
         if (respCode === 429 || (j.message && j.message.indexOf("monthly limit") !== -1)) {
-          errMsg = "โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มทั้ง 2 บัญชีแล้ว";
+          isQuota = true;
+          errMsg = "⚠️ โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทั้ง 2 บัญชี (300/300 ข้อความ)";
         } else if (respCode === 400 && j.message) {
           errMsg = j.message + " (กรุณาตรวจสอบว่าผู้รับปลายทางได้เพิ่มเพื่อนบอททั้งสองตัวแล้วหรือยัง)";
         } else if (j.message) {
           errMsg = j.message;
         }
       } catch(e) {}
-      return {status: 'error', message: 'LINE API (' + respCode + '): ' + errMsg};
+      return {
+        status: 'error',
+        isQuotaFull: isQuota,
+        message: isQuota ? '⚠️ โควตาข้อความ LINE เต็ม: ' + errMsg : 'LINE API (' + respCode + '): ' + errMsg
+      };
     }
   } catch(e) {
     console.error("sendVisitSummaryImageToLine error: " + e.toString());
@@ -4192,16 +4305,26 @@ function sendVisitSummaryImagesToLine(imagesData) {
         pushRes = sendLinePushWithFailover(payload);
       }
 
+      var hasSwitched = false;
+      var failoverNotice = "";
+      var isQuotaFull = false;
+
       if (pushRes.success) {
         successCount++;
+        if (pushRes.switchedFromPrimary) {
+          hasSwitched = true;
+          failoverNotice = pushRes.notice;
+        }
       } else {
         var respCode = pushRes.responseCode;
         var respBody = pushRes.errorText;
+        if (pushRes.isQuotaFull) isQuotaFull = true;
         console.error("LINE API Error on image " + i + " (Code " + respCode + "): " + respBody);
         try {
           var errJson = JSON.parse(respBody);
           if (respCode === 429 || (errJson.message && errJson.message.indexOf("monthly limit") !== -1)) {
-            lastError = "โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มทั้ง 2 บัญชีแล้ว";
+            isQuotaFull = true;
+            lastError = "⚠️ โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทั้ง 2 บัญชี (300/300 ข้อความ)";
           } else if (respCode === 401) {
             lastError = "LINE Channel Access Token ไม่ถูกต้องหรือหมดอายุ (401 Unauthorized)";
           } else if (respCode === 400 && errJson.message) {
@@ -4232,9 +4355,22 @@ function sendVisitSummaryImagesToLine(imagesData) {
     }
 
     if (successCount > 0) {
-      return { status: 'success', message: 'ส่งรูปภาพสรุปเข้า LINE สำเร็จ (' + successCount + '/' + imagesData.length + ' ภาพ)' };
+      var successText = 'ส่งรูปภาพสรุปเข้า LINE สำเร็จ (' + successCount + '/' + imagesData.length + ' ภาพ)';
+      if (hasSwitched) {
+        successText += '\n\n⚠️ แจ้งเตือน: บอทหลักโควตาเต็ม ระบบได้สลับไปส่งผ่านบอทสำรอง (@580islli) สำเร็จ';
+      }
+      return {
+        status: 'success',
+        message: successText,
+        usedFailover: hasSwitched,
+        failoverNotice: failoverNotice
+      };
     } else {
-      return { status: 'error', message: lastError || 'ไม่สามารถส่งรูปภาพเข้า LINE ได้' };
+      return {
+        status: 'error',
+        isQuotaFull: isQuotaFull,
+        message: lastError || 'ไม่สามารถส่งรูปภาพเข้า LINE ได้'
+      };
     }
   } catch (e) {
     console.error("sendVisitSummaryImagesToLine error: " + e.toString());
@@ -4273,26 +4409,16 @@ function sendDailyLinkToLine() {
 
 function getLineConfigStatus() {
   try {
-    var token = getLineChannelAccessToken();
+    var quotaStatus = checkLineQuotaStatus();
     var destinationId = getLineDestinationId();
-    
-    var quotaUrl = 'https://api.line.me/v2/bot/message/quota';
-    var consumptionUrl = 'https://api.line.me/v2/bot/message/quota/consumption';
-    var headers = { 'Authorization': 'Bearer ' + token };
-    
-    var quotaRes = UrlFetchApp.fetch(quotaUrl, { headers: headers, muteHttpExceptions: true });
-    var consumptionRes = UrlFetchApp.fetch(consumptionUrl, { headers: headers, muteHttpExceptions: true });
-    
-    var quota = quotaRes.getResponseCode() === 200 ? JSON.parse(quotaRes.getContentText()) : null;
-    var consumption = consumptionRes.getResponseCode() === 200 ? JSON.parse(consumptionRes.getContentText()) : null;
     
     return {
       status: 'success',
       destinationId: destinationId,
-      quotaType: quota ? quota.type : 'unknown',
-      quotaLimit: quota ? quota.value : 0,
-      totalUsage: consumption ? consumption.totalUsage : 0,
-      isExhausted: quota && consumption ? (consumption.totalUsage >= quota.value) : false
+      quotaStatus: quotaStatus,
+      summaryText: quotaStatus.summaryText,
+      alertType: quotaStatus.alertType,
+      isExhausted: quotaStatus.allFull
     };
   } catch (e) {
     return { status: 'error', message: e.toString() };
