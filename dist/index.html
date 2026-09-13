@@ -25158,23 +25158,64 @@
 
         // Removed province/recorder name display
 
+        // Helper: คำนวณ class ขนาดตัวอักษรเริ่มต้นตามความยาวของตัวเลข เพื่อให้แสดงผลในกรอบสี่เหลี่ยมได้พอดี
+        function getAdaptiveKpiClass(val) {
+            var len = String(val || '').trim().length;
+            if (len <= 6) return 'text-2xl xl:text-3xl';
+            if (len <= 8) return 'text-xl xl:text-2xl';
+            if (len <= 10) return 'text-lg xl:text-xl';
+            if (len <= 12) return 'text-base xl:text-lg';
+            if (len <= 14) return 'text-[14px] xl:text-[15px]';
+            if (len <= 16) return 'text-[12px] xl:text-[13px]';
+            return 'text-[11px]';
+        }
+
+        // Helper: ตรวจสอบและลดขนาดตัวอักษรลงอัตโนมัติหากยาวเกินความกว้างของกรอบสี่เหลี่ยม (Auto-Fit)
+        function autoFitAllKpiValues() {
+            var elements = document.querySelectorAll('[data-kpi-autofit="true"]');
+            elements.forEach(function(el) {
+                var parent = el.parentElement;
+                if (!parent || parent.clientWidth <= 0) return;
+                
+                el.style.whiteSpace = 'nowrap';
+                el.style.display = 'inline-block';
+                el.style.maxWidth = '100%';
+                
+                var availableWidth = parent.clientWidth - 4;
+                if (availableWidth <= 0) return;
+                
+                var maxPx = parseInt(el.getAttribute('data-max-size') || '28', 10);
+                var minPx = parseInt(el.getAttribute('data-min-size') || '10', 10);
+                var curSize = parseFloat(window.getComputedStyle(el).fontSize) || maxPx;
+                curSize = Math.min(curSize, maxPx);
+                
+                var safety = 0;
+                while (el.scrollWidth > availableWidth && curSize > minPx && safety < 40) {
+                    curSize -= 0.5;
+                    el.style.fontSize = curSize + 'px';
+                    safety++;
+                }
+            });
+        }
+
         let targetHtml = '';
         let pctHtml = '';
         if (myTarget > 0) {
             let pct = Math.round((myMonthlyCount / myTarget) * 100);
             let pctColor = pct >= 100 ? 'text-green-700' : 'text-orange-600';
-            let bgPctColor = pct >= 100 ? 'bg-green-100' : 'bg-orange-100';
             let barColor = pct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
             let iconColor = pct >= 100 ? 'text-green-500' : 'text-orange-400';
+            let formattedTarget = myTarget.toLocaleString();
+            let targetClass = getAdaptiveKpiClass(formattedTarget);
             
             targetHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                     <div class="flex justify-between items-center w-full mb-1">
                         <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
                     </div>
                     
-                    <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
-                        <span class="text-3xl font-black text-gray-700 leading-none">${myTarget}</span>
+                    <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                        <span class="${targetClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="11" title="${formattedTarget}">${formattedTarget}</span>
                     </div>
 
                     <div class="w-full h-1.5"></div>
@@ -25182,13 +25223,13 @@
             `;
             
             pctHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full">
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                     <div class="flex justify-between items-center w-full mb-1">
                         <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
                     </div>
                     
-                    <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
-                        <span class="text-3xl font-black ${pctColor} leading-none">${pct}%</span>
+                    <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                        <span class="text-2xl xl:text-3xl font-black ${pctColor} leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="12">${pct}%</span>
                     </div>
 
                     <div class="w-full bg-gray-100/80 rounded-full h-1.5 overflow-hidden shadow-inner relative">
@@ -25200,12 +25241,12 @@
             `;
         } else {
             targetHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[64px]">
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                     <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> ไม่มีเป้า</span>
                 </div>
             `;
             pctHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[64px]">
+                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                     <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
                 </div>
             `;
@@ -25214,17 +25255,20 @@
         const countContainer = document.getElementById('homeSummaryCountContainer');
         if (countContainer) {
             countContainer.className = "flex flex-col items-center justify-center mt-3 w-full px-2";
+            let formattedCount = myMonthlyCount.toLocaleString();
+            let countClass = getAdaptiveKpiClass(formattedCount);
+            
             countContainer.innerHTML = `
                 <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full">
                     <!-- Box 1: Visits -->
-                    <div class="col-span-2 xl:col-span-1 bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                    <div class="col-span-2 xl:col-span-1 bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                         <span class="text-[11px] text-gray-500 font-medium mb-1 flex items-center gap-1 whitespace-nowrap"><i class="fas fa-walking text-orange-400"></i> เข้าพบแล้ว</span>
                         
-                        <div class="text-2xl xl:text-3xl tracking-tight font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
-                            <span id="homeSummaryCount" class="text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-orange-600">${myMonthlyCount}</span> 
+                        <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                            <span id="homeSummaryCount" class="${countClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-orange-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="11" title="${formattedCount}">${formattedCount}</span> 
                         </div>
                         
-                        <div class="w-full h-1.5"></div> <!-- Spacer to match Box 2 -->
+                        <div class="w-full h-1.5"></div>
                     </div>
                     <!-- Box 2: Target -->
                     ${targetHtml}
@@ -25232,6 +25276,7 @@
                     ${pctHtml}
                 </div>
             `;
+            setTimeout(autoFitAllKpiValues, 30);
         }
 
         const monthRevSpan = document.getElementById('homeSummaryRevMonth');
@@ -25249,27 +25294,27 @@
                     let iconColor = revPct >= 100 ? 'text-green-500' : 'text-orange-400';
                     
                     let formattedTarget = myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    let textClass = formattedTarget.length > 8 ? 'text-[18px]' : 'text-2xl';
+                    let textClass = getAdaptiveKpiClass(formattedTarget);
                     
                     revTargetHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <div class="flex justify-between items-center w-full mb-1">
                                 <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
                             </div>
-                            <div class="flex justify-center items-baseline gap-1 w-full mt-1 mb-1.5">
-                                <span class="${textClass} font-black text-gray-700 leading-none truncate w-full text-center" title="${formattedTarget}">${formattedTarget}</span>
+                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                                <span class="${textClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${formattedTarget}">${formattedTarget}</span>
                             </div>
                             <div class="w-full h-1.5"></div>
                         </div>
                     `;
                     
                     revPctHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <div class="flex justify-between items-center w-full mb-1">
                                 <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
                             </div>
-                            <div class="flex justify-center items-baseline gap-2 w-full mt-1 mb-1.5">
-                                <span class="text-2xl font-black ${pctColor} leading-none">${revPct}%</span>
+                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                                <span class="text-2xl xl:text-3xl font-black ${pctColor} leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="12">${revPct}%</span>
                             </div>
                             <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                 <div class="${barColor} h-1.5 rounded-full" style="width: ${Math.min(revPct, 100)}%"></div>
@@ -25278,29 +25323,30 @@
                     `;
                 } else {
                     revTargetHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px]">
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> เป้าหมาย</span>
                         </div>
                     `;
                     revPctHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px]">
+                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
                         </div>
                     `;
                 }
 
                 let formattedMonthRev = actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let revClass = getAdaptiveKpiClass(formattedMonthRev);
                 
                 revContainer.innerHTML = `
                     <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-                        <div class="col-span-2 xl:col-span-1 bg-white border border-green-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px]">
+                        <div class="col-span-2 xl:col-span-1 bg-white border border-green-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <div class="flex justify-between items-center w-full mb-1">
                                 <span class="text-[11px] text-green-600 font-medium flex items-center gap-1 whitespace-nowrap">
                                     <i class="fas fa-coins opacity-70"></i> รายได้สะสม
                                 </span>
                             </div>
-                            <div class="text-2xl xl:text-3xl tracking-tight font-black leading-none drop-shadow-sm flex justify-center items-baseline gap-1 mt-1 mb-1.5">
-                                <span id="homeSummaryRevenueMonth" class="text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600" title="${formattedMonthRev}">${formattedMonthRev}</span> 
+                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
+                                <span id="homeSummaryRevenueMonth" class="${revClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${formattedMonthRev}">${formattedMonthRev}</span> 
                             </div>
                             <div class="w-full h-1.5"></div>
                         </div>
@@ -25308,7 +25354,21 @@
                         ${revPctHtml}
                     </div>
                 `;
+                setTimeout(autoFitAllKpiValues, 30);
             };
+
+            // แนบ ResizeObserver เพื่อคำนวณขนาดตัวอักษรใหม่อัตโนมัติเมื่อขนาดหน้าจอเปลี่ยน
+            if (typeof ResizeObserver !== 'undefined' && !window.__kpiResizeObserverAttached) {
+                window.__kpiResizeObserverAttached = true;
+                const ro = new ResizeObserver(function() {
+                    autoFitAllKpiValues();
+                });
+                if (countContainer) ro.observe(countContainer);
+                if (revContainer) ro.observe(revContainer);
+                window.addEventListener('resize', function() {
+                    autoFitAllKpiValues();
+                });
+            }
 
             const calcActualRev = function(data) {
                 let sum = 0;
