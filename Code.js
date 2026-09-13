@@ -3430,7 +3430,11 @@ const LINE_CHANNEL_ACCESS_TOKENS = [
   "8E1PAerkzxCgbDHB4lEb8sYWQdrmkOBuhEm3ArTjCSXr99hWHobMOuq8R4qdVFQwpxw0ptzG9XvaHz1FYtJijXE3hlBdR2efCAh4zSs/irD6hvIfK6xC8ZK1yEdFKLarNEOK8Z3T7jwXoYMQ9q3zagdB04t89/1O/w1cDnyilFU="
 ];
 const LINE_CHANNEL_ACCESS_TOKEN = LINE_CHANNEL_ACCESS_TOKENS[0];
-const LINE_USER_ID = "Udba02d86c39dfa195baeb0e7a4328d05";
+const LINE_DESTINATION_IDS = [
+  "Udba02d86c39dfa195baeb0e7a4328d05", // บอทหลัก (@963ytjpu)
+  "Ud6defadda15e984a8efeed16f89b4e9c"  // บอทสำรอง 1 (@580islli)
+];
+const LINE_USER_ID = "Ud6defadda15e984a8efeed16f89b4e9c";
 
 function getLineChannelAccessTokens() {
   var list = [];
@@ -3451,11 +3455,21 @@ function getLineChannelAccessToken() {
   return tokens[0] || LINE_CHANNEL_ACCESS_TOKEN;
 }
 
-function getLineDestinationId() {
+function getLineDestinationId(tokenIndex) {
   try {
-    var id = PropertiesService.getScriptProperties().getProperty('LINE_USER_ID');
-    if (id && id.trim() !== '') return id.trim();
+    var customIds = PropertiesService.getScriptProperties().getProperty('LINE_DESTINATION_IDS');
+    if (customIds) {
+      var list = customIds.split(',').map(function(id) { return id.trim(); }).filter(Boolean);
+      if (typeof tokenIndex === 'number' && list[tokenIndex]) return list[tokenIndex];
+      if (list.length > 0) return list[0];
+    }
+    var singleId = PropertiesService.getScriptProperties().getProperty('LINE_USER_ID');
+    if (singleId && singleId.trim() !== '') return singleId.trim();
   } catch (e) {}
+
+  if (typeof tokenIndex === 'number' && LINE_DESTINATION_IDS[tokenIndex]) {
+    return LINE_DESTINATION_IDS[tokenIndex];
+  }
   return LINE_USER_ID;
 }
 
@@ -3472,13 +3486,20 @@ function sendLinePushWithFailover(payload) {
 
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i];
+    var currentPayload = JSON.parse(JSON.stringify(payload));
+
+    // สลับ Destination ID ให้ตรงกับ Provider ของ Bot แต่ละตัวอัตโนมัติ (หากไม่ใช่ Group ID)
+    if (LINE_DESTINATION_IDS[i] && (!currentPayload.to || !currentPayload.to.startsWith('C'))) {
+      currentPayload.to = LINE_DESTINATION_IDS[i];
+    }
+
     var options = {
       method: 'post',
       headers: {
         'Authorization': 'Bearer ' + token,
         'Content-Type': 'application/json'
       },
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify(currentPayload),
       muteHttpExceptions: true
     };
 
