@@ -6327,7 +6327,12 @@
                     html: `<div class="text-left bg-green-50 p-4 rounded-lg border border-green-200"><p class="font-bold text-green-800 mb-2">อัปโหลดสำเร็จ ปี ${selectedYear} (รวม ${files.length} ไฟล์)</p><ul class="list-disc list-inside text-sm text-gray-700 mb-3"><li>ตรวจสอบรวม: <b>${grandTotalRows.toLocaleString()}</b> บรรทัด</li><li>เพิ่มใหม่รวม: <b>${grandTotalAdded.toLocaleString()}</b> รายการ</li><li>อัปเดต: <b>${grandTotalUpdated.toLocaleString()}</b> รายการ</li>${unmatchedHtml}</ul><div class="bg-white p-2 rounded border border-green-100 flex items-center gap-2 text-xs text-green-700 font-bold"><i class="fas fa-stopwatch text-green-600 text-base"></i> ใช้เวลาทั้งหมด: ${timeString}</div></div>`,
                     icon: 'success'
                 });
+                let fileNamesList = Array.from(files).map(f => f.name);
+                let fileNamesText = fileNamesList.length === 1 
+                    ? `ชื่อไฟล์: ${fileNamesList[0]}\n` 
+                    : `ชื่อไฟล์:\n• ${fileNamesList.join('\n• ')}\n`;
                 let successMessage = `ไฟล์: ข้อมูลรายได้ปี ${selectedYear} (รวม ${files.length} ไฟล์)\n` +
+                                     fileNamesText +
                                      `ตรวจสอบรวม: ${grandTotalRows.toLocaleString()} บรรทัด\n` +
                                      `เพิ่มใหม่รวม: ${grandTotalAdded.toLocaleString()} รายการ\n` +
                                      `อัปเดต: ${grandTotalUpdated.toLocaleString()} รายการ\n` +
@@ -6608,6 +6613,7 @@
                     icon: 'success'
                 });
                 let successMessage = `ไฟล์: ข้อมูลโลจิสติกส์ปี ${selectedYear}\n` +
+                                     `ชื่อไฟล์: ${file.name}\n` +
                                      `ตรวจสอบ: ${totalRows.toLocaleString()} บรรทัด\n` +
                                      `เพิ่มใหม่: ${totalAdded.toLocaleString()} รายการ\n` +
                                      `อัปเดต: ${totalUpdated.toLocaleString()} รายการ\n` +
@@ -6832,6 +6838,7 @@
                     icon: 'success'
                 });
                 let successMessage = `ไฟล์: ข้อมูลโลจิสติกส์ (เพิ่มเติม)\n` +
+                                     `ชื่อไฟล์: ${file.name}\n` +
                                      `ประมวลผลไฟล์จาก: ${(allLines.length - 1).toLocaleString()} บรรทัด\n` +
                                      `บีบอัดรวมยอดได้: ${totalRows.toLocaleString()} กลุ่มข้อมูล\n` +
                                      `บันทึกแถวใหม่สำเร็จ: ${totalAdded.toLocaleString()} รายการ\n` +
@@ -7166,7 +7173,17 @@
                             window.resetTiktokUI();
                         }
                     });
-                    let successMessage = `ไฟล์: E-PARCEL (Tiktok)\nพบลูกค้ารวม: ${finalGroups.toLocaleString()} ราย\nจำนวน Barcode ไม่ซ้ำรวม: ${finalUniqueBarcodes.toLocaleString()} ชิ้น\nเพิ่มข้อมูลใหม่: ${finalNewRowsAdded.toLocaleString()} แถว\nอัปเดตข้อมูลเดิม: ${finalRowsUpdated.toLocaleString()} แถว\nใช้เวลา: ${timeString}`;
+                    let fileNamesList = Array.from(files).map(f => f.name);
+                    let fileNamesText = fileNamesList.length === 1 
+                        ? `ชื่อไฟล์: ${fileNamesList[0]}\n` 
+                        : `ชื่อไฟล์:\n• ${fileNamesList.join('\n• ')}\n`;
+                    let successMessage = `ไฟล์: E-PARCEL (Tiktok)\n` +
+                                         fileNamesText +
+                                         `พบลูกค้ารวม: ${finalGroups.toLocaleString()} ราย\n` +
+                                         `จำนวน Barcode ไม่ซ้ำรวม: ${finalUniqueBarcodes.toLocaleString()} ชิ้น\n` +
+                                         `เพิ่มข้อมูลใหม่: ${finalNewRowsAdded.toLocaleString()} แถว\n` +
+                                         `อัปเดตข้อมูลเดิม: ${finalRowsUpdated.toLocaleString()} แถว\n` +
+                                         `ใช้เวลา: ${timeString}`;
                     google.script.run.withFailureHandler(console.error).sendSuccessToLine(successMessage);
 
                 } catch (error) {

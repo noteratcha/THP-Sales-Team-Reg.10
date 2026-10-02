@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "THP Sales Team Reg.10 Web App",
   "scripts": {
-    "build": "node build-web.js",
+    "build": "node update-version.js && node build-web.js",
     "push": "node update-version.js && npx clasp push -f && npx clasp version \"Auto-pushed from local IDE\""
   },
   "dependencies": {
