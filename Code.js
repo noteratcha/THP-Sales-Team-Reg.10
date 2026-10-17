@@ -945,7 +945,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v18_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v20_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1145,7 +1145,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
-  var teamStats = {};
+  var teamStats = {}, teamSrv = {}, teamCust = {};
   rows.forEach(function(r) {
     var z = zipOf(r);
     var tm = zipTeam[z];
@@ -1153,8 +1153,21 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
     if (!cur && !ly) return;
     if (!teamStats[tm]) teamStats[tm] = { cur: 0, ly: 0 };
-    if (cur) teamStats[tm].cur += num(r[8]);
-    if (ly) teamStats[tm].ly += num(r[8]);
+    if (!teamSrv[tm]) teamSrv[tm] = {};
+    if (!teamCust[tm]) teamCust[tm] = {};
+
+    var val = num(r[8]);
+    if (cur) teamStats[tm].cur += val; else teamStats[tm].ly += val;
+
+    var srv = String(r[4] || '').trim() || 'อื่นๆ';
+    if (!teamSrv[tm][srv]) teamSrv[tm][srv] = { cur: 0, ly: 0 };
+    if (cur) teamSrv[tm][srv].cur += val; else teamSrv[tm][srv].ly += val;
+
+    var c = customerKey(r);
+    if (c) {
+      if (!teamCust[tm][c]) teamCust[tm][c] = { cur: 0, ly: 0 };
+      if (cur) teamCust[tm][c].cur += val; else teamCust[tm][c].ly += val;
+    }
   });
 
   var targetTeams = Object.keys(teamTarget);
@@ -1170,6 +1183,17 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     var stat = teamStats[tm] || { cur: 0, ly: 0 };
     var t = teamTarget[tm] || 0;
     var cur = stat.cur, ly = stat.ly;
+
+    var srvList = Object.keys(teamSrv[tm] || {}).map(function(s) {
+      var o = teamSrv[tm][s];
+      return { service: s, cur: round(o.cur), ly: round(o.ly), diff: round(o.cur - o.ly), growthPct: pct(o.cur, o.ly) };
+    }).filter(function(s) { return s.diff < 0; }).sort(function(a, b) { return a.diff - b.diff; }).slice(0, 3);
+
+    var custList = Object.keys(teamCust[tm] || {}).map(function(c) {
+      var o = teamCust[tm][c];
+      return { customer: c, cur: round(o.cur), ly: round(o.ly), diff: round(o.cur - o.ly) };
+    }).filter(function(c) { return c.diff < 0; }).sort(function(a, b) { return a.diff - b.diff; }).slice(0, 3);
+
     return {
       name: tm,
       ytd: round(cur),
@@ -1177,7 +1201,9 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
       growthPct: pct(cur, ly),
       diff: round(cur - ly),
       target: round(t),
-      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null
+      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null,
+      decliningServices: srvList,
+      decliningCustomers: custList
     };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
@@ -1204,29 +1230,47 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   var customers = agg(customerKey);
 
   // ที่ทำการของลูกค้า: ใช้ที่ทำการที่มีรายได้มากที่สุด ถ้าใช้หลายแห่ง (เช่น ตำรวจ) บอกจำนวนแห่งด้วย
-  // บริการของลูกค้า: เรียงตามรายได้ แสดงบริการหลักและจำนวนบริการอื่น
-  var custOfficeRev = {}, custServiceRev = {};
+  // บริการของลูกค้า: เรียงตามรายได้สูงก่อน แสดงไม่เกิน 2 รายการต่อลูกค้า
+  var custOfficeRev = {}, custServiceRevCur = {}, custServiceRevLy = {};
   rows.forEach(function(r) {
     var k = customerKey(r); if (!k) return;
     var z = zipOf(r);
     var off = (z && zipTeam[z]) ? pickPrimaryOfficeName(z) : String(r[0]).trim();
-    if (off) {
+    var val = num(r[8]);
+    var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
+    if (off && (cur || ly)) {
       if (!custOfficeRev[k]) custOfficeRev[k] = {};
-      custOfficeRev[k][off] = (custOfficeRev[k][off] || 0) + num(r[8]);
+      custOfficeRev[k][off] = (custOfficeRev[k][off] || 0) + val;
     }
-    var sv = String(r[4]).trim();
-    if (sv) {
-      if (!custServiceRev[k]) custServiceRev[k] = {};
-      custServiceRev[k][sv] = (custServiceRev[k][sv] || 0) + num(r[8]);
+    var sv = String(r[4] || '').trim();
+    if (sv && (cur || ly)) {
+      if (cur) {
+        if (!custServiceRevCur[k]) custServiceRevCur[k] = {};
+        custServiceRevCur[k][sv] = (custServiceRevCur[k][sv] || 0) + val;
+      } else {
+        if (!custServiceRevLy[k]) custServiceRevLy[k] = {};
+        custServiceRevLy[k][sv] = (custServiceRevLy[k][sv] || 0) + val;
+      }
     }
   });
   customers.forEach(function(cu) {
     var offs = custOfficeRev[cu.name] || {};
     var names = Object.keys(offs).sort(function(a, b) { return offs[b] - offs[a]; });
     cu.office = names.length === 0 ? '-' : (names.length === 1 ? names[0] : names[0] + ' และอีก ' + (names.length - 1) + ' แห่ง');
-    var svs = custServiceRev[cu.name] || {};
-    var svNames = Object.keys(svs).sort(function(a, b) { return svs[b] - svs[a]; });
-    cu.services = svNames.length === 0 ? '-' : svNames.slice(0, 2).join(', ') + (svNames.length > 2 ? ' และอีก ' + (svNames.length - 2) + ' บริการ' : '');
+
+    // บริการที่ใช้: เอาบริการที่รายได้สูงก่อน แสดงไม่เกิน 2 รายการต่อลูกค้า
+    var curSvs = custServiceRevCur[cu.name] || {};
+    var lySvs = custServiceRevLy[cu.name] || {};
+    var allKeys = {};
+    Object.keys(curSvs).forEach(function(s) { allKeys[s] = true; });
+    Object.keys(lySvs).forEach(function(s) { allKeys[s] = true; });
+    var svNames = Object.keys(allKeys).sort(function(a, b) {
+      var maxA = Math.max(curSvs[a] || 0, lySvs[a] || 0);
+      var maxB = Math.max(curSvs[b] || 0, lySvs[b] || 0);
+      if (maxB !== maxA) return maxB - maxA;
+      return (curSvs[b] || 0) - (curSvs[a] || 0);
+    });
+    cu.services = svNames.length === 0 ? '-' : svNames.slice(0, 2).join(', ');
   });
 
   var totalCur = monthCur.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
@@ -1276,7 +1320,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     if (lu) {
       if (lm === undefined) c.lastActiveMonth = 'ไม่ใช้บริการปีนี้ (ล่าสุด ' + MONTHS[lu.sk % 100] + ' ' + (Math.floor(lu.sk / 100) + 543) + ')';
       c.lastOffice = topKeys(lu.offices, 1, 'แห่ง');
-      c.lastServices = topKeys(lu.services, 2, 'บริการ');
+      c.lastServices = Object.keys(lu.services).sort(function(a, b) { return lu.services[b] - lu.services[a]; }).slice(0, 2).join(', ') || '-';
     }
     return c;
   });
@@ -1331,6 +1375,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
+    '- ในส่วน teamPerformance: ให้วิเคราะห์ผลงานรายทีม 3-5 ข้อ โดย"ต้อง"มีข้อที่วิเคราะห์เจาะลึกทีมที่ทำผลงานต่ำกว่าเป้าหมายมากที่สุด 2-3 อันดับล่าง ว่าไม่เข้าเป้าเพราะเหตุใด รายได้จากกลุ่มบริการใดลดลงมากที่สุด (ดูจากฟิลด์ decliningServices ของทีมนั้น เช่น EMS ในฯ Package ต่างๆ, e-Parcel, EMS VRich ฯลฯ พร้อมระบุจำนวนเงินที่ลดลง) และเกิดจากลูกค้ารายใดที่มียอดลดลงหรือหยุดส่ง (ดูจากฟิลด์ decliningCustomers) เพื่อให้ผู้บริหารทราบสาเหตุที่แท้จริง',
     '- ' + describeAnalysisPeriod_(stats.period) + ' (ข้อมูล monthly เป็นแนวโน้มทั้งปีไว้ประกอบเท่านั้น)',
     stats.period.selectedMonthIncomplete ? '- ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขต่ำกว่าความจริง ให้เตือนในหมายเหตุและอย่าสรุปว่ารายได้ลดลงจริง' : '',
     (stats.period.mode === 'ytd' && stats.period.incompleteMonth) ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
