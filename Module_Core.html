@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1659';
+    var APP_VERSION = 'Ver. 2026.1017.1711';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3153,7 +3153,10 @@
             selectedLabel: `สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})`,
             activeTab: 'overview',
             quarterYear: ceYear,
-            monthYear: ceYear
+            monthYear: ceYear,
+            rangeYear: ceYear,
+            rangeStart: 0,
+            rangeEnd: curMonth
         };
 
         return new Promise(function(resolve) {
@@ -3179,6 +3182,7 @@
                 if (qContainer) renderQuarterGrid(qContainer, state.quarterYear, popup);
                 const mContainer = popup.querySelector('#aiMonthGrid');
                 if (mContainer) renderMonthGrid(mContainer, state.monthYear, popup);
+                renderRangeView(popup);
             }
 
             function renderQuarterGrid(container, selectedYear, popup) {
@@ -3253,6 +3257,94 @@
                 });
             }
 
+            function renderRangeView(popup) {
+                const startSel = popup.querySelector('#aiRangeStartSelect');
+                const endSel = popup.querySelector('#aiRangeEndSelect');
+                const timelineEl = popup.querySelector('#aiRangeTimeline');
+                const spanTextEl = popup.querySelector('#aiRangeSpanText');
+                if (!startSel || !endSel) return;
+
+                const isCurYear = state.rangeYear === ceYear;
+                const be = state.rangeYear + 543;
+
+                // Render Start Month options
+                let startHtml = '';
+                for (let m = 0; m < 12; m++) {
+                    const isFuture = isCurYear && m > curMonth;
+                    startHtml += '<option value="' + m + '" ' + (m === state.rangeStart ? 'selected' : '') + '>' + MONTHS_TH[m] + ' (' + SHORT_MONTHS_TH[m] + ')' + (isFuture ? ' ⚠️' : '') + '</option>';
+                }
+                startSel.innerHTML = startHtml;
+
+                // Render End Month options
+                let endHtml = '';
+                for (let m = 0; m < 12; m++) {
+                    const isFuture = isCurYear && m > curMonth;
+                    endHtml += '<option value="' + m + '" ' + (m === state.rangeEnd ? 'selected' : '') + '>' + MONTHS_TH[m] + ' (' + SHORT_MONTHS_TH[m] + ')' + (isFuture ? ' ⚠️' : '') + '</option>';
+                }
+                endSel.innerHTML = endHtml;
+
+                // Render Timeline
+                if (timelineEl) {
+                    let tlHtml = '';
+                    for (let m = 0; m < 12; m++) {
+                        const inRange = m >= state.rangeStart && m <= state.rangeEnd;
+                        const isStart = m === state.rangeStart;
+                        const isEnd = m === state.rangeEnd;
+                        const isFuture = isCurYear && m > curMonth;
+
+                        let bgClass = 'bg-white border border-gray-200 text-gray-600 hover:border-orange-300 hover:text-orange-600';
+                        if (inRange) {
+                            bgClass = (isStart || isEnd)
+                                ? 'bg-orange-500 text-white font-black shadow-xs ring-2 ring-orange-300 border-orange-500'
+                                : 'bg-orange-100 text-orange-800 font-bold border-orange-200';
+                        }
+
+                        tlHtml += '<button type="button" class="ai-tl-btn py-1.5 px-0.5 rounded-lg text-[10px] text-center transition-all flex flex-col items-center justify-center ' + bgClass + ' ' + (isFuture && !inRange ? 'opacity-40' : '') + '" data-month="' + m + '">' +
+                            '<span>' + SHORT_MONTHS_TH[m] + '</span>' +
+                        '</button>';
+                    }
+                    timelineEl.innerHTML = tlHtml;
+
+                    timelineEl.querySelectorAll('.ai-tl-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            const m = parseInt(btn.dataset.month, 10);
+                            if (m < state.rangeStart) {
+                                state.rangeStart = m;
+                            } else if (m > state.rangeEnd) {
+                                state.rangeEnd = m;
+                            } else if (m === state.rangeStart && state.rangeStart < state.rangeEnd) {
+                                state.rangeStart = m + 1;
+                            } else {
+                                state.rangeEnd = m;
+                            }
+                            syncRangeSelection(popup);
+                        };
+                    });
+                }
+
+                // Update span text
+                const monthsCount = state.rangeEnd - state.rangeStart + 1;
+                if (spanTextEl) {
+                    spanTextEl.textContent = 'รวม ' + monthsCount + ' เดือน (' + SHORT_MONTHS_TH[state.rangeStart] + ' – ' + SHORT_MONTHS_TH[state.rangeEnd] + ' ' + be + ')';
+                }
+            }
+
+            function syncRangeSelection(popup) {
+                if (state.rangeStart > state.rangeEnd) {
+                    const tmp = state.rangeStart;
+                    state.rangeStart = state.rangeEnd;
+                    state.rangeEnd = tmp;
+                }
+                const be = state.rangeYear + 543;
+                const monthsCount = state.rangeEnd - state.rangeStart + 1;
+                state.selectedPeriod = 'r:' + state.rangeYear + ':' + state.rangeStart + ':' + state.rangeEnd;
+                state.selectedLabel = 'ช่วง ' + SHORT_MONTHS_TH[state.rangeStart] + ' – ' + SHORT_MONTHS_TH[state.rangeEnd] + ' ' + be + ' (' + monthsCount + ' เดือน)';
+                
+                renderRangeView(popup);
+                const labelEl = popup.querySelector('#aiSelectedLabel');
+                if (labelEl) labelEl.textContent = state.selectedLabel;
+            }
+
             Swal.fire({
                 width: '620px',
                 padding: '0',
@@ -3278,16 +3370,19 @@
                             </div>
                         </div>
 
-                        <!-- Segmented Tab Navigation -->
-                        <div class="grid grid-cols-3 p-1 bg-gray-100/90 rounded-2xl my-4 text-xs font-bold text-gray-600">
-                            <button type="button" id="aiTabBtn-overview" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-orange-600 shadow-sm" data-tab="overview">
-                                <i class="fas fa-chart-pie"></i> ภาพรวม
+                        <!-- Segmented Tab Navigation (4 Tabs) -->
+                        <div class="grid grid-cols-4 p-1 bg-gray-100/90 rounded-2xl my-4 text-xs font-bold text-gray-600 gap-1">
+                            <button type="button" id="aiTabBtn-overview" class="ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 bg-white text-orange-600 shadow-sm" data-tab="overview">
+                                <i class="fas fa-chart-pie"></i> <span class="hidden sm:inline">ภาพรวม</span><span class="sm:hidden">สรุป</span>
                             </button>
-                            <button type="button" id="aiTabBtn-quarter" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900" data-tab="quarter">
-                                <i class="fas fa-th-large"></i> รายไตรมาส
+                            <button type="button" id="aiTabBtn-quarter" class="ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 text-gray-600 hover:text-gray-900" data-tab="quarter">
+                                <i class="fas fa-th-large"></i> ไตรมาส
                             </button>
-                            <button type="button" id="aiTabBtn-month" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900" data-tab="month">
+                            <button type="button" id="aiTabBtn-month" class="ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 text-gray-600 hover:text-gray-900" data-tab="month">
                                 <i class="fas fa-calendar-alt"></i> รายเดือน
+                            </button>
+                            <button type="button" id="aiTabBtn-range" class="ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 text-gray-600 hover:text-gray-900" data-tab="range">
+                                <i class="fas fa-calendar-week"></i> ช่วงเดือน
                             </button>
                         </div>
 
@@ -3349,6 +3444,56 @@
                             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="aiMonthGrid"></div>
                         </div>
 
+                        <!-- TAB 4: กำหนดช่วงเดือนเอง -->
+                        <div id="aiTabPane-range" class="hidden space-y-3.5">
+                            <div class="flex items-center justify-between px-1">
+                                <span class="text-xs font-bold text-gray-500">เลือกปีปฏิทิน:</span>
+                                <div class="inline-flex p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
+                                    <button type="button" class="ai-r-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm" data-year="${ceYear}">ปี ${beYear}</button>
+                                    <button type="button" class="ai-r-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800" data-year="${ceYear - 1}">ปี ${beYear - 1}</button>
+                                </div>
+                            </div>
+
+                            <!-- Start Month & End Month Pickers -->
+                            <div class="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] items-center gap-2.5 p-3.5 bg-gray-50/80 rounded-2xl border border-gray-200/70">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">
+                                        <i class="fas fa-play-circle text-orange-500 mr-1"></i> เริ่มต้น (ตั้งแต่เดือน)
+                                    </label>
+                                    <select id="aiRangeStartSelect" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-2xs transition"></select>
+                                </div>
+                                <div class="hidden sm:flex w-8 h-8 rounded-full bg-orange-100 text-orange-600 items-center justify-center text-xs mt-4">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-600 mb-1">
+                                        <i class="fas fa-flag-checkered text-orange-500 mr-1"></i> สิ้นสุด (ถึงเดือน)
+                                    </label>
+                                    <select id="aiRangeEndSelect" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 shadow-2xs transition"></select>
+                                </div>
+                            </div>
+
+                            <!-- Quick Presets -->
+                            <div class="space-y-1.5 px-0.5">
+                                <div class="text-[11px] font-bold text-gray-400">ตัวเลือกลัด (คลิกเลือกทันที):</div>
+                                <div class="flex flex-wrap gap-1.5" id="aiRangePresets">
+                                    <button type="button" class="ai-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold border border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600 transition" data-start="0" data-end="${curMonth}">ม.ค. – ล่าสุด (${SHORT_MONTHS_TH[curMonth]})</button>
+                                    <button type="button" class="ai-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold border border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600 transition" data-start="0" data-end="5">ครึ่งปีแรก (ม.ค. – มิ.ย.)</button>
+                                    <button type="button" class="ai-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold border border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600 transition" data-start="6" data-end="11">ครึ่งปีหลัง (ก.ค. – ธ.ค.)</button>
+                                    <button type="button" class="ai-preset-btn px-2.5 py-1 rounded-lg text-[11px] font-bold border border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600 transition" data-start="${Math.max(0, curMonth - 2)}" data-end="${curMonth}">3 เดือนล่าสุด</button>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Visual Month Timeline -->
+                            <div class="space-y-1.5 px-0.5">
+                                <div class="flex items-center justify-between text-[11px] font-bold text-gray-500">
+                                    <span>ผังช่วงเดือนที่เลือก (คลิกปรับช่วงได้):</span>
+                                    <span id="aiRangeSpanText" class="text-orange-600 font-black"></span>
+                                </div>
+                                <div class="grid grid-cols-6 sm:grid-cols-12 gap-1 p-1 bg-gray-50 rounded-xl border border-gray-200/60" id="aiRangeTimeline"></div>
+                            </div>
+                        </div>
+
                         <!-- Selected Period Display Banner -->
                         <div class="mt-4 p-3 bg-gradient-to-r from-orange-50/80 to-amber-50/50 rounded-2xl border border-orange-200/70 flex items-center justify-between gap-2 shadow-sm">
                             <div class="flex items-center gap-2.5 min-w-0">
@@ -3379,9 +3524,10 @@
                     const mGrid = popup.querySelector('#aiMonthGrid');
                     renderQuarterGrid(qGrid, state.quarterYear, popup);
                     renderMonthGrid(mGrid, state.monthYear, popup);
+                    renderRangeView(popup);
 
-                    // สลับแท็บ ภาพรวม / ไตรมาส / รายเดือน
-                    const tabs = ['overview', 'quarter', 'month'];
+                    // สลับแท็บ ภาพรวม / ไตรมาส / รายเดือน / ช่วงเดือน
+                    const tabs = ['overview', 'quarter', 'month', 'range'];
                     tabs.forEach(function(tabKey) {
                         const btn = popup.querySelector('#aiTabBtn-' + tabKey);
                         if (btn) {
@@ -3391,13 +3537,18 @@
                                     const b = popup.querySelector('#aiTabBtn-' + k);
                                     const pane = popup.querySelector('#aiTabPane-' + k);
                                     if (k === tabKey) {
-                                        b.className = 'ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-orange-600 shadow-sm';
+                                        b.className = 'ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 bg-white text-orange-600 shadow-sm';
                                         pane.classList.remove('hidden');
                                     } else {
-                                        b.className = 'ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900';
+                                        b.className = 'ai-tab-btn py-2 px-1.5 rounded-xl transition-all flex items-center justify-center gap-1 text-gray-600 hover:text-gray-900';
                                         pane.classList.add('hidden');
                                     }
                                 });
+
+                                // ถ้าเปลี่ยนมาแท็บช่วงเดือน ให้ตั้งค่า period เป็นช่วงเดือนทันที
+                                if (tabKey === 'range' && !state.selectedPeriod.startsWith('r:')) {
+                                    syncRangeSelection(popup);
+                                }
                             };
                         }
                     });
@@ -3438,6 +3589,54 @@
                                 }
                             });
                             renderMonthGrid(mGrid, state.monthYear, popup);
+                        };
+                    });
+
+                    // จัดการแท็บกำหนดช่วงเดือน (Range)
+                    const startSel = popup.querySelector('#aiRangeStartSelect');
+                    const endSel = popup.querySelector('#aiRangeEndSelect');
+                    if (startSel) {
+                        startSel.onchange = function() {
+                            const sVal = parseInt(startSel.value, 10);
+                            state.rangeStart = sVal;
+                            if (sVal > state.rangeEnd) {
+                                state.rangeEnd = sVal;
+                            }
+                            syncRangeSelection(popup);
+                        };
+                    }
+                    if (endSel) {
+                        endSel.onchange = function() {
+                            const eVal = parseInt(endSel.value, 10);
+                            state.rangeEnd = eVal;
+                            if (eVal < state.rangeStart) {
+                                state.rangeStart = eVal;
+                            }
+                            syncRangeSelection(popup);
+                        };
+                    }
+
+                    // ปุ่มตัวเลือกลัดในแท็บช่วงเดือน
+                    popup.querySelectorAll('.ai-preset-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            state.rangeStart = parseInt(btn.dataset.start, 10);
+                            state.rangeEnd = parseInt(btn.dataset.end, 10);
+                            syncRangeSelection(popup);
+                        };
+                    });
+
+                    // ปุ่มเปลี่ยนปีในแท็บช่วงเดือน
+                    popup.querySelectorAll('.ai-r-year-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            state.rangeYear = parseInt(btn.dataset.year, 10);
+                            popup.querySelectorAll('.ai-r-year-btn').forEach(function(b) {
+                                if (b === btn) {
+                                    b.className = 'ai-r-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm';
+                                } else {
+                                    b.className = 'ai-r-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800';
+                                }
+                            });
+                            syncRangeSelection(popup);
                         };
                     });
 
@@ -3529,10 +3728,12 @@
         const be = s.period.year + 543, cbe = s.period.compareYear + 543;
         const titleSuffix = mode === 'month' ? ` ประจำเดือน${esc(s.period.fromMonth)} ${be}`
             : mode === 'quarter' ? ` ไตรมาส ${s.period.quarter}/${be}`
-            : mode === 'year' ? ` ประจำปี ${be}` : '';
+            : mode === 'year' ? ` ประจำปี ${be}`
+            : mode === 'range' ? ` ช่วงเดือน ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${be}` : '';
         const periodLabel = mode === 'month' ? `ประจำเดือน${esc(s.period.fromMonth)} ${be} เทียบเดือนเดียวกันปี ${cbe}`
             : mode === 'quarter' ? `ไตรมาส ${s.period.quarter} (${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)}) ${be} เทียบไตรมาสเดียวกันปี ${cbe}`
             : mode === 'year' ? `ทั้งปี ${be} (มกราคม – ธันวาคม) เทียบทั้งปี ${cbe}`
+            : mode === 'range' ? `ช่วงเดือน ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${be} เทียบช่วงเดียวกันปี ${cbe}`
             : `สะสม ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${be} เทียบช่วงเดียวกันปี ${cbe}`;
 
         const SHORT_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];

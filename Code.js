@@ -944,7 +944,8 @@ function getRevenueAnalysisReport(requestingUser, options) {
     if (!scope) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ของผู้ใช้' };
 
     var sel = parseAnalysisPeriod_(options);
-    var cacheKey = 'ai_rev_v15_' + getHomeRevCacheVersion_() + '_' + scope + '_' + sel.kind + '_' + sel.year + '_' + sel.index;
+    var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
+    var cacheKey = 'ai_rev_v16_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -976,18 +977,27 @@ function getRevenueAnalysisReport(requestingUser, options) {
   }
 }
 
-// ช่วงวิเคราะห์จากหน้าเว็บ: options.period = 'ytd' | 'm:<ปี ค.ศ.>:<0-11>' | 'q:<ปี>:<1-4>' | 'y:<ปี>'
+// ช่วงวิเคราะห์จากหน้าเว็บ: options.period = 'ytd' | 'm:<ปี ค.ศ.>:<0-11>' | 'q:<ปี>:<1-4>' | 'y:<ปี>' | 'r:<ปี>:<จาก 0-11>:<ถึง 0-11>'
 // (รองรับ options.month แบบเดิม = เดือนของปีปัจจุบัน)
 function parseAnalysisPeriod_(options) {
   var nowYear = parseInt(Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy"), 10);
-  var sel = { kind: 'ytd', year: nowYear, index: 0 };
+  var sel = { kind: 'ytd', year: nowYear, index: 0, from: 0, to: 0 };
   var p = options && options.period ? String(options.period) : '';
   if (!p && options && options.month !== undefined && options.month !== 'all' && options.month !== '') p = 'm:' + nowYear + ':' + options.month;
   var parts = p.split(':');
   var y = parseInt(parts[1], 10), n = parseInt(parts[2], 10);
-  if (parts[0] === 'm' && y && n >= 0 && n <= 11) sel = { kind: 'month', year: y, index: n };
-  else if (parts[0] === 'q' && y && n >= 1 && n <= 4) sel = { kind: 'quarter', year: y, index: n };
-  else if (parts[0] === 'y' && y) sel = { kind: y === nowYear ? 'ytd' : 'year', year: y, index: 0 };
+  if (parts[0] === 'm' && y && n >= 0 && n <= 11) sel = { kind: 'month', year: y, index: n, from: n, to: n };
+  else if (parts[0] === 'q' && y && n >= 1 && n <= 4) sel = { kind: 'quarter', year: y, index: n, from: (n - 1) * 3, to: (n - 1) * 3 + 2 };
+  else if (parts[0] === 'y' && y) sel = { kind: y === nowYear ? 'ytd' : 'year', year: y, index: 0, from: 0, to: 11 };
+  else if (parts[0] === 'r' && y) {
+    var f = parseInt(parts[2], 10), t = parseInt(parts[3], 10);
+    if (isNaN(f) || f < 0) f = 0;
+    if (isNaN(t) || t > 11) t = 11;
+    if (f > t) { var tmp = f; f = t; t = tmp; }
+    f = Math.max(0, Math.min(11, f));
+    t = Math.max(0, Math.min(11, t));
+    sel = { kind: 'range', year: y, from: f, to: t, index: f };
+  }
   return sel;
 }
 
@@ -1027,6 +1037,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   if (sel.kind === 'month') { fromIdx = toIdx = sel.index; }
   else if (sel.kind === 'quarter') { fromIdx = (sel.index - 1) * 3; toIdx = fromIdx + 2; }
   else if (sel.kind === 'year') { fromIdx = 0; toIdx = 11; }
+  else if (sel.kind === 'range') { fromIdx = sel.from; toIdx = sel.to; }
   if (sel.kind !== 'ytd' && curYear === nowYear) {
     var incIdx = incompleteMonth ? MONTHS.indexOf(incompleteMonth) : -1;
     // ช่วงที่เลือกมีเดือนที่ข้อมูลไม่ครบ หรือเดือนที่ยังมาไม่ถึง
@@ -1186,6 +1197,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     period: {
       year: curYear, compareYear: lyYear, mode: sel.kind, quarter: sel.kind === 'quarter' ? sel.index : null,
       fromMonth: MONTHS[fromIdx] || '-', toMonth: MONTHS[toIdx] || '-',
+      fromIdx: fromIdx, toIdx: toIdx,
       incompleteMonth: incompleteMonth, selectedMonthIncomplete: selectedIncomplete
     },
     overall: {
@@ -1212,6 +1224,10 @@ function describeAnalysisPeriod_(pd) {
   if (pd.mode === 'month') return 'วิเคราะห์เฉพาะเดือน' + pd.fromMonth + ' พ.ศ. ' + be + ' เทียบเดือนเดียวกัน พ.ศ. ' + cbe;
   if (pd.mode === 'quarter') return 'วิเคราะห์ไตรมาส ' + pd.quarter + ' (' + pd.fromMonth + '–' + pd.toMonth + ') พ.ศ. ' + be + ' เทียบไตรมาสเดียวกัน พ.ศ. ' + cbe;
   if (pd.mode === 'year') return 'วิเคราะห์ทั้งปี พ.ศ. ' + be + ' (มกราคม–ธันวาคม) เทียบทั้งปี พ.ศ. ' + cbe;
+  if (pd.mode === 'range') {
+    if (pd.fromMonth === pd.toMonth) return 'วิเคราะห์เฉพาะเดือน' + pd.fromMonth + ' พ.ศ. ' + be + ' เทียบเดือนเดียวกัน พ.ศ. ' + cbe;
+    return 'วิเคราะห์ช่วงเดือน' + pd.fromMonth + ' ถึง ' + pd.toMonth + ' พ.ศ. ' + be + ' เทียบช่วงเดียวกัน พ.ศ. ' + cbe;
+  }
   return 'ช่วงเวลาที่เปรียบเทียบ: สะสม ' + pd.fromMonth + '–' + pd.toMonth + ' พ.ศ. ' + be + ' เทียบช่วงเดียวกัน พ.ศ. ' + cbe;
 }
 
