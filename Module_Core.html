@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2109';
+    var APP_VERSION = 'Ver. 2026.1017.2120';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4180,7 +4180,7 @@
       <div style="font-weight:700; color:#0f3d2e; font-size:13px;">📋 ตารางเปรียบเทียบผลงานครบทุกที่ทำการ (${officesByZip.length} แห่ง)</div>
       <button type="button" class="btn-scroll-to-cards" onclick="scrollToOfficeCardsSection()">⬇️ เลื่อนไปดูบทวิเคราะห์การ์ด 4 ด้าน (${officesByZip.length} ที่ทำการ)</button>
     </div>
-    ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', 'บริการเด่น / ฉุด', 'วิเคราะห์'],
+    ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', 'บริการเด่น / ฉุด'],
               officesByZip.map(t => {
                 const topStr = t.strengths && t.strengths.length ? t.strengths[0] : null;
                 const topWk = t.weaknesses && t.weaknesses.length ? t.weaknesses[0] : null;
@@ -4190,8 +4190,8 @@
                 } else if (topStr) {
                   srvHighlight = `<span class="up" title="บริการที่เติบโตสูงสุด">▲ ${esc(topStr.name)}</span>`;
                 }
-                return `<tr class="office-row" onclick="jumpToOfficeCard('${esc(t.zipcode)}')"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td><td style="text-align:center;"><button type="button" class="btn-office-view" onclick="event.stopPropagation();jumpToOfficeCard('${esc(t.zipcode)}')">🔍 วิเคราะห์</button></td></tr>`;
-              }), `เรียงตามรหัสไปรษณีย์ · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · คลิกแถวหรือปุ่มวิเคราะห์เพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน`)}
+                return `<tr class="office-row" onclick="jumpToOfficeCard('${esc(t.zipcode)}')" title="คลิกเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td></tr>`;
+              }), `เรียงตามรหัสไปรษณีย์ · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · คลิกแถวเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน`)}
 
     <div id="officeCardsSequenceSection" style="margin-top: 24px;">
       <div class="office-cards-header-bar">
