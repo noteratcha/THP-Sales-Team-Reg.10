@@ -945,7 +945,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v21_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v22_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1373,10 +1373,12 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท ถ้าเขียนเต็มต้องใส่ , คั่นหลักพันเสมอ เช่น 9,544,513 บาท',
     '- เมื่อกล่าวถึงลูกค้ารายใด ให้ระบุที่ทำการในวงเล็บต่อท้ายชื่อเสมอ จากฟิลด์ office และบอกบริการที่ใช้จากฟิลด์ services เช่น "ธนัญชญา รุ่งสิริฤทธิเวทย์ (34010 - ศป.อุบลราชธานี) ใช้บริการ e-Parcel"',
     '- ข้อมูลรายลูกค้า (topCustomers, growingCustomers, decliningCustomers, inactiveCustomers, customerCount, top1SharePct, top10SharePct) นับเฉพาะลูกค้าสมาชิก THP และสำนักงานตำรวจแห่งชาติ (รวมทุกหน่วยตำรวจเป็นรายเดียว) ให้เรียกว่า "ลูกค้าสมาชิก"',
+    '- ข้อเท็จจริงสำคัญเกี่ยวกับ "สำนักงานตำรวจแห่งชาติ": ยอดรายได้ในระดับพื้นที่ที่ลดลง (เช่น บริการ e-Parcel, ลงทะเบียน PTM) เกิดจากการเปลี่ยนวิธีการชำระค่าบริการ จากเดิมที่ชำระในระดับพื้นที่ทุกที่ทำการ มาเป็นการชำระรวมจากส่วนกลาง (สำนักงานตำรวจแห่งชาติ) ไม่ใช่การหยุดใช้บริการหรือเลิกส่งเอกสารจริง ดังนั้น "ห้าม" เสนอแนะให้ทีมขายหรือที่ทำการระดับพื้นที่ไปติดตามงานกลับมา และให้ชี้แจงสาเหตุเรื่องการเปลี่ยนไปชำระที่ส่วนกลางนี้ในจุดที่ต้องระวัง/หมายเหตุ/ลูกค้าที่ต้องจับตาแทน',
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
     '- ในส่วน teamPerformance: ให้วิเคราะห์ผลงานรายทีม 3-5 ข้อ โดย"ต้อง"มีข้อที่วิเคราะห์เจาะลึกทีมที่ทำผลงานต่ำกว่าเป้าหมายมากที่สุด 2-3 อันดับล่าง ว่าไม่เข้าเป้าเพราะเหตุใด รายได้จากกลุ่มบริการใดลดลงมากที่สุด (ดูจากฟิลด์ decliningServices ของทีมนั้น เช่น EMS ในฯ Package ต่างๆ, e-Parcel, EMS VRich ฯลฯ พร้อมระบุจำนวนเงินที่ลดลง) และเกิดจากลูกค้ารายใดที่มียอดลดลงหรือหยุดส่ง (ดูจากฟิลด์ decliningCustomers) เพื่อให้ผู้บริหารทราบสาเหตุที่แท้จริง',
+    '- ในส่วน recommendations: ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ (เน้นลูกค้ารายอื่นที่มียอดตกจริง เช่น พงศกร กายราช, ลลียา นามวงศ์ และ"ห้าม"เสนอแนะให้ระดับพื้นที่ไปติดตามสำนักงานตำรวจแห่งชาติ)',
     '- ' + describeAnalysisPeriod_(stats.period) + ' (ข้อมูล monthly เป็นแนวโน้มทั้งปีไว้ประกอบเท่านั้น)',
     stats.period.selectedMonthIncomplete ? '- ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขต่ำกว่าความจริง ให้เตือนในหมายเหตุและอย่าสรุปว่ารายได้ลดลงจริง' : '',
     (stats.period.mode === 'ytd' && stats.period.incompleteMonth) ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
@@ -1406,7 +1408,13 @@ function callGeminiForRevenueReport_(stats, apiKey) {
   var body = JSON.parse(res.getContentText());
   var text = body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts
     ? body.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('') : '';
-  return addThousandSeparators_(JSON.parse(text));
+  var report = addThousandSeparators_(JSON.parse(text));
+  if (report && Array.isArray(report.recommendations)) {
+    report.recommendations = report.recommendations.filter(function(r) {
+      return !/ตำรวจ.*(ติดตาม|ประสานงาน|เข้าพบ|กลับมาใช้งาน)/.test(r);
+    });
+  }
+  return report;
 }
 
 // กันกรณี AI ลืมใส่ , : เติมให้ตัวเลขจำนวนเงินที่ตามด้วย "บาท" (ไม่แตะรหัสไปรษณีย์/ปี)
