@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v5_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v6_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1091,7 +1091,12 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
     return o;
   }).filter(function(t) { return t.name !== 'ไม่ระบุทีม'; }).sort(function(a, b) { return b.ytd - a.ytd; });
 
-  var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
+  // "กลุ่มบริการขนส่งและโลจีติกส์ (เพิ่มเติม)" เป็นกลุ่มเดียวกับ e-Parcel → รวมเป็นรายการเดียว
+  var serviceName = function(r) {
+    var n = String(r[4]).trim() || 'อื่นๆ';
+    return /^กลุ่มบริการขนส่งและโล/.test(n) ? 'e-Parcel' : n;
+  };
+  var services = agg(serviceName).sort(function(a, b) { return b.ytd - a.ytd; });
   // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
   var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
   var customers = agg(function(r) { var c = String(r[1]).trim(); return c && c !== '-' && isMember(r) ? c : null; });
