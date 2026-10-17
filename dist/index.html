@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1650';
+    var APP_VERSION = 'Ver. 2026.1017.1657';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -24960,37 +24960,337 @@
     // ==========================================
     // AI REVENUE ANALYSIS REPORT (A4 / PDF)
     // ==========================================
+    // ป๊อปอัปเลือกช่วงเวลาแบบ Interactive Cards & Tabs สวยงามทันสมัย
+    async function promptAiReportPeriod() {
+        const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const SHORT_MONTHS_TH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const ceYear = now.getFullYear();
+        const beYear = ceYear + 543;
+        const curMonth = now.getMonth();
+        const curQ = Math.floor(curMonth / 3) + 1;
+
+        let state = {
+            selectedPeriod: 'ytd',
+            selectedLabel: `สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})`,
+            activeTab: 'overview',
+            quarterYear: ceYear,
+            monthYear: ceYear
+        };
+
+        return new Promise(function(resolve) {
+            function updateSelectionUI(popup) {
+                const labelEl = popup.querySelector('#aiSelectedLabel');
+                if (labelEl) labelEl.textContent = state.selectedLabel;
+
+                // อัปเดตสถานะการ์ดในแท็บภาพรวม
+                popup.querySelectorAll('.ai-period-card').forEach(function(card) {
+                    const isCardSel = card.dataset.period === state.selectedPeriod;
+                    const checkIcon = card.querySelector('.ai-card-indicator');
+                    if (isCardSel) {
+                        card.className = 'ai-period-card p-4 rounded-2xl border-2 border-orange-500 bg-orange-50/70 cursor-pointer transition-all hover:shadow-md flex items-start gap-3.5 relative shadow-sm';
+                        if (checkIcon) checkIcon.className = 'ai-card-indicator w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] shrink-0 mt-1 shadow-xs';
+                    } else {
+                        card.className = 'ai-period-card p-4 rounded-2xl border-2 border-gray-100 bg-white cursor-pointer transition-all hover:border-orange-200 hover:bg-orange-50/20 flex items-start gap-3.5 relative';
+                        if (checkIcon) checkIcon.className = 'ai-card-indicator w-5 h-5 rounded-full border-2 border-gray-200 text-transparent flex items-center justify-center text-[10px] shrink-0 mt-1';
+                    }
+                });
+
+                // อัปเดตตารางไตรมาสและเดือน
+                const qContainer = popup.querySelector('#aiQuarterGrid');
+                if (qContainer) renderQuarterGrid(qContainer, state.quarterYear, popup);
+                const mContainer = popup.querySelector('#aiMonthGrid');
+                if (mContainer) renderMonthGrid(mContainer, state.monthYear, popup);
+            }
+
+            function renderQuarterGrid(container, selectedYear, popup) {
+                const isCurYear = selectedYear === ceYear;
+                const maxQ = isCurYear ? curQ : 4;
+                const be = selectedYear + 543;
+                let html = '';
+                for (let q = 1; q <= 4; q++) {
+                    const periodVal = 'q:' + selectedYear + ':' + q;
+                    const isSelected = state.selectedPeriod === periodVal;
+                    const isFuture = isCurYear && q > maxQ;
+                    const isCurrent = isCurYear && q === curQ;
+                    const startM = SHORT_MONTHS_TH[(q - 1) * 3];
+                    const endM = SHORT_MONTHS_TH[q * 3 - 1];
+                    const label = 'ไตรมาส ' + q + '/' + be + ' (' + startM + '.–' + endM + '.)';
+
+                    html += '<div class="ai-q-card p-3 rounded-2xl border-2 transition-all flex flex-col justify-between text-left ' +
+                        (isFuture ? 'opacity-40 bg-gray-50 border-dashed border-gray-200 cursor-not-allowed' :
+                        isSelected ? 'border-orange-500 bg-orange-50/70 shadow-sm cursor-pointer' :
+                        'border-gray-200/80 bg-white hover:border-orange-200 hover:bg-orange-50/20 cursor-pointer') +
+                        '" data-period="' + periodVal + '" data-label="' + label + '" ' + (isFuture ? 'data-disabled="true"' : '') + '>' +
+                        '<div class="flex items-center justify-between">' +
+                            '<span class="text-xs font-black ' + (isSelected ? 'text-orange-600' : 'text-gray-800') + '">ไตรมาส ' + q + '</span>' +
+                            (isCurrent ? '<span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded-md">รอบปัจจุบัน</span>' : '') +
+                            (isFuture ? '<span class="px-1.5 py-0.5 text-[9px] font-bold bg-gray-100 text-gray-500 rounded-md">ยังไม่ถึง</span>' : '') +
+                            (!isFuture && isSelected ? '<i class="fas fa-check-circle text-orange-500 text-xs"></i>' : '') +
+                        '</div>' +
+                        '<div class="mt-2 text-[11px] text-gray-500 font-medium">' + startM + ' – ' + endM + ' ' + be + '</div>' +
+                    '</div>';
+                }
+                container.innerHTML = html;
+
+                container.querySelectorAll('.ai-q-card:not([data-disabled])').forEach(function(card) {
+                    card.onclick = function() {
+                        state.selectedPeriod = card.dataset.period;
+                        state.selectedLabel = card.dataset.label;
+                        updateSelectionUI(popup);
+                    };
+                });
+            }
+
+            function renderMonthGrid(container, selectedYear, popup) {
+                const isCurYear = selectedYear === ceYear;
+                const be = selectedYear + 543;
+                let html = '';
+                for (let m = 0; m < 12; m++) {
+                    const periodVal = 'm:' + selectedYear + ':' + m;
+                    const isSelected = state.selectedPeriod === periodVal;
+                    const isFuture = isCurYear && m > curMonth;
+                    const isCurrent = isCurYear && m === curMonth;
+                    const label = MONTHS_TH[m] + ' ' + be;
+
+                    html += '<div class="ai-m-card p-2.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ' +
+                        (isFuture ? 'opacity-35 bg-gray-50 border-dashed border-gray-200 cursor-not-allowed' :
+                        isSelected ? 'border-orange-500 bg-orange-500 text-white shadow-sm cursor-pointer' :
+                        'border-gray-100 bg-white hover:border-orange-200 hover:bg-orange-50/30 text-gray-700 cursor-pointer') +
+                        '" data-period="' + periodVal + '" data-label="' + label + '" ' + (isFuture ? 'data-disabled="true"' : '') + '>' +
+                        '<div class="text-xs font-black ' + (isSelected ? 'text-white' : 'text-gray-800') + '">' + SHORT_MONTHS_TH[m] + '</div>' +
+                        '<div class="text-[9px] mt-0.5 ' + (isSelected ? 'text-orange-100' : 'text-gray-400') + '">' +
+                            (isCurrent ? 'ล่าสุด' : (isFuture ? '-' : be)) +
+                        '</div>' +
+                    '</div>';
+                }
+                container.innerHTML = html;
+
+                container.querySelectorAll('.ai-m-card:not([data-disabled])').forEach(function(card) {
+                    card.onclick = function() {
+                        state.selectedPeriod = card.dataset.period;
+                        state.selectedLabel = card.dataset.label;
+                        updateSelectionUI(popup);
+                    };
+                });
+            }
+
+            Swal.fire({
+                width: '620px',
+                padding: '0',
+                showConfirmButton: false,
+                showCloseButton: true,
+                customClass: {
+                    popup: 'rounded-3xl overflow-hidden shadow-2xl border border-gray-100 p-0 max-w-[94vw]',
+                    closeButton: 'focus:outline-none text-gray-400 hover:text-gray-600 top-4 right-4 text-sm'
+                },
+                html: `
+                    <div class="text-left font-sans select-none p-5 sm:p-6 bg-white">
+                        <!-- Header -->
+                        <div class="flex items-center gap-3.5 pb-4 border-b border-gray-100 pr-6">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-orange-500/25 shrink-0">
+                                <i class="fas fa-brain text-xl"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-lg font-black text-gray-800 tracking-tight">วิเคราะห์ข้อมูลรายได้ด้วย AI</h3>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold bg-orange-100 text-orange-600 rounded-full border border-orange-200/60">Gemini</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">เลือกช่วงเวลาที่ต้องการประเมินและเปรียบเทียบสถิติกับปีก่อนหน้า</p>
+                            </div>
+                        </div>
+
+                        <!-- Segmented Tab Navigation -->
+                        <div class="grid grid-cols-3 p-1 bg-gray-100/90 rounded-2xl my-4 text-xs font-bold text-gray-600">
+                            <button type="button" id="aiTabBtn-overview" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-orange-600 shadow-sm" data-tab="overview">
+                                <i class="fas fa-chart-pie"></i> ภาพรวม
+                            </button>
+                            <button type="button" id="aiTabBtn-quarter" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900" data-tab="quarter">
+                                <i class="fas fa-th-large"></i> รายไตรมาส
+                            </button>
+                            <button type="button" id="aiTabBtn-month" class="ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900" data-tab="month">
+                                <i class="fas fa-calendar-alt"></i> รายเดือน
+                            </button>
+                        </div>
+
+                        <!-- TAB 1: ภาพรวม -->
+                        <div id="aiTabPane-overview" class="space-y-2.5">
+                            <!-- Card YTD -->
+                            <div class="ai-period-card p-4 rounded-2xl border-2 border-orange-500 bg-orange-50/70 cursor-pointer transition-all hover:shadow-md flex items-start gap-3.5 relative shadow-sm" data-period="ytd" data-label="สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                    <i class="fas fa-bolt text-base"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <div class="font-bold text-sm text-gray-900">สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})</div>
+                                        <span class="px-2 py-0.5 text-[9px] font-black bg-amber-400/20 text-amber-800 rounded-full border border-amber-300">แนะนำ ✨</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">วิเคราะห์สะสมตั้งแต่ต้นปีจนถึงเดือนล่าสุดของปี ${beYear} เทียบกับช่วงเวลาเดียวกันของปี ${beYear - 1}</p>
+                                </div>
+                                <div class="ai-card-indicator w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] shrink-0 mt-1 shadow-xs">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card Full Previous Year -->
+                            <div class="ai-period-card p-4 rounded-2xl border-2 border-gray-100 bg-white cursor-pointer transition-all hover:border-orange-200 hover:bg-orange-50/20 flex items-start gap-3.5 relative" data-period="y:${ceYear - 1}" data-label="ทั้งปี ${beYear - 1} (เทียบ ${beYear - 2})">
+                                <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                                    <i class="fas fa-calendar-check text-base"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-sm text-gray-900">ทั้งปี ${beYear - 1} (ม.ค. – ธ.ค.)</div>
+                                    <p class="text-xs text-gray-500 mt-1">สรุปผลงานรวมครบทั้ง 12 เดือนของปี ${beYear - 1} เปรียบเทียบกับภาพรวมทั้งปี ${beYear - 2}</p>
+                                </div>
+                                <div class="ai-card-indicator w-5 h-5 rounded-full border-2 border-gray-200 text-transparent flex items-center justify-center text-[10px] shrink-0 mt-1">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: รายไตรมาส -->
+                        <div id="aiTabPane-quarter" class="hidden space-y-3">
+                            <div class="flex items-center justify-between px-1">
+                                <span class="text-xs font-bold text-gray-500">เลือกปีปฏิทิน:</span>
+                                <div class="inline-flex p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
+                                    <button type="button" class="ai-q-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm" data-year="${ceYear}">ปี ${beYear}</button>
+                                    <button type="button" class="ai-q-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800" data-year="${ceYear - 1}">ปี ${beYear - 1}</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2.5" id="aiQuarterGrid"></div>
+                        </div>
+
+                        <!-- TAB 3: รายเดือน -->
+                        <div id="aiTabPane-month" class="hidden space-y-3">
+                            <div class="flex items-center justify-between px-1">
+                                <span class="text-xs font-bold text-gray-500">เลือกปีปฏิทิน:</span>
+                                <div class="inline-flex p-0.5 bg-gray-100 rounded-xl text-xs font-bold">
+                                    <button type="button" class="ai-m-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm" data-year="${ceYear}">ปี ${beYear}</button>
+                                    <button type="button" class="ai-m-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800" data-year="${ceYear - 1}">ปี ${beYear - 1}</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="aiMonthGrid"></div>
+                        </div>
+
+                        <!-- Selected Period Display Banner -->
+                        <div class="mt-4 p-3 bg-gradient-to-r from-orange-50/80 to-amber-50/50 rounded-2xl border border-orange-200/70 flex items-center justify-between gap-2 shadow-sm">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="text-xs truncate">
+                                    <span class="text-gray-500 font-medium">ช่วงที่เลือก:</span>
+                                    <span id="aiSelectedLabel" class="font-black text-gray-900 ml-1">สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})</span>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-orange-700 font-bold bg-white px-2.5 py-1 rounded-full border border-orange-200/80 shrink-0 shadow-2xs">เทียบช่วงเดียวกันปีก่อน</span>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="mt-5 pt-3.5 border-t border-gray-100 flex items-center justify-end gap-2.5">
+                            <button type="button" id="aiModalCancelBtn" class="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition">
+                                ยกเลิก
+                            </button>
+                            <button type="button" id="aiModalConfirmBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600 active:scale-[0.98] transition flex items-center gap-2">
+                                <i class="fas fa-robot"></i> เริ่มวิเคราะห์รายงาน
+                            </button>
+                        </div>
+                    </div>
+                `,
+                didOpen: function(popup) {
+                    const qGrid = popup.querySelector('#aiQuarterGrid');
+                    const mGrid = popup.querySelector('#aiMonthGrid');
+                    renderQuarterGrid(qGrid, state.quarterYear, popup);
+                    renderMonthGrid(mGrid, state.monthYear, popup);
+
+                    // สลับแท็บ ภาพรวม / ไตรมาส / รายเดือน
+                    const tabs = ['overview', 'quarter', 'month'];
+                    tabs.forEach(function(tabKey) {
+                        const btn = popup.querySelector('#aiTabBtn-' + tabKey);
+                        if (btn) {
+                            btn.onclick = function() {
+                                state.activeTab = tabKey;
+                                tabs.forEach(function(k) {
+                                    const b = popup.querySelector('#aiTabBtn-' + k);
+                                    const pane = popup.querySelector('#aiTabPane-' + k);
+                                    if (k === tabKey) {
+                                        b.className = 'ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 bg-white text-orange-600 shadow-sm';
+                                        pane.classList.remove('hidden');
+                                    } else {
+                                        b.className = 'ai-tab-btn py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-900';
+                                        pane.classList.add('hidden');
+                                    }
+                                });
+                            };
+                        }
+                    });
+
+                    // คลิกการ์ดในแท็บภาพรวม
+                    popup.querySelectorAll('.ai-period-card').forEach(function(card) {
+                        card.onclick = function() {
+                            state.selectedPeriod = card.dataset.period;
+                            state.selectedLabel = card.dataset.label;
+                            updateSelectionUI(popup);
+                        };
+                    });
+
+                    // ปุ่มเปลี่ยนปีในแท็บไตรมาส
+                    popup.querySelectorAll('.ai-q-year-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            state.quarterYear = parseInt(btn.dataset.year, 10);
+                            popup.querySelectorAll('.ai-q-year-btn').forEach(function(b) {
+                                if (b === btn) {
+                                    b.className = 'ai-q-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm';
+                                } else {
+                                    b.className = 'ai-q-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800';
+                                }
+                            });
+                            renderQuarterGrid(qGrid, state.quarterYear, popup);
+                        };
+                    });
+
+                    // ปุ่มเปลี่ยนปีในแท็บรายเดือน
+                    popup.querySelectorAll('.ai-m-year-btn').forEach(function(btn) {
+                        btn.onclick = function() {
+                            state.monthYear = parseInt(btn.dataset.year, 10);
+                            popup.querySelectorAll('.ai-m-year-btn').forEach(function(b) {
+                                if (b === btn) {
+                                    b.className = 'ai-m-year-btn px-3 py-1 rounded-lg transition-all active bg-white text-orange-600 shadow-sm';
+                                } else {
+                                    b.className = 'ai-m-year-btn px-3 py-1 rounded-lg transition-all text-gray-500 hover:text-gray-800';
+                                }
+                            });
+                            renderMonthGrid(mGrid, state.monthYear, popup);
+                        };
+                    });
+
+                    // ปุ่มยกเลิก / ยืนยัน
+                    const cancelBtn = popup.querySelector('#aiModalCancelBtn');
+                    if (cancelBtn) {
+                        cancelBtn.onclick = function() {
+                            Swal.close();
+                            resolve(null);
+                        };
+                    }
+                    const confirmBtn = popup.querySelector('#aiModalConfirmBtn');
+                    if (confirmBtn) {
+                        confirmBtn.onclick = function() {
+                            Swal.close();
+                            resolve(state.selectedPeriod);
+                        };
+                    }
+                }
+            }).then(function(res) {
+                if (res.isDismissed) {
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     // เปิดหน้าต่างใหม่ทันทีตอนคลิก (กัน popup ถูกบล็อก) แล้วเติมรายงานเมื่อหลังบ้านวิเคราะห์เสร็จ
     window.openAiRevenueReport = async function () {
-        // เลือกช่วงที่จะวิเคราะห์: สะสมทั้งปี หรือรายเดือน (เดือนของปีปัจจุบันถึงเดือนนี้)
-        const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        const ceYear = now.getFullYear(), beYear = ceYear + 543;
-        const curQ = Math.floor(now.getMonth() / 3) + 1;
-        // ค่า period: ytd | q:<ปี ค.ศ.>:<1-4> | y:<ปี ค.ศ.> | m:<ปี ค.ศ.>:<0-11>
-        const quarters = {};
-        for (let q = curQ; q >= 1; q--) quarters[`q:${ceYear}:${q}`] = `ไตรมาส ${q}/${beYear} (${MONTHS_TH[(q - 1) * 3].substring(0, 3)}.–${MONTHS_TH[q * 3 - 1].substring(0, 3)}.)${q === curQ ? ' — ยังไม่ครบไตรมาส' : ''}`;
-        for (let q = 4; q >= 1; q--) quarters[`q:${ceYear - 1}:${q}`] = `ไตรมาส ${q}/${beYear - 1}`;
-        const months = {};
-        for (let m = now.getMonth(); m >= 0; m--) months[`m:${ceYear}:${m}`] = `${MONTHS_TH[m]} ${beYear}`;
-        const monthOptions = {
-            'ภาพรวม': { ytd: `สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})`, [`y:${ceYear - 1}`]: `ทั้งปี ${beYear - 1} (เทียบ ${beYear - 2})` },
-            'รายไตรมาส': quarters,
-            'รายเดือน': months
-        };
-        const pick = await Swal.fire({
-            title: 'วิเคราะห์ด้วย AI',
-            html: '<p style="font-size:14px;color:#6b7280;margin:0">เลือกช่วงที่ต้องการวิเคราะห์ (เทียบช่วงเดียวกันของปีก่อน)</p>',
-            input: 'select',
-            inputOptions: monthOptions,
-            inputValue: 'ytd',
-            showCancelButton: true,
-            confirmButtonText: '<i class="fas fa-robot"></i> วิเคราะห์',
-            cancelButtonText: 'ยกเลิก',
-            confirmButtonColor: '#ea580c'
-        });
-        if (!pick.isConfirmed) return;
-        const monthSel = pick.value;
+        const monthSel = await promptAiReportPeriod();
+        if (!monthSel) return;
 
         const win = window.open('', '_blank');
         if (!win) {
