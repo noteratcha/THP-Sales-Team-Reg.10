@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1150';
+    var APP_VERSION = 'Ver. 2026.1017.1201';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -600,6 +600,9 @@
                         class="text-[8px] sm:text-[9px] text-gray-400 mt-1 leading-none tracking-wide">อัปเดต: กำลังตรวจสอบ...</span>
                 </div>
 
+                <button type="button" id="headerAiReportBtn" onclick="openAiRevenueReport()" title="วิเคราะห์ข้อมูลรายได้ด้วย AI แล้วสร้างรายงาน A4 (PDF)"
+                    class="hidden text-[10px] sm:text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-semibold transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                        class="fas fa-robot"></i> วิเคราะห์ด้วย AI</button>
                 <button type="button" id="headerRevenueReportBtn" onclick="openRevenueChartModal()"
                     class="hidden text-[10px] sm:text-xs bg-white text-purple-600 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-chart-pie"></i> กราฟสรุปรายได้</button>
@@ -1820,11 +1823,11 @@
                 if (target.action) target.action();
             }
 
-            const headerBtns = ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
+            const headerBtns = ['headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
             headerBtns.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             if (pageId === 'revenue-report') {
-                ['headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+                ['headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
                 if (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.user && String(currentUserInfo.user).trim().toLowerCase() === 'admin') {
                     const el = document.getElementById('headerKhorLorReportBtn'); if (el) el.classList.remove('hidden');
                 }
@@ -3124,6 +3127,146 @@
             console.warn("hydrateDashboardCache warning:", e);
         }
         return hydrated;
+    }
+
+
+    // ==========================================
+    // AI REVENUE ANALYSIS REPORT (A4 / PDF)
+    // ==========================================
+    // เปิดหน้าต่างใหม่ทันทีตอนคลิก (กัน popup ถูกบล็อก) แล้วเติมรายงานเมื่อหลังบ้านวิเคราะห์เสร็จ
+    window.openAiRevenueReport = function () {
+        const win = window.open('', '_blank');
+        if (!win) {
+            Swal.fire({ icon: 'warning', title: 'เปิดหน้าต่างรายงานไม่ได้', text: 'กรุณาอนุญาต Pop-up สำหรับเว็บนี้ แล้วลองใหม่อีกครั้ง' });
+            return;
+        }
+        win.document.write('<html><head><meta charset="utf-8"><title>กำลังวิเคราะห์...</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#334155"><div style="text-align:center"><div style="font-size:42px">🤖</div><h2 style="margin:12px 0 4px">AI กำลังวิเคราะห์ข้อมูลรายได้...</h2><p style="color:#64748b">อาจใช้เวลา 1–2 นาที กรุณาอย่าปิดหน้าต่างนี้</p></div></body></html>');
+        win.document.close();
+
+        const user = (typeof currentUserInfo !== 'undefined') ? currentUserInfo : {};
+        google.script.run.withSuccessHandler(function (res) {
+            if (!res || res.status !== 'success') {
+                win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml((res && res.message) || 'ไม่ทราบสาเหตุ') + '</p></div>';
+                return;
+            }
+            win.document.open();
+            win.document.write(buildAiRevenueReportHtml(res, user));
+            win.document.close();
+        }).withFailureHandler(function (err) {
+            win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml(err && err.message ? err.message : String(err)) + '</p></div>';
+        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' });
+    };
+
+    function buildAiRevenueReportHtml(res, user) {
+        const esc = (v) => window.escapeHtml(v == null ? '' : String(v));
+        const s = res.stats, ai = res.ai || {}, o = s.overall;
+        const money = (v) => {
+            if (v == null) return '-';
+            if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ล.';
+            return Math.round(v).toLocaleString('en-US');
+        };
+        const growth = (g) => g == null ? '<span class="muted">ใหม่</span>' : `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '▲' : '▼'} ${Math.abs(g)}%</span>`;
+        const achv = (a) => a == null ? '-' : `<span class="${a >= 100 ? 'up' : (a >= 80 ? 'warn' : 'down')}">${a}%</span>`;
+        const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<p class="muted">-</p>';
+        const table = (head, rows) => `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+        const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
+        const periodLabel = `${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
+
+        const maxMonth = Math.max(1, ...s.monthly.map(m => Math.max(m.cur, m.lastYear)));
+        const monthBars = s.monthly.map(m => `
+            <div class="mrow"><span class="mlabel">${esc(m.month.substring(0, 3))}</span>
+                <div class="mbars"><div class="bar cur" style="width:${m.cur / maxMonth * 100}%"></div><div class="bar ly" style="width:${m.lastYear / maxMonth * 100}%"></div></div>
+                <span class="mval">${money(m.cur)}</span></div>`).join('');
+
+        const kpi = (label, value, sub) => `<div class="kpi"><div class="kl">${label}</div><div class="kv">${value}</div><div class="ks">${sub || ''}</div></div>`;
+
+        return `<!doctype html><html lang="th"><head><meta charset="utf-8">
+<title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Sarabun', sans-serif; color: #1f2937; margin: 0; background: #e5e7eb; font-size: 12.5px; line-height: 1.55; }
+  .page { width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff; padding: 14mm 12mm; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+  .toolbar { position: sticky; top: 0; background: #0f3d2e; color: #fff; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+  .toolbar button { background: #ea580c; color: #fff; border: 0; padding: 8px 18px; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #ea580c; padding-bottom: 8px; margin-bottom: 12px; }
+  h1 { font-size: 22px; margin: 0; color: #0f3d2e; }
+  h2 { font-size: 15px; margin: 16px 0 6px; color: #0f3d2e; border-left: 4px solid #ea580c; padding-left: 8px; break-after: avoid; }
+  .meta { text-align: right; color: #6b7280; font-size: 11px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+  .kpi { border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; background: #fafafa; }
+  .kl { font-size: 11px; color: #6b7280; } .kv { font-size: 20px; font-weight: 800; color: #0f3d2e; } .ks { font-size: 11px; }
+  .box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 8px 12px; }
+  ul { margin: 4px 0; padding-left: 18px; } li { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 4px 0 6px; break-inside: auto; }
+  th { background: #0f3d2e; color: #fff; text-align: left; padding: 5px 6px; font-weight: 600; }
+  td { border-bottom: 1px solid #eef0f2; padding: 4px 6px; vertical-align: top; } tr { break-inside: avoid; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .up { color: #047857; font-weight: 700; } .down { color: #b91c1c; font-weight: 700; } .warn { color: #b45309; font-weight: 700; } .muted { color: #9ca3af; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mrow { display: flex; align-items: center; gap: 6px; margin: 2px 0; } .mlabel { width: 34px; color: #6b7280; } .mval { width: 60px; text-align: right; font-weight: 600; }
+  .mbars { flex: 1; } .bar { height: 6px; border-radius: 3px; margin: 1px 0; } .bar.cur { background: #ea580c; } .bar.ly { background: #cbd5e1; }
+  .legend span { display: inline-block; width: 10px; height: 6px; border-radius: 3px; margin: 0 4px 0 10px; }
+  footer { margin-top: 14px; color: #9ca3af; font-size: 10px; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+  @media print { body { background: #fff; } .toolbar { display: none; } .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; } }
+</style></head><body>
+<div class="toolbar"><span>รายงานวิเคราะห์รายได้ด้วย AI</span><button onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button></div>
+<div class="page">
+  <header>
+    <div><h1>รายงานวิเคราะห์รายได้ลูกค้า</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
+    <div class="meta">จัดทำ ${esc(res.generatedAt)} น.<br>ผู้จัดทำ: ${esc(user.name || user.user || '-')}</div>
+  </header>
+
+  <div class="kpis">
+    ${kpi('รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
+    ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
+    ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'เป้า ' + money(o.target))}
+    ${kpi('ลูกค้าที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US'), 'Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
+  </div>
+
+  <h2>สรุปสำหรับผู้บริหาร</h2>
+  <div class="box">${list(ai.executiveSummary)}</div>
+  <div class="two">
+    <div><h2>จุดเด่น</h2>${list(ai.highlights)}</div>
+    <div><h2>จุดที่ต้องระวัง</h2>${list(ai.concerns)}</div>
+  </div>
+
+  <h2>แนวโน้มรายได้รายเดือน</h2>
+  <div class="legend muted"><span style="background:#ea580c"></span>ปี ${s.period.year + 543}<span style="background:#cbd5e1"></span>ปี ${s.period.compareYear + 543}</div>
+  ${monthBars}
+
+  <h2>ผลงานรายทีม</h2>
+  ${list(ai.teamPerformance)}
+  ${table(['ทีม', '<span class="n">รายได้สะสม</span>', '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
+            s.teams.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
+
+  <h2>การเติบโตรายที่ทำการ</h2>
+  ${list(ai.officeGrowth)}
+  ${table(['ที่ทำการ', 'ทีม', '<span class="n">รายได้สะสม</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
+            s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
+  ${s.offices.length > 25 ? `<p class="muted">แสดง 25 จาก ${s.offices.length} ที่ทำการ (เรียงตามรายได้)</p>` : ''}
+
+  <h2>สัดส่วนบริการ</h2>
+  ${list(ai.serviceMix)}
+  ${table(['บริการ', '<span class="n">รายได้สะสม</span>', '<span class="n">สัดส่วน</span>', '<span class="n">โต</span>'],
+            s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`))}
+
+  <h2>ลูกค้าที่ต้องจับตา</h2>
+  ${list(ai.customerWatch)}
+  <div class="two">
+    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n up">+${money(c.diff)}</td></tr>`))}</div>
+    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n down">${money(c.diff)}</td></tr>`))}</div>
+  </div>
+  <b>หยุดใช้บริการ 3 เดือนขึ้นไป (เรียงตามรายได้ปีก่อน)</b>
+  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr><td>${esc(c.name)}</td><td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`))}
+
+  <h2>ข้อเสนอแนะ</h2>
+  <div class="box">${list(ai.recommendations)}</div>
+
+  ${(ai.notes && ai.notes.length) ? `<h2>หมายเหตุ</h2>${list(ai.notes)}` : ''}
+  <footer>ตัวเลขทั้งหมดคำนวณจากระบบ THP Sales Team Reg.10 · บทวิเคราะห์เขียนโดย AI (Gemini) จากตัวเลขดังกล่าว ควรตรวจทานก่อนนำเสนอ${s.period.incompleteMonth ? ' · เดือน' + esc(s.period.incompleteMonth) + 'ข้อมูลยังไม่ครบ จึงไม่นำมาคำนวณ' : ''}</footer>
+</div></body></html>`;
     }
 
     function updateHeaderSyncTime() {

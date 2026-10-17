@@ -962,6 +962,212 @@ function getChunkedCache_(key) {
   } catch (e) { return null; }
 }
 
+// ==========================================
+// 📦 SECTION: AI Revenue Analysis (รายงานวิเคราะห์รายได้ด้วย Gemini สำหรับนำเสนอหัวหน้า)
+// ==========================================
+// ระบบคำนวณตัวเลขทั้งหมดเอง แล้วให้ Gemini เขียนบทวิเคราะห์จากตัวเลขเท่านั้น (กัน AI คิดเลขผิด)
+// ต้องตั้ง Script Properties: GEMINI_API_KEY (และ GEMINI_MODEL ถ้าต้องการเปลี่ยนรุ่น)
+var AI_REPORT_CACHE_TTL = 1800; // 30 นาที
+
+function getRevenueAnalysisReport(requestingUser) {
+  try {
+    var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
+    var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
+    if (!scope) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ของผู้ใช้' };
+
+    var cacheKey = 'ai_rev_' + getHomeRevCacheVersion_() + '_' + scope;
+    var cached = getChunkedCache_(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+    if (!apiKey) return { status: 'error', message: 'ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Script Properties' };
+
+    var full = getRevenueReportData(requestingUser);
+    if (!full || full.status !== 'success') return full;
+    var rows = full.data;
+    if (scope !== 'ALL') {
+      rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
+    }
+
+    var stats = buildRevenueAnalysisStats_(rows, scope);
+    var ai = callGeminiForRevenueReport_(stats, apiKey);
+
+    var result = {
+      status: 'success',
+      generatedAt: Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy HH:mm"),
+      scope: scope,
+      stats: stats,
+      ai: ai
+    };
+    putChunkedCache_(cacheKey, JSON.stringify(result), AI_REPORT_CACHE_TTL);
+    return result;
+  } catch (e) {
+    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+function buildRevenueAnalysisStats_(rows, scope) {
+  var MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  var curYear = parseInt(Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy"), 10);
+  var lyYear = curYear - 1;
+  var num = function(v) { return parseFloat(String(v).replace(/,/g, '')) || 0; };
+  var yearOf = function(r) { var y = parseInt(r[6], 10); return y > 2500 ? y - 543 : y; };
+  var round = function(v) { return Math.round(v); };
+  var pct = function(a, b) { return b ? Math.round(((a - b) / b) * 1000) / 10 : null; };
+
+  // 1) รายได้รายเดือน ปีนี้/ปีก่อน
+  var monthCur = [], monthLy = [];
+  for (var m = 0; m < 12; m++) { monthCur.push(0); monthLy.push(0); }
+  rows.forEach(function(r) {
+    var mi = MONTHS.indexOf(String(r[5]).trim()); if (mi === -1) return;
+    var y = yearOf(r);
+    if (y === curYear) monthCur[mi] += num(r[8]);
+    else if (y === lyYear) monthLy[mi] += num(r[8]);
+  });
+
+  // เดือนล่าสุดที่ข้อมูลครบ: ตัดเดือนท้ายที่ยอดต่ำกว่า 20% ของค่าเฉลี่ยเดือนก่อนหน้า (ยังอัปโหลดไม่ครบ)
+  var lastIdx = -1;
+  for (var i = 11; i >= 0; i--) { if (monthCur[i] > 0) { lastIdx = i; break; } }
+  var incompleteMonth = null;
+  if (lastIdx > 0) {
+    var prev = monthCur.slice(0, lastIdx).filter(function(v) { return v > 0; });
+    var avg = prev.reduce(function(a, b) { return a + b; }, 0) / (prev.length || 1);
+    if (monthCur[lastIdx] < avg * 0.2) { incompleteMonth = MONTHS[lastIdx]; lastIdx--; }
+  }
+  var inPeriod = function(r, y) {
+    var mi = MONTHS.indexOf(String(r[5]).trim());
+    return yearOf(r) === y && mi !== -1 && mi <= lastIdx;
+  };
+
+  // 2) เป้าหมายและทีม (จากชีตเป้าหมาย)
+  var tgtRes = getRevenueTargets();
+  var targets = (tgtRes && tgtRes.status === 'success') ? tgtRes.data.slice(1) : [];
+  var zipTeam = {}, zipTarget = {}, teamTarget = {};
+  targets.forEach(function(t) {
+    var ty = parseInt(t[0], 10); if (ty > 2500) ty -= 543;
+    var zip = String(t[2]).trim(); var team = String(t[6]).trim();
+    if (zip && team) zipTeam[zip] = team;
+    var mi = MONTHS.indexOf(String(t[1]).trim());
+    if (ty === curYear && mi !== -1 && mi <= lastIdx && (scope === 'ALL' || zip === scope)) {
+      zipTarget[zip] = (zipTarget[zip] || 0) + num(t[4]);
+      if (team) teamTarget[team] = (teamTarget[team] || 0) + num(t[4]);
+    }
+  });
+
+  // 3) รวมตามมิติต่างๆ (ช่วงเดียวกันของปีนี้เทียบปีก่อน)
+  var agg = function(keyFn) {
+    var map = {};
+    rows.forEach(function(r) {
+      var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
+      if (!cur && !ly) return;
+      var k = keyFn(r); if (!k) return;
+      if (!map[k]) map[k] = { name: k, cur: 0, ly: 0 };
+      if (cur) map[k].cur += num(r[8]); else map[k].ly += num(r[8]);
+    });
+    return Object.keys(map).map(function(k) {
+      var o = map[k];
+      return { name: o.name, ytd: round(o.cur), lastYear: round(o.ly), growthPct: pct(o.cur, o.ly), diff: round(o.cur - o.ly) };
+    });
+  };
+  var zipOf = function(r) { return String(r[0] || '').substring(0, 5); };
+
+  var offices = agg(function(r) { return String(r[0]).trim(); }).map(function(o) {
+    var z = o.name.substring(0, 5); var t = zipTarget[z] || 0;
+    o.team = zipTeam[z] || 'ไม่ระบุทีม'; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
+    return o;
+  }).sort(function(a, b) { return b.ytd - a.ytd; });
+
+  var teams = agg(function(r) { return zipTeam[zipOf(r)] || 'ไม่ระบุทีม'; }).map(function(o) {
+    var t = teamTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
+    return o;
+  }).sort(function(a, b) { return b.ytd - a.ytd; });
+
+  var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
+  var customers = agg(function(r) { var c = String(r[1]).trim(); return c && c !== '-' ? c : null; });
+
+  var totalCur = monthCur.slice(0, lastIdx + 1).reduce(function(a, b) { return a + b; }, 0);
+  var totalLy = monthLy.slice(0, lastIdx + 1).reduce(function(a, b) { return a + b; }, 0);
+  var totalTarget = Object.keys(zipTarget).reduce(function(a, z) { return a + zipTarget[z]; }, 0);
+  services.forEach(function(s) { s.sharePct = totalCur ? Math.round(s.ytd / totalCur * 1000) / 10 : null; });
+
+  // 4) ลูกค้า: อันดับสูงสุด โตมาก ลดมาก และหยุดใช้บริการ
+  var byCur = customers.slice().sort(function(a, b) { return b.ytd - a.ytd; });
+  var top10Sum = byCur.slice(0, 10).reduce(function(a, c) { return a + c.ytd; }, 0);
+  var lastMonthByCustomer = {};
+  rows.forEach(function(r) {
+    if (yearOf(r) !== curYear) return;
+    var mi = MONTHS.indexOf(String(r[5]).trim()); var c = String(r[1]).trim();
+    if (num(r[8]) > 0 && (lastMonthByCustomer[c] === undefined || mi > lastMonthByCustomer[c])) lastMonthByCustomer[c] = mi;
+  });
+  var inactive = customers.filter(function(c) {
+    var lm = lastMonthByCustomer[c.name];
+    return c.lastYear > 0 && (lm === undefined || lm <= lastIdx - 3);
+  }).sort(function(a, b) { return b.lastYear - a.lastYear; }).slice(0, 15).map(function(c) {
+    var lm = lastMonthByCustomer[c.name];
+    c.lastActiveMonth = lm === undefined ? 'ไม่ใช้บริการปีนี้' : MONTHS[lm];
+    return c;
+  });
+
+  return {
+    period: { year: curYear, compareYear: lyYear, fromMonth: MONTHS[0], toMonth: MONTHS[lastIdx] || '-', incompleteMonth: incompleteMonth },
+    overall: {
+      ytd: round(totalCur), lastYear: round(totalLy), growthPct: pct(totalCur, totalLy),
+      target: round(totalTarget), achievementPct: totalTarget ? Math.round(totalCur / totalTarget * 1000) / 10 : null,
+      customerCount: byCur.filter(function(c) { return c.ytd > 0; }).length,
+      top1SharePct: totalCur && byCur[0] ? Math.round(byCur[0].ytd / totalCur * 1000) / 10 : null,
+      top10SharePct: totalCur ? Math.round(top10Sum / totalCur * 1000) / 10 : null
+    },
+    monthly: MONTHS.map(function(n, idx) { return { month: n, cur: round(monthCur[idx]), lastYear: round(monthLy[idx]) }; }),
+    teams: teams,
+    offices: offices,
+    services: services.slice(0, 15),
+    topCustomers: byCur.slice(0, 15),
+    growingCustomers: customers.filter(function(c) { return c.diff > 0; }).sort(function(a, b) { return b.diff - a.diff; }).slice(0, 10),
+    decliningCustomers: customers.filter(function(c) { return c.diff < 0 && c.ytd > 0; }).sort(function(a, b) { return a.diff - b.diff; }).slice(0, 10),
+    inactiveCustomers: inactive
+  };
+}
+
+function callGeminiForRevenueReport_(stats, apiKey) {
+  var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-2.5-flash';
+  var prompt = [
+    'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ภาค 10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
+    'ข้อกำหนด:',
+    '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
+    '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท',
+    '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
+    '- ช่วงเวลาที่เปรียบเทียบ: ' + stats.period.fromMonth + '–' + stats.period.toMonth + ' ปี ' + stats.period.year + ' เทียบช่วงเดียวกันปี ' + stats.period.compareYear,
+    stats.period.incompleteMonth ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
+    'ตอบเป็น JSON ตามโครงสร้างนี้เท่านั้น:',
+    '{"executiveSummary":["3-5 ข้อ"],"highlights":["จุดเด่น 2-4 ข้อ"],"concerns":["จุดที่ต้องระวัง 2-4 ข้อ"],',
+    '"customerWatch":["ลูกค้าที่ต้องจับตา 3-6 ข้อ ระบุชื่อลูกค้า"],"serviceMix":["วิเคราะห์สัดส่วนบริการ 2-4 ข้อ"],',
+    '"teamPerformance":["วิเคราะห์ผลงานรายทีม 2-5 ข้อ"],"officeGrowth":["วิเคราะห์การเติบโตรายที่ทำการ 2-5 ข้อ"],',
+    '"recommendations":["ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ"],"notes":["หมายเหตุเรื่องข้อมูล 0-2 ข้อ"]}',
+    'ข้อมูล:',
+    JSON.stringify(stats)
+  ].filter(Boolean).join('\n');
+
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+  var res = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-goog-api-key': apiKey },
+    payload: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
+    }),
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) {
+    throw new Error('Gemini API ' + res.getResponseCode() + ': ' + res.getContentText().substring(0, 300));
+  }
+  var body = JSON.parse(res.getContentText());
+  var text = body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts
+    ? body.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('') : '';
+  return JSON.parse(text);
+}
+
 /**
  * ฟังก์ชัน: ดึงข้อมูลเป้าหมายการเข้าพบลูกค้า (Target)
  */
@@ -3955,6 +4161,7 @@ function sendBigLotLineNotification(message) {
 // 🔐 รายชื่อฟังก์ชันที่หน้าเว็บเรียกผ่าน executeFunction ได้ (ฟังก์ชันอื่นจะถูกปฏิเสธ)
 // เพิ่มฟังก์ชันใหม่ที่หน้าเว็บต้องเรียกใช้ลงในรายการนี้ด้วย
 var API_ALLOWED_FUNCTIONS = [
+  'getRevenueAnalysisReport',
   'getHomeRevenueSummary',
   'addMusicTrack', 'addPostNewsTemplate', 'addRecommendedService', 'checkDailyTriggerA1A14',
   'checkLineQuotaStatus', 'checkLogin', 'confirmPKCustomer', 'createBigLotProduct',
