@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1407';
+    var APP_VERSION = 'Ver. 2026.1017.1408';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3239,6 +3239,9 @@
   /* แบ่งหน้าอัจฉริยะ: หัวข้อที่สั้นกว่า 1 หน้าจะไม่ถูกตัดกลาง (ย้ายไปหน้าใหม่ทั้งก้อน)
      หัวข้อที่ยาวเกินหน้า (ตารางยาว) ตัดได้แต่ไม่ตัดกลางแถว และหัวตารางขึ้นซ้ำทุกหน้า */
   .sec { break-inside: avoid; page-break-inside: avoid; }
+  /* เว้นระยะระหว่างหัวข้อให้อ่านง่าย */
+  .sec, .sec-long { margin-bottom: 22px; padding-bottom: 6px; }
+  .sec + .sec, .sec + .sec-long, .sec-long + .sec { border-top: 1px dashed #e5e7eb; padding-top: 4px; }
   .sec-long > .lead { break-inside: avoid; break-after: avoid; page-break-after: avoid; }
   .sec-long table thead { display: table-header-group; }
   h2 { break-after: avoid; page-break-after: avoid; }
