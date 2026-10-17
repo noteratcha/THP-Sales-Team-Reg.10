@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2120';
+    var APP_VERSION = 'Ver. 2026.1017.2126';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -26537,7 +26537,8 @@
 
   @media print {
     body { background: #fff; }
-    .toolbar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search { display: none !important; }
+    .toolbar, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .no-print { display: none !important; }
+    .print-only { display: block !important; }
     .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; }
     .page-break-divider { break-after: page; page-break-after: always; }
     .office-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; }
@@ -26665,7 +26666,7 @@
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin: 14px 0 6px; flex-wrap:wrap; gap:8px;">
       <div style="font-weight:700; color:#0f3d2e; font-size:13px;">📋 ตารางเปรียบเทียบผลงานครบทุกที่ทำการ (${officesByZip.length} แห่ง)</div>
-      <button type="button" class="btn-scroll-to-cards" onclick="scrollToOfficeCardsSection()">⬇️ เลื่อนไปดูบทวิเคราะห์การ์ด 4 ด้าน (${officesByZip.length} ที่ทำการ)</button>
+      <button type="button" class="btn-scroll-to-cards no-print" onclick="scrollToOfficeCardsSection()">⬇️ เลื่อนไปดูบทวิเคราะห์การ์ด 4 ด้าน (${officesByZip.length} ที่ทำการ)</button>
     </div>
     ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', 'บริการเด่น / ฉุด'],
               officesByZip.map(t => {
@@ -26681,7 +26682,7 @@
               }), `เรียงตามรหัสไปรษณีย์ · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · คลิกแถวเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน`)}
 
     <div id="officeCardsSequenceSection" style="margin-top: 24px;">
-      <div class="office-cards-header-bar">
+      <div class="office-cards-header-bar no-print">
         <div>
           <h3 style="margin:0; font-size:15px; font-weight:800; color:#0f3d2e;">🗂️ ข้อมูลและบทวิเคราะห์เจาะลึก 4 ด้าน เรียงตามรหัสไปรษณีย์ (${officesByZip.length} แห่ง)</h3>
           <div class="muted" style="font-size:11px;">แสดงผลงานและการวิเคราะห์ 4 ด้านครบทุกที่ทำการเรียงต่อๆ กันตามรหัสไปรษณีย์</div>
@@ -26696,6 +26697,8 @@
           <span id="officeCardCountBadge" class="office-count-badge">แสดงครบ ${officesByZip.length} ที่ทำการ</span>
         </div>
       </div>
+
+      <h2 class="print-only" style="display:none; margin: 18px 0 10px; font-size: 15px; color: #0f3d2e; border-left: 4px solid #ea580c; padding-left: 8px;">🗂️ ข้อมูลและบทวิเคราะห์เจาะลึก 4 ด้าน รายที่ทำการ (${officesByZip.length} แห่ง)</h2>
 
       <div id="officeCardsList" class="office-cards-list">
         ${officesByZip.map((off, idx) => buildOfficeCardHtml(off, idx + 1)).join('')}
@@ -26764,6 +26767,10 @@
     var jump = document.getElementById('officeQuickJump');
     if (jump) jump.value = '';
   }
+
+  window.addEventListener('beforeprint', function() {
+    clearOfficeSearch();
+  });
 
   function scrollToOfficeCardsSection() {
     var sec = document.getElementById('officeCardsSequenceSection');
