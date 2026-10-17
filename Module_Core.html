@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1303';
+    var APP_VERSION = 'Ver. 2026.1017.1308';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3189,10 +3189,11 @@
         const achv = (a) => a == null ? '-' : `<span class="${a >= 100 ? 'up' : (a >= 80 ? 'warn' : 'down')}">${a}%</span>`;
         const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<p class="muted">-</p>';
         // หัวคอลัมน์ที่ห่อด้วย <span class="n"> = คอลัมน์ตัวเลข ให้ชิดขวาทั้งช่องให้ตรงกับข้อมูล
-        const table = (head, rows) => `<table><thead><tr>${head.map(h => {
+        // ทุกตารางมีคอลัมน์ลำดับ (#) และหมายเหตุว่าเรียงตามอะไร
+        const table = (head, rows, sortNote) => `<table><thead><tr><th class="rank">#</th>${head.map(h => {
             const isNum = h.indexOf('<span class="n">') === 0;
             return isNum ? `<th class="n">${h.replace(/<\/?span[^>]*>/g, '')}</th>` : `<th>${h}</th>`;
-        }).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+        }).join('')}</tr></thead><tbody>${rows.map((r, i) => r.replace('<tr>', `<tr><td class="rank">${i + 1}</td>`)).join('')}</tbody></table>${sortNote ? `<p class="sort-note">* เรียงตาม${sortNote}</p>` : ''}`;
         const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
         const isMonth = s.period.mode === 'month';
         const revLabel = isMonth ? 'รายได้' : 'รายได้สะสม';
@@ -3244,6 +3245,9 @@
   th { background: #0f3d2e; color: #fff; text-align: left; padding: 5px 6px; font-weight: 600; }
   td { border-bottom: 1px solid #eef0f2; padding: 4px 6px; vertical-align: top; } tr { break-inside: avoid; }
   td.n, th.n { text-align: right; white-space: nowrap; }
+  th.rank, td.rank { width: 26px; text-align: center; color: #6b7280; }
+  th.rank { color: #fff; }
+  .sort-note { margin: 0 0 6px; font-size: 10.5px; color: #9ca3af; font-style: italic; }
   .up { color: #047857; font-weight: 700; } .down { color: #b91c1c; font-weight: 700; } .warn { color: #b45309; font-weight: 700; } .muted { color: #9ca3af; }
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .mrow { display: flex; align-items: center; gap: 6px; margin: 2px 0; } .mlabel { width: 34px; color: #6b7280; } .mval { width: 60px; text-align: right; font-weight: 600; }
@@ -3281,30 +3285,30 @@
   <section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
   ${list(ai.teamPerformance)}</div>
   ${table(['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
-            s.teams.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
+            s.teams.filter(t => t.name !== 'ไม่ระบุทีม').map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
   </section>
 
   <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
   ${list(ai.officeGrowth)}</div>
   ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
-            s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
+            s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
   ${s.offices.length > 25 ? `<p class="muted">แสดง 25 จาก ${s.offices.length} ที่ทำการ (เรียงตามรายได้)</p>` : ''}
   </section>
 
   <section class="sec"><h2>สัดส่วนบริการ</h2>
   ${list(ai.serviceMix)}
   ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">โต</span>'],
-            s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`))}
+            s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
   </section>
 
   <section class="sec"><h2>ลูกค้าที่ต้องจับตา</h2>
   ${list(ai.customerWatch)}</section>
   <section class="sec"><div class="two">
-    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n up">+${money(c.diff)}</td></tr>`))}</div>
-    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n down">${money(c.diff)}</td></tr>`))}</div>
+    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
+    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}</div>
   </div></section>
   <section class="sec"><b>หยุดใช้บริการ 3 เดือนขึ้นไป (เรียงตามรายได้ปีก่อน)</b>
-  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr><td>${esc(c.name)}</td><td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`))}</section>
+  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr><td>${esc(c.name)}</td><td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'รายได้ปีก่อนจากมากไปน้อย')}</section>
 
   <section class="sec"><h2>ข้อเสนอแนะ</h2>
   <div class="box">${list(ai.recommendations)}</div></section>

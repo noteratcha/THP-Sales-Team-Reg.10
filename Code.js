@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v3_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v4_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1089,7 +1089,7 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   var teams = agg(function(r) { return zipTeam[zipOf(r)] || 'ไม่ระบุทีม'; }).map(function(o) {
     var t = teamTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
     return o;
-  }).sort(function(a, b) { return b.ytd - a.ytd; });
+  }).filter(function(t) { return t.name !== 'ไม่ระบุทีม'; }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
   var customers = agg(function(r) { var c = String(r[1]).trim(); return c && c !== '-' ? c : null; });
