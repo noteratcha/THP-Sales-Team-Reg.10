@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1336';
+    var APP_VERSION = 'Ver. 2026.1017.1340';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3288,11 +3288,21 @@
             s.provinces.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `${revLabel}จากมากไปน้อย · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
   </section>` : ''}
 
-  <section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
-  ${list(ai.teamPerformance)}</div>
-  ${table(['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
-            s.teams.filter(t => t.name !== 'ไม่ระบุทีม').map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
-  </section>
+  ${(() => {
+      // แบ่งเป็น 2 ตาราง: ทีมที่โตมากสุด 5 ทีม และโตน้อยสุด 5 ทีม (ไม่รวมทีมที่ไม่มีข้อมูลปีก่อนให้เทียบ)
+      const ranked = s.teams.filter(t => t.name !== 'ไม่ระบุทีม' && t.growthPct != null);
+      const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'];
+      const teamRow = t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
+      const top5 = ranked.slice().sort((x, y) => y.growthPct - x.growthPct).slice(0, 5);
+      const bottom5 = ranked.slice().sort((x, y) => x.growthPct - y.growthPct).slice(0, 5);
+      return `<section class="sec"><h2>ผลงานรายทีม</h2>
+  ${list(ai.teamPerformance)}
+  <b class="up">▲ ทีมที่โตมากที่สุด 5 ทีม</b>
+  ${table(teamHead, top5.map(teamRow), '% เติบโตจากมากไปน้อย')}
+  <b class="down">▼ ทีมที่โตน้อยที่สุด 5 ทีม</b>
+  ${table(teamHead, bottom5.map(teamRow), '% เติบโตจากน้อยไปมาก')}
+  </section>`;
+  })()}
 
   <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
   ${list(ai.officeGrowth)}</div>
