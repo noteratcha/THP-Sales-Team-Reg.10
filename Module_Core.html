@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1238';
+    var APP_VERSION = 'Ver. 2026.1017.1241';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3168,7 +3168,11 @@
         const growth = (g) => g == null ? '<span class="muted">ใหม่</span>' : `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '▲' : '▼'} ${Math.abs(g)}%</span>`;
         const achv = (a) => a == null ? '-' : `<span class="${a >= 100 ? 'up' : (a >= 80 ? 'warn' : 'down')}">${a}%</span>`;
         const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<p class="muted">-</p>';
-        const table = (head, rows) => `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+        // หัวคอลัมน์ที่ห่อด้วย <span class="n"> = คอลัมน์ตัวเลข ให้ชิดขวาทั้งช่องให้ตรงกับข้อมูล
+        const table = (head, rows) => `<table><thead><tr>${head.map(h => {
+            const isNum = h.indexOf('<span class="n">') === 0;
+            return isNum ? `<th class="n">${h.replace(/<\/?span[^>]*>/g, '')}</th>` : `<th>${h}</th>`;
+        }).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
         const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
         const periodLabel = `${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
 
