@@ -938,6 +938,16 @@ function getChunkedCache_(key) {
 // ต้องตั้ง Script Properties: GEMINI_API_KEY (และ GEMINI_MODEL ถ้าต้องการเปลี่ยนรุ่น)
 var AI_REPORT_CACHE_TTL = 1800; // 30 นาที
 
+var PROVINCIAL_HUBS = {
+  '33000': { prefix: '33', province: 'ศรีสะเกษ' },
+  '34000': { prefix: '34', province: 'อุบลราชธานี' },
+  '35000': { prefix: '35', province: 'ยโสธร' },
+  '37000': { prefix: '37', province: 'อำนาจเจริญ' },
+  '47000': { prefix: '47', province: 'สกลนคร' },
+  '48000': { prefix: '48', province: 'นครพนม' },
+  '49000': { prefix: '49', province: 'มุกดาหาร' }
+};
+
 // options.month: 0-11 = วิเคราะห์เฉพาะเดือนนั้น (เทียบเดือนเดียวกันปีก่อน), ไม่ระบุ/'all' = สะสมทั้งปี
 function getRevenueAnalysisReport_(requestingUser, options) {
   try {
@@ -947,7 +957,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v24_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v25_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -958,10 +968,16 @@ function getRevenueAnalysisReport_(requestingUser, options) {
     if (!full || full.status !== 'success') return full;
     var rows = full.data;
     if (scope !== 'ALL') {
-      rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
+      if (PROVINCIAL_HUBS[scope]) {
+        var hub = PROVINCIAL_HUBS[scope];
+        rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 2) === hub.prefix; });
+      } else {
+        rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
+      }
     }
 
     var stats = buildRevenueAnalysisStats_(rows, scope, sel);
+    stats.scope = scope;
     var ai = callGeminiForRevenueReport_(stats, apiKey);
 
     var result = {
@@ -1065,7 +1081,16 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     var offName = String(t[3] || '').trim();
     if (zip && offName) zipTargetName[zip] = offName;
     var mi = MONTHS.indexOf(String(t[1]).trim());
-    if (ty === curYear && mi !== -1 && mi >= fromIdx && mi <= toIdx && (scope === 'ALL' || zip === scope)) {
+    var inScope = false;
+    if (scope === 'ALL') {
+      inScope = true;
+    } else if (PROVINCIAL_HUBS[scope]) {
+      var hub = PROVINCIAL_HUBS[scope];
+      inScope = (zip.substring(0, 2) === hub.prefix || prov === hub.province);
+    } else {
+      inScope = (zip === scope);
+    }
+    if (ty === curYear && mi !== -1 && mi >= fromIdx && mi <= toIdx && inScope) {
       zipTarget[zip] = (zipTarget[zip] || 0) + num(t[4]);
       if (team) teamTarget[team] = (teamTarget[team] || 0) + num(t[4]);
       if (prov) provinceTarget[prov] = (provinceTarget[prov] || 0) + num(t[4]);
@@ -1177,8 +1202,19 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     if (targetTeams.indexOf(tm) === -1) targetTeams.push(tm);
   });
   if (scope !== 'ALL') {
-    var myTeam = zipTeam[scope];
-    targetTeams = myTeam ? [myTeam] : [];
+    if (PROVINCIAL_HUBS[scope]) {
+      var hub = PROVINCIAL_HUBS[scope];
+      var provTeams = {};
+      Object.keys(zipTeam).forEach(function(z) {
+        if ((z.substring(0, 2) === hub.prefix || zipProvince[z] === hub.province) && zipTeam[z] && zipTeam[z] !== 'ไม่ระบุทีม') {
+          provTeams[zipTeam[z]] = true;
+        }
+      });
+      targetTeams = targetTeams.filter(function(tm) { return provTeams[tm]; });
+    } else {
+      var myTeam = zipTeam[scope];
+      targetTeams = myTeam ? [myTeam] : [];
+    }
   }
 
   var teams = targetTeams.map(function(tm) {
@@ -1319,7 +1355,14 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   // 5) ประมวลผลข้อมูลรายที่ทำการอย่างละเอียด (ครบ 4 ด้าน: รายได้เด่น/ด้อย, ลูกค้าที่หายไป, แนวทางหารายได้, อัตราส่วนบริการ)
   var targetZips = Object.keys(zipTeam);
   if (scope !== 'ALL') {
-    targetZips = targetZips.filter(function(z) { return z === scope; });
+    if (PROVINCIAL_HUBS[scope]) {
+      var hub = PROVINCIAL_HUBS[scope];
+      targetZips = targetZips.filter(function(z) {
+        return z.substring(0, 2) === hub.prefix || zipProvince[z] === hub.province;
+      });
+    } else {
+      targetZips = targetZips.filter(function(z) { return z === scope; });
+    }
   }
 
   var offices = targetZips.map(function(z) {
@@ -1423,6 +1466,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   return {
+    scope: scope,
     period: {
       year: curYear, compareYear: lyYear, mode: sel.kind, quarter: sel.kind === 'quarter' ? sel.index : null,
       fromMonth: MONTHS[fromIdx] || '-', toMonth: MONTHS[toIdx] || '-',
@@ -1490,9 +1534,20 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     })
   };
 
+  var hub = PROVINCIAL_HUBS[stats.scope];
+  var rolePrompt = hub
+    ? ('คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ปข.10 เขียนรายงานวิเคราะห์ผลการดำเนินงานของทั้งจังหวัด' + hub.province + ' สำหรับนำเสนอหัวหน้าไปรษณีย์จังหวัดและผู้บริหาร')
+    : 'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ปข.10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า';
+  var scopePrompt = hub
+    ? ('- ขอบเขตข้อมูล: ผลงานและข้อมูลทั้งหมดของทุกที่ทำการใน "จังหวัด' + hub.province + '" ในสังกัด ปข.10 (ครอบคลุมที่ทำการทุกแห่งในจังหวัด' + hub.province + ')')
+    : (stats.scope === 'ALL'
+        ? '- ขอบเขตข้อมูล: ภาพรวมทั้ง ปข.10 ครอบคลุม 7 จังหวัด (96 ที่ทำการ)'
+        : ('- ขอบเขตข้อมูล: เฉพาะพื้นที่รหัสไปรษณีย์ ' + stats.scope));
+
   var prompt = [
-    'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ปข.10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
+    rolePrompt,
     'ข้อกำหนด:',
+    scopePrompt,
     '- เรียกชื่อสังกัด/พื้นที่นี้ว่า "ปข.10" เสมอ (ห้ามใช้คำว่า "ภาค 10" หรือ "ภาค10")',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท ถ้าเขียนเต็มต้องใส่ , คั่นหลักพันเสมอ เช่น 9,544,513 บาท',
