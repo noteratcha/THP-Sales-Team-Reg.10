@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2202';
+    var APP_VERSION = 'Ver. 2026.1017.2207';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -26945,7 +26945,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   @page { size: A4; margin: 15mm 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #64748b; } }
-  * { box-sizing: border-box; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
   body { font-family: 'Sarabun', sans-serif; color: #1e293b; margin: 0; background: #e2e8f0; font-size: 12.5px; line-height: 1.6; }
   
   /* Modern Top Toolbar */
@@ -27041,12 +27046,12 @@
   .mlabel { width: 34px; color: #475569; font-weight: 600; font-size: 11px; }
   .mval { width: 68px; text-align: right; font-weight: 700; color: #064e3b; font-size: 11px; }
   .mbars { flex: 1; }
-  .bar { height: 7px; border-radius: 4px; margin: 1.5px 0; }
-  .bar.cur { background: linear-gradient(90deg, #ea580c, #f97316); }
-  .bar.ly { background: #cbd5e1; }
+  .bar { height: 7px; border-radius: 4px; margin: 1.5px 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .bar.cur { background-color: #ea580c !important; background: linear-gradient(90deg, #ea580c, #f97316) !important; box-shadow: inset 0 0 0 10px #ea580c; border: 0.5px solid #ea580c; }
+  .bar.ly { background-color: #cbd5e1 !important; background: #cbd5e1 !important; box-shadow: inset 0 0 0 10px #cbd5e1; border: 0.5px solid #94a3b8; }
   .legend { display: flex; align-items: center; gap: 14px; margin: 4px 0 8px; font-size: 11px; color: #64748b; font-weight: 600; }
   .legend-item { display: inline-flex; align-items: center; gap: 6px; }
-  .legend-box { width: 14px; height: 7px; border-radius: 3px; display: inline-block; }
+  .legend-box { width: 14px; height: 7px; border-radius: 3px; display: inline-block; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
   /* Office Cards Sequential Styling (Image 2 format) */
   .office-cards-header-bar { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4.5px solid #064e3b; border-radius: 10px; padding: 12px 16px; margin: 16px 0 16px; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
@@ -27105,6 +27110,11 @@
 
   /* Print Media Query */
   @media print {
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
     body { background: #fff; }
     .toolbar, .cat-nav-bar, .cat-badge, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .btn-back-to-top, .no-print { display: none !important; }
     .print-only { display: block !important; }
@@ -27112,6 +27122,27 @@
     .page-break-divider { break-after: page; page-break-after: always; }
     .office-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; }
     .cat-header { break-after: avoid; page-break-after: avoid; }
+    .bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .bar.cur {
+      background-color: #ea580c !important;
+      background: #ea580c !important;
+      box-shadow: inset 0 0 0 10px #ea580c !important;
+      border: 0.5px solid #ea580c !important;
+    }
+    .bar.ly {
+      background-color: #cbd5e1 !important;
+      background: #cbd5e1 !important;
+      box-shadow: inset 0 0 0 10px #cbd5e1 !important;
+      border: 0.5px solid #94a3b8 !important;
+    }
+    .legend-box {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .srv-bar-fill, .srv-bar-track {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
   }
 </style></head><body>
 
@@ -27244,8 +27275,8 @@
       <section class="sec">
         <h2 class="sub-title">เปรียบเทียบแนวโน้มรายได้รายเดือน</h2>
         <div class="legend">
-          <span class="legend-item"><span class="legend-box" style="background:#ea580c"></span> ปี ${s.period.year + 543}</span>
-          <span class="legend-item"><span class="legend-box" style="background:#cbd5e1"></span> ปี ${s.period.compareYear + 543}</span>
+          <span class="legend-item"><span class="legend-box" style="background:#ea580c;border:1px solid #ea580c;box-shadow:inset 0 0 0 10px #ea580c;"></span> ปี ${s.period.year + 543}</span>
+          <span class="legend-item"><span class="legend-box" style="background:#cbd5e1;border:1px solid #94a3b8;box-shadow:inset 0 0 0 10px #cbd5e1;"></span> ปี ${s.period.compareYear + 543}</span>
         </div>
         ${monthBars}
       </section>
