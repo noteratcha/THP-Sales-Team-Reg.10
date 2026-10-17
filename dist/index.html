@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2148';
+    var APP_VERSION = 'Ver. 2026.1017.2158';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -26224,6 +26224,510 @@
         });
     }
 
+    // หน้าจออนิเมะชันขณะ AI กำลังวิเคราะห์ข้อมูล
+    function getAiReportLoadingHtml() {
+        return `<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI กำลังวิเคราะห์ข้อมูลรายได้... | ทีมขาย ปข.10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #090e17;
+      color: #f8fafc;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-bg {
+      position: absolute;
+      inset: -50%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      animation: orbFloat 14s ease-in-out infinite alternate;
+    }
+    .orb-1 {
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, #ea580c, rgba(234, 88, 12, 0));
+      top: 20%;
+      left: 15%;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #059669, rgba(5, 150, 105, 0));
+      bottom: 15%;
+      right: 15%;
+      animation-delay: -5s;
+    }
+    .orb-3 {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, #0284c7, rgba(2, 132, 199, 0));
+      top: 60%;
+      left: 45%;
+      animation-delay: -9s;
+    }
+    @keyframes orbFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, -30px) scale(1.1); }
+      100% { transform: translate(-30px, 40px) scale(0.95); }
+    }
+
+    /* Subtle Background Grid */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 80%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Main Container Card */
+    .card {
+      position: relative;
+      z-index: 10;
+      max-width: 520px;
+      width: 92%;
+      padding: 44px 36px;
+      border-radius: 28px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(234, 88, 12, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: cardEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(24px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* AI Avatar & Animated Rings */
+    .ai-core {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin-bottom: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Outer Orbit Ring */
+    .ring-outer {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px dashed rgba(234, 88, 12, 0.45);
+      animation: spinClockwise 12s linear infinite;
+    }
+    .ring-outer::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      background: #f97316;
+      border-radius: 50%;
+      box-shadow: 0 0 14px #ea580c, 0 0 24px #f97316;
+      transform: translateX(-50%);
+    }
+
+    /* Middle Reverse Ring */
+    .ring-middle {
+      position: absolute;
+      inset: 14px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: #10b981;
+      border-bottom-color: #06b6d4;
+      animation: spinCounter 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* Pulse Core Aura */
+    .core-aura {
+      position: absolute;
+      inset: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(234, 88, 12, 0.3) 0%, rgba(5, 150, 105, 0.15) 60%, transparent 80%);
+      animation: corePulse 2.4s ease-in-out infinite alternate;
+    }
+
+    /* Center Robot Icon Container */
+    .robot-center {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(234, 88, 12, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: botFloat 3s ease-in-out infinite alternate;
+    }
+    .robot-emoji {
+      font-size: 38px;
+      line-height: 1;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+      animation: botLook 4s ease-in-out infinite;
+    }
+
+    @keyframes spinClockwise {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spinCounter {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes corePulse {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      100% { transform: scale(1.25); opacity: 0.95; }
+    }
+    @keyframes botFloat {
+      0% { transform: translateY(-3px) scale(0.98); }
+      100% { transform: translateY(3px) scale(1.02); }
+    }
+    @keyframes botLook {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.06) rotate(3deg); }
+      60% { transform: scale(1.06) rotate(-3deg); }
+    }
+
+    /* Title & Badges */
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 12px;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: dotBlink 1.4s ease-in-out infinite;
+    }
+    @keyframes dotBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    h2.title {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin: 0 0 6px;
+      background: linear-gradient(135deg, #ffffff 40%, #fdba74 80%, #fb923c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .org-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-bottom: 22px;
+    }
+
+    /* Dynamic Step Box */
+    .step-box {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+    .step-box::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3.5px;
+      background: linear-gradient(180deg, #ea580c, #f97316);
+      border-radius: 3px;
+    }
+    .step-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(234, 88, 12, 0.25);
+      border-top-color: #ea580c;
+      border-radius: 50%;
+      animation: spinClockwise 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    .step-text-wrap {
+      flex: 1;
+      overflow: hidden;
+    }
+    .step-caption {
+      font-size: 10.5px;
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .step-text {
+      font-size: 13px;
+      color: #ffffff;
+      font-weight: 600;
+      line-height: 1.35;
+      transition: all 0.35s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Animated Shimmer Progress Bar */
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(51, 65, 85, 0.6);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .progress-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 45%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ea580c, #f97316, #10b981);
+      box-shadow: 0 0 12px rgba(234, 88, 12, 0.75);
+      animation: progressSlide 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes progressSlide {
+      0% { left: -45%; width: 35%; }
+      50% { width: 55%; }
+      100% { left: 105%; width: 35%; }
+    }
+
+    /* Soundwave Audio Bars */
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 3.5px;
+      height: 16px;
+      margin-bottom: 14px;
+    }
+    .wave-bar {
+      width: 3px;
+      background: #ea580c;
+      border-radius: 2px;
+      animation: waveMotion 1.2s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(1) { height: 6px; animation-delay: 0.1s; background: #059669; }
+    .wave-bar:nth-child(2) { height: 14px; animation-delay: 0.3s; background: #10b981; }
+    .wave-bar:nth-child(3) { height: 10px; animation-delay: 0.2s; background: #ea580c; }
+    .wave-bar:nth-child(4) { height: 16px; animation-delay: 0.4s; background: #f97316; }
+    .wave-bar:nth-child(5) { height: 8px; animation-delay: 0.15s; background: #06b6d4; }
+    @keyframes waveMotion {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+      50% { transform: scaleY(1.2); opacity: 1; }
+    }
+
+    /* Footer Info & Live Timer */
+    .footer-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      font-size: 11px;
+      color: #94a3b8;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 14px;
+    }
+    .live-timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #fb923c;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      background: rgba(234, 88, 12, 0.1);
+      padding: 3px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(234, 88, 12, 0.2);
+    }
+    .wait-note {
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glowing Background Orbs -->
+  <div class="ambient-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+  </div>
+
+  <!-- Subtle Matrix Grid -->
+  <div class="grid-overlay"></div>
+
+  <!-- Main Animated Glass Card -->
+  <div class="card">
+    
+    <!-- AI Core with Animated Dual Rings -->
+    <div class="ai-core">
+      <div class="ring-outer"></div>
+      <div class="ring-middle"></div>
+      <div class="core-aura"></div>
+      <div class="robot-center">
+        <span class="robot-emoji">🤖</span>
+      </div>
+    </div>
+
+    <!-- Active Badge -->
+    <div class="badge-pill">
+      <span class="pulse-dot"></span>
+      <span>Gemini AI Engine · ปข.10</span>
+    </div>
+
+    <!-- Title -->
+    <h2 class="title">AI กำลังวิเคราะห์ข้อมูลรายได้...</h2>
+    <div class="org-subtitle">ระบบกำลังสังเคราะห์ข้อมูลทีมขาย 7 จังหวัด และ 96 ที่ทำการ</div>
+
+    <!-- Dynamic Status Step Box -->
+    <div class="step-box">
+      <div class="step-spinner"></div>
+      <div class="step-text-wrap">
+        <div class="step-caption">สถานะการทำงานปัจจุบัน</div>
+        <div class="step-text" id="stepText">📡 กำลังเชื่อมต่อและดึงข้อมูลรายได้ ปข.10...</div>
+      </div>
+    </div>
+
+    <!-- Animated Shimmer Progress Bar -->
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+
+    <!-- Audio / Neural Wave Bars -->
+    <div class="wave-bars">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+
+    <!-- Footer Meta: Timer & Friendly Note -->
+    <div class="footer-meta">
+      <div class="wait-note">
+        <span>🔒</span> อาจใช้เวลา 1–2 นาที กรุณาอย่าปิดหน้าต่างนี้
+      </div>
+      <div class="live-timer" id="timerBadge">
+        <span>⏱️</span> <span id="elapsedSec">00:00</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      // Dynamic step changer
+      var steps = [
+        "📡 กำลังเชื่อมต่อและดึงข้อมูลรายได้ ปข.10...",
+        "📊 กำลังประมวลผลข้อมูลเปรียบเทียบ YTD และกลุ่มบริการ...",
+        "👥 กำลังคำนวณเป้าหมายและผลงานทีมขายทั้ง 7 จังหวัด...",
+        "🏢 กำลังวิเคราะห์เจาะลึก 4 มิติรายที่ทำการ 96 แห่ง...",
+        "💡 Gemini AI กำลังสังเคราะห์ข้อเสนอแนะเชิงรุกและจุดเด่น-จุดเสี่ยง...",
+        "📑 กำลังจัดเตรียมโครงสร้างรายงานสำหรับผู้บริหาร...",
+        "✨ ใกล้เสร็จสมบูรณ์แล้ว กำลังเรนเดอร์เอกสารนำเสนอ..."
+      ];
+      var stepIdx = 0;
+      var stepEl = document.getElementById('stepText');
+      
+      setInterval(function() {
+        stepIdx = (stepIdx + 1) % steps.length;
+        if (stepEl) {
+          stepEl.style.opacity = '0';
+          stepEl.style.transform = 'translateY(4px)';
+          setTimeout(function() {
+            stepEl.textContent = steps[stepIdx];
+            stepEl.style.opacity = '1';
+            stepEl.style.transform = 'translateY(0)';
+          }, 200);
+        }
+      }, 4000);
+
+      // Elapsed timer
+      var start = Date.now();
+      var timerEl = document.getElementById('elapsedSec');
+      setInterval(function() {
+        var diff = Math.floor((Date.now() - start) / 1000);
+        var m = String(Math.floor(diff / 60)).padStart(2, '0');
+        var s = String(diff % 60).padStart(2, '0');
+        if (timerEl) timerEl.textContent = m + ':' + s;
+      }, 1000);
+    })();
+  <\/script>
+</body>
+</html>`;
+    }
+
     // เปิดหน้าต่างใหม่ทันทีตอนคลิก (กัน popup ถูกบล็อก) แล้วเติมรายงานเมื่อหลังบ้านวิเคราะห์เสร็จ
     window.openAiRevenueReport = async function () {
         const monthSel = await promptAiReportPeriod();
@@ -26234,7 +26738,7 @@
             Swal.fire({ icon: 'warning', title: 'เปิดหน้าต่างรายงานไม่ได้', text: 'กรุณาอนุญาต Pop-up สำหรับเว็บนี้ แล้วลองใหม่อีกครั้ง' });
             return;
         }
-        win.document.write('<html><head><meta charset="utf-8"><title>กำลังวิเคราะห์...</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#334155"><div style="text-align:center"><div style="font-size:42px">🤖</div><h2 style="margin:12px 0 4px">AI กำลังวิเคราะห์ข้อมูลรายได้...</h2><p style="color:#64748b">อาจใช้เวลา 1–2 นาที กรุณาอย่าปิดหน้าต่างนี้</p></div></body></html>');
+        win.document.write(getAiReportLoadingHtml());
         win.document.close();
 
         const user = (typeof currentUserInfo !== 'undefined') ? currentUserInfo : {};
