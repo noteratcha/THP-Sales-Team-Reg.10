@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1124';
+    var APP_VERSION = 'Ver. 2026.1017.1147';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -984,13 +984,14 @@
         
         <!-- Big Lot Ads Popup Container -->
         <div id="globalLoaderAdsContainer" class="hidden w-full max-w-5xl relative flex-col shrink-0 transform scale-95 opacity-0 transition-all duration-500 mx-auto">
-            <div class="text-center mb-6 px-4 animate-fade-in-up">
-                <h2 class="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-theme-orange via-red-500 to-yellow-500 drop-shadow-md tracking-tight">
-                    <i class="fas fa-gift text-theme-orange mr-3 drop-shadow-sm"></i>สินค้าแนะนำ ระหว่างโหลดข้อมูล
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 px-1 animate-fade-in-up">
+                <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2.5 drop-shadow">
+                    <span class="w-9 h-9 rounded-xl bg-theme-orange flex items-center justify-center shadow-lg"><i class="fas fa-gift text-white text-sm"></i></span>
+                    สินค้าแนะนำจากเครือข่ายไปรษณีย์
                 </h2>
-                <div class="mt-3 inline-flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/15 shadow-sm">
-                    <i class="fas fa-circle-notch fa-spin text-theme-orange text-sm"></i> 
-                    <span class="global-loader-slide-text text-sm font-semibold text-white tracking-wide">กำลังดึงข้อมูล...</span>
+                <div class="inline-flex items-center gap-2.5 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <i class="fas fa-circle-notch fa-spin text-orange-300 text-sm"></i>
+                    <span class="global-loader-slide-text text-sm font-semibold text-white">กำลังดึงข้อมูล...</span>
                 </div>
             </div>
             <div class="swiper global-loader-swiper-container overflow-hidden w-full mx-auto relative z-10 !pb-12">
@@ -1459,38 +1460,54 @@
                 if (spinnerOnly) spinnerOnly.classList.add('hidden');
                 
                 let slidesHtml = '';
-                recommendedList.forEach(p => {
+                const esc = (v) => window.escapeHtml ? window.escapeHtml(v) : v;
+                recommendedList.forEach((p, idx) => {
                     const processedImageUrl = typeof window.transformGoogleDriveUrl === 'function' ? window.transformGoogleDriveUrl(p.image) : p.image;
-                    const priceFormatted = Number(p.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    
+                    const priceNum = Number(p.price || 0);
+                    const priceFormatted = priceNum.toLocaleString('th-TH', { minimumFractionDigits: priceNum % 1 ? 2 : 0, maximumFractionDigits: 2 });
+
+                    // แยกชื่อสินค้ากับเงื่อนไขในวงเล็บ เช่น "ส้มโอ (สั่งขั้นต่ำ 10 ลูก // ลูกละ 90 บาท)" → ชื่อ + ชิปเงื่อนไข
+                    const rawName = String(p.name || '');
+                    const m = rawName.match(/^(.*?)\s*\((.*)\)\s*$/);
+                    const title = m ? m[1] : rawName;
+                    const conditions = m ? m[2].split(/\s*(?:\/\/|,|\|)\s*/).filter(Boolean) : [];
+                    const chipsHtml = conditions.map(c => `<span class="inline-flex items-center gap-1.5 text-xs md:text-sm font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-full"><i class="fas fa-check text-emerald-500 text-[10px]"></i>${esc(c)}</span>`).join('');
+
                     slidesHtml += `
                     <div class="swiper-slide h-auto">
-                        <div class="flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-10 p-0 h-full bg-white rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 overflow-hidden relative border-4 border-orange-100">
-                            
-                            
+                        <div class="flex flex-col md:flex-row h-full bg-white rounded-3xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
+
                             <!-- Image -->
-                            <div class="w-full md:w-[45%] lg:w-[50%] flex items-center justify-center bg-gradient-to-br from-orange-50 to-white rounded-xl relative border border-gray-100/50 p-4">
-                                <img src="${window.escapeHtml(processedImageUrl)}" alt="${window.escapeHtml(p.name)}" class="w-full h-auto max-h-[250px] md:max-h-[450px] object-contain drop-shadow-md rounded-xl relative z-10" onerror="window.handleProductImageError &amp;&amp; window.handleProductImageError(this)">
+                            <div class="w-full md:w-1/2 relative flex items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-white p-5 md:p-8">
+                                <span class="absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 bg-theme-orange text-white text-[11px] md:text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                                    <i class="fas fa-star text-[10px]"></i> สินค้าแนะนำ
+                                </span>
+                                <img src="${esc(processedImageUrl)}" alt="${esc(title)}" class="w-full h-auto max-h-[220px] md:max-h-[400px] object-contain rounded-2xl shadow-lg relative z-10" onerror="window.handleProductImageError &amp;&amp; window.handleProductImageError(this)">
                                 <div class="hidden flex-col items-center justify-center text-orange-300 py-10">
                                     <i class="fas fa-gift text-5xl mb-2"></i>
                                     <span class="text-xs text-gray-400 font-medium">ภาพสินค้าแนะนำ</span>
                                 </div>
                             </div>
-                            
+
                             <!-- Details -->
-                            <div class="w-full md:w-[55%] lg:w-[50%] flex-shrink-0 text-left flex flex-col justify-center space-y-4 py-2 md:py-4">
-                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 md:pb-3 mt-4 md:mt-0">
-                                    <span class="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg border border-orange-100"><i class="fas fa-map-marker-alt mr-1"></i>${window.escapeHtml ? window.escapeHtml(p.sourceOffice) : p.sourceOffice}</span>
-                                    <span class="text-[10px] text-gray-400 font-mono">${window.escapeHtml ? window.escapeHtml(p.code) : p.code}</span>
+                            <div class="w-full md:w-1/2 flex flex-col justify-center gap-4 md:gap-5 p-5 md:p-10 text-left">
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
+                                    <span class="w-8 h-8 rounded-full bg-orange-50 text-theme-orange flex items-center justify-center shrink-0"><i class="fas fa-store text-xs"></i></span>
+                                    <span class="font-medium">จาก <span class="text-gray-800 font-bold">${esc(p.sourceOffice)}</span></span>
                                 </div>
-                                <h3 class="text-xl md:text-3xl font-black text-gray-800 leading-tight">${window.escapeHtml ? window.escapeHtml(p.name) : p.name}</h3>
-                                <div class="bg-gray-50 rounded-xl p-3 md:p-4 border border-gray-100/80">
-                                    <p class="text-xs md:text-sm text-gray-500 font-medium mb-1">ราคาจัดจำหน่าย</p>
-                                    <div class="flex items-end gap-2">
-                                        <span class="text-3xl md:text-5xl font-black text-theme-orange tracking-tighter drop-shadow-sm">${priceFormatted}</span>
-                                        <span class="text-sm md:text-base font-bold text-gray-600 mb-1 md:mb-2">บาท</span>
+                                <h3 class="text-2xl md:text-4xl font-black text-gray-900 leading-snug">${esc(title)}</h3>
+                                ${chipsHtml ? `<div class="flex flex-wrap gap-2">${chipsHtml}</div>` : ''}
+                                <div class="flex items-end justify-between gap-4 pt-4 md:pt-5 border-t border-dashed border-gray-200">
+                                    <div>
+                                        <p class="text-xs text-gray-400 font-medium mb-1">ราคา</p>
+                                        <div class="flex items-baseline gap-1.5">
+                                            <span class="text-4xl md:text-6xl font-black text-theme-orange tracking-tight leading-none">${priceFormatted}</span>
+                                            <span class="text-base md:text-lg font-bold text-gray-500">บาท</span>
+                                        </div>
                                     </div>
+                                    <span class="text-[10px] text-gray-300 font-mono text-right">${esc(p.code)}<br>${idx + 1} / ${recommendedList.length}</span>
                                 </div>
+                                <p class="text-xs md:text-sm text-gray-500 flex items-center gap-2"><i class="fas fa-shopping-basket text-theme-orange"></i> สั่งซื้อได้ที่เมนู <b class="text-gray-700">สินค้า BigLot</b></p>
                             </div>
                         </div>
                     </div>
