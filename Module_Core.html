@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2136';
+    var APP_VERSION = 'Ver. 2026.1017.2148';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4115,11 +4115,12 @@
   /* Print Media Query */
   @media print {
     body { background: #fff; }
-    .toolbar, .cat-nav-bar, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .btn-back-to-top, .no-print { display: none !important; }
+    .toolbar, .cat-nav-bar, .cat-badge, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .btn-back-to-top, .no-print { display: none !important; }
     .print-only { display: block !important; }
     .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; }
     .page-break-divider { break-after: page; page-break-after: always; }
     .office-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; }
+    .cat-header { break-after: avoid; page-break-after: avoid; }
   }
 </style></head><body>
 
@@ -4164,7 +4165,7 @@
   <!-- ============================================================== -->
   <div id="execSummarySection" class="category-container">
     <div class="cat-header" id="cat-1">
-      <div class="cat-badge">หมวดที่ 1 · นโยบายและภาพรวมระดับบริหาร</div>
+      <div class="cat-badge no-print">หมวดที่ 1 · นโยบายและภาพรวมระดับบริหาร</div>
       <h2 class="cat-title">📌 บทสรุปสำหรับผู้บริหารและทิศทางกลยุทธ์</h2>
       <div class="cat-subtitle">ตัวชี้วัดหลัก ประเด็นสำคัญ จุดเด่น-จุดเสี่ยง และข้อเสนอแนะเชิงรุกในภาพรวม</div>
     </div>
@@ -4244,7 +4245,7 @@
     <!-- หมวดที่ 2: แนวโน้มรายได้และภาพรวมระดับจังหวัด -->
     <div id="sec-provinces" class="category-container">
       <div class="cat-header" id="cat-2">
-        <div class="cat-badge">หมวดที่ 2 · แนวโน้มและภูมิศาสตร์</div>
+        <div class="cat-badge no-print">หมวดที่ 2 · แนวโน้มและภูมิศาสตร์</div>
         <h2 class="cat-title">📈 แนวโน้มรายได้และภาพรวมระดับจังหวัด</h2>
         <div class="cat-subtitle">สถิติเปรียบเทียบรายได้รายเดือน และผลการดำเนินงาน 7 จังหวัด พร้อม 2 ศูนย์ไปรษณีย์</div>
       </div>
@@ -4270,7 +4271,7 @@
     <!-- หมวดที่ 3: ประสิทธิภาพและผลงานรายทีมขาย -->
     <div id="sec-teams" class="category-container">
       <div class="cat-header" id="cat-3">
-        <div class="cat-badge">หมวดที่ 3 · การบริหารทีมขาย</div>
+        <div class="cat-badge no-print">หมวดที่ 3 · การบริหารทีมขาย</div>
         <h2 class="cat-title">👥 ประสิทธิภาพและผลงานรายทีมขาย</h2>
         <div class="cat-subtitle">เจาะลึกทีมขายที่ทำผลงานเด่นเกินเป้าหมาย และทีมที่ต้องเร่งรัดติดตามผล</div>
       </div>
@@ -4310,7 +4311,7 @@
     <!-- หมวดที่ 4: ผลิตภัณฑ์และสัดส่วนกลุ่มบริการ -->
     <div id="sec-services" class="category-container">
       <div class="cat-header" id="cat-4">
-        <div class="cat-badge">หมวดที่ 4 · พอร์ตโฟลิโอผลิตภัณฑ์</div>
+        <div class="cat-badge no-print">หมวดที่ 4 · พอร์ตโฟลิโอผลิตภัณฑ์</div>
         <h2 class="cat-title">📦 ผลิตภัณฑ์และสัดส่วนกลุ่มบริการ</h2>
         <div class="cat-subtitle">วิเคราะห์การกระจายตัวของรายได้ตามกลุ่มบริการ และอัตราการเติบโตของแต่ละบริการ</div>
       </div>
@@ -4326,7 +4327,7 @@
     <!-- หมวดที่ 5: การบริหารพอร์ตลูกค้าสมาชิกและรักษาฐานรายได้ -->
     <div id="sec-customers" class="category-container">
       <div class="cat-header" id="cat-5">
-        <div class="cat-badge">หมวดที่ 5 · การบริหารลูกค้าสัมพันธ์</div>
+        <div class="cat-badge no-print">หมวดที่ 5 · การบริหารลูกค้าสัมพันธ์</div>
         <h2 class="cat-title">🤝 การบริหารพอร์ตลูกค้าสมาชิกและรักษาฐานรายได้</h2>
         <div class="cat-subtitle">ติดตามลูกค้าที่เติบโตสูง ลูกค้าที่ยอดลดลง และเฝ้าระวังลูกค้าที่หยุดส่งบริการเกิน 3 เดือน</div>
       </div>
@@ -4360,7 +4361,7 @@
     <!-- หมวดที่ 6: การวิเคราะห์เจาะลึกรายที่ทำการ 96 แห่ง (4 มิติ) -->
     <div id="sec-offices" class="category-container">
       <div class="cat-header" id="cat-6">
-        <div class="cat-badge">หมวดที่ 6 · เจาะลึกรายที่ทำการ (4 มิติ)</div>
+        <div class="cat-badge no-print">หมวดที่ 6 · เจาะลึกรายที่ทำการ (4 มิติ)</div>
         <h2 class="cat-title">🏢 การวิเคราะห์เจาะลึกรายที่ทำการ 96 แห่ง</h2>
         <div class="cat-subtitle">เปรียบเทียบผลงานทุกที่ทำการเรียงตามรหัสไปรษณีย์ พร้อมบทวิเคราะห์ 4 ด้านครบทุกแห่ง</div>
       </div>
