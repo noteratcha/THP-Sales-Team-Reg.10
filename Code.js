@@ -56,7 +56,7 @@ function include(filename) {
   try {
     return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     console.error("Include Error: ไม่พบไฟล์ HTML ชื่อ '" + filename + "' ในระบบ");
     return "<!-- Missing HTML File: " + filename + " -->";
@@ -88,7 +88,7 @@ function uploadImageToDrive(fileData, fileName, userInfo) {
     var errMsg = err ? err.toString() : "";
     if (errMsg.indexOf("DriveApp") === -1 && errMsg.indexOf("ไม่ได้รับอนุญาตให้เข้าถึง") === -1) {
       var contextMsg = "พบปัญหาอัปโหลดรูปจากผู้ใช้: " + (userInfo || "ไม่ระบุ");
-      if (typeof sendErrorToLine === 'function') sendErrorToLine(err, contextMsg);
+      if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(err, contextMsg);
     }
 
     console.error("Upload Image Error: " + err.message);
@@ -105,7 +105,7 @@ function setupDrivePermissions() {
     var ssServices = SpreadsheetApp.openById(SERVICES_SS_ID);
     Logger.log("เข้าถึงโฟลเดอร์และชีตสำเร็จ! สิทธิ์การเข้าถึงสมบูรณ์แล้ว");
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     Logger.log("เกิดข้อผิดพลาด: " + e.message);
   }
@@ -122,7 +122,7 @@ function setupDrivePermissions() {
 /**
  * ฟังก์ชัน 1: ตรวจสอบ Login จากหน้าเว็บ
  */
-function checkLogin(formObject) {
+function checkLogin_(formObject) {
   try {
     // SPREADSHEET_ID ถูกประกาศไว้ใน Code_Main.gs สามารถเรียกใช้ได้เลย
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -140,19 +140,21 @@ function checkLogin(formObject) {
         sheet.getRange(i + 1, 5).setValue(new Date());
         sheet.getRange(i + 1, 6).setValue("Logged In");
 
-        return {
+        var info = {
           status: 'success',
           user: data[i][0],
           name: data[i][2],
           zipcode: data[i][0],
           team: data[i][6] ? data[i][6] : ""
         };
+        info.token = createSession_(info);
+        return info;
       }
     }
     return { status: 'error', message: 'User หรือ Password ไม่ถูกต้อง' };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.message };
   }
@@ -208,7 +210,7 @@ function handleApiRequest(params) {
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
@@ -221,7 +223,7 @@ function handleApiRequest(params) {
 // 📦 SECTION: Code_Visit.js
 // ==========================================
 
-// (หมายเหตุ: ฟังก์ชัน sendBugReportToLine แบบ Messaging API อยู่ใน SECTION: LINE OA)
+// (หมายเหตุ: ฟังก์ชัน sendBugReportToLine_ แบบ Messaging API อยู่ใน SECTION: LINE OA)
 
 // ==========================================
 // การจัดการข้อมูลการเข้าพบลูกค้า (Visit Data)
@@ -230,7 +232,7 @@ function handleApiRequest(params) {
 /**
  * ฟังก์ชัน: บันทึกข้อมูลการเข้าพบใหม่
  */
-function saveData(data) {
+function saveData_(data) {
   try {
     var phone = data.entrepreneurPhone ? data.entrepreneurPhone.toString().trim() : "";
     if (!/^0\d{8,9}$/.test(phone)) {
@@ -276,7 +278,7 @@ function saveData(data) {
     var userInfoContext = "👤 User: " + loggedInUser + " (" + officeName + ")";
 
     if (errMsg.indexOf("DriveApp") === -1 && errMsg.indexOf("ไม่ได้รับอนุญาตให้เข้าถึง") === -1) {
-      if (typeof sendErrorToLine === 'function') sendErrorToLine(e, userInfoContext);
+      if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, userInfoContext);
     }
 
     return { status: 'error', message: e.toString() };
@@ -286,7 +288,7 @@ function saveData(data) {
 /**
  * ฟังก์ชัน: ดึงข้อมูลการเข้าพบทั้งหมดเพื่อแสดงในตาราง
  */
-function getDataForTable() {
+function getDataForTable_() {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
@@ -331,7 +333,7 @@ function getDataForTable() {
     var resultData = [headers].concat(filteredRows);
     return { status: 'success', data: resultData };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -340,7 +342,7 @@ function getDataForTable() {
 /**
  * ฟังก์ชัน: อัปเดต/แก้ไขข้อมูลการเข้าพบเดิม
  */
-function updateVisitData(rowIndex, data) {
+function updateVisitData_(rowIndex, data) {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
@@ -377,7 +379,7 @@ function updateVisitData(rowIndex, data) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -386,7 +388,7 @@ function updateVisitData(rowIndex, data) {
 /**
  * ฟังก์ชัน: ลบข้อมูลการเข้าพบ
  */
-function deleteVisitData(rowIndex) {
+function deleteVisitData_(rowIndex) {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
@@ -398,7 +400,7 @@ function deleteVisitData(rowIndex) {
     sheet.deleteRow(rowIndex);
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -415,7 +417,7 @@ function deleteVisitData(rowIndex) {
 /**
  * ฟังก์ชัน: ประมวลผลข้อมูลรายได้แบบ Batch (Tableau ทั่วไป)
  */
-function processRevenueBatch(csvChunk, selectedYear) {
+function processRevenueBatch_(csvChunk, selectedYear) {
   bumpHomeRevCacheVersion_();
   try {
     var TARGET_TABLEAU_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
@@ -642,15 +644,15 @@ function processRevenueBatch(csvChunk, selectedYear) {
 
     return { status: 'success', addCount: addCount, updateCount: updateCount, unmatchedCount: unmatchedServices.size, newServicesAdded: Array.from(unmatchedServices) };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
  return { status: 'error', message: 'Error in batch: ' + e.toString() }; }
 }
 
 /**
  * ฟังก์ชัน: นำเข้า E-PARCEL (ชี้ไปยังฟังก์ชันประมวลผล Revenue หลัก)
  */
-function processEparcelBatch(csvChunk, selectedYear) {
-  return processRevenueBatch(csvChunk, selectedYear);
+function processEparcelBatch_(csvChunk, selectedYear) {
+  return processRevenueBatch_(csvChunk, selectedYear);
 }
 
 /**
@@ -724,7 +726,7 @@ function retroactiveUpdateTableauType() {
 /**
  * ฟังก์ชัน: ดึงรายงานข้อมูลรายได้ลูกค้าเพื่อนำไปแสดงผลบน Dashboard
  */
-function getRevenueReportData(requestingUser) {
+function getRevenueReportData_(requestingUser) {
   try {
     var TARGET_TABLEAU_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
     var TARGET_SHEET_NAME = 'Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)';
@@ -806,7 +808,7 @@ function getRevenueReportData(requestingUser) {
     return { status: 'success', data: resultData };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
  return { status: 'error', message: e.toString() }; }
 }
 
@@ -814,11 +816,11 @@ function getRevenueReportData(requestingUser) {
 // 📦 SECTION: Home Revenue Summary (สรุปยอดรายได้หน้าแรกฝั่งเซิร์ฟเวอร์)
 // ==========================================
 // หน้าแรกใช้แค่ยอดเดือนนี้ + ลูกค้า 10 อันดับแรก จึงสรุปที่หลังบ้านแทนการส่งข้อมูลดิบ 26MB
-// ผลลัพธ์อยู่ในรูปแบบแถวเดียวกับ getRevenueReportData:
+// ผลลัพธ์อยู่ในรูปแบบแถวเดียวกับ getRevenueReportData_:
 // [office, customer, member, level, item, month, year, pieces, revenue, type]
 var HOME_REV_CACHE_TTL = 1800; // 30 นาที
 
-function getHomeRevenueSummary(requestingUser) {
+function getHomeRevenueSummary_(requestingUser) {
   try {
     var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
     var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
@@ -828,7 +830,7 @@ function getHomeRevenueSummary(requestingUser) {
     var cached = getChunkedCache_(cacheKey);
     if (cached) return { status: 'success', data: JSON.parse(cached), cached: true };
 
-    var full = getRevenueReportData(requestingUser);
+    var full = getRevenueReportData_(requestingUser);
     if (!full || full.status !== 'success') return full;
 
     var rows = full.data;
@@ -839,7 +841,7 @@ function getHomeRevenueSummary(requestingUser) {
     putChunkedCache_(cacheKey, JSON.stringify(data), HOME_REV_CACHE_TTL);
     return { status: 'success', data: data, cached: false };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -937,7 +939,7 @@ function getChunkedCache_(key) {
 var AI_REPORT_CACHE_TTL = 1800; // 30 นาที
 
 // options.month: 0-11 = วิเคราะห์เฉพาะเดือนนั้น (เทียบเดือนเดียวกันปีก่อน), ไม่ระบุ/'all' = สะสมทั้งปี
-function getRevenueAnalysisReport(requestingUser, options) {
+function getRevenueAnalysisReport_(requestingUser, options) {
   try {
     var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
     var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
@@ -952,7 +954,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
     var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
     if (!apiKey) return { status: 'error', message: 'ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Script Properties' };
 
-    var full = getRevenueReportData(requestingUser);
+    var full = getRevenueReportData_(requestingUser);
     if (!full || full.status !== 'success') return full;
     var rows = full.data;
     if (scope !== 'ALL') {
@@ -972,7 +974,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
     putChunkedCache_(cacheKey, JSON.stringify(result), AI_REPORT_CACHE_TTL);
     return result;
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -1050,7 +1052,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   };
 
   // 2) เป้าหมายและทีม (จากชีตเป้าหมาย)
-  var tgtRes = getRevenueTargets();
+  var tgtRes = getRevenueTargets_();
   var targets = (tgtRes && tgtRes.status === 'success') ? tgtRes.data.slice(1) : [];
   var zipTeam = {}, zipTarget = {}, teamTarget = {}, zipProvince = {}, provinceTarget = {}, zipTargetName = {};
   targets.forEach(function(t) {
@@ -1436,7 +1438,7 @@ function addThousandSeparators_(obj) {
 /**
  * ฟังก์ชัน: ดึงข้อมูลเป้าหมายการเข้าพบลูกค้า (Target)
  */
-function getVisitTargets() {
+function getVisitTargets_() {
   try {
     var ss = SpreadsheetApp.openById(TARGET_SS_ID);
     var sheet = ss.getSheetByName('เป้าหมายการเข้าพบลูกค้า');
@@ -1450,7 +1452,7 @@ function getVisitTargets() {
     });
     return { status: 'success', data: [headers].concat(filteredRows) };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -1459,7 +1461,7 @@ function getVisitTargets() {
 /**
  * ฟังก์ชัน: ดึงข้อมูลเป้าหมายรายได้ (Target)
  */
-function getRevenueTargets() {
+function getRevenueTargets_() {
   try {
     var ss = SpreadsheetApp.openById(TARGET_SS_ID);
     var sheet = ss.getSheetByName('เป้าหมายรายได้');
@@ -1473,7 +1475,7 @@ function getRevenueTargets() {
     });
     return { status: 'success', data: [headers].concat(filteredRows) };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -1486,7 +1488,7 @@ function getRevenueTargets() {
 /**
  * ฟังก์ชัน: ดึงข้อมูลค่าใช้จ่ายของที่ทำการ
  */
-function getExpensesData() {
+function getExpensesData_() {
   try {
     var ss = SpreadsheetApp.openById(TARGET_SS_ID);
     var sheet = ss.getSheetByName('เป้าหมายรายได้');
@@ -1516,7 +1518,7 @@ function getExpensesData() {
     
     return { status: 'success', data: expensesMap };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -1525,7 +1527,7 @@ function getExpensesData() {
 // ระบบจัดการอัปโหลดข้อมูล DPost (Tiktok DropOff)
 // ==========================================
 
-function processDropOffExcelData(groupedJsonString) {
+function processDropOffExcelData_(groupedJsonString) {
   bumpHomeRevCacheVersion_();
   try {
     const groupedDataArray = JSON.parse(groupedJsonString);
@@ -1727,7 +1729,7 @@ function processDropOffExcelData(groupedJsonString) {
     };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -1744,7 +1746,7 @@ function processDropOffExcelData(groupedJsonString) {
 /**
  * ฟังก์ชัน: ประมวลผลข้อมูล Logistics เฉพาะ A1-A14 ลงชีตเป้าหมายหลัก
  */
-function processLogisticsBatch(csvChunk, selectedYear) {
+function processLogisticsBatch_(csvChunk, selectedYear) {
   bumpHomeRevCacheVersion_();
   try {
     var TARGET_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
@@ -1929,7 +1931,7 @@ function processLogisticsBatch(csvChunk, selectedYear) {
     return { status: 'success', addCount: addCount, updateCount: updateCount, unmatchedCount: unmatchedServices.size, newServicesAdded: Array.from(unmatchedServices) };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'Error in logistics batch: ' + e.toString() };
   }
@@ -1939,7 +1941,7 @@ function processLogisticsBatch(csvChunk, selectedYear) {
  * 💡 ฟังก์ชัน: ประมวลผลข้อมูลขนส่งและโลจิสติกส์ (เพิ่มเติม) ลงชีต "Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)"
  * รับข้อมูลที่จัดกลุ่มแล้วจาก Client เพื่อลดภาระเซิร์ฟเวอร์
  */
-function processAddLogisticsBatch(jsonStr) {
+function processAddLogisticsBatch_(jsonStr) {
   bumpHomeRevCacheVersion_();
   try {
     var data = JSON.parse(jsonStr);
@@ -2077,9 +2079,9 @@ function processAddLogisticsBatch(jsonStr) {
     return { status: 'success', addCount: addCount, updateCount: updateCount, unmatchedCount: unmatchedServices.size, newServicesAdded: Array.from(unmatchedServices) };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
-    return { status: 'error', message: 'Error in processAddLogisticsBatch: ' + e.toString() };
+    return { status: 'error', message: 'Error in processAddLogisticsBatch_: ' + e.toString() };
   }
 }
 
@@ -2127,7 +2129,7 @@ function updatePKSheet(entrepreneurName, customerGroup, lostReason) {
       }
     }
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     console.error("PK Sheet Update Error: " + e.message);
   }
@@ -2136,7 +2138,7 @@ function updatePKSheet(entrepreneurName, customerGroup, lostReason) {
 /**
  * ฟังก์ชัน: ดึงข้อมูลรายชื่อลูกค้า ปก. พร้อมเช็คสถานะการอัปเดต (สำหรับฟอร์ม)
  */
-function getInactiveCustomersPK() {
+function getInactiveCustomersPK_() {
   try {
     var ss = SpreadsheetApp.openById(PK_SS_ID);
     var sheet = ss.getSheetByName('ปก.');
@@ -2162,7 +2164,7 @@ function getInactiveCustomersPK() {
     }
     return { status: 'success', data: result };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2171,7 +2173,7 @@ function getInactiveCustomersPK() {
 /**
  * ฟังก์ชัน: ดึงข้อมูลลูกค้า ปก. ทั้งหมดเพื่อแสดงในหน้า Admin Dashboard
  */
-function getPKDashboardData() {
+function getPKDashboardData_() {
   try {
     var ss = SpreadsheetApp.openById(PK_SS_ID);
     var sheet = ss.getSheetByName('ปก.');
@@ -2235,7 +2237,7 @@ function getPKDashboardData() {
 
     return { status: 'success', data: result };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2244,7 +2246,7 @@ function getPKDashboardData() {
 /**
  * ฟังก์ชัน: ยืนยันการบันทึกข้อมูลลูกค้า ปก.
  */
-function confirmPKCustomer(rowIndex) {
+function confirmPKCustomer_(rowIndex) {
   try {
     var ss = SpreadsheetApp.openById(PK_SS_ID);
     var sheet = ss.getSheetByName('ปก.');
@@ -2256,7 +2258,7 @@ function confirmPKCustomer(rowIndex) {
 
     return { status: 'success', newStatus: statusMessage };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2265,7 +2267,7 @@ function confirmPKCustomer(rowIndex) {
 /**
  * ฟังก์ชัน: ยกเลิกการยืนยันข้อมูลลูกค้า ปก.
  */
-function undoPKCustomer(rowIndex) {
+function undoPKCustomer_(rowIndex) {
   try {
     var ss = SpreadsheetApp.openById(PK_SS_ID);
     var sheet = ss.getSheetByName('ปก.');
@@ -2274,7 +2276,7 @@ function undoPKCustomer(rowIndex) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2294,7 +2296,7 @@ var EVAL_DB_ID = '1JihASW_Fg3SGw0e4q1QSLSF5sKlywu5QF5kqVIJcGmM';
 /**
  * ดึงรายการตัวเลือกจากชีต "ตัวเลือกประเมินวัดผล" คอลัมน์ A
  */
-function getEvaluationOptions() {
+function getEvaluationOptions_() {
   try {
     var ss = SpreadsheetApp.openById(EVAL_DB_ID);
     var sheet = ss.getSheetByName('ตัวเลือกประเมินวัดผล');
@@ -2315,7 +2317,7 @@ function getEvaluationOptions() {
 
     return { status: 'success', data: options };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2324,7 +2326,7 @@ function getEvaluationOptions() {
 /**
  * ดึงรายการคำถามจาก Column A (เริ่มแถว 2) ของชีตที่กำหนด
  */
-function getEvaluationQuestions(sheetName) {
+function getEvaluationQuestions_(sheetName) {
   try {
     var ss = SpreadsheetApp.openById(EVAL_DB_ID);
     var sheet = ss.getSheetByName(sheetName);
@@ -2357,7 +2359,7 @@ function getEvaluationQuestions(sheetName) {
 
     return { status: 'success', data: questions, actualSheetName: sheet.getName() };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2366,7 +2368,7 @@ function getEvaluationQuestions(sheetName) {
 /**
  * รับค่าคะแนนมาบวกเพิ่มใน Column B (คะแนนรวม) และ Column C (จำนวนครั้ง) ในชีตที่กำหนด
  */
-function submitEvaluationScores(scoresData, sheetName) {
+function submitEvaluationScores_(scoresData, sheetName) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
@@ -2397,7 +2399,7 @@ function submitEvaluationScores(scoresData, sheetName) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   } finally {
@@ -2409,7 +2411,7 @@ function submitEvaluationScores(scoresData, sheetName) {
  * 💡 ดึงสรุปคะแนนประเมินเพื่อแสดงบน Popup 
  * ดึงจาก คอลัมน์ A (หัวข้อ), B (คะแนน), C (จำนวนครั้ง)
  */
-function getEvaluationSummary(sheetName) {
+function getEvaluationSummary_(sheetName) {
   try {
     var ss = SpreadsheetApp.openById(EVAL_DB_ID);
     var sheet = ss.getSheetByName(sheetName);
@@ -2458,7 +2460,7 @@ function getEvaluationSummary(sheetName) {
 
     return { status: 'success', data: summary, totalEvaluators: maxCount, sheetName: sheet.getName() };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2472,7 +2474,7 @@ function getEvaluationSummary(sheetName) {
  * ไฟล์จัดการ API ฝั่ง Backend สำหรับดึงข้อมูลรายการบริการ (Services)
  */
 
-// 💡 [ปรับปรุงแล้ว] ฟังก์ชัน getServicesList, addRecommendedService, และ deleteRecommendedService 
+// 💡 [ปรับปรุงแล้ว] ฟังก์ชัน getServicesList_, addRecommendedService_, และ deleteRecommendedService_ 
 // ถูกย้ายไปใช้เวอร์ชันที่มีฟังก์ชันการทำงานขั้นสูงกว่า (รองรับ Edit/Sort) ในส่วนของ Code_Settings.js ด้านล่าง เพื่อลดความซ้ำซ้อนของโค้ด
 
 
@@ -2480,7 +2482,7 @@ function getEvaluationSummary(sheetName) {
  * 💡 ฟังก์ชันบันทึกและดึงยอดผู้เข้าชม (Visitor Counter)
  * อ้างอิง Sheet: "จำนวนครั้งผู้เข้าใช้งาน" คอลัมน์ A2
  */
-function incrementVisitorCount() {
+function incrementVisitorCount_() {
   try {
     // ใช้ตัวแปร SERVICES_SS_ID ซึ่งตรงกับ ID ที่กำหนดไว้แล้วในระบบ
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
@@ -2501,7 +2503,7 @@ function incrementVisitorCount() {
 
     return { status: 'success', count: newCount };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2514,7 +2516,7 @@ function incrementVisitorCount() {
 // ==========================================
 // API ดึงข้อมูลเรตราคาจาก Google Sheet
 // ==========================================
-function getRatePriceData() {
+function getRatePriceData_() {
   try {
     // ID ของไฟล์ Google Sheet "เรตราคา"
     const ssId = '1q-Jx-irTuftdAKHIWn6I8v4Sun0Wuzv0oSR-MMaTdXw';
@@ -2557,7 +2559,7 @@ function getRatePriceData() {
     return { status: 'success', data: records };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2574,7 +2576,12 @@ function getRatePriceData() {
 /**
  * ฟังก์ชัน: ดึงรายชื่อลูกค้า EMS Package A1-A14 จาก Tableau (เฉพาะปีปัจจุบัน)
  */
+// ตัวเรียกสำหรับ time-driven trigger (trigger เรียกฟังก์ชัน private ที่ลงท้าย _ ไม่ได้)
 function extractA1A14Customers() {
+  return extractA1A14Customers_();
+}
+
+function extractA1A14Customers_() {
   try {
     var srcSS = SpreadsheetApp.openById('1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs');
     var srcSheet = srcSS.getSheetByName('Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)');
@@ -2635,7 +2642,7 @@ function extractA1A14Customers() {
     return { status: 'success', count: resultData.length };
 
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.toString() };
   }
@@ -2644,7 +2651,7 @@ function extractA1A14Customers() {
 /**
  * ฟังก์ชัน: เช็คเวลาอัปเดตล่าสุด
  */
-function getLastUpdateDateA1A14() {
+function getLastUpdateDateA1A14_() {
   try {
     var targetSS = SpreadsheetApp.openById('1OjtyfCAqGEqE3V6oXALf2UiKhAHHbxO4RwLSnZTvT7Q');
     var updateSheet = targetSS.getSheetByName('อัปเดต');
@@ -2655,7 +2662,7 @@ function getLastUpdateDateA1A14() {
     }
     return { status: 'error', message: 'ไม่พบข้อมูลวันที่' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2664,7 +2671,7 @@ function getLastUpdateDateA1A14() {
 /**
  * ฟังก์ชัน: ตรวจสอบสถานะ Trigger ปัจจุบัน
  */
-function checkDailyTriggerA1A14() {
+function checkDailyTriggerA1A14_() {
   try {
     var triggers = ScriptApp.getProjectTriggers();
     for (var i = 0; i < triggers.length; i++) {
@@ -2672,7 +2679,7 @@ function checkDailyTriggerA1A14() {
     }
     return { status: 'inactive' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error' };
   }
@@ -2681,7 +2688,7 @@ function checkDailyTriggerA1A14() {
 /**
  * ฟังก์ชัน: สร้าง Trigger ให้รันอัตโนมัติทุกวันเวลา 01:00 น.
  */
-function createDailyTriggerA1A14() {
+function createDailyTriggerA1A14_() {
   try {
     var triggers = ScriptApp.getProjectTriggers();
     for (var i = 0; i < triggers.length; i++) {
@@ -2690,7 +2697,7 @@ function createDailyTriggerA1A14() {
     ScriptApp.newTrigger('extractA1A14Customers').timeBased().everyDays(1).atHour(1).create();
     return { status: 'success', message: 'ตั้งเวลาดึงข้อมูลอัตโนมัติเวลา 01:00 น. สำเร็จ' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.toString() };
   }
@@ -2699,7 +2706,7 @@ function createDailyTriggerA1A14() {
 /**
  * ฟังก์ชัน: ลบ Trigger อัตโนมัติออก
  */
-function deleteDailyTriggerA1A14() {
+function deleteDailyTriggerA1A14_() {
   try {
     var triggers = ScriptApp.getProjectTriggers();
     var deleted = false;
@@ -2712,7 +2719,7 @@ function deleteDailyTriggerA1A14() {
     if (deleted) return { status: 'success', message: 'ปิดการทำงานอัตโนมัติเรียบร้อยแล้ว' };
     else return { status: 'error', message: 'ไม่พบการตั้งเวลาอัตโนมัติในระบบ' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.toString() };
   }
@@ -2729,7 +2736,7 @@ function deleteDailyTriggerA1A14() {
 /**
  * 1. ฟังก์ชัน: ดึงเกณฑ์ชิ้นงานขั้นต่ำจาก Google Sheets
  */
-function getVolumeThresholds() {
+function getVolumeThresholds_() {
   try {
     var ss = SpreadsheetApp.openById('1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs');
     var sheet = ss.getSheetByName('จำนวนชิ้นงานขั้นต่ำ');
@@ -2750,7 +2757,7 @@ function getVolumeThresholds() {
 
     return { status: 'success', data: thresholds };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2763,7 +2770,7 @@ function getVolumeThresholds() {
 /**
  * 2. ฟังก์ชัน: ดึงข้อมูลเทมเพลตทั้งหมดเพื่อไปแสดงผล
  */
-function getPostNewsTemplates() {
+function getPostNewsTemplates_() {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('Post News');
@@ -2795,7 +2802,7 @@ function getPostNewsTemplates() {
 
     return { status: 'success', data: templates };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2804,7 +2811,7 @@ function getPostNewsTemplates() {
 /**
  * 3. ฟังก์ชัน: เพิ่มลิงก์รูปลงใน Column A
  */
-function addPostNewsTemplate(url) {
+function addPostNewsTemplate_(url) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('Post News');
@@ -2833,7 +2840,7 @@ function addPostNewsTemplate(url) {
     sheet.appendRow([url, statusToSet, newName]);
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2842,7 +2849,7 @@ function addPostNewsTemplate(url) {
 /**
  * 3.5 ฟังก์ชัน: เปลี่ยนชื่อแม่แบบ
  */
-function renamePostNewsTemplate(targetIndex, newName) {
+function renamePostNewsTemplate_(targetIndex, newName) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('Post News');
@@ -2850,7 +2857,7 @@ function renamePostNewsTemplate(targetIndex, newName) {
     sheet.getRange(rowNum, 3).setValue(newName);
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -2858,7 +2865,7 @@ function renamePostNewsTemplate(targetIndex, newName) {
 /**
  * 4. ฟังก์ชัน: กำหนดรูปที่จะใช้ (ตั้งค่า 'Use' ในคอลัมน์ B)
  */
-function setPostNewsTemplateActive(targetIndex) {
+function setPostNewsTemplateActive_(targetIndex) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('Post News');
@@ -2878,7 +2885,7 @@ function setPostNewsTemplateActive(targetIndex) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2887,7 +2894,7 @@ function setPostNewsTemplateActive(targetIndex) {
 /**
  * 5. ฟังก์ชัน: ลบเทมเพลต
  */
-function deletePostNewsTemplate(targetIndex) {
+function deletePostNewsTemplate_(targetIndex) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('Post News');
@@ -2913,7 +2920,7 @@ function deletePostNewsTemplate(targetIndex) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2948,7 +2955,7 @@ function getPostNewsBackground() {
 
     return { status: 'success', url: url.toString().trim() };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: 'เกิดข้อผิดพลาด: ' + e.toString() };
   }
@@ -2961,7 +2968,7 @@ function getPostNewsBackground() {
 /**
  * 7. ฟังก์ชัน: ดึงรายการบริการที่แนะนำจากชีต "บริการ"
  */
-function getServicesList() {
+function getServicesList_() {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('บริการ');
@@ -2985,7 +2992,7 @@ function getServicesList() {
 
     return { status: 'success', data: services };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -2994,7 +3001,7 @@ function getServicesList() {
 /**
  * 8. ฟังก์ชัน: เพิ่มบริการใหม่
  */
-function addRecommendedService(serviceName) {
+function addRecommendedService_(serviceName) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('บริการ');
@@ -3013,14 +3020,14 @@ function addRecommendedService(serviceName) {
     sheet.appendRow([serviceName.trim()]);
     return { status: 'success' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
  return { status: 'error', message: error.toString() }; }
 }
 
 /**
  * 9. ฟังก์ชัน: แก้ไขชื่อบริการ (Edit)
  */
-function editRecommendedService(rowIndex, newName) {
+function editRecommendedService_(rowIndex, newName) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('บริการ');
@@ -3037,14 +3044,14 @@ function editRecommendedService(rowIndex, newName) {
     sheet.getRange(rowIndex + 2, 1).setValue(newName.trim());
     return { status: 'success' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
  return { status: 'error', message: error.toString() }; }
 }
 
 /**
  * 10. ฟังก์ชัน: ลบบริการ
  */
-function deleteRecommendedService(rowIndex) {
+function deleteRecommendedService_(rowIndex) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('บริการ');
@@ -3053,14 +3060,14 @@ function deleteRecommendedService(rowIndex) {
     sheet.deleteRow(rowIndex + 2);
     return { status: 'success' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
  return { status: 'error', message: error.toString() }; }
 }
 
 /**
  * 11. ฟังก์ชัน: บันทึกรายการบริการทั้งหมดทับลงในชีต (ใช้สำหรับการสลับลำดับ)
  */
-function saveFullServicesList(newArray) {
+function saveFullServicesList_(newArray) {
   try {
     var ss = SpreadsheetApp.openById(SERVICES_SS_ID);
     var sheet = ss.getSheetByName('บริการ');
@@ -3080,7 +3087,7 @@ function saveFullServicesList(newArray) {
 
     return { status: 'success' };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
 
     return { status: 'error', message: e.toString() };
   }
@@ -3090,7 +3097,7 @@ function saveFullServicesList(newArray) {
 // 📦 SECTION: Module_BigLot.html Backend Services
 // ==========================================
 
-function getBigLotProducts() {
+function getBigLotProducts_() {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3124,13 +3131,13 @@ function getBigLotProducts() {
     }
     return { status: 'success', data: products };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, originalName) {
+function submitBigLotOrders_(zipcode, officeName, ordersArray, originalZip, originalName) {
   try {
     if (!ordersArray || ordersArray.length === 0) {
       return { status: 'error', message: 'ไม่มีข้อมูลรายการสั่งซื้อ' };
@@ -3158,7 +3165,7 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
         }
       }
     } catch (lookupError) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(lookupError);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(lookupError);
 
       console.error("Province lookup failed:", lookupError);
     }
@@ -3233,13 +3240,13 @@ function submitBigLotOrders(zipcode, officeName, ordersArray, originalZip, origi
 
     return { status: 'success', message: 'บันทึกคำสั่งซื้อเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, originalZip, originalName, deliveryDate, remark) {
+function submitBulkBigLotOrders_(productCode, productPrice, bulkOrdersArray, originalZip, originalName, deliveryDate, remark) {
   try {
     if (!bulkOrdersArray || bulkOrdersArray.length === 0) {
       return { status: 'error', message: 'ไม่มีข้อมูลรายการสั่งซื้อแบบกลุ่ม' };
@@ -3266,7 +3273,7 @@ function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, orig
         }
       }
     } catch (lookupError) {
-      if (typeof sendErrorToLine === 'function') sendErrorToLine(lookupError);
+      if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(lookupError);
       console.error("Province lookup failed in bulk:", lookupError);
     }
 
@@ -3350,12 +3357,12 @@ function submitBulkBigLotOrders(productCode, productPrice, bulkOrdersArray, orig
 
     return { status: 'success', message: 'บันทึกคำสั่งซื้อแบบกลุ่มเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
     return { status: 'error', message: error.toString() };
   }
 }
 
-function createBigLotProduct(product) {
+function createBigLotProduct_(product) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3387,13 +3394,13 @@ function createBigLotProduct(product) {
 
     return { status: 'success', message: 'เพิ่มสินค้าเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function updateBigLotProduct(rowIndex, product) {
+function updateBigLotProduct_(rowIndex, product) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3416,13 +3423,13 @@ function updateBigLotProduct(rowIndex, product) {
 
     return { status: 'success', message: 'แก้ไขข้อมูลสินค้าเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function reorderBigLotProducts(newOrderIndexes) {
+function reorderBigLotProducts_(newOrderIndexes) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3459,12 +3466,12 @@ function reorderBigLotProducts(newOrderIndexes) {
 
     return { status: 'success' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
     return { status: 'error', message: error.toString() };
   }
 }
 
-function updateBigLotProductStatus(rowIndex, stockStatus, recommendStatus) {
+function updateBigLotProductStatus_(rowIndex, stockStatus, recommendStatus) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3484,13 +3491,13 @@ function updateBigLotProductStatus(rowIndex, stockStatus, recommendStatus) {
 
     return { status: 'success', message: 'อัปเดตสถานะสินค้าเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function deleteBigLotProduct(rowIndex) {
+function deleteBigLotProduct_(rowIndex) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('Stock');
@@ -3503,13 +3510,13 @@ function deleteBigLotProduct(rowIndex) {
 
     return { status: 'success', message: 'ลบสินค้าเรียบร้อยแล้ว' };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
-function getBigLotOrders(username, zipcode, officeName) {
+function getBigLotOrders_(username, zipcode, officeName) {
   try {
     var ss = SpreadsheetApp.openById(BIGLOT_SS_ID);
     var sheet = ss.getSheetByName('BigLot');
@@ -3569,7 +3576,7 @@ function getBigLotOrders(username, zipcode, officeName) {
           }
         }
       } catch (lookupError) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(lookupError);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(lookupError);
 
         console.error("User province lookup failed in orders:", lookupError);
       }
@@ -3635,14 +3642,14 @@ function getBigLotOrders(username, zipcode, officeName) {
       isAdmin: isAdmin
     };
   } catch (error) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(error);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(error);
 
     return { status: 'error', message: error.toString() };
   }
 }
 
 // Helper: ตรวจสอบว่าคำสั่งซื้อสร้างขึ้นในวันนี้หรือไม่ (อิงเวลา Asia/Bangkok)
-function isOrderCreatedToday(timestampVal) {
+function isOrderCreatedToday_(timestampVal) {
   if (!timestampVal) return false;
   try {
     var orderDateStr = '';
@@ -3672,7 +3679,7 @@ function isOrderCreatedToday(timestampVal) {
   }
 }
 
-function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate, newRemark, userInfo) {
+function updateBigLotOrder_(rowIndex, newQuantity, newTotalPrice, newDeliveryDate, newRemark, userInfo) {
   try {
     if (!rowIndex) return {status: 'error', message: 'ข้อมูลไม่ครบถ้วน'};
     
@@ -3699,7 +3706,7 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
 
     if (!isAdmin) {
       // 1. ตรวจสอบว่ารายการถูกสร้างขึ้นในวันนี้หรือไม่
-      if (!isOrderCreatedToday(orderTimestamp)) {
+      if (!isOrderCreatedToday_(orderTimestamp)) {
         return { status: 'error', message: 'ไม่สามารถแก้ไขได้ รายการนี้ไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่แก้ไขได้)' };
       }
 
@@ -3755,16 +3762,16 @@ function updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, newDeliveryDate
 
     return {status: 'success', message: 'อัปเดตข้อมูลสำเร็จ'};
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return {status: 'error', message: e.toString()};
   }
 }
 
 function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice, userInfo) {
-  return updateBigLotOrder(rowIndex, newQuantity, newTotalPrice, null, null, userInfo);
+  return updateBigLotOrder_(rowIndex, newQuantity, newTotalPrice, null, null, userInfo);
 }
 
-function deleteBigLotOrder(rowIndex, userInfo) {
+function deleteBigLotOrder_(rowIndex, userInfo) {
   try {
     if (!rowIndex) return {status: 'error', message: 'ข้อมูลไม่ครบถ้วน'};
     
@@ -3791,7 +3798,7 @@ function deleteBigLotOrder(rowIndex, userInfo) {
 
     if (!isAdmin) {
       // 1. ตรวจสอบว่ารายการถูกสร้างขึ้นในวันนี้หรือไม่
-      if (!isOrderCreatedToday(orderTimestamp)) {
+      if (!isOrderCreatedToday_(orderTimestamp)) {
         return { status: 'error', message: 'ไม่สามารถยกเลิกได้ รายการนี้ไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่ยกเลิกได้)' };
       }
 
@@ -3838,12 +3845,12 @@ function deleteBigLotOrder(rowIndex, userInfo) {
 
     return {status: 'success', message: 'ยกเลิกรายการสำเร็จ'};
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return {status: 'error', message: e.toString()};
   }
 }
 
-function deleteMultipleBigLotOrders(rowIndices, userInfo) {
+function deleteMultipleBigLotOrders_(rowIndices, userInfo) {
   try {
     if (!rowIndices || !Array.isArray(rowIndices) || rowIndices.length === 0) {
       return { status: 'error', message: 'กรุณาเลือกรายการที่ต้องการยกเลิก' };
@@ -3909,7 +3916,7 @@ function deleteMultipleBigLotOrders(rowIndices, userInfo) {
 
       // Check permission
       if (!isAdmin) {
-        if (!isOrderCreatedToday(orderTimestamp)) {
+        if (!isOrderCreatedToday_(orderTimestamp)) {
           return {
             status: 'error',
             message: 'ไม่สามารถยกเลิกได้ มีบางรายการไม่ได้สั่งในวันนี้ (วันอื่นต้องเป็น Admin เท่านั้นที่ยกเลิกได้)'
@@ -3983,7 +3990,7 @@ function deleteMultipleBigLotOrders(rowIndices, userInfo) {
       deletedCount: rowsToDelete.length
     };
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
     return { status: 'error', message: e.toString() };
   }
 }
@@ -4108,7 +4115,7 @@ function sendLinePushWithFailover_(payload) {
  * ตรวจสอบสถานะโควตาส่งข้อความ LINE รายเดือนของทุก Token ในระบบ
  * ดึงข้อมูลทั้ง Limit (300) และ Consumption (จำนวนที่ส่งไปแล้ว)
  */
-function checkLineQuotaStatus() {
+function checkLineQuotaStatus_() {
   try {
     var tokens = getLineChannelAccessTokens_();
     var result = {
@@ -4186,7 +4193,7 @@ function checkLineQuotaStatus() {
 }
 
 
-function sendErrorToLine(errorObj, contextInfo) {
+function sendErrorToLine_(errorObj, contextInfo) {
   try {
     var errorMessage = errorObj && errorObj.stack ? errorObj.stack : String(errorObj);
     
@@ -4234,7 +4241,7 @@ function sendErrorToLine(errorObj, contextInfo) {
   }
 }
 
-function sendSuccessToLine(message) {
+function sendSuccessToLine_(message) {
   try {
     var nowStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy HH:mm:ss");
     var fullText = '✅ แจ้งเตือนการอัปโหลดสำเร็จ\n\n⏰ วัน/เวลา: ' + nowStr + '\n\n' + message;
@@ -4252,7 +4259,7 @@ function sendSuccessToLine(message) {
 /**
  * ฟังก์ชันรับ Error จากฝั่ง Frontend (หน้าเว็บ) เพื่อส่งเข้า LINE
  */
-function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserInfo, base64Image) {
+function logFrontendErrorToLine_(msg, url, line, errStack, userContext, browserInfo, base64Image) {
   try {
     // Throttling: ป้องกันหน้าเว็บ loop error ยิงรัวจนโควตา LINE 300 ข้อความ/เดือน หมด
     var cache = CacheService.getScriptCache();
@@ -4326,7 +4333,7 @@ function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserIn
  * @param {string} prefix - รหัสไปรษณีย์ 2 ตัวหน้า (เช่น "33") หรือ "admin"
  * @returns {Array} - [{zip: '33000', name: 'ปณ.ศรีสะเกษ'}, ...]
  */
-function getOfficesForSubstitute(userLogin) {
+function getOfficesForSubstitute_(userLogin) {
   try {
     var provSS = SpreadsheetApp.openById(SPREADSHEET_ID);
     var provSheet = provSS.getSheetByName('ที่ทำการ');
@@ -4419,13 +4426,14 @@ function sendBigLotLineNotification(message) {
     console.log("LINE Notification Response: " + response.getContentText());
   } catch (e) {
     console.error("LINE Notification Error: " + e.toString());
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e, "ส่งแจ้งเตือน LINE BigLot ล้มเหลว");
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, "ส่งแจ้งเตือน LINE BigLot ล้มเหลว");
   }
 }
 
 // 🔐 รายชื่อฟังก์ชันที่หน้าเว็บเรียกผ่าน executeFunction ได้ (ฟังก์ชันอื่นจะถูกปฏิเสธ)
 // เพิ่มฟังก์ชันใหม่ที่หน้าเว็บต้องเรียกใช้ลงในรายการนี้ด้วย
 var API_ALLOWED_FUNCTIONS = [
+  'endSession',
   'getRevenueAnalysisReport',
   'getHomeRevenueSummary',
   'addMusicTrack', 'addPostNewsTemplate', 'addRecommendedService', 'checkDailyTriggerA1A14',
@@ -4447,6 +4455,65 @@ var API_ALLOWED_FUNCTIONS = [
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData'
 ];
 
+
+// ==========================================
+// 🔐 SECTION: Session & API Gateway (ตรวจการล็อกอินทุกคำขอ)
+// ==========================================
+// ฟังก์ชันที่หน้าเว็บเรียกได้ทั้งหมดเป็น private (ลงท้าย _) เรียกตรงจาก google.script.run ไม่ได้
+// ต้องผ่าน api() (โหมด Apps Script) หรือ doPost executeFunction (โหมด Vercel) ซึ่งตรวจ session token ก่อน
+// Script Property AUTH_ENFORCE = 'true' → บังคับต้องมี token (ปิดไว้ = ยอมให้เรียกได้แม้ไม่มี token ระหว่างทยอยเปลี่ยน)
+var AUTH_PUBLIC_FUNCTIONS = ['checkLogin', 'incrementVisitorCount', 'logFrontendErrorToLine', 'sendBugReportToLine'];
+var AUTH_USER_SCOPED_FUNCTIONS = ['getRevenueAnalysisReport', 'getHomeRevenueSummary', 'getRevenueReportData'];
+var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
+
+function createSession_(info) {
+  var token = Utilities.getUuid() + Utilities.getUuid().replace(/-/g, '');
+  CacheService.getScriptCache().put('sess_' + token, JSON.stringify({
+    user: info.user, name: info.name, zipcode: info.zipcode, team: info.team
+  }), SESSION_TTL);
+  return token;
+}
+
+function getSession_(token) {
+  if (!token || typeof token !== 'string' || token.length < 30) return null;
+  var cache = CacheService.getScriptCache();
+  var raw = cache.get('sess_' + token);
+  if (!raw) return null;
+  cache.put('sess_' + token, raw, SESSION_TTL);
+  return JSON.parse(raw);
+}
+
+function endSession(token) {
+  if (token) CacheService.getScriptCache().remove('sess_' + token);
+  return { status: 'success' };
+}
+
+// ตรวจสิทธิ์และเรียกฟังก์ชันจริง ใช้ร่วมกันทั้ง api() และ doPost
+function dispatchApiCall_(token, funcName, args) {
+  if (API_ALLOWED_FUNCTIONS.indexOf(funcName) === -1) throw new Error('Function not allowed: ' + funcName);
+  args = Array.isArray(args) ? args : [];
+  if (AUTH_PUBLIC_FUNCTIONS.indexOf(funcName) === -1) {
+    var sess = getSession_(token);
+    if (!sess && PropertiesService.getScriptProperties().getProperty('AUTH_ENFORCE') === 'true') {
+      throw new Error('SESSION_EXPIRED');
+    }
+    // ฟังก์ชันที่ดูข้อมูลตามพื้นที่: ใช้ผู้ใช้จาก session เสมอ (ปลอม user จากหน้าเว็บไม่ได้)
+    if (sess && AUTH_USER_SCOPED_FUNCTIONS.indexOf(funcName) !== -1) {
+      var u = (args[0] && typeof args[0] === 'object') ? args[0] : {};
+      u.user = sess.user; u.zipcode = sess.zipcode;
+      args[0] = u;
+    }
+  }
+  var fn = globalThis[funcName + '_'] || globalThis[funcName];
+  if (typeof fn !== 'function') throw new Error('Server function not found: ' + funcName);
+  return fn.apply(null, args);
+}
+
+// ประตูเดียวสำหรับโหมด Apps Script (google.script.run.api(token, ชื่อฟังก์ชัน, args))
+function api(token, funcName, args) {
+  return dispatchApiCall_(token, funcName, args);
+}
+
 /**
  * LINE Webhook Handler
  * ใช้จับ Event เพื่อดึง Group ID อัตโนมัติเมื่อเชิญบอทเข้ากลุ่ม หรือเมื่อพิมพ์ .id
@@ -4460,45 +4527,25 @@ function doPost(e) {
     // 0. API Execution for External Web (Vercel / Frontend)
     if (json && (json.action === 'executeFunction' || json.__gas_function__)) {
       var funcName = json.functionName || json.__gas_function__;
-      var args = json.args || [];
-      if (API_ALLOWED_FUNCTIONS.indexOf(funcName) === -1) {
+      try {
+        var res = dispatchApiCall_(json.token, funcName, json.args || []);
         return ContentService.createTextOutput(JSON.stringify({
           __gas_execution__: true,
-          success: false,
-          error: 'Function not allowed: ' + funcName
+          success: true,
+          result: res
         })).setMimeType(ContentService.MimeType.JSON);
-      }
-      try {
-        var fn = this[funcName];
-        if (typeof fn !== 'function') {
-          fn = (typeof globalThis !== 'undefined' && globalThis[funcName]) || (typeof global !== 'undefined' && global[funcName]);
-        }
-        if (typeof fn === 'function') {
-          var res = fn.apply(this, args);
-          return ContentService.createTextOutput(JSON.stringify({
-            __gas_execution__: true,
-            success: true,
-            result: res
-          })).setMimeType(ContentService.MimeType.JSON);
-        } else {
-          return ContentService.createTextOutput(JSON.stringify({
-            __gas_execution__: true,
-            success: false,
-            error: 'Server function not found: ' + funcName
-          })).setMimeType(ContentService.MimeType.JSON);
-        }
       } catch (fnErr) {
         return ContentService.createTextOutput(JSON.stringify({
           __gas_execution__: true,
           success: false,
-          error: fnErr.toString()
+          error: fnErr.message || fnErr.toString()
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }
 
     // 1. ตรวจสอบว่าเป็นการส่ง Bug Report จากหน้าเว็บ (มี action = bugReport)
     if (json && json.action === 'bugReport') {
-      sendBugReportToLine(json.message, json.imageB64);
+      sendBugReportToLine_(json.message, json.imageB64);
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -4571,7 +4618,7 @@ function replyLineWebhook(replyToken, textMessage) {
 /**
  * ส่งภาพแคปหน้าจอและข้อความ Error ไปที่ LINE เดิม (LINE OA)
  */
-function sendBugReportToLine(message, base64Image) {
+function sendBugReportToLine_(message, base64Image) {
   try {
     var fileUrl = "";
     
@@ -4738,7 +4785,7 @@ function _getMusicSheet() {
   return sheet;
 }
 
-function getMusicPlaylist() {
+function getMusicPlaylist_() {
   try {
     var sheet = _getMusicSheet();
     var data = sheet.getDataRange().getValues();
@@ -4777,7 +4824,7 @@ function getYouTubeTitle(videoId) {
   return "";
 }
 
-function addMusicTrack(url, title) {
+function addMusicTrack_(url, title) {
   try {
     var videoId = extractYouTubeId(url);
     if (!videoId) return { status: 'error', message: 'รูปแบบ URL ไม่ถูกต้อง' };
@@ -4794,7 +4841,7 @@ function addMusicTrack(url, title) {
   }
 }
 
-function editMusicTrack(index, url, title) {
+function editMusicTrack_(index, url, title) {
   try {
     var videoId = extractYouTubeId(url);
     var sheet = _getMusicSheet();
@@ -4805,7 +4852,7 @@ function editMusicTrack(index, url, title) {
   }
 }
 
-function deleteMusicTrack(index) {
+function deleteMusicTrack_(index) {
   try {
     var sheet = _getMusicSheet();
     sheet.deleteRow(index + 2);
@@ -4815,7 +4862,7 @@ function deleteMusicTrack(index) {
   }
 }
 
-function saveFullMusicPlaylist(playlist) {
+function saveFullMusicPlaylist_(playlist) {
   try {
     var sheet = _getMusicSheet();
     var lastRow = sheet.getLastRow();
@@ -4834,7 +4881,7 @@ function saveFullMusicPlaylist(playlist) {
   }
 }
 
-function sendVisitSummaryImagesToLine(imagesData) {
+function sendVisitSummaryImagesToLine_(imagesData) {
   try {
     var channelToken = getLineChannelAccessToken_();
     var destinationId = getLineDestinationId_();
@@ -4984,13 +5031,13 @@ function sendDailyLinkToLine() {
     
     UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
   } catch (e) {
-    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
   }
 }
 
 function getLineConfigStatus_() {
   try {
-    var quotaStatus = checkLineQuotaStatus();
+    var quotaStatus = checkLineQuotaStatus_();
     var destinationId = getLineDestinationId_();
     
     return {
@@ -5036,7 +5083,7 @@ function setupDailyTrigger() {
     .create();
 }
 
-function getThaiHolidaysCalendar() {
+function getThaiHolidaysCalendar_() {
   var holidays = [];
   try {
     var cal = CalendarApp.getCalendarById('th.thai#holiday@group.v.calendar.google.com');
@@ -5081,7 +5128,7 @@ function getThaiHolidaysCalendar() {
 
 var FUZE_AGENT_SS_ID = '1N8mMHy1CNbNMnVlMxm7kec2L6I8lg5GL8L0f8xAwPq0';
 
-function getFuzeAgentData() {
+function getFuzeAgentData_() {
   try {
     var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
     var sheet = ss.getSheetByName('ปข.10');
@@ -5098,7 +5145,7 @@ function getFuzeAgentData() {
   }
 }
 
-function updateFuzeAgentData(rowIndex, rowData) {
+function updateFuzeAgentData_(rowIndex, rowData) {
   try {
     var ss = SpreadsheetApp.openById(FUZE_AGENT_SS_ID);
     var sheet = ss.getSheetByName('ปข.10');
@@ -5116,7 +5163,7 @@ function updateFuzeAgentData(rowIndex, rowData) {
     }
 }
 
-function searchFuzeAgentContractPdf(folderId, zipCode) {
+function searchFuzeAgentContractPdf_(folderId, zipCode) {
     try {
         if (!folderId || !zipCode) return { success: false, error: 'ข้อมูลไม่ครบถ้วน' };
         

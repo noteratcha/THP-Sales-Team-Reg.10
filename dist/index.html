@@ -370,7 +370,8 @@
                 const payload = {
                   action: 'executeFunction',
                   functionName: prop,
-                  args: args
+                  args: args,
+                  token: (typeof window.getThpSessionToken === 'function') ? window.getThpSessionToken() : ''
                 };
                 
                 // Use Content-Type: text/plain to avoid CORS preflight OPTIONS request
@@ -396,6 +397,10 @@
                       }
                     } else {
                       const err = new Error(json.error || 'Execution failed on Google Apps Script');
+                      if (String(json.error || '').indexOf('SESSION_EXPIRED') !== -1 && typeof window.handleSessionExpired === 'function') {
+                        window.handleSessionExpired();
+                        return;
+                      }
                       if (typeof failureCb === 'function') {
                         failureCb(err, userObj);
                       } else {
@@ -420,6 +425,7 @@
         }
         
         window.google.script.run = createRunner();
+        window.__THP_VERCEL_ADAPTER__ = true;
         console.log('🚀 Vercel GAS Adapter initialized pointing to:', DEFAULT_GAS_URL);
       }
     })();
@@ -432,13 +438,61 @@
   <!-- 1. มอดูลหลักของระบบ (โครงสร้าง, เข้าสู่ระบบ, เมนู, หน้าหลัก และแกนประมวลผล) -->
   <script>
     // ==========================================
+    // 🔐 SESSION TOKEN: แนบ token กับทุกคำขอไปหลังบ้าน
+    // ==========================================
+    // โหมด Apps Script (เปิดผ่าน script.google.com / Google Sites): ห่อ google.script.run ให้ทุกคำสั่งวิ่งผ่าน api(token, ชื่อฟังก์ชัน, args)
+    // โหมด Vercel: adapter ใน build-web.js อ่าน token จาก window.getThpSessionToken() เอง
+    window.getThpSessionToken = function () {
+        try {
+            var raw = (typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_user_session') : localStorage.getItem('thp_user_session');
+            return raw ? (JSON.parse(raw).token || '') : '';
+        } catch (e) { return ''; }
+    };
+    window.handleSessionExpired = function () {
+        if (window.__sessionExpiredShown) return;
+        window.__sessionExpiredShown = true;
+        try { if (typeof SafeStorage !== 'undefined') SafeStorage.removeItem('thp_user_session'); else localStorage.removeItem('thp_user_session'); } catch (e) {}
+        var done = function () { location.reload(); };
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: 'info', title: 'กรุณาเข้าสู่ระบบใหม่', text: 'เซสชันหมดอายุหรือยังไม่ได้เข้าสู่ระบบ', confirmButtonColor: '#ea580c' }).then(done);
+        } else { done(); }
+    };
+    (function () {
+        if (window.__THP_VERCEL_ADAPTER__) return;
+        if (typeof google === 'undefined' || !google.script || !google.script.run || google.script.__thpWrapped) return;
+        var realRun = google.script.run;
+        function createRunner(successCb, failureCb, userObj) {
+            return new Proxy({}, {
+                get: function (target, prop) {
+                    if (prop === 'withSuccessHandler') return function (cb) { return createRunner(cb, failureCb, userObj); };
+                    if (prop === 'withFailureHandler') return function (cb) { return createRunner(successCb, cb, userObj); };
+                    if (prop === 'withUserObject') return function (obj) { return createRunner(successCb, failureCb, obj); };
+                    return function () {
+                        var args = Array.prototype.slice.call(arguments);
+                        realRun
+                            .withSuccessHandler(function (res) { if (typeof successCb === 'function') successCb(res, userObj); })
+                            .withFailureHandler(function (err) {
+                                if (err && String(err.message || err).indexOf('SESSION_EXPIRED') !== -1) { window.handleSessionExpired(); return; }
+                                if (typeof failureCb === 'function') failureCb(err, userObj); else console.error('GAS Error:', err);
+                            })
+                            .api(window.getThpSessionToken(), String(prop), args);
+                    };
+                }
+            });
+        }
+        google.script.run = createRunner();
+        google.script.__thpWrapped = true;
+    })();
+</script>
+<script>
+    // ==========================================
     // SYSTEM VERSION CONTROL
     // ==========================================
     // รูปแบบการนับเวอร์ชัน: Ver. ปี.เดือนวันที่.ชั่วโมงนาที
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1934';
+    var APP_VERSION = 'Ver. 2026.1017.1942';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2752,13 +2806,14 @@
     };
 
     function toggleFilterSalesAll(source) { document.querySelectorAll('.sales-checkbox').forEach(cb => cb.checked = source.checked); updateFilterSalesText(); }
-    function updateFilterSalesText() { updateFilterTextGeneral('filterSalesDropdown', '.sales-checkbox', 'filterSalesText'); applyFilters(); }
+    function updateFilterSalesText() { updateFilterTextVisit('filterSalesDropdown', '.sales-checkbox', 'filterSalesText'); applyFilters(); }
     function toggleFilterSubjectAll(source) { document.querySelectorAll('.subj-checkbox').forEach(cb => cb.checked = source.checked); updateFilterSubjectText(); }
-    function updateFilterSubjectText() { updateFilterTextGeneral('filterSubjectDropdown', '.subj-checkbox', 'filterSubjectText'); applyFilters(); }
+    function updateFilterSubjectText() { updateFilterTextVisit('filterSubjectDropdown', '.subj-checkbox', 'filterSubjectText'); applyFilters(); }
     function toggleFilterCustomerGroupAll(source) { document.querySelectorAll('.cg-checkbox').forEach(cb => cb.checked = source.checked); updateFilterCustomerGroupText(); }
-    function updateFilterCustomerGroupText() { updateFilterTextGeneral('filterCustomerGroupDropdown', '.cg-checkbox', 'filterCustomerGroupText'); applyFilters(); }
+    function updateFilterCustomerGroupText() { updateFilterTextVisit('filterCustomerGroupDropdown', '.cg-checkbox', 'filterCustomerGroupText'); applyFilters(); }
 
-    function updateFilterTextGeneral(dropdownId, checkboxClass, textId) {
+    // ชื่อแยกจาก updateFilterTextGeneral ของ Module_Revenue (ชื่อซ้ำทำให้ตัวของ Revenue ทับตัวนี้)
+    function updateFilterTextVisit(dropdownId, checkboxClass, textId) {
         const dropdown = document.getElementById(dropdownId); if (!dropdown) return;
         const allCb = dropdown.querySelector('input[value="ALL"]'); const checkboxes = dropdown.querySelectorAll(checkboxClass);
         const checked = Array.from(checkboxes).filter(cb => cb.checked);
@@ -23900,6 +23955,7 @@
     }
 
     function logout() {
+        try { var tk = window.getThpSessionToken(); if (tk) google.script.run.endSession(tk); } catch (e) {}
         SafeStorage.removeItem('thp_user_session');
         currentUserInfo = { user: '', zipcode: '', name: '', team: '' };
         window.postNewsInitialized = false;

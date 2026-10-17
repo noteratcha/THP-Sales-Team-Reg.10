@@ -71,7 +71,8 @@ const adapterScript = `
                 const payload = {
                   action: 'executeFunction',
                   functionName: prop,
-                  args: args
+                  args: args,
+                  token: (typeof window.getThpSessionToken === 'function') ? window.getThpSessionToken() : ''
                 };
                 
                 // Use Content-Type: text/plain to avoid CORS preflight OPTIONS request
@@ -97,6 +98,10 @@ const adapterScript = `
                       }
                     } else {
                       const err = new Error(json.error || 'Execution failed on Google Apps Script');
+                      if (String(json.error || '').indexOf('SESSION_EXPIRED') !== -1 && typeof window.handleSessionExpired === 'function') {
+                        window.handleSessionExpired();
+                        return;
+                      }
                       if (typeof failureCb === 'function') {
                         failureCb(err, userObj);
                       } else {
@@ -121,6 +126,7 @@ const adapterScript = `
         }
         
         window.google.script.run = createRunner();
+        window.__THP_VERCEL_ADAPTER__ = true;
         console.log('🚀 Vercel GAS Adapter initialized pointing to:', DEFAULT_GAS_URL);
       }
     })();

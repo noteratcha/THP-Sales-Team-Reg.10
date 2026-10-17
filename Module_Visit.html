@@ -1383,13 +1383,14 @@
     };
 
     function toggleFilterSalesAll(source) { document.querySelectorAll('.sales-checkbox').forEach(cb => cb.checked = source.checked); updateFilterSalesText(); }
-    function updateFilterSalesText() { updateFilterTextGeneral('filterSalesDropdown', '.sales-checkbox', 'filterSalesText'); applyFilters(); }
+    function updateFilterSalesText() { updateFilterTextVisit('filterSalesDropdown', '.sales-checkbox', 'filterSalesText'); applyFilters(); }
     function toggleFilterSubjectAll(source) { document.querySelectorAll('.subj-checkbox').forEach(cb => cb.checked = source.checked); updateFilterSubjectText(); }
-    function updateFilterSubjectText() { updateFilterTextGeneral('filterSubjectDropdown', '.subj-checkbox', 'filterSubjectText'); applyFilters(); }
+    function updateFilterSubjectText() { updateFilterTextVisit('filterSubjectDropdown', '.subj-checkbox', 'filterSubjectText'); applyFilters(); }
     function toggleFilterCustomerGroupAll(source) { document.querySelectorAll('.cg-checkbox').forEach(cb => cb.checked = source.checked); updateFilterCustomerGroupText(); }
-    function updateFilterCustomerGroupText() { updateFilterTextGeneral('filterCustomerGroupDropdown', '.cg-checkbox', 'filterCustomerGroupText'); applyFilters(); }
+    function updateFilterCustomerGroupText() { updateFilterTextVisit('filterCustomerGroupDropdown', '.cg-checkbox', 'filterCustomerGroupText'); applyFilters(); }
 
-    function updateFilterTextGeneral(dropdownId, checkboxClass, textId) {
+    // ชื่อแยกจาก updateFilterTextGeneral ของ Module_Revenue (ชื่อซ้ำทำให้ตัวของ Revenue ทับตัวนี้)
+    function updateFilterTextVisit(dropdownId, checkboxClass, textId) {
         const dropdown = document.getElementById(dropdownId); if (!dropdown) return;
         const allCb = dropdown.querySelector('input[value="ALL"]'); const checkboxes = dropdown.querySelectorAll(checkboxClass);
         const checked = Array.from(checkboxes).filter(cb => cb.checked);
