@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v10_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v12_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1117,6 +1117,31 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   };
   var customers = agg(customerKey);
 
+  // ที่ทำการของลูกค้า: ใช้ที่ทำการที่มีรายได้มากที่สุด ถ้าใช้หลายแห่ง (เช่น ตำรวจ) บอกจำนวนแห่งด้วย
+  // บริการของลูกค้า: เรียงตามรายได้ แสดงบริการหลักและจำนวนบริการอื่น
+  var custOfficeRev = {}, custServiceRev = {};
+  rows.forEach(function(r) {
+    var k = customerKey(r); if (!k) return;
+    var off = String(r[0]).trim();
+    if (off) {
+      if (!custOfficeRev[k]) custOfficeRev[k] = {};
+      custOfficeRev[k][off] = (custOfficeRev[k][off] || 0) + num(r[8]);
+    }
+    var sv = String(r[4]).trim();
+    if (sv) {
+      if (!custServiceRev[k]) custServiceRev[k] = {};
+      custServiceRev[k][sv] = (custServiceRev[k][sv] || 0) + num(r[8]);
+    }
+  });
+  customers.forEach(function(cu) {
+    var offs = custOfficeRev[cu.name] || {};
+    var names = Object.keys(offs).sort(function(a, b) { return offs[b] - offs[a]; });
+    cu.office = names.length === 0 ? '-' : (names.length === 1 ? names[0] : names[0] + ' และอีก ' + (names.length - 1) + ' แห่ง');
+    var svs = custServiceRev[cu.name] || {};
+    var svNames = Object.keys(svs).sort(function(a, b) { return svs[b] - svs[a]; });
+    cu.services = svNames.length === 0 ? '-' : svNames.slice(0, 2).join(', ') + (svNames.length > 2 ? ' และอีก ' + (svNames.length - 2) + ' บริการ' : '');
+  });
+
   var totalCur = monthCur.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
   var totalLy = monthLy.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
   var totalTarget = Object.keys(zipTarget).reduce(function(a, z) { return a + zipTarget[z]; }, 0);
@@ -1173,6 +1198,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     'ข้อกำหนด:',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท',
+    '- เมื่อกล่าวถึงลูกค้ารายใด ให้ระบุที่ทำการในวงเล็บต่อท้ายชื่อเสมอ จากฟิลด์ office และบอกบริการที่ใช้จากฟิลด์ services เช่น "ธนัญชญา รุ่งสิริฤทธิเวทย์ (34010 - ศป.อุบลราชธานี) ใช้บริการ e-Parcel"',
     '- ข้อมูลรายลูกค้า (topCustomers, growingCustomers, decliningCustomers, inactiveCustomers, customerCount, top1SharePct, top10SharePct) นับเฉพาะลูกค้าสมาชิก THP และสำนักงานตำรวจแห่งชาติ (รวมทุกหน่วยตำรวจเป็นรายเดียว) ให้เรียกว่า "ลูกค้าสมาชิก"',
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
