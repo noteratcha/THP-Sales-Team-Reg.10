@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1451';
+    var APP_VERSION = 'Ver. 2026.1017.1453';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25017,7 +25017,7 @@
             if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ล.';
             return Math.round(v).toLocaleString('en-US');
         };
-        const growth = (g) => g == null ? '<span class="muted">ใหม่</span>' : `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '▲' : '▼'} ${Math.abs(g)}%</span>`;
+        const growth = (g) => g == null ? '<span class="muted">ใหม่</span>' : `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '▲ +' : '▼ -'}${Math.abs(g)}%</span>`;
         // "เติบโต" ในตารางที่มีเป้า = % ที่เกิน/ขาดจากเป้า (เช่น ทำได้ 240.2% ของเป้า → ▲ 140.2%)
         const vsTarget = (t) => t.achievementPct == null ? null : Math.round((t.achievementPct - 100) * 10) / 10;
         const growthVsTarget = (t) => t.achievementPct == null ? '<span class="muted">ไม่มีเป้า</span>' : growth(vsTarget(t));
