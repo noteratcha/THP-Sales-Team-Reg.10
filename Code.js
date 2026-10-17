@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v8_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v9_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1095,7 +1095,15 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
   var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
   var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
-  var customers = agg(function(r) { var c = String(r[1]).trim(); return c && !NOT_CUSTOMER.test(c) && isMember(r) ? c : null; });
+  // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
+  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
+  var customerKey = function(r) {
+    var c = String(r[1]).trim();
+    if (!c || NOT_CUSTOMER.test(c)) return null;
+    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
+    return isMember(r) ? c : null;
+  };
+  var customers = agg(customerKey);
 
   var totalCur = monthCur.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
   var totalLy = monthLy.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
@@ -1107,8 +1115,9 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   var top10Sum = byCur.slice(0, 10).reduce(function(a, c) { return a + c.ytd; }, 0);
   var lastMonthByCustomer = {};
   rows.forEach(function(r) {
-    if (yearOf(r) !== curYear || !isMember(r)) return;
-    var mi = MONTHS.indexOf(String(r[5]).trim()); var c = String(r[1]).trim();
+    if (yearOf(r) !== curYear) return;
+    var c = customerKey(r); if (!c) return;
+    var mi = MONTHS.indexOf(String(r[5]).trim());
     if (num(r[8]) > 0 && (lastMonthByCustomer[c] === undefined || mi > lastMonthByCustomer[c])) lastMonthByCustomer[c] = mi;
   });
   var inactive = customers.filter(function(c) {
@@ -1151,7 +1160,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     'ข้อกำหนด:',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท',
-    '- ข้อมูลรายลูกค้า (topCustomers, growingCustomers, decliningCustomers, inactiveCustomers, customerCount, top1SharePct, top10SharePct) นับเฉพาะลูกค้าสมาชิก THP เท่านั้น ให้เรียกว่า "ลูกค้าสมาชิก"',
+    '- ข้อมูลรายลูกค้า (topCustomers, growingCustomers, decliningCustomers, inactiveCustomers, customerCount, top1SharePct, top10SharePct) นับเฉพาะลูกค้าสมาชิก THP และสำนักงานตำรวจแห่งชาติ (รวมทุกหน่วยตำรวจเป็นรายเดียว) ให้เรียกว่า "ลูกค้าสมาชิก"',
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
