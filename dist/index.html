@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1911';
+    var APP_VERSION = 'Ver. 2026.1017.1919';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25568,6 +25568,15 @@
         const custCell = (c) => `<td>${esc(c.name)}${c.office ? `<div class="office">📍 ${esc(c.office)}</div>` : ''}${c.services ? `<div class="office">📦 ${esc(c.services)}</div>` : ''}</td>`;
         const kpi = (label, value, sub) => `<div class="kpi"><div class="kl">${label}</div><div class="kv">${value}</div><div class="ks">${sub || ''}</div></div>`;
 
+        const provs = (s.provinces || []).slice().sort(byTarget);
+        const topProv = provs[0] || { name: '-', achievementPct: null, growthPct: null };
+        const botProv = provs[provs.length - 1] || { name: '-', achievementPct: null, growthPct: null };
+        const rTeams = (s.teams || []).filter(t => t.name !== 'ไม่ระบุทีม' && t.achievementPct != null).slice().sort(byTarget);
+        const topTeams = rTeams.slice(0, 3);
+        const botTeams = rTeams.slice(-3);
+        const topSrv = (s.services && s.services.length) ? s.services[0] : null;
+        const topDecCust = (s.decliningCustomers || []).slice(0, 2);
+
         return `<!doctype html><html lang="th"><head><meta charset="utf-8">
 <title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -25591,8 +25600,13 @@
   * { box-sizing: border-box; }
   body { font-family: 'Sarabun', sans-serif; color: #1f2937; margin: 0; background: #e5e7eb; font-size: 12.5px; line-height: 1.55; }
   .page { width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff; padding: 14mm 12mm; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
-  .toolbar { position: sticky; top: 0; background: #0f3d2e; color: #fff; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-  .toolbar button { background: #ea580c; color: #fff; border: 0; padding: 8px 18px; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+  .toolbar { position: sticky; top: 0; background: #0f3d2e; color: #fff; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; gap: 12px; flex-wrap: wrap; }
+  .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .vtab { background: transparent; color: #f1f5f9; border: 0; padding: 4px 14px; border-radius: 999px; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .vtab:hover { color: #fff; background: rgba(255,255,255,0.12); }
+  .vtab.active { background: #ea580c; color: #fff; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .btn-print { background: #ea580c; color: #fff; border: 0; padding: 7px 18px; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; transition: background .15s; }
+  .btn-print:hover { background: #c2410c; }
   header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #ea580c; padding-bottom: 8px; margin-bottom: 12px; }
   h1 { font-size: 20px; line-height: 1.35; margin: 0; color: #0f3d2e; }
   h2 { font-size: 15px; margin: 16px 0 6px; color: #0f3d2e; border-left: 4px solid #ea580c; padding-left: 8px; break-after: avoid; }
@@ -25615,92 +25629,190 @@
   .mrow { display: flex; align-items: center; gap: 6px; margin: 2px 0; } .mlabel { width: 34px; color: #6b7280; } .mval { width: 60px; text-align: right; font-weight: 600; }
   .mbars { flex: 1; } .bar { height: 6px; border-radius: 3px; margin: 1px 0; } .bar.cur { background: #ea580c; } .bar.ly { background: #cbd5e1; }
   .legend span { display: inline-block; width: 10px; height: 6px; border-radius: 3px; margin: 0 4px 0 10px; }
+  .snap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 10px; }
+  .snap-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 9px; background: #f8fafc; font-size: 11px; }
+  .snap-title { font-weight: 700; color: #0f3d2e; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; }
+  .snap-body div { margin: 2px 0; line-height: 1.4; }
+  .summary-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #0f3d2e; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 999px; }
+  .page-break-divider { break-after: page; page-break-after: always; height: 0; margin: 0; padding: 0; border: 0; }
   footer { margin-top: 14px; color: #9ca3af; font-size: 10px; border-top: 1px solid #e5e7eb; padding-top: 6px; }
-  @media print { body { background: #fff; } .toolbar { display: none; } .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; } }
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; }
+    .page-break-divider { break-after: page; page-break-after: always; }
+  }
 </style></head><body>
-<div class="toolbar"><span>รายงานวิเคราะห์รายได้ด้วย AI</span><button onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button></div>
+<div class="toolbar">
+  <div class="toolbar-left">
+    <span style="font-weight:700;">รายงานวิเคราะห์รายได้ด้วย AI</span>
+    <div style="display:inline-flex;background:rgba(255,255,255,0.18);border-radius:999px;padding:2px;">
+      <button class="vtab active" onclick="switchView('full', this)">📑 รายงานฉบับเต็ม</button>
+      <button class="vtab" onclick="switchView('summary', this)">⚡ สรุปเนื้อหาแบบย่อ (1 หน้า)</button>
+      <button class="vtab" onclick="switchView('details', this)">📊 ข้อมูลและตารางละเอียด</button>
+    </div>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+</div>
 <div class="page"><table class="print-wrap"><thead><tr><td>
   <header>
     <div><h1>รายงานวิเคราะห์รายได้ทีมขายในสังกัด ปข.10${titleSuffix ? '<br>' + titleSuffix.trim() : ''}</h1><div class="muted">${periodLabel}</div></div>
   </header>
   </td></tr></thead><tbody><tr><td>
 
-  ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
-  <div class="kpis">
-    ${kpi(mode === 'month' ? 'รายได้เดือนนี้ (บาท)' : mode === 'quarter' ? 'รายได้ไตรมาสนี้ (บาท)' : mode === 'year' ? 'รายได้ทั้งปี (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
-    ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
-    ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'ทำได้ ' + money(o.ytd) + ' / เป้า ' + money(o.target))}
-    ${kpi('ลูกค้าสมาชิก (THP) ที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US') + ' ราย', 'สัดส่วนรายได้ Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
+  <!-- ============================================== -->
+  <!-- 📄 หน้าที่ 1: บทสรุปเนื้อหาทั้งหมดแบบย่อ (Executive Brief) -->
+  <!-- ============================================== -->
+  <div id="execSummarySection">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+      <span class="summary-badge">⚡ หน้าสรุปเนื้อหาทั้งหมดแบบย่อ (Executive Brief)</span>
+      <span class="muted" style="font-size:10.5px;">สรุปประเด็นสำคัญใน 1 หน้า A4</span>
+    </div>
+
+    ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
+    <div class="kpis">
+      ${kpi(mode === 'month' ? 'รายได้เดือนนี้ (บาท)' : mode === 'quarter' ? 'รายได้ไตรมาสนี้ (บาท)' : mode === 'year' ? 'รายได้ทั้งปี (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
+      ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
+      ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'ทำได้ ' + money(o.ytd) + ' / เป้า ' + money(o.target))}
+      ${kpi('ลูกค้าสมาชิก (THP) ที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US') + ' ราย', 'สัดส่วนรายได้ Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
+    </div>
+
+    <section class="sec" style="margin-bottom:10px;"><h2>สรุปสำหรับผู้บริหาร</h2>
+    <div class="box">${list(ai.executiveSummary)}</div></section>
+
+    <section class="sec" style="margin-bottom:10px;"><div class="two">
+      <div><h2>จุดเด่น</h2>${list(ai.highlights)}</div>
+      <div><h2>จุดที่ต้องระวัง</h2>${list(ai.concerns)}</div>
+    </div></section>
+
+    <section class="sec" style="margin-bottom:10px;"><h2>ภาพรวมผลงานสำคัญ</h2>
+    <div class="snap-grid">
+      <div class="snap-card">
+        <div class="snap-title">🏢 จังหวัด / ศูนย์ ปข.10</div>
+        <div class="snap-body">
+          <div><b>ทำผลงานสูงสุด:</b> ${esc(topProv.name)} (${achv(topProv.achievementPct)} · ${growth(topProv.growthPct)})</div>
+          <div><b>จุดที่ต้องเร่งรัด:</b> ${esc(botProv.name)} (${achv(botProv.achievementPct)} · ${growth(botProv.growthPct)})</div>
+        </div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-title">👥 ทีมขายเด่น & ต่ำกว่าเป้า</div>
+        <div class="snap-body">
+          <div><b>เกินเป้า:</b> ${topTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
+          <div><b>ต่ำกว่าเป้า:</b> ${botTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
+        </div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-title">📦 บริการหลัก & ลูกค้าที่ลดลง</div>
+        <div class="snap-body">
+          <div><b>บริการหลัก:</b> ${topSrv ? esc(topSrv.name) + ' (' + money(topSrv.ytd) + ' · สัดส่วน ' + (topSrv.sharePct ?? '-') + '%)' : '-'}</div>
+          <div><b>ลดลงมากสุด:</b> ${topDecCust.map(c => esc(c.name) + ' (' + money(c.diff) + ')').join(', ') || '-'}</div>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section class="sec" style="margin-bottom:6px;"><h2>ข้อเสนอแนะเชิงกลยุทธ์</h2>
+    <div class="box" style="background:#f0fdf4;border-color:#bbf7d0;">${list(ai.recommendations)}</div></section>
   </div>
 
-  <section class="sec"><h2>สรุปสำหรับผู้บริหาร</h2>
-  <div class="box">${list(ai.executiveSummary)}</div></section>
-  <section class="sec"><div class="two">
-    <div><h2>จุดเด่น</h2>${list(ai.highlights)}</div>
-    <div><h2>จุดที่ต้องระวัง</h2>${list(ai.concerns)}</div>
-  </div></section>
+  <div class="page-break-divider"></div>
 
-  <section class="sec"><h2>แนวโน้มรายได้รายเดือน</h2>
-  <div class="legend muted"><span style="background:#ea580c"></span>ปี ${s.period.year + 543}<span style="background:#cbd5e1"></span>ปี ${s.period.compareYear + 543}</div>
-  ${monthBars}</section>
+  <!-- ============================================== -->
+  <!-- 📊 หน้าที่ 2 เป็นต้นไป: ข้อมูลสถิติและตารางวิเคราะห์รายละเอียดย่อย -->
+  <!-- ============================================== -->
+  <div id="detailedReportSection">
+    <div style="border-bottom: 2px solid #0f3d2e; padding-bottom: 4px; margin: 12px 0 14px;">
+      <h2 style="margin:0;border:0;padding:0;font-size:16px;color:#0f3d2e;">📊 ข้อมูลสถิติและตารางวิเคราะห์รายละเอียดย่อย</h2>
+      <div class="muted" style="font-size:11px;">รายละเอียดผลการดำเนินงานรายเดือน จังหวัด ทีมขาย ที่ทำการ บริการ และลูกค้าสมาชิก</div>
+    </div>
 
-  ${(s.provinces && s.provinces.length) ? `<section class="sec"><h2>ภาพรวมรายจังหวัด</h2>
-  ${list(ai.provinceOverview)}
-  ${table(['จังหวัด / ศูนย์', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', '<span class="n">ที่ทำการ</span>'],
-            s.provinces.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
-  </section>` : ''}
+    <section class="sec"><h2>แนวโน้มรายได้รายเดือน</h2>
+    <div class="legend muted"><span style="background:#ea580c"></span>ปี ${s.period.year + 543}<span style="background:#cbd5e1"></span>ปี ${s.period.compareYear + 543}</div>
+    ${monthBars}</section>
 
-  ${(() => {
-      // ตารางผลงานรายทีม: ทีมที่เกินเป้ามากสุด 5 ทีม, ต่ำกว่าเป้ามากสุด 5 ทีม และตารางแสดงครบทุกทีม
-      const allTeams = s.teams.filter(t => t.name !== 'ไม่ระบุทีม').slice().sort(byTarget);
-      const ranked = allTeams.filter(t => t.achievementPct != null);
-      const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'];
-      const teamRow = t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
-      const bottomTeamRow = t => {
-          const decSrv = t.decliningServices && t.decliningServices.length ? t.decliningServices[0] : null;
-          const srvText = decSrv ? `<div class="office" style="color:#b91c1c;">📉 ลดลงหลัก: ${esc(decSrv.service)} (${money(decSrv.diff)} บาท)</div>` : '';
-          return `<tr><td>${esc(t.name)}${srvText}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
-      };
-      const hasSplit = ranked.length > 5;
-      const top5 = hasSplit ? ranked.slice(0, 5) : [];
-      const bottom5 = hasSplit ? ranked.slice(-5) : [];
-      return `<section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
-  ${list(ai.teamPerformance)}</div>
-  ${hasSplit ? `
-  <b class="up">▲ ทีมที่เกินเป้ามากที่สุด 5 ทีม</b>
-  ${table(teamHead, top5.map(teamRow), '% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
-  <b class="down" style="display:block; margin-top:10px;">▼ ทีมที่ต่ำกว่าเป้ามากที่สุด 5 ทีม</b>
-  ${table(teamHead, bottom5.map(bottomTeamRow), '% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
-  <b style="display:block; margin-top:12px; color:#0f3d2e;">ภาพรวมผลงานทุกทีมในสังกัด ปข.10</b>
-  ` : ''}
-  ${table(teamHead, allTeams.map(teamRow), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกทีม (${allTeams.length} ทีม)`)}
-  </section>`;
-  })()}
+    ${(s.provinces && s.provinces.length) ? `<section class="sec"><h2>ภาพรวมรายจังหวัด</h2>
+    ${list(ai.provinceOverview)}
+    ${table(['จังหวัด / ศูนย์', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', '<span class="n">ที่ทำการ</span>'],
+              s.provinces.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
+    </section>` : ''}
 
-  <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
-  ${list(ai.officeGrowth)}</div>
-  ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'],
-            s.offices.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกที่ทำการ (${s.offices.length} แห่ง)`)}
-  </section>
+    ${(() => {
+        // ตารางผลงานรายทีม: ทีมที่เกินเป้ามากสุด 5 ทีม, ต่ำกว่าเป้ามากสุด 5 ทีม และตารางแสดงครบทุกทีม
+        const allTeams = s.teams.filter(t => t.name !== 'ไม่ระบุทีม').slice().sort(byTarget);
+        const ranked = allTeams.filter(t => t.achievementPct != null);
+        const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'];
+        const teamRow = t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
+        const bottomTeamRow = t => {
+            const decSrv = t.decliningServices && t.decliningServices.length ? t.decliningServices[0] : null;
+            const srvText = decSrv ? `<div class="office" style="color:#b91c1c;">📉 ลดลงหลัก: ${esc(decSrv.service)} (${money(decSrv.diff)} บาท)</div>` : '';
+            return `<tr><td>${esc(t.name)}${srvText}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
+        };
+        const hasSplit = ranked.length > 5;
+        const top5 = hasSplit ? ranked.slice(0, 5) : [];
+        const bottom5 = hasSplit ? ranked.slice(-5) : [];
+        return `<section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
+    ${list(ai.teamPerformance)}</div>
+    ${hasSplit ? `
+    <b class="up">▲ ทีมที่เกินเป้ามากที่สุด 5 ทีม</b>
+    ${table(teamHead, top5.map(teamRow), '% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
+    <b class="down" style="display:block; margin-top:10px;">▼ ทีมที่ต่ำกว่าเป้ามากที่สุด 5 ทีม</b>
+    ${table(teamHead, bottom5.map(bottomTeamRow), '% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
+    <b style="display:block; margin-top:12px; color:#0f3d2e;">ภาพรวมผลงานทุกทีมในสังกัด ปข.10</b>
+    ` : ''}
+    ${table(teamHead, allTeams.map(teamRow), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกทีม (${allTeams.length} ทีม)`)}
+    </section>`;
+    })()}
 
-  <section class="sec"><h2>สัดส่วนบริการ</h2>
-  ${list(ai.serviceMix)}
-  ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">เติบโต</span>'],
-            s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
-  </section>
+    <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
+    ${list(ai.officeGrowth)}</div>
+    ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'],
+              s.offices.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกที่ทำการ (${s.offices.length} แห่ง)`)}
+    </section>
 
-  <section class="sec"><h2>ลูกค้าสมาชิกที่ต้องจับตา</h2>
-  ${list(ai.customerWatch)}</section>
-  <section class="sec"><div class="two">
-    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
-    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}</div>
-  </div></section>
-  <section class="sec-long"><div class="lead"><b>หยุดใช้บริการ 3 เดือนขึ้นไป (รายได้ปีก่อนตั้งแต่ 200,000 บาทขึ้นไป)</b></div>
-  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.map(c => `<tr>${custCell({ name: c.name, office: c.lastOffice || c.office, services: c.lastServices || c.services })}<td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'รายได้ปีก่อนจากมากไปน้อย · เฉพาะลูกค้ารายได้ปีก่อนตั้งแต่ 200,000 บาทขึ้นไป')}</section>
+    <section class="sec"><h2>สัดส่วนบริการ</h2>
+    ${list(ai.serviceMix)}
+    ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">เติบโต</span>'],
+              s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
+    </section>
 
-  <section class="sec"><h2>ข้อเสนอแนะ</h2>
-  <div class="box">${list(ai.recommendations)}</div></section>
-</td></tr></tbody></table></div></body></html>`;
+    <section class="sec"><h2>ลูกค้าสมาชิกที่ต้องจับตา</h2>
+    ${list(ai.customerWatch)}</section>
+    <section class="sec"><div class="two">
+      <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
+      <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}</div>
+    </div></section>
+    <section class="sec-long"><div class="lead"><b>หยุดใช้บริการ 3 เดือนขึ้นไป (รายได้ปีก่อนตั้งแต่ 200,000 บาทขึ้นไป)</b></div>
+    ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.map(c => `<tr>${custCell({ name: c.name, office: c.lastOffice || c.office, services: c.lastServices || c.services })}<td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'รายได้ปีก่อนจากมากไปน้อย · เฉพาะลูกค้ารายได้ปีก่อนตั้งแต่ 200,000 บาทขึ้นไป')}</section>
+
+    <section class="sec"><h2>ข้อเสนอแนะ</h2>
+    <div class="box">${list(ai.recommendations)}</div></section>
+  </div>
+</td></tr></tbody></table></div>
+
+<script>
+  function switchView(mode, btn) {
+    document.querySelectorAll('.vtab').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    var sSec = document.getElementById('execSummarySection');
+    var dSec = document.getElementById('detailedReportSection');
+    var brk = document.querySelector('.page-break-divider');
+    if (!sSec || !dSec) return;
+    if (mode === 'summary') {
+      sSec.style.display = 'block';
+      dSec.style.display = 'none';
+      if (brk) brk.style.display = 'none';
+    } else if (mode === 'details') {
+      sSec.style.display = 'none';
+      dSec.style.display = 'block';
+      if (brk) brk.style.display = 'none';
+    } else {
+      sSec.style.display = 'block';
+      dSec.style.display = 'block';
+      if (brk) brk.style.display = 'block';
+    }
+  }
+</script>
+</body></html>`;
     }
 
     function updateHeaderSyncTime() {
