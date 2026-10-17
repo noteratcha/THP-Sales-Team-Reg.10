@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1200';
+    var APP_VERSION = 'Ver. 2026.1017.1238';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -24994,9 +24994,10 @@
         const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
         const periodLabel = `${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
 
+        const SHORT_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
         const maxMonth = Math.max(1, ...s.monthly.map(m => Math.max(m.cur, m.lastYear)));
-        const monthBars = s.monthly.map(m => `
-            <div class="mrow"><span class="mlabel">${esc(m.month.substring(0, 3))}</span>
+        const monthBars = s.monthly.map((m, idx) => `
+            <div class="mrow"><span class="mlabel">${SHORT_MONTHS[idx]}</span>
                 <div class="mbars"><div class="bar cur" style="width:${m.cur / maxMonth * 100}%"></div><div class="bar ly" style="width:${m.lastYear / maxMonth * 100}%"></div></div>
                 <span class="mval">${money(m.cur)}</span></div>`).join('');
 
