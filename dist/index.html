@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2242';
+    var APP_VERSION = 'Ver. 2026.1017.2248';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -27190,10 +27190,140 @@
     .toolbar, .cat-nav-bar, .cat-badge, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .btn-back-to-top, .no-print { display: none !important; }
     .print-only { display: block !important; }
     .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; }
-    table.print-wrap > thead header { padding-top: 15mm !important; }
-    .page-break-divider { break-after: page; page-break-after: always; }
-    .office-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; }
-    .cat-header { break-after: avoid; page-break-after: avoid; }
+    table.print-wrap > thead header { padding-top: 10mm !important; padding-bottom: 6px !important; margin-bottom: 8px !important; }
+    table.print-wrap > thead header h1 { font-size: 17px !important; line-height: 1.25 !important; }
+    table.print-wrap > thead header .muted { font-size: 10.5px !important; }
+    .page-break-divider { break-after: page; page-break-after: always; height: 0; margin: 0; }
+
+    /* Category 1 (Executive Summary) Perfect 1-Page Fit */
+    #execSummarySection {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    #execSummarySection .cat-header {
+      margin: 6px 0 6px !important;
+      padding-bottom: 3px !important;
+    }
+    #execSummarySection .cat-title {
+      font-size: 14px !important;
+    }
+    #execSummarySection .cat-subtitle {
+      font-size: 10px !important;
+    }
+    #execSummarySection .kpis {
+      margin: 5px 0 7px !important;
+      gap: 6px !important;
+    }
+    #execSummarySection .kpi {
+      padding: 5px 8px !important;
+      border-radius: 6px !important;
+    }
+    #execSummarySection .kl {
+      font-size: 9.5px !important;
+      margin-bottom: 1px !important;
+    }
+    #execSummarySection .kv {
+      font-size: 16.5px !important;
+      line-height: 1.15 !important;
+    }
+    #execSummarySection .ks {
+      font-size: 8.5px !important;
+      margin-top: 2px !important;
+    }
+    #execSummarySection .sec {
+      margin-bottom: 6px !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    #execSummarySection h2.sub-title {
+      margin: 5px 0 3px !important;
+      font-size: 11.5px !important;
+      padding-left: 5px !important;
+      border-left-width: 3px !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+    #execSummarySection .box,
+    #execSummarySection .box-green,
+    #execSummarySection .card-highlight-green,
+    #execSummarySection .card-highlight-red {
+      padding: 5px 9px !important;
+      border-radius: 6px !important;
+      margin-bottom: 0 !important;
+    }
+    #execSummarySection ul {
+      margin: 1px 0 !important;
+      padding-left: 14px !important;
+    }
+    #execSummarySection li {
+      margin: 1px 0 !important;
+      line-height: 1.35 !important;
+      font-size: 10px !important;
+    }
+    #execSummarySection .snap-grid {
+      gap: 6px !important;
+      margin: 4px 0 6px !important;
+    }
+    #execSummarySection .snap-card {
+      padding: 4px 7px !important;
+      border-radius: 6px !important;
+      font-size: 9.5px !important;
+    }
+    #execSummarySection .snap-title {
+      font-size: 10px !important;
+      margin-bottom: 2px !important;
+      padding-bottom: 2px !important;
+    }
+    #execSummarySection .snap-body div {
+      margin: 1px 0 !important;
+      line-height: 1.3 !important;
+    }
+
+    /* Clean Page Breaks for Categories 2 to 6 */
+    #detailedReportSection > .category-container {
+      break-before: page !important;
+      page-break-before: always !important;
+    }
+    .cat-header {
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-top: 6px !important;
+    }
+    .cat-summary-box {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-bottom: 12px !important;
+    }
+    .sec {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-bottom: 14px !important;
+    }
+    .sec-long > .lead {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+    h2.sub-title {
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    tr {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    .office-card {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+      margin-bottom: 18px !important;
+    }
+
+    /* Print color adjustments */
     .bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .bar.cur {
       background-color: #ea580c !important;
