@@ -969,13 +969,16 @@ function getChunkedCache_(key) {
 // ต้องตั้ง Script Properties: GEMINI_API_KEY (และ GEMINI_MODEL ถ้าต้องการเปลี่ยนรุ่น)
 var AI_REPORT_CACHE_TTL = 1800; // 30 นาที
 
-function getRevenueAnalysisReport(requestingUser) {
+// options.month: 0-11 = วิเคราะห์เฉพาะเดือนนั้น (เทียบเดือนเดียวกันปีก่อน), ไม่ระบุ/'all' = สะสมทั้งปี
+function getRevenueAnalysisReport(requestingUser, options) {
   try {
     var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
     var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
     if (!scope) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ของผู้ใช้' };
 
-    var cacheKey = 'ai_rev_v2_' + getHomeRevCacheVersion_() + '_' + scope;
+    var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
+    if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
+    var cacheKey = 'ai_rev_v3_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -989,7 +992,7 @@ function getRevenueAnalysisReport(requestingUser) {
       rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
     }
 
-    var stats = buildRevenueAnalysisStats_(rows, scope);
+    var stats = buildRevenueAnalysisStats_(rows, scope, monthSel);
     var ai = callGeminiForRevenueReport_(stats, apiKey);
 
     var result = {
@@ -1007,7 +1010,7 @@ function getRevenueAnalysisReport(requestingUser) {
   }
 }
 
-function buildRevenueAnalysisStats_(rows, scope) {
+function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   var MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   var curYear = parseInt(Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy"), 10);
   var lyYear = curYear - 1;
@@ -1035,9 +1038,14 @@ function buildRevenueAnalysisStats_(rows, scope) {
     var avg = prev.reduce(function(a, b) { return a + b; }, 0) / (prev.length || 1);
     if (monthCur[lastIdx] < avg * 0.2) { incompleteMonth = MONTHS[lastIdx]; lastIdx--; }
   }
+  // ช่วงที่วิเคราะห์: สะสม ม.ค.–เดือนล่าสุดที่ครบ หรือเฉพาะเดือนที่เลือก
+  var isMonthMode = monthSel !== null && monthSel !== undefined;
+  var fromIdx = isMonthMode ? monthSel : 0;
+  var toIdx = isMonthMode ? monthSel : lastIdx;
+  var selectedIncomplete = isMonthMode && incompleteMonth === MONTHS[monthSel];
   var inPeriod = function(r, y) {
     var mi = MONTHS.indexOf(String(r[5]).trim());
-    return yearOf(r) === y && mi !== -1 && mi <= lastIdx;
+    return yearOf(r) === y && mi !== -1 && mi >= fromIdx && mi <= toIdx;
   };
 
   // 2) เป้าหมายและทีม (จากชีตเป้าหมาย)
@@ -1049,7 +1057,7 @@ function buildRevenueAnalysisStats_(rows, scope) {
     var zip = String(t[2]).trim(); var team = String(t[6]).trim();
     if (zip && team) zipTeam[zip] = team;
     var mi = MONTHS.indexOf(String(t[1]).trim());
-    if (ty === curYear && mi !== -1 && mi <= lastIdx && (scope === 'ALL' || zip === scope)) {
+    if (ty === curYear && mi !== -1 && mi >= fromIdx && mi <= toIdx && (scope === 'ALL' || zip === scope)) {
       zipTarget[zip] = (zipTarget[zip] || 0) + num(t[4]);
       if (team) teamTarget[team] = (teamTarget[team] || 0) + num(t[4]);
     }
@@ -1086,8 +1094,8 @@ function buildRevenueAnalysisStats_(rows, scope) {
   var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
   var customers = agg(function(r) { var c = String(r[1]).trim(); return c && c !== '-' ? c : null; });
 
-  var totalCur = monthCur.slice(0, lastIdx + 1).reduce(function(a, b) { return a + b; }, 0);
-  var totalLy = monthLy.slice(0, lastIdx + 1).reduce(function(a, b) { return a + b; }, 0);
+  var totalCur = monthCur.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
+  var totalLy = monthLy.slice(fromIdx, toIdx + 1).reduce(function(a, b) { return a + b; }, 0);
   var totalTarget = Object.keys(zipTarget).reduce(function(a, z) { return a + zipTarget[z]; }, 0);
   services.forEach(function(s) { s.sharePct = totalCur ? Math.round(s.ytd / totalCur * 1000) / 10 : null; });
 
@@ -1102,7 +1110,7 @@ function buildRevenueAnalysisStats_(rows, scope) {
   });
   var inactive = customers.filter(function(c) {
     var lm = lastMonthByCustomer[c.name];
-    return c.lastYear > 0 && (lm === undefined || lm <= lastIdx - 3);
+    return c.lastYear > 0 && (lm === undefined || lm <= toIdx - 3);
   }).sort(function(a, b) { return b.lastYear - a.lastYear; }).slice(0, 15).map(function(c) {
     var lm = lastMonthByCustomer[c.name];
     c.lastActiveMonth = lm === undefined ? 'ไม่ใช้บริการปีนี้' : MONTHS[lm];
@@ -1110,7 +1118,11 @@ function buildRevenueAnalysisStats_(rows, scope) {
   });
 
   return {
-    period: { year: curYear, compareYear: lyYear, fromMonth: MONTHS[0], toMonth: MONTHS[lastIdx] || '-', incompleteMonth: incompleteMonth },
+    period: {
+      year: curYear, compareYear: lyYear, mode: isMonthMode ? 'month' : 'ytd',
+      fromMonth: MONTHS[fromIdx] || '-', toMonth: MONTHS[toIdx] || '-',
+      incompleteMonth: incompleteMonth, selectedMonthIncomplete: selectedIncomplete
+    },
     overall: {
       ytd: round(totalCur), lastYear: round(totalLy), growthPct: pct(totalCur, totalLy),
       target: round(totalTarget), achievementPct: totalTarget ? Math.round(totalCur / totalTarget * 1000) / 10 : null,
@@ -1139,8 +1151,11 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
-    '- ช่วงเวลาที่เปรียบเทียบ: ' + stats.period.fromMonth + '–' + stats.period.toMonth + ' พ.ศ. ' + (stats.period.year + 543) + ' เทียบช่วงเดียวกัน พ.ศ. ' + (stats.period.compareYear + 543),
-    stats.period.incompleteMonth ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
+    stats.period.mode === 'month'
+      ? '- วิเคราะห์เฉพาะเดือน' + stats.period.fromMonth + ' พ.ศ. ' + (stats.period.year + 543) + ' เทียบเดือนเดียวกัน พ.ศ. ' + (stats.period.compareYear + 543) + ' (ข้อมูล monthly เป็นแนวโน้มทั้งปีไว้ประกอบเท่านั้น)'
+      : '- ช่วงเวลาที่เปรียบเทียบ: ' + stats.period.fromMonth + '–' + stats.period.toMonth + ' พ.ศ. ' + (stats.period.year + 543) + ' เทียบช่วงเดียวกัน พ.ศ. ' + (stats.period.compareYear + 543),
+    stats.period.selectedMonthIncomplete ? '- เดือนที่เลือกข้อมูลยังอัปโหลดไม่ครบ ตัวเลขต่ำกว่าความจริง ให้เตือนในหมายเหตุและอย่าสรุปว่ารายได้ลดลงจริง' : '',
+    (stats.period.mode !== 'month' && stats.period.incompleteMonth) ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
     'ตอบเป็น JSON ตามโครงสร้างนี้เท่านั้น:',
     '{"executiveSummary":["3-5 ข้อ"],"highlights":["จุดเด่น 2-4 ข้อ"],"concerns":["จุดที่ต้องระวัง 2-4 ข้อ"],',
     '"customerWatch":["ลูกค้าที่ต้องจับตา 3-6 ข้อ ระบุชื่อลูกค้า"],"serviceMix":["วิเคราะห์สัดส่วนบริการ 2-4 ข้อ"],',

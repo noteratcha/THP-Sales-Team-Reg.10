@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1243';
+    var APP_VERSION = 'Ver. 2026.1017.1252';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3134,7 +3134,27 @@
     // AI REVENUE ANALYSIS REPORT (A4 / PDF)
     // ==========================================
     // เปิดหน้าต่างใหม่ทันทีตอนคลิก (กัน popup ถูกบล็อก) แล้วเติมรายงานเมื่อหลังบ้านวิเคราะห์เสร็จ
-    window.openAiRevenueReport = function () {
+    window.openAiRevenueReport = async function () {
+        // เลือกช่วงที่จะวิเคราะห์: สะสมทั้งปี หรือรายเดือน (เดือนของปีปัจจุบันถึงเดือนนี้)
+        const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const beYear = now.getFullYear() + 543;
+        const monthOptions = { all: `ทั้งหมด (สะสม ม.ค. – ล่าสุด ${beYear})` };
+        for (let m = now.getMonth(); m >= 0; m--) monthOptions[m] = `${MONTHS_TH[m]} ${beYear}`;
+        const pick = await Swal.fire({
+            title: 'วิเคราะห์ด้วย AI',
+            html: '<p style="font-size:14px;color:#6b7280;margin:0">เลือกช่วงที่ต้องการวิเคราะห์ (เทียบช่วงเดียวกันของปีก่อน)</p>',
+            input: 'select',
+            inputOptions: monthOptions,
+            inputValue: 'all',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-robot"></i> วิเคราะห์',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#ea580c'
+        });
+        if (!pick.isConfirmed) return;
+        const monthSel = pick.value;
+
         const win = window.open('', '_blank');
         if (!win) {
             Swal.fire({ icon: 'warning', title: 'เปิดหน้าต่างรายงานไม่ได้', text: 'กรุณาอนุญาต Pop-up สำหรับเว็บนี้ แล้วลองใหม่อีกครั้ง' });
@@ -3154,7 +3174,7 @@
             win.document.close();
         }).withFailureHandler(function (err) {
             win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml(err && err.message ? err.message : String(err)) + '</p></div>';
-        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' });
+        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' }, { month: monthSel });
     };
 
     function buildAiRevenueReportHtml(res, user) {
@@ -3174,7 +3194,11 @@
             return isNum ? `<th class="n">${h.replace(/<\/?span[^>]*>/g, '')}</th>` : `<th>${h}</th>`;
         }).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
         const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
-        const periodLabel = `${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
+        const isMonth = s.period.mode === 'month';
+        const revLabel = isMonth ? 'รายได้' : 'รายได้สะสม';
+        const periodLabel = isMonth
+            ? `ประจำเดือน${esc(s.period.fromMonth)} ${s.period.year + 543} เทียบเดือนเดียวกันปี ${s.period.compareYear + 543}`
+            : `สะสม ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
 
         const SHORT_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
         const maxMonth = Math.max(1, ...s.monthly.map(m => Math.max(m.cur, m.lastYear)));
@@ -3223,13 +3247,14 @@
 <div class="toolbar"><span>รายงานวิเคราะห์รายได้ด้วย AI</span><button onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button></div>
 <div class="page"><table class="print-wrap"><thead><tr><td>
   <header>
-    <div><h1>รายงานวิเคราะห์รายได้ลูกค้า</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
+    <div><h1>รายงานวิเคราะห์รายได้ลูกค้า${isMonth ? ' ประจำเดือน' + esc(s.period.fromMonth) : ''}</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
     <div class="meta">จัดทำ ${esc(res.generatedAt)} น.<br>ผู้จัดทำ: ${esc(user.name || user.user || '-')}</div>
   </header>
   </td></tr></thead><tbody><tr><td>
 
+  ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ข้อมูลเดือนนี้ยังอัปโหลดไม่ครบ ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
   <div class="kpis">
-    ${kpi('รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
+    ${kpi(isMonth ? 'รายได้เดือนนี้ (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
     ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
     ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'เป้า ' + money(o.target))}
     ${kpi('ลูกค้าที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US'), 'Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
@@ -3248,18 +3273,18 @@
 
   <h2>ผลงานรายทีม</h2>
   ${list(ai.teamPerformance)}
-  ${table(['ทีม', '<span class="n">รายได้สะสม</span>', '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
+  ${table(['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
             s.teams.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
 
   <h2>การเติบโตรายที่ทำการ</h2>
   ${list(ai.officeGrowth)}
-  ${table(['ที่ทำการ', 'ทีม', '<span class="n">รายได้สะสม</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
+  ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
             s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
   ${s.offices.length > 25 ? `<p class="muted">แสดง 25 จาก ${s.offices.length} ที่ทำการ (เรียงตามรายได้)</p>` : ''}
 
   <h2>สัดส่วนบริการ</h2>
   ${list(ai.serviceMix)}
-  ${table(['บริการ', '<span class="n">รายได้สะสม</span>', '<span class="n">สัดส่วน</span>', '<span class="n">โต</span>'],
+  ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">โต</span>'],
             s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`))}
 
   <h2>ลูกค้าที่ต้องจับตา</h2>
