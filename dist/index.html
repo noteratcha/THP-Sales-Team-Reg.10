@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2012';
+    var APP_VERSION = 'Ver. 2026.1017.2018';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25746,10 +25746,7 @@
   <!-- 📄 หน้าที่ 1: บทสรุปเนื้อหาทั้งหมดแบบย่อ (Executive Brief) -->
   <!-- ============================================== -->
   <div id="execSummarySection">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-      <span class="summary-badge">⚡ หน้าสรุปเนื้อหาทั้งหมดแบบย่อ (Executive Brief)</span>
-      <span class="muted" style="font-size:10.5px;">สรุปประเด็นสำคัญใน 1 หน้า A4</span>
-    </div>
+
 
     ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
     <div class="kpis">
