@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1453';
+    var APP_VERSION = 'Ver. 2026.1017.1501';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25021,7 +25021,12 @@
         // "เติบโต" ในตารางที่มีเป้า = % ที่เกิน/ขาดจากเป้า (เช่น ทำได้ 240.2% ของเป้า → ▲ 140.2%)
         const vsTarget = (t) => t.achievementPct == null ? null : Math.round((t.achievementPct - 100) * 10) / 10;
         const growthVsTarget = (t) => t.achievementPct == null ? '<span class="muted">ไม่มีเป้า</span>' : growth(vsTarget(t));
-        const achv = (a) => a == null ? '-' : `<span class="${a >= 100 ? 'up' : (a >= 80 ? 'warn' : 'down')}">${a}%</span>`;
+        // % เป้า แสดงส่วนที่เกิน/ขาดจากเป้า: ทำได้ 140.2% → +40.2%, ทำได้ 85% → -15%
+        const achv = (a) => {
+            if (a == null) return '<span class="muted">ไม่มีเป้า</span>';
+            const d = Math.round((a - 100) * 10) / 10;
+            return `<span class="${d >= 0 ? 'up' : (d >= -20 ? 'warn' : 'down')}">${d >= 0 ? '+' : '-'}${Math.abs(d)}%</span>`;
+        };
         const list = (arr) => (arr && arr.length) ? '<ul>' + arr.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : '<p class="muted">-</p>';
         // หัวคอลัมน์ที่ห่อด้วย <span class="n"> = คอลัมน์ตัวเลข ให้ชิดขวาทั้งช่องให้ตรงกับข้อมูล
         // ทุกตารางมีคอลัมน์ลำดับ (#) และหมายเหตุว่าเรียงตามอะไร
@@ -25131,29 +25136,29 @@
   ${(s.provinces && s.provinces.length) ? `<section class="sec"><h2>ภาพรวมรายจังหวัด</h2>
   ${list(ai.provinceOverview)}
   ${table(['จังหวัด / ศูนย์', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', '<span class="n">ที่ทำการ</span>'],
-            s.provinces.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growthVsTarget(t)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `${revLabel}จากมากไปน้อย · เติบโต = % ที่เกิน/ขาดจากเป้า · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
+            s.provinces.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `${revLabel}จากมากไปน้อย · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
   </section>` : ''}
 
   ${(() => {
       // แบ่งเป็น 2 ตาราง: ทีมที่โตมากสุด 5 ทีม และโตน้อยสุด 5 ทีม (ไม่รวมทีมที่ไม่มีข้อมูลปีก่อนให้เทียบ)
       const ranked = s.teams.filter(t => t.name !== 'ไม่ระบุทีม' && t.achievementPct != null);
-      const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">% เป้า</span>'];
-      const teamRow = t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growthVsTarget(t)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
+      const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'];
+      const teamRow = t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
       const top5 = ranked.slice().sort((x, y) => vsTarget(y) - vsTarget(x)).slice(0, 5);
       const bottom5 = ranked.slice().sort((x, y) => vsTarget(x) - vsTarget(y)).slice(0, 5);
       return `<section class="sec"><h2>ผลงานรายทีม</h2>
   ${list(ai.teamPerformance)}
   <b class="up">▲ ทีมที่เกินเป้ามากที่สุด 5 ทีม</b>
-  ${table(teamHead, top5.map(teamRow), '% ที่เกิน/ขาดจากเป้า จากมากไปน้อย (เติบโต = % ที่เกิน/ขาดจากเป้า)')}
+  ${table(teamHead, top5.map(teamRow), '% ที่เกิน/ขาดจากเป้า จากมากไปน้อย · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
   <b class="down">▼ ทีมที่ต่ำกว่าเป้ามากที่สุด 5 ทีม</b>
-  ${table(teamHead, bottom5.map(teamRow), '% ที่เกิน/ขาดจากเป้า จากน้อยไปมาก (เติบโต = % ที่เกิน/ขาดจากเป้า)')}
+  ${table(teamHead, bottom5.map(teamRow), '% ที่เกิน/ขาดจากเป้า จากน้อยไปมาก · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า')}
   </section>`;
   })()}
 
   <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
   ${list(ai.officeGrowth)}</div>
-  ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">% เป้า</span>'],
-            s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growthVsTarget(t)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `${revLabel}จากมากไปน้อย · เติบโต = % ที่เกิน/ขาดจากเป้า`)}
+  ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'],
+            s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `${revLabel}จากมากไปน้อย · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า`)}
   ${s.offices.length > 25 ? `<p class="muted">แสดง 25 จาก ${s.offices.length} ที่ทำการ (เรียงตามรายได้)</p>` : ''}
   </section>
 
