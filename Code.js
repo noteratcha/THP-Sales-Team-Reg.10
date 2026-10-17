@@ -975,7 +975,7 @@ function getRevenueAnalysisReport(requestingUser) {
     var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
     if (!scope) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ของผู้ใช้' };
 
-    var cacheKey = 'ai_rev_' + getHomeRevCacheVersion_() + '_' + scope;
+    var cacheKey = 'ai_rev_v2_' + getHomeRevCacheVersion_() + '_' + scope;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1130,14 +1130,16 @@ function buildRevenueAnalysisStats_(rows, scope) {
 }
 
 function callGeminiForRevenueReport_(stats, apiKey) {
-  var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-2.5-flash';
+  var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
   var prompt = [
     'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ภาค 10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
     'ข้อกำหนด:',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท',
+    '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
+    '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
-    '- ช่วงเวลาที่เปรียบเทียบ: ' + stats.period.fromMonth + '–' + stats.period.toMonth + ' ปี ' + stats.period.year + ' เทียบช่วงเดียวกันปี ' + stats.period.compareYear,
+    '- ช่วงเวลาที่เปรียบเทียบ: ' + stats.period.fromMonth + '–' + stats.period.toMonth + ' พ.ศ. ' + (stats.period.year + 543) + ' เทียบช่วงเดียวกัน พ.ศ. ' + (stats.period.compareYear + 543),
     stats.period.incompleteMonth ? '- เดือน' + stats.period.incompleteMonth + ' ข้อมูลยังไม่ครบ ไม่ได้นำมาเปรียบเทียบ ให้ระบุในหมายเหตุ' : '',
     'ตอบเป็น JSON ตามโครงสร้างนี้เท่านั้น:',
     '{"executiveSummary":["3-5 ข้อ"],"highlights":["จุดเด่น 2-4 ข้อ"],"concerns":["จุดที่ต้องระวัง 2-4 ข้อ"],',
