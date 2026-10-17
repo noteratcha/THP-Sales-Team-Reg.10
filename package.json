@@ -4,7 +4,8 @@
   "description": "THP Sales Team Reg.10 Web App",
   "scripts": {
     "build": "node update-version.js && node build-web.js",
-    "push": "node update-version.js && npx clasp push -f && npx clasp version \"Auto-pushed from local IDE\""
+    "push": "node update-version.js && npx clasp push -f",
+    "deploy": "npm run push && npx clasp deploy -i AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx -d \"Deployed from local IDE\""
   },
   "dependencies": {
     "@google/clasp": "^2.4.2"
