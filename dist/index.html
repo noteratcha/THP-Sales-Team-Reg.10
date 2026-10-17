@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1350';
+    var APP_VERSION = 'Ver. 2026.1017.1404';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -24960,15 +24960,25 @@
         // เลือกช่วงที่จะวิเคราะห์: สะสมทั้งปี หรือรายเดือน (เดือนของปีปัจจุบันถึงเดือนนี้)
         const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        const beYear = now.getFullYear() + 543;
-        const monthOptions = { all: `ทั้งหมด (สะสม ม.ค. – ล่าสุด ${beYear})` };
-        for (let m = now.getMonth(); m >= 0; m--) monthOptions[m] = `${MONTHS_TH[m]} ${beYear}`;
+        const ceYear = now.getFullYear(), beYear = ceYear + 543;
+        const curQ = Math.floor(now.getMonth() / 3) + 1;
+        // ค่า period: ytd | q:<ปี ค.ศ.>:<1-4> | y:<ปี ค.ศ.> | m:<ปี ค.ศ.>:<0-11>
+        const quarters = {};
+        for (let q = curQ; q >= 1; q--) quarters[`q:${ceYear}:${q}`] = `ไตรมาส ${q}/${beYear} (${MONTHS_TH[(q - 1) * 3].substring(0, 3)}.–${MONTHS_TH[q * 3 - 1].substring(0, 3)}.)${q === curQ ? ' — ยังไม่ครบไตรมาส' : ''}`;
+        for (let q = 4; q >= 1; q--) quarters[`q:${ceYear - 1}:${q}`] = `ไตรมาส ${q}/${beYear - 1}`;
+        const months = {};
+        for (let m = now.getMonth(); m >= 0; m--) months[`m:${ceYear}:${m}`] = `${MONTHS_TH[m]} ${beYear}`;
+        const monthOptions = {
+            'ภาพรวม': { ytd: `สะสมปีนี้ (ม.ค. – ล่าสุด ${beYear})`, [`y:${ceYear - 1}`]: `ทั้งปี ${beYear - 1} (เทียบ ${beYear - 2})` },
+            'รายไตรมาส': quarters,
+            'รายเดือน': months
+        };
         const pick = await Swal.fire({
             title: 'วิเคราะห์ด้วย AI',
             html: '<p style="font-size:14px;color:#6b7280;margin:0">เลือกช่วงที่ต้องการวิเคราะห์ (เทียบช่วงเดียวกันของปีก่อน)</p>',
             input: 'select',
             inputOptions: monthOptions,
-            inputValue: 'all',
+            inputValue: 'ytd',
             showCancelButton: true,
             confirmButtonText: '<i class="fas fa-robot"></i> วิเคราะห์',
             cancelButtonText: 'ยกเลิก',
@@ -24996,7 +25006,7 @@
             win.document.close();
         }).withFailureHandler(function (err) {
             win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml(err && err.message ? err.message : String(err)) + '</p></div>';
-        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' }, { month: monthSel });
+        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' }, { period: monthSel });
     };
 
     function buildAiRevenueReportHtml(res, user) {
@@ -25017,11 +25027,17 @@
             return isNum ? `<th class="n">${h.replace(/<\/?span[^>]*>/g, '')}</th>` : `<th>${h}</th>`;
         }).join('')}</tr></thead><tbody>${rows.map((r, i) => r.replace('<tr>', `<tr><td class="rank">${i + 1}</td>`)).join('')}</tbody></table>${sortNote ? `<p class="sort-note">* เรียงตาม${sortNote}</p>` : ''}`;
         const scopeLabel = res.scope === 'ALL' ? 'ภาพรวมทั้งภาค' : 'พื้นที่รหัสไปรษณีย์ ' + esc(res.scope);
-        const isMonth = s.period.mode === 'month';
+        const mode = s.period.mode || 'ytd';
+        const isMonth = mode !== 'ytd'; // รายเดือน/ไตรมาส/ทั้งปี ใช้คำว่า "รายได้" แทน "รายได้สะสม"
         const revLabel = isMonth ? 'รายได้' : 'รายได้สะสม';
-        const periodLabel = isMonth
-            ? `ประจำเดือน${esc(s.period.fromMonth)} ${s.period.year + 543} เทียบเดือนเดียวกันปี ${s.period.compareYear + 543}`
-            : `สะสม ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${s.period.year + 543} เทียบช่วงเดียวกันปี ${s.period.compareYear + 543}`;
+        const be = s.period.year + 543, cbe = s.period.compareYear + 543;
+        const titleSuffix = mode === 'month' ? ` ประจำเดือน${esc(s.period.fromMonth)} ${be}`
+            : mode === 'quarter' ? ` ไตรมาส ${s.period.quarter}/${be}`
+            : mode === 'year' ? ` ประจำปี ${be}` : '';
+        const periodLabel = mode === 'month' ? `ประจำเดือน${esc(s.period.fromMonth)} ${be} เทียบเดือนเดียวกันปี ${cbe}`
+            : mode === 'quarter' ? `ไตรมาส ${s.period.quarter} (${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)}) ${be} เทียบไตรมาสเดียวกันปี ${cbe}`
+            : mode === 'year' ? `ทั้งปี ${be} (มกราคม – ธันวาคม) เทียบทั้งปี ${cbe}`
+            : `สะสม ${esc(s.period.fromMonth)} – ${esc(s.period.toMonth)} ${be} เทียบช่วงเดียวกันปี ${cbe}`;
 
         const SHORT_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
         const maxMonth = Math.max(1, ...s.monthly.map(m => Math.max(m.cur, m.lastYear)));
@@ -25083,13 +25099,13 @@
 <div class="toolbar"><span>รายงานวิเคราะห์รายได้ด้วย AI</span><button onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button></div>
 <div class="page"><table class="print-wrap"><thead><tr><td>
   <header>
-    <div><h1>รายงานวิเคราะห์รายได้ลูกค้า${isMonth ? ' ประจำเดือน' + esc(s.period.fromMonth) : ''}</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
+    <div><h1>รายงานวิเคราะห์รายได้ลูกค้า${titleSuffix}</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
   </header>
   </td></tr></thead><tbody><tr><td>
 
-  ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ข้อมูลเดือนนี้ยังอัปโหลดไม่ครบ ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
+  ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:8px">⚠️ ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขอาจต่ำกว่าความจริง</div>' : ''}
   <div class="kpis">
-    ${kpi(isMonth ? 'รายได้เดือนนี้ (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
+    ${kpi(mode === 'month' ? 'รายได้เดือนนี้ (บาท)' : mode === 'quarter' ? 'รายได้ไตรมาสนี้ (บาท)' : mode === 'year' ? 'รายได้ทั้งปี (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
     ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
     ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'ทำได้ ' + money(o.ytd) + ' / เป้า ' + money(o.target))}
     ${kpi('ลูกค้าสมาชิก (THP) ที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US') + ' ราย', 'สัดส่วนรายได้ Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
