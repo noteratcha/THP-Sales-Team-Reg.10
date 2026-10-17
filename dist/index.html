@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1308';
+    var APP_VERSION = 'Ver. 2026.1017.1312';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25089,8 +25089,8 @@
   <div class="kpis">
     ${kpi(isMonth ? 'รายได้เดือนนี้ (บาท)' : 'รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
     ${kpi('การเติบโต', growth(o.growthPct), 'เทียบช่วงเดียวกันปีก่อน')}
-    ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'เป้า ' + money(o.target))}
-    ${kpi('ลูกค้าที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US'), 'Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
+    ${kpi('% ของเป้าหมาย', achv(o.achievementPct), 'ทำได้ ' + money(o.ytd) + ' / เป้า ' + money(o.target))}
+    ${kpi('ลูกค้าสมาชิก (THP) ที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US') + ' ราย', 'สัดส่วนรายได้ Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
   </div>
 
   <section class="sec"><h2>สรุปสำหรับผู้บริหาร</h2>
@@ -25123,7 +25123,7 @@
             s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `${revLabel}จากมากไปน้อย`)}
   </section>
 
-  <section class="sec"><h2>ลูกค้าที่ต้องจับตา</h2>
+  <section class="sec"><h2>ลูกค้าสมาชิกที่ต้องจับตา</h2>
   ${list(ai.customerWatch)}</section>
   <section class="sec"><div class="two">
     <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
