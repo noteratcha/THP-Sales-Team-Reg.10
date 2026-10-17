@@ -164,36 +164,8 @@ function checkLogin(formObject) {
 function handleApiRequest(params) {
   var username = params.username;
 
-  if (username === 'debug_targets') {
-    try {
-      var ss = SpreadsheetApp.openById(TARGET_SS_ID);
-      var sheet = ss.getSheetByName('เป้าหมายรายได้');
-      var vals = sheet.getRange(1, 1, 3, 10).getDisplayValues();
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: vals })).setMimeType(ContentService.MimeType.JSON);
-    } catch(e) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: e.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
 
-  if (username === 'debug_revenue') {
-    try {
-      var res = getRevenueReportData({ user: 'admin' });
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: res.data.slice(0, 3) })).setMimeType(ContentService.MimeType.JSON);
-    } catch(e) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: e.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
 
-  if (username === 'debug_users') {
-    try {
-      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-      var sheet = ss.getSheetByName('user');
-      var vals = sheet.getRange(1, 1, 5, 3).getDisplayValues();
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: vals })).setMimeType(ContentService.MimeType.JSON);
-    } catch(e) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: e.toString() })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
 
   if (!username) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -3433,14 +3405,14 @@ const LINE_DESTINATION_IDS = [
 ];
 const LINE_USER_ID = "Ud6defadda15e984a8efeed16f89b4e9c";
 
-function getLineChannelAccessTokens() {
+function getLineChannelAccessTokens_() {
   var list = [];
   try {
     var customTokens = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKENS');
     if (customTokens) {
       list = customTokens.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
     }
-    // Token เดี่ยวที่บันทึกจากหน้า Settings (updateLineConfig) ให้ใช้เป็นตัวแรก
+    // Token เดี่ยวที่บันทึกจากหน้า Settings (updateLineConfig_) ให้ใช้เป็นตัวแรก
     var singleToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
     if (singleToken) {
       // รองรับกรณีใส่หลาย token คั่นด้วย , ในช่องนี้
@@ -3452,12 +3424,12 @@ function getLineChannelAccessTokens() {
   return list;
 }
 
-function getLineChannelAccessToken() {
-  var tokens = getLineChannelAccessTokens();
+function getLineChannelAccessToken_() {
+  var tokens = getLineChannelAccessTokens_();
   return tokens[0] || '';
 }
 
-function getLineDestinationId(tokenIndex) {
+function getLineDestinationId_(tokenIndex) {
   try {
     var customIds = PropertiesService.getScriptProperties().getProperty('LINE_DESTINATION_IDS');
     if (customIds) {
@@ -3480,8 +3452,8 @@ function getLineDestinationId(tokenIndex) {
  * หาก Token แรกโควตาเต็ม (429) หรือมีปัญหา จะสลับไปใช้ Token ถัดไปทันที
  * พร้อมส่งคืนสถานะแจ้งเตือนโควตา (Quota Alerts)
  */
-function sendLinePushWithFailover(payload) {
-  var tokens = getLineChannelAccessTokens();
+function sendLinePushWithFailover_(payload) {
+  var tokens = getLineChannelAccessTokens_();
   var lastError = "";
   var lastCode = 0;
   var all429 = true;
@@ -3544,7 +3516,7 @@ function sendLinePushWithFailover(payload) {
  */
 function checkLineQuotaStatus() {
   try {
-    var tokens = getLineChannelAccessTokens();
+    var tokens = getLineChannelAccessTokens_();
     var result = {
       status: 'success',
       tokens: [],
@@ -3656,13 +3628,13 @@ function sendErrorToLine(errorObj, contextInfo) {
     fullText += "🔍 Stack Trace เต็ม:\n" + errorMessage.substring(0, 400);
 
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: [{
         type: 'text',
         text: fullText
       }]
     };
-    sendLinePushWithFailover(payload);
+    sendLinePushWithFailover_(payload);
   } catch (errLine) {
     console.error("LINE Notify Error: " + errLine.toString());
   }
@@ -3674,10 +3646,10 @@ function sendSuccessToLine(message) {
     var fullText = '✅ แจ้งเตือนการอัปโหลดสำเร็จ\n\n⏰ วัน/เวลา: ' + nowStr + '\n\n' + message;
 
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: [{ type: 'text', text: fullText }]
     };
-    sendLinePushWithFailover(payload);
+    sendLinePushWithFailover_(payload);
   } catch (errLine) {
     console.error("LINE Notify Error: " + errLine.toString());
   }
@@ -3739,16 +3711,16 @@ function logFrontendErrorToLine(msg, url, line, errStack, userContext, browserIn
     }
     
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: messages
     };
     
-    var pushRes = sendLinePushWithFailover(payload);
+    var pushRes = sendLinePushWithFailover_(payload);
     
     // ถ้าส่งรูปไม่ผ่าน ให้ลองส่งแค่ข้อความอย่างเดียว
     if (!pushRes.success && imageUrl) {
        payload.messages = [{ type: 'text', text: errorMessage }];
-       sendLinePushWithFailover(payload);
+       sendLinePushWithFailover_(payload);
     }
   } catch (e) {
     console.error("LINE Frontend Notify Error: " + e.toString());
@@ -3815,7 +3787,7 @@ function getOfficesForSubstitute(userLogin) {
 // ==========================================
 // 📦 SECTION: LINE OA (Messaging API) Integration
 // ==========================================
-function getBigLotLineAccessToken() {
+function getBigLotLineAccessToken_() {
   return PropertiesService.getScriptProperties().getProperty('BIGLOT_LINE_ACCESS_TOKEN') || '';
 }
 
@@ -3842,7 +3814,7 @@ function sendBigLotLineNotification(message) {
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + getBigLotLineAccessToken(),
+        'Authorization': 'Bearer ' + getBigLotLineAccessToken_(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -3856,6 +3828,28 @@ function sendBigLotLineNotification(message) {
     if (typeof sendErrorToLine === 'function') sendErrorToLine(e, "ส่งแจ้งเตือน LINE BigLot ล้มเหลว");
   }
 }
+
+// 🔐 รายชื่อฟังก์ชันที่หน้าเว็บเรียกผ่าน executeFunction ได้ (ฟังก์ชันอื่นจะถูกปฏิเสธ)
+// เพิ่มฟังก์ชันใหม่ที่หน้าเว็บต้องเรียกใช้ลงในรายการนี้ด้วย
+var API_ALLOWED_FUNCTIONS = [
+  'addMusicTrack', 'addPostNewsTemplate', 'addRecommendedService', 'checkDailyTriggerA1A14',
+  'checkLineQuotaStatus', 'checkLogin', 'confirmPKCustomer', 'createBigLotProduct',
+  'createDailyTriggerA1A14', 'deleteBigLotOrder', 'deleteBigLotProduct', 'deleteDailyTriggerA1A14',
+  'deleteMultipleBigLotOrders', 'deleteMusicTrack', 'deletePostNewsTemplate', 'deleteRecommendedService',
+  'deleteVisitData', 'editMusicTrack', 'editRecommendedService', 'extractA1A14Customers', 'getBigLotOrders',
+  'getBigLotProducts', 'getDataForTable', 'getEvaluationOptions', 'getEvaluationQuestions',
+  'getEvaluationSummary', 'getExpensesData', 'getFuzeAgentData', 'getInactiveCustomersPK',
+  'getLastUpdateDateA1A14', 'getMusicPlaylist', 'getOfficesForSubstitute', 'getPKDashboardData',
+  'getPostNewsTemplates', 'getRatePriceData', 'getRevenueReportData', 'getRevenueTargets', 'getServicesList',
+  'getThaiHolidaysCalendar', 'getVisitTargets', 'getVolumeThresholds', 'incrementVisitorCount',
+  'isOrderCreatedToday', 'logFrontendErrorToLine', 'processAddLogisticsBatch', 'processDropOffExcelData',
+  'processEparcelBatch', 'processLogisticsBatch', 'processRevenueBatch', 'renamePostNewsTemplate',
+  'reorderBigLotProducts', 'saveData', 'saveFullMusicPlaylist', 'saveFullServicesList',
+  'searchFuzeAgentContractPdf', 'sendBugReportToLine', 'sendErrorToLine', 'sendSuccessToLine',
+  'sendVisitSummaryImagesToLine', 'setPostNewsTemplateActive', 'submitBigLotOrders',
+  'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
+  'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData'
+];
 
 /**
  * LINE Webhook Handler
@@ -3871,6 +3865,13 @@ function doPost(e) {
     if (json && (json.action === 'executeFunction' || json.__gas_function__)) {
       var funcName = json.functionName || json.__gas_function__;
       var args = json.args || [];
+      if (API_ALLOWED_FUNCTIONS.indexOf(funcName) === -1) {
+        return ContentService.createTextOutput(JSON.stringify({
+          __gas_execution__: true,
+          success: false,
+          error: 'Function not allowed: ' + funcName
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
       try {
         var fn = this[funcName];
         if (typeof fn !== 'function') {
@@ -3959,7 +3960,7 @@ function replyLineWebhook(replyToken, textMessage) {
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + getBigLotLineAccessToken(),
+        'Authorization': 'Bearer ' + getBigLotLineAccessToken_(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -4023,13 +4024,13 @@ function sendBugReportToLine(message, base64Image) {
     // ส่งผ่าน LINE OA (Messaging API) ตัวเดิม
     var apiUrl = 'https://api.line.me/v2/bot/message/push';
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: [{ type: 'text', text: fullText }]
     };
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + getLineChannelAccessToken(),
+        'Authorization': 'Bearer ' + getLineChannelAccessToken_(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -4107,15 +4108,15 @@ function sendVisitSummaryImageToLine(base64Image, messageText) {
     ];
     
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: messages
     };
     
-    var pushRes = sendLinePushWithFailover(payload);
+    var pushRes = sendLinePushWithFailover_(payload);
     
     if (!pushRes.success) {
        payload.messages = [{ type: 'text', text: fullText }];
-       pushRes = sendLinePushWithFailover(payload);
+       pushRes = sendLinePushWithFailover_(payload);
     }
     
     if (pushRes.success) {
@@ -4268,8 +4269,8 @@ function saveFullMusicPlaylist(playlist) {
 
 function sendVisitSummaryImagesToLine(imagesData) {
   try {
-    var channelToken = getLineChannelAccessToken();
-    var destinationId = getLineDestinationId();
+    var channelToken = getLineChannelAccessToken_();
+    var destinationId = getLineDestinationId_();
 
     var folderId = "15mVFyzJZ56Iza5xdwFbKoJfFBJWof96V";
     var folder;
@@ -4321,13 +4322,13 @@ function sendVisitSummaryImagesToLine(imagesData) {
         messages: messages
       };
 
-      var pushRes = sendLinePushWithFailover(payload);
+      var pushRes = sendLinePushWithFailover_(payload);
 
       // กรณี LINE โหลดรูปจาก Google Drive ไม่ได้ ให้ Fallback ส่งเป็นข้อความ + ลิงก์ Drive
       if (!pushRes.success) {
         console.warn("LINE image push failed. Retrying with text only...");
         payload.messages = [{ type: 'text', text: fullText }];
-        pushRes = sendLinePushWithFailover(payload);
+        pushRes = sendLinePushWithFailover_(payload);
       }
 
       var hasSwitched = false;
@@ -4400,14 +4401,14 @@ function sendDailyLinkToLine() {
     ];
 
     var payload = {
-      to: getLineDestinationId(),
+      to: getLineDestinationId_(),
       messages: messages
     };
     
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + getLineChannelAccessToken(),
+        'Authorization': 'Bearer ' + getLineChannelAccessToken_(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -4420,10 +4421,10 @@ function sendDailyLinkToLine() {
   }
 }
 
-function getLineConfigStatus() {
+function getLineConfigStatus_() {
   try {
     var quotaStatus = checkLineQuotaStatus();
-    var destinationId = getLineDestinationId();
+    var destinationId = getLineDestinationId_();
     
     return {
       status: 'success',
@@ -4438,7 +4439,7 @@ function getLineConfigStatus() {
   }
 }
 
-function updateLineConfig(newAccessToken, newDestinationId) {
+function updateLineConfig_(newAccessToken, newDestinationId) {
   try {
     var props = PropertiesService.getScriptProperties();
     if (newAccessToken && newAccessToken.trim() !== '') {
