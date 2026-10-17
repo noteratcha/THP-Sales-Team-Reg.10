@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2217';
+    var APP_VERSION = 'Ver. 2026.1017.2242';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4457,7 +4457,7 @@
 <title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 15mm 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #64748b; } }
+  @page { size: A4; margin: 0 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #64748b; } }
   *, *::before, *::after {
     box-sizing: border-box;
     -webkit-print-color-adjust: exact !important;
@@ -4703,6 +4703,7 @@
     .toolbar, .cat-nav-bar, .cat-badge, .office-cards-header-bar, .office-cards-controls, .btn-scroll-to-cards, .btn-office-view, .btn-clear-search, .btn-back-to-top, .no-print { display: none !important; }
     .print-only { display: block !important; }
     .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; }
+    table.print-wrap > thead header { padding-top: 15mm !important; }
     .page-break-divider { break-after: page; page-break-after: always; }
     .office-card { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; }
     .cat-header { break-after: avoid; page-break-after: avoid; }
