@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v12_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v13_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1157,12 +1157,38 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
     var mi = MONTHS.indexOf(String(r[5]).trim());
     if (num(r[8]) > 0 && (lastMonthByCustomer[c] === undefined || mi > lastMonthByCustomer[c])) lastMonthByCustomer[c] = mi;
   });
+  // ที่ทำการ/บริการของเดือนล่าสุดที่ลูกค้าใช้บริการ (ใช้กับลูกค้าที่หยุดใช้)
+  var latestUse = {};
+  rows.forEach(function(r) {
+    var k = customerKey(r); if (!k || num(r[8]) <= 0) return;
+    var mi = MONTHS.indexOf(String(r[5]).trim()); if (mi === -1) return;
+    var sk = yearOf(r) * 100 + mi;
+    var cur = latestUse[k];
+    if (!cur || sk > cur.sk) latestUse[k] = cur = { sk: sk, offices: {}, services: {} };
+    if (sk === cur.sk) {
+      var off = String(r[0]).trim(), sv = String(r[4]).trim();
+      if (off) cur.offices[off] = (cur.offices[off] || 0) + num(r[8]);
+      if (sv) cur.services[sv] = (cur.services[sv] || 0) + num(r[8]);
+    }
+  });
+  var topKeys = function(obj, max, unit) {
+    var ks = Object.keys(obj).sort(function(a, b) { return obj[b] - obj[a]; });
+    if (!ks.length) return '-';
+    return ks.slice(0, max).join(', ') + (ks.length > max ? ' และอีก ' + (ks.length - max) + ' ' + unit : '');
+  };
+
   var inactive = customers.filter(function(c) {
     var lm = lastMonthByCustomer[c.name];
     return c.lastYear > 0 && (lm === undefined || lm <= toIdx - 3);
   }).sort(function(a, b) { return b.lastYear - a.lastYear; }).slice(0, 15).map(function(c) {
     var lm = lastMonthByCustomer[c.name];
     c.lastActiveMonth = lm === undefined ? 'ไม่ใช้บริการปีนี้' : MONTHS[lm];
+    var lu = latestUse[c.name];
+    if (lu) {
+      if (lm === undefined) c.lastActiveMonth = 'ไม่ใช้บริการปีนี้ (ล่าสุด ' + MONTHS[lu.sk % 100] + ' ' + (Math.floor(lu.sk / 100) + 543) + ')';
+      c.lastOffice = topKeys(lu.offices, 1, 'แห่ง');
+      c.lastServices = topKeys(lu.services, 2, 'บริการ');
+    }
     return c;
   });
 
