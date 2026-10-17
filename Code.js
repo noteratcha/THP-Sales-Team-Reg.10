@@ -947,7 +947,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v23_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v24_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1491,8 +1491,9 @@ function callGeminiForRevenueReport_(stats, apiKey) {
   };
 
   var prompt = [
-    'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ภาค 10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
+    'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ปข.10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
     'ข้อกำหนด:',
+    '- เรียกชื่อสังกัด/พื้นที่นี้ว่า "ปข.10" เสมอ (ห้ามใช้คำว่า "ภาค 10" หรือ "ภาค10")',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
     '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท ถ้าเขียนเต็มต้องใส่ , คั่นหลักพันเสมอ เช่น 9,544,513 บาท',
     '- เมื่อกล่าวถึงลูกค้ารายใด ให้ระบุที่ทำการในวงเล็บต่อท้ายชื่อเสมอ จากฟิลด์ office และบอกบริการที่ใช้จากฟิลด์ services เช่น "ธนัญชญา รุ่งสิริฤทธิเวทย์ (34010 - ศป.อุบลราชธานี) ใช้บริการ e-Parcel"',
@@ -1533,6 +1534,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
   var body = JSON.parse(res.getContentText());
   var text = body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts
     ? body.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('') : '';
+  text = text.replace(/\s*ภาค\s*10/g, ' ปข.10').replace(/^ ปข\.10/, 'ปข.10');
   var report = addThousandSeparators_(JSON.parse(text));
   if (report && Array.isArray(report.recommendations)) {
     report.recommendations = report.recommendations.filter(function(r) {

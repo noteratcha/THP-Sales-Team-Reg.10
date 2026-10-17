@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2018';
+    var APP_VERSION = 'Ver. 2026.1017.2030';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25570,8 +25570,13 @@
     };
 
     function buildAiRevenueReportHtml(res, user) {
-        const esc = (v) => window.escapeHtml(v == null ? '' : String(v));
-        const s = res.stats, ai = res.ai || {}, o = s.overall;
+        const replacePak10 = (str) => str == null ? '' : String(str).replace(/\s*ภาค\s*10/g, ' ปข.10').replace(/^ ปข\.10/, 'ปข.10');
+        const esc = (v) => window.escapeHtml(replacePak10(v));
+        let ai = res.ai || {};
+        try {
+            ai = JSON.parse(JSON.stringify(ai).replace(/\s*ภาค\s*10/g, ' ปข.10').replace(/^ ปข\.10/, 'ปข.10'));
+        } catch (_) {}
+        const s = res.stats, o = s.overall;
         const money = (v) => {
             if (v == null) return '-';
             if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ล.';
