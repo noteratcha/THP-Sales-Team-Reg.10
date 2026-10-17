@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2101';
+    var APP_VERSION = 'Ver. 2026.1017.2106';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -311,18 +311,6 @@
                 <i class="fas fa-external-link-alt text-[10px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
             </a>
 
-            <!-- 💡 เมนู คู่มือการใช้งานระบบ -->
-            <div onclick="switchPage('manual')" id="menu-manual"
-                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
-                <div
-                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
-                    <i class="fas fa-book-reader text-sm"></i>
-                </div>
-                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">📖 คู่มือการใช้งานระบบ</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เปิดอ่าน</span>
-            </div>
-
-
             <!-- Group 3: Other Tools (External Links) -->
             <div id="nav-divider-2" class="mx-4 my-2 border-t border-gray-700/60"></div>
             <div id="nav-trigger-tools" onclick="toggleSubMenu('menu-group-tools', 'icon-tools')"
@@ -428,15 +416,6 @@
                     <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">คู่มือทีมขาย (Canva)</span>
                     <i
                         class="fas fa-external-link-alt text-[9px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
-                </a>
-                <a id="tool-system-manual" onclick="switchPage('manual')"
-                    class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
-                    <div
-                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
-                        <i class="fas fa-book-reader text-xs"></i>
-                    </div>
-                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">📖 คู่มือการใช้งานระบบ</span>
-                    <span class="px-1.5 py-0.5 text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เว็บ</span>
                 </a>
                 <a id="tool-survey" href="https://sites.google.com/view/svbox/index" target="_blank"
                     class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
@@ -601,6 +580,18 @@
                     </div>
                     <span class="tracking-wide ml-2 flex-1 leading-tight whitespace-normal">รายงานการสั่งซื้อ</span>
                 </a>
+            </div>
+
+            <!-- 💡 เมนู คู่มือการใช้งานระบบ (ต่อจากเมนู สินค้า BigLot) -->
+            <div id="nav-divider-manual" class="mx-4 my-2 border-t border-gray-700/60"></div>
+            <div onclick="switchPage('manual')" id="menu-manual"
+                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
+                <div
+                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
+                    <i class="fas fa-book-reader text-sm"></i>
+                </div>
+                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">📖 คู่มือการใช้งานระบบ</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เปิดอ่าน</span>
             </div>
 
             <!-- Evaluation menu was moved to profile context menu -->
