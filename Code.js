@@ -977,7 +977,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
     if (!scope) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ของผู้ใช้' };
 
     var sel = parseAnalysisPeriod_(options);
-    var cacheKey = 'ai_rev_v14_' + getHomeRevCacheVersion_() + '_' + scope + '_' + sel.kind + '_' + sel.year + '_' + sel.index;
+    var cacheKey = 'ai_rev_v15_' + getHomeRevCacheVersion_() + '_' + scope + '_' + sel.kind + '_' + sel.year + '_' + sel.index;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1254,7 +1254,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ภาค 10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
     'ข้อกำหนด:',
     '- ใช้เฉพาะตัวเลขในข้อมูล JSON ด้านล่าง ห้ามคำนวณหรือแต่งตัวเลขใหม่ ถ้าอ้างตัวเลขให้คัดลอกจากข้อมูล',
-    '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท',
+    '- หน่วยเงินเป็นบาท เขียนแบบย่อได้ เช่น 33.8 ล้านบาท ถ้าเขียนเต็มต้องใส่ , คั่นหลักพันเสมอ เช่น 9,544,513 บาท',
     '- เมื่อกล่าวถึงลูกค้ารายใด ให้ระบุที่ทำการในวงเล็บต่อท้ายชื่อเสมอ จากฟิลด์ office และบอกบริการที่ใช้จากฟิลด์ services เช่น "ธนัญชญา รุ่งสิริฤทธิเวทย์ (34010 - ศป.อุบลราชธานี) ใช้บริการ e-Parcel"',
     '- ข้อมูลรายลูกค้า (topCustomers, growingCustomers, decliningCustomers, inactiveCustomers, customerCount, top1SharePct, top10SharePct) นับเฉพาะลูกค้าสมาชิก THP และสำนักงานตำรวจแห่งชาติ (รวมทุกหน่วยตำรวจเป็นรายเดียว) ให้เรียกว่า "ลูกค้าสมาชิก"',
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยแทน เช่น "เติบโต 61%", "เพิ่มขึ้น 15.0 ล้านบาท", "คิดเป็น 84.1% ของเป้า", "สัดส่วน 35.4%"',
@@ -1289,7 +1289,23 @@ function callGeminiForRevenueReport_(stats, apiKey) {
   var body = JSON.parse(res.getContentText());
   var text = body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts
     ? body.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('') : '';
-  return JSON.parse(text);
+  return addThousandSeparators_(JSON.parse(text));
+}
+
+// กันกรณี AI ลืมใส่ , : เติมให้ตัวเลขจำนวนเงินที่ตามด้วย "บาท" (ไม่แตะรหัสไปรษณีย์/ปี)
+function addThousandSeparators_(obj) {
+  var fix = function(str) {
+    return String(str).replace(/(\d{4,})(?=(\.\d+)?\s*บาท)/g, function(m) {
+      return m.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    });
+  };
+  if (Array.isArray(obj)) return obj.map(addThousandSeparators_);
+  if (obj && typeof obj === 'object') {
+    var out = {};
+    for (var k in obj) out[k] = addThousandSeparators_(obj[k]);
+    return out;
+  }
+  return typeof obj === 'string' ? fix(obj) : obj;
 }
 
 /**
