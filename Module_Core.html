@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2030';
+    var APP_VERSION = 'Ver. 2026.1017.2045';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -311,6 +311,17 @@
                 <i class="fas fa-external-link-alt text-[10px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
             </a>
 
+            <!-- 💡 เมนู คู่มือการใช้งานระบบ -->
+            <div onclick="switchPage('manual')" id="menu-manual"
+                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
+                <div
+                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
+                    <i class="fas fa-book-reader text-sm"></i>
+                </div>
+                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">📖 คู่มือการใช้งานระบบ</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เปิดอ่าน</span>
+            </div>
+
 
             <!-- Group 3: Other Tools (External Links) -->
             <div id="nav-divider-2" class="mx-4 my-2 border-t border-gray-700/60"></div>
@@ -414,9 +425,18 @@
                         class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
                         <i class="fas fa-book text-xs"></i>
                     </div>
-                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">คู่มือทีมขาย</span>
+                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">คู่มือทีมขาย (Canva)</span>
                     <i
                         class="fas fa-external-link-alt text-[9px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                </a>
+                <a id="tool-system-manual" onclick="switchPage('manual')"
+                    class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
+                        <i class="fas fa-book-reader text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">📖 คู่มือการใช้งานระบบ</span>
+                    <span class="px-1.5 py-0.5 text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เว็บ</span>
                 </a>
                 <a id="tool-survey" href="https://sites.google.com/view/svbox/index" target="_blank"
                     class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
@@ -1020,6 +1040,11 @@
             <!-- 💡 PAGE: BIGLOT REPORT (รายงานการสั่งซื้อ BigLot) -->
             <div id="page-biglot-report" class="hidden animate-fade-in w-full pb-10">
                 <?!= include('Module_BigLotReport'); ?>
+            </div>
+
+            <!-- 💡 PAGE: MANUAL (หน้าคู่มือการใช้งานระบบ) -->
+            <div id="page-manual" class="hidden animate-fade-in w-full pb-10">
+                <?!= include('Module_Manual'); ?>
             </div>
 
         </div>
@@ -1741,8 +1766,8 @@
             }
         } catch(e) {}
         try {
-            // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report' และ 'page-fuze-agent' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent'];
+            // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -1856,6 +1881,14 @@
                             icn.style.transform = 'rotate(180deg)';
                             icn.classList.add('text-theme-orange');
                         }
+                    }
+                },
+                'manual': {
+                    page: 'page-manual',
+                    menu: 'menu-manual',
+                    title: 'คู่มือการใช้งานระบบ (ปข.10)',
+                    action: () => {
+                        if (typeof window.initManualPage === 'function') window.initManualPage();
                     }
                 }
             };

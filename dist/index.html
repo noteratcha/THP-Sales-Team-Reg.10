@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2030';
+    var APP_VERSION = 'Ver. 2026.1017.2045';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -749,6 +749,17 @@
                 <i class="fas fa-external-link-alt text-[10px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
             </a>
 
+            <!-- 💡 เมนู คู่มือการใช้งานระบบ -->
+            <div onclick="switchPage('manual')" id="menu-manual"
+                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
+                <div
+                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
+                    <i class="fas fa-book-reader text-sm"></i>
+                </div>
+                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">📖 คู่มือการใช้งานระบบ</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เปิดอ่าน</span>
+            </div>
+
 
             <!-- Group 3: Other Tools (External Links) -->
             <div id="nav-divider-2" class="mx-4 my-2 border-t border-gray-700/60"></div>
@@ -852,9 +863,18 @@
                         class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
                         <i class="fas fa-book text-xs"></i>
                     </div>
-                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">คู่มือทีมขาย</span>
+                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">คู่มือทีมขาย (Canva)</span>
                     <i
                         class="fas fa-external-link-alt text-[9px] opacity-50 group-hover:opacity-100 transition-opacity"></i>
+                </a>
+                <a id="tool-system-manual" onclick="switchPage('manual')"
+                    class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
+                        <i class="fas fa-book-reader text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 leading-[18px] whitespace-normal break-words pt-1">📖 คู่มือการใช้งานระบบ</span>
+                    <span class="px-1.5 py-0.5 text-[8.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เว็บ</span>
                 </a>
                 <a id="tool-survey" href="https://sites.google.com/view/svbox/index" target="_blank"
                     class="nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 text-gray-400 hover:bg-white/5 hover:text-white no-underline cursor-pointer">
@@ -22851,6 +22871,669 @@
 </script>
             </div>
 
+            <!-- 💡 PAGE: MANUAL (หน้าคู่มือการใช้งานระบบ) -->
+            <div id="page-manual" class="hidden animate-fade-in w-full pb-10">
+                <!-- ============================================== -->
+<!-- 📖 MODULE_MANUAL: คู่มือการใช้งานระบบ THP Sales Team Reg.10 -->
+<!-- ============================================== -->
+<style>
+  .manual-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -2px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
+  }
+  .manual-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+  }
+  .manual-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #111827;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f3f4f6;
+    margin-bottom: 16px;
+  }
+  .manual-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .manual-pill:hover, .manual-pill.active {
+    background: #ea580c;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+  }
+  .manual-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+  }
+  .manual-table th {
+    background: #f9fafb;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+  .manual-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+    vertical-align: top;
+  }
+  .manual-table tr:last-child td {
+    border-bottom: none;
+  }
+  .manual-table tr:hover td {
+    background: #fbfbfb;
+  }
+  .manual-tip {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+    padding: 12px 16px;
+    border-radius: 0 10px 10px 0;
+    font-size: 12px;
+    margin: 12px 0;
+  }
+  .manual-important {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    color: #92400e;
+    padding: 12px 16px;
+    border-radius: 0 10px 10px 0;
+    font-size: 12px;
+    margin: 12px 0;
+  }
+  .manual-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  @media print {
+    aside, header, #manualHeaderActions, #manualQuickNav { display: none !important; }
+    main { overflow: visible !important; height: auto !important; }
+    #page-manual { display: block !important; }
+    .manual-card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; }
+  }
+</style>
+
+<div class="max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-6">
+  
+  <!-- Banner หัวข้อคู่มือ -->
+  <div class="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+    <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+      <i class="fas fa-book-reader text-9xl"></i>
+    </div>
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">CRM Document</span>
+          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">ปข.10</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
+          📖 คู่มือการใช้งานระบบ THP Sales Team Reg.10
+        </h1>
+        <p class="text-orange-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
+          ระบบบริหารงานทีมขายและดูแลลูกค้า ปข.10 ครอบคลุมการบันทึกการเข้าพบลูกค้า การติดตามรายได้ การวิเคราะห์อัจฉริยะด้วย AI และเครื่องมือเสริมสำหรับทีมขายครบวงจร
+        </p>
+      </div>
+
+      <div id="manualHeaderActions" class="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+        <button onclick="window.print()" class="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+          <i class="fas fa-print"></i> พิมพ์คู่มือ / PDF
+        </button>
+        <button onclick="switchPage('home')" class="px-4 py-2.5 bg-black/20 hover:bg-black/30 text-white font-medium rounded-xl text-xs transition flex items-center gap-2">
+          <i class="fas fa-home"></i> กลับหน้าหลัก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="manual-card p-4 flex flex-col sm:flex-row items-center justify-between gap-3 sticky top-16 z-20 backdrop-blur-md bg-white/95 border-orange-100 shadow-sm">
+    <div class="relative w-full sm:w-96">
+      <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+      <input type="text" id="manualSearchInput" onkeyup="filterManualContent()" placeholder="พิมพ์ค้นหาหัวข้อ คำ หรือฟังก์ชันในคู่มือ..." class="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition">
+      <button onclick="clearManualSearch()" id="btnClearManualSearch" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs w-5 h-5 flex items-center justify-center">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Quick Count / Status -->
+    <div class="text-[11px] text-gray-500 font-medium self-end sm:self-auto flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span>คู่มือฉบับสมบูรณ์ (11 หมวดหมู่)</span>
+    </div>
+  </div>
+
+  <!-- Quick Nav Pills (สารบัญด่วน) -->
+  <div id="manualQuickNav" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs">
+    <a href="#sec-1" class="manual-pill">1. เริ่มต้นใช้งาน</a>
+    <a href="#sec-2" class="manual-pill">2. หน้าหลัก (Dashboard)</a>
+    <a href="#sec-3" class="manual-pill">3. เข้าพบลูกค้า (16 ข้อ)</a>
+    <a href="#sec-4" class="manual-pill">4. การใช้บริการ (รายได้)</a>
+    <a href="#sec-5" class="manual-pill">5. รายงาน AI วิเคราะห์รายได้</a>
+    <a href="#sec-6" class="manual-pill">6. สรุปรายได้-รายจ่าย (ตล.)</a>
+    <a href="#sec-7" class="manual-pill">7. เครื่องมืออื่นๆ</a>
+    <a href="#sec-8" class="manual-pill">8. สินค้า BigLot</a>
+    <a href="#sec-9" class="manual-pill">9. เมนูโปรไฟล์</a>
+    <a href="#sec-10" class="manual-pill">10. สิทธิ์ตามบทบาท</a>
+    <a href="#sec-11" class="manual-pill">11. คำถามที่พบบ่อย (FAQ)</a>
+  </div>
+
+  <!-- หมวดที่ 1: เริ่มต้นใช้งาน -->
+  <section id="sec-1" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-bold">1</span>
+      <span>เริ่มต้นใช้งานระบบ</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <ol class="list-decimal list-inside space-y-2 pl-1">
+        <li>เข้าใช้งานผ่านเว็บบราวเซอร์ที่ <b>https://salesreg10.vercel.app</b> (รองรับทั้งคอมพิวเตอร์ แท็บเล็ต และสมาร์ตโฟน แนะนำ Chrome / Edge)</li>
+        <li>เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่านที่ได้รับมอบหมาย</li>
+        <li>เมื่อเข้าระบบแล้ว ชื่อผู้ใช้และสังกัดจะแสดงที่ด้านบนแถบเมนูด้านซ้าย (Sidebar)</li>
+        <li>บนอุปกรณ์มือถือ สามารถกดปุ่มเมนู ☰ ที่มุมบนซ้ายเพื่อเปิด-ปิดแถบเมนู</li>
+      </ol>
+      <div class="manual-tip">
+        <i class="fas fa-lightbulb mr-1.5 text-blue-500"></i> <b>เคล็ดลับความเร็ว (Cache):</b> ระบบจดจำข้อมูลไว้ในอุปกรณ์ของท่าน เมื่อเปิดใช้งานหน้าจอเดิม ข้อมูลจะแสดงทันที และระบบจะซิงค์ข้อมูลล่าสุดในเบื้องหลัง เมื่อเสร็จจะมีป้าย "✔ ข้อมูลล่าสุด" แจ้งเตือนสั้นๆ
+      </div>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 2: หน้าหลัก (Dashboard) -->
+  <section id="sec-2" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">2</span>
+      <span>หน้าหลัก (Dashboard)</span>
+    </div>
+    <div class="space-y-4 text-xs sm:text-sm text-gray-600">
+      <p>เมื่อเข้าสู่ระบบ จะพบกับภาพรวมผลการดำเนินงานของทีมขายและทางลัดที่สำคัญ:</p>
+      <div class="overflow-x-auto">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 25%;">ส่วนประกอบ</th>
+              <th>การใช้งานและรายละเอียด</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>ปุ่มลัด (Quick Actions)</b></td>
+              <td>ปุ่มด่วนสำหรับ เพิ่มข้อมูลการเข้าพบลูกค้า, สร้างภาพข่าว (Post News) และค้นหาอัตราค่าบริการ</td>
+            </tr>
+            <tr>
+              <td><b>การ์ดสรุปการเข้าพบ</b></td>
+              <td>แสดงผลงานการเข้าพบลูกค้าเทียบเป้าหมาย — สามารถคลิกที่การ์ดเพื่อสลับไปหน้า "ข้อมูลการเข้าพบลูกค้า" ได้ทันที</td>
+            </tr>
+            <tr>
+              <td><b>การ์ดสรุปรายได้</b></td>
+              <td>แสดงรายได้สะสมเทียบเป้าหมายและช่วงเดียวกันปีก่อน พร้อมกราฟลูกค้า — คลิกเพื่อไปหน้า "สรุปการใช้บริการ"</td>
+            </tr>
+            <tr>
+              <td><b>สินค้า BigLot แนะนำ</b></td>
+              <td>สไลด์แสดงสินค้าราคาพิเศษและโปรโมชัน สำหรับทีมขายนำไปเสนอขายให้ลูกค้า</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 3: เข้าพบลูกค้า -->
+  <section id="sec-3" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold">3</span>
+      <span>ระบบเข้าพบลูกค้า (Customer Visits)</span>
+    </div>
+    <div class="space-y-4 text-xs sm:text-sm text-gray-600">
+      <h3 class="font-bold text-gray-800 text-sm">3.1 การบันทึกข้อมูลการเข้าพบใหม่ (ฟอร์ม 16 ข้อ)</h3>
+      <p>ไปที่เมนู <b>เข้าพบลูกค้า › เพิ่มข้อมูลใหม่</b> โดยกรอกข้อมูลตามหัวข้อ (ช่องที่มีเครื่องหมาย <span class="text-red-500 font-bold">*</span> จำเป็นต้องระบุ):</p>
+      
+      <div class="overflow-x-auto">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">ข้อที่</th>
+              <th style="width: 35%;">หัวข้อ</th>
+              <th>คำอธิบายและแนวทางกรอก</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>หัวข้อเรื่อง *</td>
+              <td>เช่น ติดตามลูกค้าใหม่, ส่งใบเสนอราคา, ติดตามลูกค้าที่หายไป, เข้าพบตามรอบ ฯลฯ</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>กลุ่มลูกค้า *</td>
+              <td>ระหว่างประเทศ / ไปรษณียภัณฑ์-การเงิน-ค้าปลีก / e-Commerce / Fuze Post (เลือกได้หลายข้อ)</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>ชื่อ-นามสกุล ผู้ประกอบการ *</td>
+              <td>พิมพ์ชื่อลูกค้า ระบบมี Auto-complete แนะนำรายชื่อลูกค้าสมาชิกในฐานข้อมูลให้ทันที</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>เบอร์โทรศัพท์ *</td>
+              <td>ระบุตัวเลข 10 หลัก เพื่อใช้ประสานงานต่อเนื่อง</td>
+            </tr>
+            <tr>
+              <td>5–9</td>
+              <td>ประเภทสินค้า, ช่องทางจำหน่าย, ปริมาณชิ้นงาน/เดือน, ผู้ขนส่งปัจจุบัน, สิ่งที่ต้องการ *</td>
+              <td>เลือกตัวเลือกจากรายการ หรือพิมพ์ระบุข้อมูล</td>
+            </tr>
+            <tr>
+              <td>10–11</td>
+              <td>ปัญหาที่พบ / ข้อเสนอแนะ</td>
+              <td>ข้อคิดเห็นจากลูกค้าและสิ่งที่ต้องการให้ ปข.10 สนับสนุน (ไม่บังคับ)</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>Post Family</td>
+              <td>หากเป็นสมาชิกให้กรอกรหัสขึ้นต้นด้วย <code class="bg-gray-100 px-1 py-0.5 rounded text-orange-600 font-mono">THP-XXXXXXXX</code></td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>ผลการนำเสนอ *</td>
+              <td>ระบุผลลัพธ์: ปิดการขายได้ / ปิดการขายไม่ได้</td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>บริการที่แนะนำ *</td>
+              <td>เลือกบริการไปรษณีย์ไทยที่นำเสนอแก่ลูกค้า</td>
+            </tr>
+            <tr>
+              <td>15</td>
+              <td>สาเหตุยอดลด / ลูกค้าหายไป</td>
+              <td>ระบุสาเหตุ (หากเลือก "อื่น ๆ" จะมีช่องให้พิมพ์ระบุรายละเอียด)</td>
+            </tr>
+            <tr>
+              <td>16</td>
+              <td>รูปภาพการเข้าพบ *</td>
+              <td>แนบรูปถ่ายการเข้าพบลูกค้า (มีปุ่ม <b>"รวมรูปภาพ"</b> ช่วยรวมภาพหลายใบเป็นภาพเดียวอัตโนมัติ)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-sm pt-2">3.2 ข้อมูลการเข้าพบลูกค้า & การสร้างภาพข่าว</h3>
+      <ul class="list-disc list-inside space-y-1.5 pl-1">
+        <li><b>ข้อมูลการเข้าพบลูกค้า:</b> ตรวจสอบประวัติการเข้าพบทั้งหมด กรองตาม วันที่ / ทีม / รายบุคคล / หัวข้อ พร้อมส่งออกเป็นภาพการ์ดสรุปหรือส่งเข้าไลน์กลุ่ม</li>
+        <li><b>ข้อมูลติดตามลูกค้า (ปก.):</b> แดชบอร์ดติดตามลูกค้าที่ยอดลดหรือหายไป สำหรับผู้ได้รับมอบหมายพิเศษ</li>
+        <li><b>สร้างภาพข่าว (Post News):</b> จัดทำกราฟิกภาพข่าวประชาสัมพันธ์กิจกรรมการตลาด ใส่หัวข้อ รูปภาพ และส่งออกเป็นรูปภาพพร้อมโพสต์ลงโซเชียลมีเดียได้ทันที</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 4: การใช้บริการ (รายได้) -->
+  <section id="sec-4" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">4</span>
+      <span>การใช้บริการและข้อมูลรายได้</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <h3 class="font-bold text-gray-800 text-sm">4.1 สรุปการใช้บริการ</h3>
+      <p>ไปที่เมนู <b>การใช้บริการ › สรุปการใช้บริการ</b> เพื่อติดตามสถานะรายได้ของทีมขาย:</p>
+      <ul class="list-disc list-inside space-y-1.5 pl-1">
+        <li>แสดงยอดรายได้สะสมเทียบเป้าหมาย และเปรียบเทียบกับช่วงเดียวกันของปีก่อนหน้า</li>
+        <li>ตัวกรองทรงพลัง: กรองเจาะลึกตาม จังหวัด / ทีมขาย / ที่ทำการไปรษณีย์ (96 แห่ง) / กลุ่มบริการ / รายชื่อลูกค้า</li>
+        <li>แสดงตารางลูกค้าที่รายได้เพิ่มขึ้นสูงสุด ลูกค้าที่ยอดลดลง และลูกค้าที่หยุดใช้บริการ</li>
+        <li>ปุ่ม <b>"🧠 วิเคราะห์ด้วย AI"</b> เพื่อเปิดรายงานวิเคราะห์รายได้เชิงลึกอัตโนมัติ</li>
+      </ul>
+
+      <h3 class="font-bold text-gray-800 text-sm pt-2">4.2 นำเข้าข้อมูลรายได้ (สำหรับ Admin)</h3>
+      <p>เมนู <b>การใช้บริการ › นำเข้าข้อมูลรายได้ (Admin)</b> ใช้อัปโหลดไฟล์รายงาน Tableau และเป้าหมายรายได้ประจำปี</p>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 5: รายงานวิเคราะห์รายได้ด้วย AI -->
+  <section id="sec-5" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-bold">5</span>
+      <span>รายงานวิเคราะห์รายได้ด้วย AI (Google Gemini)</span>
+    </div>
+    <div class="space-y-4 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <h3 class="font-bold text-gray-800 text-sm">5.1 การเลือกช่วงเวลาวิเคราะห์ (4 แท็บ)</h3>
+      <div class="overflow-x-auto">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 25%;">แท็บช่วงเวลา</th>
+              <th>คำอธิบาย</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>ภาพรวม</b></td>
+              <td>สะสมปีนี้ (YTD) ✨ แนะนำ สำหรับดูยอดสะสมล่าสุด หรือเลือกดูทั้งปีก่อนหน้า</td>
+            </tr>
+            <tr>
+              <td><b>รายไตรมาส</b></td>
+              <td>เลือกไตรมาส Q1 – Q4 พร้อมปุ่มสลับปี พ.ศ. 2569 / 2568</td>
+            </tr>
+            <tr>
+              <td><b>รายเดือน</b></td>
+              <td>เลือกดูเจาะจงเดือนใดเดือนหนึ่ง (ม.ค. – ธ.ค.)</td>
+            </tr>
+            <tr>
+              <td><b>ช่วงเดือน (From-To)</b></td>
+              <td>กำหนดช่วงเดือนได้อิสระ พร้อมแถบผัง Interactive Visual Timeline และปุ่มลัด (ม.ค.–ล่าสุด, ครึ่งปีแรก/หลัง, 3 เดือนล่าสุด)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="font-bold text-gray-800 text-sm pt-2">5.2 โครงสร้างและเนื้อหาในรายงาน</h3>
+      <div class="space-y-2">
+        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+          <b class="text-gray-800">📄 ส่วนที่ 1: บทสรุปสำหรับผู้บริหาร</b>
+          <p class="mt-1">การ์ด KPI 4 มิติ (รายได้, การเติบโต, % ของเป้าหมาย, ลูกค้าสมาชิกที่ใช้บริการ), สรุปประเด็นสำคัญสำหรับผู้บริหาร, จุดเด่น และจุดที่ต้องระวัง</p>
+        </div>
+        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+          <b class="text-gray-800">📊 ส่วนที่ 2: ภาพรวมและแนวโน้ม</b>
+          <p class="mt-1">กราฟแท่งแนวโน้มรายได้รายเดือน, ตารางผลงานรายจังหวัด (7 จังหวัด + ศป.อุบลฯ + ศป.สกลนคร) และผลงานรายทีมขาย (ทีมเกินเป้า & ทีมต่ำกว่าเป้า)</p>
+        </div>
+        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200">
+          <b class="text-gray-800">🏢 ส่วนที่ 3: การวิเคราะห์เจาะลึกรายที่ทำการ (4 มิติสำคัญ)</b>
+          <p class="mt-1">มี Dropdown ให้เลือกเจาะลึกได้ครบทั้ง 96 ที่ทำการ โดยแสดง 4 กล่องการ์ดเฉพาะที่ทำการนั้น:</p>
+          <ul class="list-disc list-inside mt-2 space-y-1 pl-2 text-xs">
+            <li><b>1. รายได้ เด่น - ด้อย:</b> 3 บริการที่เติบโตสูงสุด และ 3 บริการที่ลดลงมากสุด (ตัวฉุดยอด)</li>
+            <li><b>2. ลูกค้าที่หายไป:</b> ลูกค้าสมาชิกที่ยอดปีก่อน &ge; 10,000 บาท แล้วหยุดส่ง 3 เดือนขึ้นไป (พร้อมแจ้งเตือนกรณี สตช. ย้ายไปชำระรวมส่วนกลาง)</li>
+            <li><b>3. แนวทางว่าจะหารายได้จากไหน:</b> โอกาสทวงคืนลูกค้าเดิม (Win-back gap) และการผลักดันบริการศักยภาพสูงที่สัดส่วนยังต่ำกว่าค่าเฉลี่ยภาค</li>
+            <li><b>4. อัตราส่วนแต่ละบริการ:</b> แถบกราฟและสัดส่วน % Share ของทุกบริการในที่ทำการนั้น</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="manual-important">
+        <i class="fas fa-exclamation-triangle mr-1.5 text-amber-600"></i> <b>ข้อตกลงเรื่องสำนักงานตำรวจแห่งชาติ:</b> ยอดรายได้ สตช. ในระดับพื้นที่ที่ลดลง เกิดจากการเปลี่ยนวิธีชำระค่าบริการจากระดับพื้นที่ไปชำระรวมที่ส่วนกลาง ไม่ใช่การหยุดใช้บริการจริง ระบบจึงแสดงป้ายชี้แจงและไม่แนะนำให้ทีมขายไประงับหรือติดตาม
+      </div>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 6: สรุปผลรายได้-รายจ่าย (ตล.) -->
+  <section id="sec-6" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center text-sm font-bold">6</span>
+      <span>สรุปผลรายได้-รายจ่าย (ตล.)</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <p>เมนู <b>สรุปผลรายได้-รายจ่าย (ตล.)</b> เป็นแดชบอร์ดภายนอกสำหรับดูตัวเลขผลการดำเนินงานทางการเงิน รายรับ-รายจ่ายของหน่วยงานในสังกัด ปข.10 เมื่อคลิกจะเป็นการเปิดหน้าต่างแดชบอร์ดวิเคราะห์ผลในแท็บใหม่</p>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 7: เครื่องมืออื่นๆ -->
+  <section id="sec-7" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">7</span>
+      <span>เครื่องมืออื่นๆ สำหรับทีมขาย</span>
+    </div>
+    <div class="space-y-4 text-xs sm:text-sm text-gray-600">
+      <p>รวมศูนย์ลิงก์ระบบและคลังสื่อส่งเสริมการขายที่จำเป็น:</p>
+      <div class="overflow-x-auto">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 30%;">เครื่องมือ</th>
+              <th>รายละเอียดและวัตถุประสงค์</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>CMP - Customer Portal</b></td>
+              <td>รวมแนวทางการ Onboard ลูกค้าในระบบ CMP, ลิงก์เข้าใช้งาน CMP, BOM ปข.10, ตัวอย่างหนังสือเข้าพบหน่วยงาน และตัวอย่างหนังสือมอบอำนาจ</td>
+            </tr>
+            <tr>
+              <td><b>Advertising Mail</b></td>
+              <td>ข้อมูลอัตราค่าบริการและแนวทางการนำเสนอบริการไปรษณีย์โฆษณา (Household)</td>
+            </tr>
+            <tr>
+              <td><b>คู่มือทีมขาย (Canva)</b></td>
+              <td>สไลด์คู่มือเทคนิคและแนวทางการปฏิบัติงานทีมขาย</td>
+            </tr>
+            <tr>
+              <td><b>สำรวจความต้องการกล่อง</b></td>
+              <td>แบบฟอร์มสำรวจความต้องการใช้งานกล่องและซองพัสดุในพื้นที่</td>
+            </tr>
+            <tr>
+              <td><b>สื่อประชาสัมพันธ์</b></td>
+              <td>โฟลเดอร์ Google Drive รวมไฟล์สื่อประชาสัมพันธ์ ภาพ แบนเนอร์ และโปรโมชัน</td>
+            </tr>
+            <tr>
+              <td><b>Postinter reg.10</b></td>
+              <td>เว็บไซต์รวบรวมข้อมูลบริการไปรษณีย์ระหว่างประเทศและการส่งออก</td>
+            </tr>
+            <tr>
+              <td><b>ระบบ Smart Lotto Track</b></td>
+              <td>ระบบติดตามและตรวจสอบสถานะการจัดส่งสลากกินแบ่งรัฐบาล</td>
+            </tr>
+            <tr>
+              <td><b>Pre Post Guide</b></td>
+              <td>ผู้ช่วยถาม-ตอบอัจฉริยะ (NotebookLM) ช่วยตอบข้อสงสัยการส่งพัสดุของทีมขาย</td>
+            </tr>
+            <tr>
+              <td><b>อัตราค่าบริการ (Rate Price)</b></td>
+              <td>ระบบค้นหาและตรวจสอบอัตราค่าบริการไปรษณีย์ประเภทต่างๆ ได้ทันทีบนเว็บ</td>
+            </tr>
+            <tr>
+              <td><b>Total Mail Solution (TMS)</b></td>
+              <td>สื่อแนะนำบริการ TMS ทั้งภายในและภายนอก, รายชื่อ อปท. (LTAX ONLINE) และแบบฟอร์มขอเปิดใช้บริการ</td>
+            </tr>
+            <tr>
+              <td><b>FUZE Post</b></td>
+              <td>ระบบรายงานการดำเนินงานขนส่งสินค้าควบคุมอุณหภูมิ, Fuze Back Office และรายชื่อตัวแทนฯ</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 8: สินค้า BigLot -->
+  <section id="sec-8" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm font-bold">8</span>
+      <span>ระบบสินค้า BigLot</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <ul class="list-disc list-inside space-y-2 pl-1">
+        <li><b>สั่งซื้อสินค้า BigLot:</b> เลือกดูรายการสินค้าโปรโมชันพิเศษ ระบุจำนวนที่ต้องการสั่งซื้อ กรอกข้อมูลการจัดส่ง และกดยืนยันคำสั่งซื้อ</li>
+        <li><b>รายงานการสั่งซื้อ BigLot:</b> ตรวจสอบยอดสั่งซื้อสะสม เปรียบเทียบกับเป้าหมายจำหน่าย แยกตามทีมขายและประเภทสินค้า พร้อมส่งออกไฟล์รายงาน</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 9: เมนูโปรไฟล์ -->
+  <section id="sec-9" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center text-sm font-bold">9</span>
+      <span>เมนูโปรไฟล์และการตั้งค่า</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <p>เมื่อคลิกที่ชื่อผู้ใช้หรือไอคอนผู้ใช้ด้านบนของแถบเมนูด้านซ้าย จะปรากฏเมนูคำสั่งย่อย:</p>
+      <ul class="list-disc list-inside space-y-1.5 pl-1">
+        <li><b>การตั้งค่าระบบ (System Settings):</b> เฉพาะสิทธิ์ Admin สำหรับจัดการบัญชีผู้ใช้งาน ตั้งค่าเป้าหมาย และปรับแต่งค่าระบบ</li>
+        <li><b>ประเมินระบบ:</b> แบบประเมินความพึงพอใจและข้อเสนอแนะในการใช้งานระบบ CRM</li>
+        <li><b>ออกจากระบบ (Log Out):</b> เพื่อความปลอดภัยในการใช้งาน</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 10: สิทธิ์ตามบทบาท -->
+  <section id="sec-10" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center text-sm font-bold">10</span>
+      <span>สิทธิ์การใช้งานตามบทบาท (Role & Permissions)</span>
+    </div>
+    <div class="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
+      <div class="overflow-x-auto">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th>เมนู / ความสามารถ</th>
+              <th class="text-center" style="width: 25%;">ทีมขายทั่วไป</th>
+              <th class="text-center" style="width: 25%;">ผู้ดูแลระบบ (Admin)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>หน้าหลัก / บันทึกการเข้าพบ / ข้อมูลการเข้าพบ</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>สรุปการใช้บริการ / รายงาน AI วิเคราะห์รายได้</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>เครื่องมืออื่นๆ / สั่งซื้อ BigLot / คู่มือระบบ</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>ข้อมูลติดตามลูกค้า (ปก.)</td>
+              <td class="text-center text-gray-400">—</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>นำเข้าข้อมูลรายได้ (Tableau & เป้าหมาย)</td>
+              <td class="text-center text-gray-400">—</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>ตัวแทนจำหน่าย FUZE (Admin)</td>
+              <td class="text-center text-gray-400">—</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+            <tr>
+              <td>การตั้งค่าระบบ (จัดการ User & เป้าหมาย)</td>
+              <td class="text-center text-gray-400">—</td>
+              <td class="text-center text-emerald-600 font-bold">✅ ใช้งานได้</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-[11px] text-gray-400 italic">* เมนูที่ผู้ใช้งานไม่มีสิทธิ์จะถูกซ่อนออกจากแถบเมนูโดยอัตโนมัติ</p>
+    </div>
+  </section>
+
+  <!-- หมวดที่ 11: คำถามที่พบบ่อย (FAQ) -->
+  <section id="sec-11" class="manual-card p-6 manual-sec">
+    <div class="manual-section-title">
+      <span class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center text-sm font-bold">11</span>
+      <span>คำถามที่พบบ่อยและวิธีแก้ไขเบื้องต้น (FAQ)</span>
+    </div>
+    <div class="space-y-4 text-xs sm:text-sm text-gray-600">
+      <div class="space-y-3">
+        <div class="border border-gray-200 rounded-xl p-3.5 bg-gray-50/50">
+          <b class="text-gray-800 flex items-center gap-2"><i class="fas fa-question-circle text-orange-500"></i> ทำไมเปิดหน้าเว็บแล้วข้อมูลยังไม่อัปเดตเป็นล่าสุด?</b>
+          <p class="mt-1.5 pl-6 text-gray-600">ระบบใช้ระบบแคชเพื่อความรวดเร็วในการเปิดหน้าจอ ให้รอสักครู่จนกระทั่งมีป้ายแจ้งเตือน "✔ ข้อมูลล่าสุด" หรือกดปุ่มรีเฟรช 🔄 ที่มุมขวาบนของหน้าจอ</p>
+        </div>
+
+        <div class="border border-gray-200 rounded-xl p-3.5 bg-gray-50/50">
+          <b class="text-gray-800 flex items-center gap-2"><i class="fas fa-question-circle text-orange-500"></i> บันทึกข้อมูลการเข้าพบลูกค้าไม่ผ่าน เกิดจากอะไร?</b>
+          <p class="mt-1.5 pl-6 text-gray-600">กรุณาตรวจสอบว่าได้กรอกช่องที่มีเครื่องหมาย <span class="text-red-500 font-bold">*</span> ครบทุกช่องหรือไม่, เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก และต้องแนบรูปภาพการเข้าพบอย่างน้อย 1 รูป</p>
+        </div>
+
+        <div class="border border-gray-200 rounded-xl p-3.5 bg-gray-50/50">
+          <b class="text-gray-800 flex items-center gap-2"><i class="fas fa-question-circle text-orange-500"></i> รายงาน AI วิเคราะห์รายได้ใช้เวลาโหลดนานหรือไม่?</b>
+          <p class="mt-1.5 pl-6 text-gray-600">การวิเคราะห์ครั้งแรกของแต่ละช่วงเวลาจะใช้เวลาประมาณ 8–15 วินาที เนื่องจาก AI กำลังประมวลผลข้อมูลระดับหมื่นแถว แต่เมื่อวิเคราะห์เสร็จแล้ว การเปิดดูครั้งถัดไปจะเปิดได้ทันที (0 วินาที) เนื่องจากมีระบบบันทึกผลการวิเคราะห์</p>
+        </div>
+
+        <div class="border border-gray-200 rounded-xl p-3.5 bg-gray-50/50">
+          <b class="text-gray-800 flex items-center gap-2"><i class="fas fa-question-circle text-orange-500"></i> หากต้องการพิมพ์รายงาน AI ออกเป็นกระดาษหรือ PDF?</b>
+          <p class="mt-1.5 pl-6 text-gray-600">แนะนำให้เลือกมุมมอง <b>"⚡ สรุปเนื้อหาแบบย่อ"</b> หากต้องการพิมพ์สรุปประเด็นสำหรับผู้บริหารใน 1 หน้า A4 หรือเลือก <b>"📑 รายงานฉบับเต็ม"</b> หากต้องการพิมพ์ข้อมูลทั้งหมด โดยกดปุ่ม "🖨️ พิมพ์ / บันทึก PDF" ด้านบนของรายงาน</p>
+        </div>
+      </div>
+
+      <!-- Footer Help Box -->
+      <div class="mt-6 p-4 rounded-xl bg-orange-50 border border-orange-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-orange-950">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-orange-200 text-orange-700 flex items-center justify-center shrink-0">
+            <i class="fas fa-headset text-lg"></i>
+          </div>
+          <div>
+            <b class="text-sm">มีข้อสงสัยหรือพบปัญหาการใช้งานระบบ?</b>
+            <p class="text-xs text-orange-800">ติดต่อได้ที่ <b>ส่วนทีมขายและดูแลลูกค้า ปข.10</b></p>
+          </div>
+        </div>
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="px-3.5 py-2 bg-white text-orange-700 font-bold rounded-lg text-xs border border-orange-300 hover:bg-orange-100 transition shrink-0 flex items-center gap-1.5 shadow-sm">
+          <i class="fas fa-arrow-up"></i> เลื่อนขึ้นบนสุด
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function filterManualContent() {
+    var query = (document.getElementById('manualSearchInput').value || '').toLowerCase().trim();
+    var btnClear = document.getElementById('btnClearManualSearch');
+    if (btnClear) {
+      if (query) btnClear.classList.remove('hidden');
+      else btnClear.classList.add('hidden');
+    }
+    
+    var sections = document.querySelectorAll('.manual-sec');
+    sections.forEach(function(sec) {
+      if (!query) {
+        sec.style.display = '';
+        return;
+      }
+      var text = sec.innerText.toLowerCase();
+      if (text.indexOf(query) !== -1) {
+        sec.style.display = '';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+  }
+
+  function clearManualSearch() {
+    var inp = document.getElementById('manualSearchInput');
+    if (inp) {
+      inp.value = '';
+      filterManualContent();
+      inp.focus();
+    }
+  }
+
+  function initManualPage() {
+    clearManualSearch();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+            </div>
+
         </div>
     </main>
     <div id="globalLoader"
@@ -23570,8 +24253,8 @@
             }
         } catch(e) {}
         try {
-            // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report' และ 'page-fuze-agent' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent'];
+            // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -23685,6 +24368,14 @@
                             icn.style.transform = 'rotate(180deg)';
                             icn.classList.add('text-theme-orange');
                         }
+                    }
+                },
+                'manual': {
+                    page: 'page-manual',
+                    menu: 'menu-manual',
+                    title: 'คู่มือการใช้งานระบบ (ปข.10)',
+                    action: () => {
+                        if (typeof window.initManualPage === 'function') window.initManualPage();
                     }
                 }
             };
