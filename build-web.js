@@ -44,7 +44,7 @@ const adapterScript = `
         window.google.script = {};
       }
       if (typeof window.google.script.run === 'undefined') {
-        const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyHjKL4Sj873PZDGMoOUQ9e_4HAGWL3MqDBGqyicjqujyz4lLI0QytBvD0-0BzxAj5y/exec";
+        const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx/exec";
         
         function createRunner(successCb, failureCb, userObj) {
           return new Proxy({}, {

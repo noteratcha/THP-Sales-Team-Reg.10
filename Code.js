@@ -3425,11 +3425,8 @@ function deleteMultipleBigLotOrders(rowIndices, userInfo) {
 // ==========================================
 // 📦 SECTION: LINE Notify Error Reporting
 // ==========================================
-const LINE_CHANNEL_ACCESS_TOKENS = [
-  "V6dEZJroyfmC+bTC4w16Gv3pfcF14/a7vywuHTtRc59s+JOKAdw5UTlxR9jyv5tJQ9PL8QNNw/JOzvaHxQflFLCovzUnNdMDyNienKzcOhgd8wtkwVINcWDMujSAEwaf01UQROvHVFPDBUZIiCSOWQdB04t89/1O/w1cDnyilFU=",
-  "8E1PAerkzxCgbDHB4lEb8sYWQdrmkOBuhEm3ArTjCSXr99hWHobMOuq8R4qdVFQwpxw0ptzG9XvaHz1FYtJijXE3hlBdR2efCAh4zSs/irD6hvIfK6xC8ZK1yEdFKLarNEOK8Z3T7jwXoYMQ9q3zagdB04t89/1O/w1cDnyilFU="
-];
-const LINE_CHANNEL_ACCESS_TOKEN = LINE_CHANNEL_ACCESS_TOKENS[0];
+// 🔐 Token เก็บใน Script Properties (Project Settings > Script properties) ห้ามฝังในโค้ด
+// LINE_CHANNEL_ACCESS_TOKENS = token1,token2 (คั่นด้วย ,) | BIGLOT_LINE_ACCESS_TOKEN = token
 const LINE_DESTINATION_IDS = [
   "Udba02d86c39dfa195baeb0e7a4328d05", // บอทหลัก (@963ytjpu)
   "Ud6defadda15e984a8efeed16f89b4e9c"  // บอทสำรอง 1 (@580islli)
@@ -3443,16 +3440,21 @@ function getLineChannelAccessTokens() {
     if (customTokens) {
       list = customTokens.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
     }
+    // Token เดี่ยวที่บันทึกจากหน้า Settings (updateLineConfig) ให้ใช้เป็นตัวแรก
+    var singleToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+    if (singleToken) {
+      // รองรับกรณีใส่หลาย token คั่นด้วย , ในช่องนี้
+      singleToken.split(',').map(function(t) { return t.trim(); }).filter(Boolean).reverse().forEach(function(t) {
+        if (list.indexOf(t) === -1) list.unshift(t);
+      });
+    }
   } catch (e) {}
-  if (!list || list.length === 0) {
-    list = LINE_CHANNEL_ACCESS_TOKENS.slice();
-  }
   return list;
 }
 
 function getLineChannelAccessToken() {
   var tokens = getLineChannelAccessTokens();
-  return tokens[0] || LINE_CHANNEL_ACCESS_TOKEN;
+  return tokens[0] || '';
 }
 
 function getLineDestinationId(tokenIndex) {
@@ -3813,7 +3815,9 @@ function getOfficesForSubstitute(userLogin) {
 // ==========================================
 // 📦 SECTION: LINE OA (Messaging API) Integration
 // ==========================================
-const BIGLOT_LINE_ACCESS_TOKEN = "XCmEZ6CCyS7vDPqlqXgjb6o36UIZBy/L/qqTEMaCUXhtvG2MWUK0X8QjVPyHNxHSOwxyfPV9wFKFlmBjqPDpbIM4Wwvc8Q+X0RnSoWAZcb0WOFvcCDuWtZlft30ukSgN0BQbkztO1Fq33q6AEnpjGAdB04t89/1O/w1cDnyilFU=";
+function getBigLotLineAccessToken() {
+  return PropertiesService.getScriptProperties().getProperty('BIGLOT_LINE_ACCESS_TOKEN') || '';
+}
 
 /**
  * ส่งข้อความ Push Message ไปยังกลุ่ม LINE
@@ -3838,7 +3842,7 @@ function sendBigLotLineNotification(message) {
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + BIGLOT_LINE_ACCESS_TOKEN,
+        'Authorization': 'Bearer ' + getBigLotLineAccessToken(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
@@ -3955,7 +3959,7 @@ function replyLineWebhook(replyToken, textMessage) {
     var options = {
       method: 'post',
       headers: {
-        'Authorization': 'Bearer ' + BIGLOT_LINE_ACCESS_TOKEN,
+        'Authorization': 'Bearer ' + getBigLotLineAccessToken(),
         'Content-Type': 'application/json'
       },
       payload: JSON.stringify(payload),
