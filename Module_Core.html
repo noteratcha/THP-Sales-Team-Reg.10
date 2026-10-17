@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1241';
+    var APP_VERSION = 'Ver. 2026.1017.1243';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3189,7 +3189,11 @@
 <title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 14mm 12mm; }
+  @page { size: A4; margin: 12mm 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #6b7280; } }
+  table.print-wrap { width: 100%; border-collapse: collapse; margin: 0; font-size: inherit; }
+  table.print-wrap > thead > tr > td, table.print-wrap > tbody > tr > td { padding: 0; border: 0; }
+  table.print-wrap > thead { display: table-header-group; }
+  table.print-wrap > tbody > tr, table.print-wrap > thead > tr { break-inside: auto; }
   * { box-sizing: border-box; }
   body { font-family: 'Sarabun', sans-serif; color: #1f2937; margin: 0; background: #e5e7eb; font-size: 12.5px; line-height: 1.55; }
   .page { width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff; padding: 14mm 12mm; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
@@ -3217,11 +3221,12 @@
   @media print { body { background: #fff; } .toolbar { display: none; } .page { margin: 0; box-shadow: none; padding: 0; width: auto; min-height: auto; } }
 </style></head><body>
 <div class="toolbar"><span>รายงานวิเคราะห์รายได้ด้วย AI</span><button onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button></div>
-<div class="page">
+<div class="page"><table class="print-wrap"><thead><tr><td>
   <header>
     <div><h1>รายงานวิเคราะห์รายได้ลูกค้า</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
     <div class="meta">จัดทำ ${esc(res.generatedAt)} น.<br>ผู้จัดทำ: ${esc(user.name || user.user || '-')}</div>
   </header>
+  </td></tr></thead><tbody><tr><td>
 
   <div class="kpis">
     ${kpi('รายได้สะสม (บาท)', money(o.ytd), 'ปีก่อน ' + money(o.lastYear))}
@@ -3271,7 +3276,7 @@
 
   ${(ai.notes && ai.notes.length) ? `<h2>หมายเหตุ</h2>${list(ai.notes)}` : ''}
   <footer>ตัวเลขทั้งหมดคำนวณจากระบบ THP Sales Team Reg.10 · บทวิเคราะห์เขียนโดย AI (Gemini) จากตัวเลขดังกล่าว ควรตรวจทานก่อนนำเสนอ${s.period.incompleteMonth ? ' · เดือน' + esc(s.period.incompleteMonth) + 'ข้อมูลยังไม่ครบ จึงไม่นำมาคำนวณ' : ''}</footer>
-</div></body></html>`;
+</td></tr></tbody></table></div></body></html>`;
     }
 
     function updateHeaderSyncTime() {
