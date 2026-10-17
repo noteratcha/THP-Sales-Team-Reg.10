@@ -945,7 +945,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v20_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v21_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1145,6 +1145,18 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
+  // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
+  var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
+  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
+  // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
+  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
+  var customerKey = function(r) {
+    var c = String(r[1]).trim();
+    if (!c || NOT_CUSTOMER.test(c)) return null;
+    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
+    return isMember(r) ? c : null;
+  };
+
   var teamStats = {}, teamSrv = {}, teamCust = {};
   rows.forEach(function(r) {
     var z = zipOf(r);
@@ -1216,17 +1228,6 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
-  // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
-  var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
-  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
-  // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
-  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
-  var customerKey = function(r) {
-    var c = String(r[1]).trim();
-    if (!c || NOT_CUSTOMER.test(c)) return null;
-    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
-    return isMember(r) ? c : null;
-  };
   var customers = agg(customerKey);
 
   // ที่ทำการของลูกค้า: ใช้ที่ทำการที่มีรายได้มากที่สุด ถ้าใช้หลายแห่ง (เช่น ตำรวจ) บอกจำนวนแห่งด้วย
@@ -1312,8 +1313,8 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
 
   var inactive = customers.filter(function(c) {
     var lm = lastMonthByCustomer[c.name];
-    return c.lastYear > 0 && (lm === undefined || lm <= toIdx - 3);
-  }).sort(function(a, b) { return b.lastYear - a.lastYear; }).slice(0, 15).map(function(c) {
+    return c.lastYear >= 200000 && (lm === undefined || lm <= toIdx - 3);
+  }).sort(function(a, b) { return b.lastYear - a.lastYear; }).map(function(c) {
     var lm = lastMonthByCustomer[c.name];
     c.lastActiveMonth = lm === undefined ? 'ไม่ใช้บริการปีนี้' : MONTHS[lm];
     var lu = latestUse[c.name];
