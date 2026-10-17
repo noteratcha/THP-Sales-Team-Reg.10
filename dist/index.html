@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1251';
+    var APP_VERSION = 'Ver. 2026.1017.1303';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25035,11 +25035,19 @@
 <title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 12mm 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #6b7280; } }
+  @page { size: A4; margin: 0 12mm 14mm; @bottom-right { content: "หน้า " counter(page) " / " counter(pages); font-family: 'Sarabun', sans-serif; font-size: 10px; color: #6b7280; } }
   table.print-wrap { width: 100%; border-collapse: collapse; margin: 0; font-size: inherit; }
   table.print-wrap > thead > tr > td, table.print-wrap > tbody > tr > td { padding: 0; border: 0; }
   table.print-wrap > thead { display: table-header-group; }
   table.print-wrap > tbody > tr, table.print-wrap > thead > tr { break-inside: auto; }
+  /* แบ่งหน้าอัจฉริยะ: หัวข้อที่สั้นกว่า 1 หน้าจะไม่ถูกตัดกลาง (ย้ายไปหน้าใหม่ทั้งก้อน)
+     หัวข้อที่ยาวเกินหน้า (ตารางยาว) ตัดได้แต่ไม่ตัดกลางแถว และหัวตารางขึ้นซ้ำทุกหน้า */
+  .sec { break-inside: avoid; page-break-inside: avoid; }
+  .sec-long > .lead { break-inside: avoid; break-after: avoid; page-break-after: avoid; }
+  .sec-long table thead { display: table-header-group; }
+  h2 { break-after: avoid; page-break-after: avoid; }
+  .kpis, .box, .two > div { break-inside: avoid; }
+  @media print { table.print-wrap > thead header { padding-top: 10mm; } }
   * { box-sizing: border-box; }
   body { font-family: 'Sarabun', sans-serif; color: #1f2937; margin: 0; background: #e5e7eb; font-size: 12.5px; line-height: 1.55; }
   .page { width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff; padding: 14mm 12mm; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
@@ -25070,7 +25078,6 @@
 <div class="page"><table class="print-wrap"><thead><tr><td>
   <header>
     <div><h1>รายงานวิเคราะห์รายได้ลูกค้า${isMonth ? ' ประจำเดือน' + esc(s.period.fromMonth) : ''}</h1><div>ทีมขายและดูแลลูกค้า ปข.10 · ${scopeLabel}</div><div class="muted">${periodLabel}</div></div>
-    <div class="meta">จัดทำ ${esc(res.generatedAt)} น.<br>ผู้จัดทำ: ${esc(user.name || user.user || '-')}</div>
   </header>
   </td></tr></thead><tbody><tr><td>
 
@@ -25082,46 +25089,49 @@
     ${kpi('ลูกค้าที่ใช้บริการ', (o.customerCount || 0).toLocaleString('en-US'), 'Top 1 = ' + (o.top1SharePct ?? '-') + '% · Top 10 = ' + (o.top10SharePct ?? '-') + '%')}
   </div>
 
-  <h2>สรุปสำหรับผู้บริหาร</h2>
-  <div class="box">${list(ai.executiveSummary)}</div>
-  <div class="two">
+  <section class="sec"><h2>สรุปสำหรับผู้บริหาร</h2>
+  <div class="box">${list(ai.executiveSummary)}</div></section>
+  <section class="sec"><div class="two">
     <div><h2>จุดเด่น</h2>${list(ai.highlights)}</div>
     <div><h2>จุดที่ต้องระวัง</h2>${list(ai.concerns)}</div>
-  </div>
+  </div></section>
 
-  <h2>แนวโน้มรายได้รายเดือน</h2>
+  <section class="sec"><h2>แนวโน้มรายได้รายเดือน</h2>
   <div class="legend muted"><span style="background:#ea580c"></span>ปี ${s.period.year + 543}<span style="background:#cbd5e1"></span>ปี ${s.period.compareYear + 543}</div>
-  ${monthBars}
+  ${monthBars}</section>
 
-  <h2>ผลงานรายทีม</h2>
-  ${list(ai.teamPerformance)}
+  <section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
+  ${list(ai.teamPerformance)}</div>
   ${table(['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
             s.teams.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
+  </section>
 
-  <h2>การเติบโตรายที่ทำการ</h2>
-  ${list(ai.officeGrowth)}
+  <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
+  ${list(ai.officeGrowth)}</div>
   ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">โต</span>', '<span class="n">% เป้า</span>'],
             s.offices.slice(0, 25).map(t => `<tr><td>${esc(t.name)}</td><td>${esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`))}
   ${s.offices.length > 25 ? `<p class="muted">แสดง 25 จาก ${s.offices.length} ที่ทำการ (เรียงตามรายได้)</p>` : ''}
+  </section>
 
-  <h2>สัดส่วนบริการ</h2>
+  <section class="sec"><h2>สัดส่วนบริการ</h2>
   ${list(ai.serviceMix)}
   ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">โต</span>'],
             s.services.slice(0, 10).map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`))}
+  </section>
 
-  <h2>ลูกค้าที่ต้องจับตา</h2>
-  ${list(ai.customerWatch)}
-  <div class="two">
+  <section class="sec"><h2>ลูกค้าที่ต้องจับตา</h2>
+  ${list(ai.customerWatch)}</section>
+  <section class="sec"><div class="two">
     <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n up">+${money(c.diff)}</td></tr>`))}</div>
     <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 7).map(c => `<tr><td>${esc(c.name)}</td><td class="n down">${money(c.diff)}</td></tr>`))}</div>
-  </div>
-  <b>หยุดใช้บริการ 3 เดือนขึ้นไป (เรียงตามรายได้ปีก่อน)</b>
-  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr><td>${esc(c.name)}</td><td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`))}
+  </div></section>
+  <section class="sec"><b>หยุดใช้บริการ 3 เดือนขึ้นไป (เรียงตามรายได้ปีก่อน)</b>
+  ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr><td>${esc(c.name)}</td><td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`))}</section>
 
-  <h2>ข้อเสนอแนะ</h2>
-  <div class="box">${list(ai.recommendations)}</div>
+  <section class="sec"><h2>ข้อเสนอแนะ</h2>
+  <div class="box">${list(ai.recommendations)}</div></section>
 
-  ${(ai.notes && ai.notes.length) ? `<h2>หมายเหตุ</h2>${list(ai.notes)}` : ''}
+  ${(ai.notes && ai.notes.length) ? `<section class="sec"><h2>หมายเหตุ</h2>${list(ai.notes)}</section>` : ''}
   <footer>ตัวเลขทั้งหมดคำนวณจากระบบ THP Sales Team Reg.10 · บทวิเคราะห์เขียนโดย AI (Gemini) จากตัวเลขดังกล่าว ควรตรวจทานก่อนนำเสนอ${s.period.incompleteMonth ? ' · เดือน' + esc(s.period.incompleteMonth) + 'ข้อมูลยังไม่ครบ จึงไม่นำมาคำนวณ' : ''}</footer>
 </td></tr></tbody></table></div></body></html>`;
     }
