@@ -945,7 +945,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v16_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v17_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1052,7 +1052,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   // 2) เป้าหมายและทีม (จากชีตเป้าหมาย)
   var tgtRes = getRevenueTargets();
   var targets = (tgtRes && tgtRes.status === 'success') ? tgtRes.data.slice(1) : [];
-  var zipTeam = {}, zipTarget = {}, teamTarget = {}, zipProvince = {}, provinceTarget = {};
+  var zipTeam = {}, zipTarget = {}, teamTarget = {}, zipProvince = {}, provinceTarget = {}, zipTargetName = {};
   targets.forEach(function(t) {
     var ty = parseInt(t[0], 10); if (ty > 2500) ty -= 543;
     var zip = String(t[2]).trim(); var team = String(t[6]).trim();
@@ -1060,6 +1060,8 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     // จังหวัดตามชีตเป้าหมาย (ศป.อุบลราชธานี / ศป.สกลนคร แยกเป็นหน่วยของตัวเองอยู่แล้ว)
     var prov = String(t[7] || '').trim();
     if (zip && prov) zipProvince[zip] = prov;
+    var offName = String(t[3] || '').trim();
+    if (zip && offName) zipTargetName[zip] = offName;
     var mi = MONTHS.indexOf(String(t[1]).trim());
     if (ty === curYear && mi !== -1 && mi >= fromIdx && mi <= toIdx && (scope === 'ALL' || zip === scope)) {
       zipTarget[zip] = (zipTarget[zip] || 0) + num(t[4]);
@@ -1085,10 +1087,62 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   };
   var zipOf = function(r) { return String(r[0] || '').substring(0, 5); };
 
-  var offices = agg(function(r) { return String(r[0]).trim(); }).map(function(o) {
-    var z = o.name.substring(0, 5); var t = zipTarget[z] || 0;
-    o.team = zipTeam[z] || 'ไม่ระบุทีม'; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
-    return o;
+  // รวบรวมชื่อที่ทำการจากข้อมูลจริงใน Tableau
+  // เลือกชื่อที่มีจุด (.) เช่น "34000 - ปจ.อุบลราชธานี", "37120 - ปณ.ลืออำนาจ", "34010 - ศป.อุบลราชธานี" เป็นชื่อหลัก
+  var zipNamesInRows = {};
+  var zipStats = {};
+  rows.forEach(function(r) {
+    var z = zipOf(r);
+    if (!z || !zipTeam[z]) return;
+    var rawName = String(r[0] || '').trim();
+    if (rawName) {
+      if (!zipNamesInRows[z]) zipNamesInRows[z] = {};
+      zipNamesInRows[z][rawName] = (zipNamesInRows[z][rawName] || 0) + 1;
+    }
+    var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
+    if (!cur && !ly) return;
+    if (!zipStats[z]) zipStats[z] = { cur: 0, ly: 0 };
+    if (cur) zipStats[z].cur += num(r[8]);
+    if (ly) zipStats[z].ly += num(r[8]);
+  });
+
+  var pickPrimaryOfficeName = function(z) {
+    var rawList = Object.keys(zipNamesInRows[z] || {});
+    var withDot = rawList.filter(function(n) { return n.indexOf('.') !== -1; });
+    var chosen = null;
+    if (withDot.length > 0) {
+      chosen = withDot.find(function(n) { return / - (ปจ\.|ศป\.|ปณ\.)/.test(n); }) || withDot[0];
+    } else if (rawList.length > 0) {
+      chosen = rawList[0];
+    }
+    if (!chosen) {
+      var tgtName = zipTargetName[z] || z;
+      chosen = z + ' - ' + (tgtName.indexOf('.') !== -1 ? tgtName : 'ปณ.' + tgtName);
+    } else if (chosen.indexOf('.') === -1) {
+      chosen = chosen.replace(/^(\d{5}\s*-\s*)(?!ป[จณฝ]\.|ศป\.)/, '$1ปณ.');
+    }
+    return chosen;
+  };
+
+  var targetZips = Object.keys(zipTeam);
+  if (scope !== 'ALL') {
+    targetZips = targetZips.filter(function(z) { return z === scope; });
+  }
+
+  var offices = targetZips.map(function(z) {
+    var stat = zipStats[z] || { cur: 0, ly: 0 };
+    var t = zipTarget[z] || 0;
+    var cur = stat.cur, ly = stat.ly;
+    return {
+      name: pickPrimaryOfficeName(z),
+      ytd: round(cur),
+      lastYear: round(ly),
+      growthPct: pct(cur, ly),
+      diff: round(cur - ly),
+      team: zipTeam[z] || 'ไม่ระบุทีม',
+      target: round(t),
+      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null
+    };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   var teams = agg(function(r) { return zipTeam[zipOf(r)] || 'ไม่ระบุทีม'; }).map(function(o) {
@@ -1123,7 +1177,8 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   var custOfficeRev = {}, custServiceRev = {};
   rows.forEach(function(r) {
     var k = customerKey(r); if (!k) return;
-    var off = String(r[0]).trim();
+    var z = zipOf(r);
+    var off = (z && zipTeam[z]) ? pickPrimaryOfficeName(z) : String(r[0]).trim();
     if (off) {
       if (!custOfficeRev[k]) custOfficeRev[k] = {};
       custOfficeRev[k][off] = (custOfficeRev[k][off] || 0) + num(r[8]);
@@ -1167,7 +1222,9 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     var cur = latestUse[k];
     if (!cur || sk > cur.sk) latestUse[k] = cur = { sk: sk, offices: {}, services: {} };
     if (sk === cur.sk) {
-      var off = String(r[0]).trim(), sv = String(r[4]).trim();
+      var z = zipOf(r);
+      var off = (z && zipTeam[z]) ? pickPrimaryOfficeName(z) : String(r[0]).trim();
+      var sv = String(r[4]).trim();
       if (off) cur.offices[off] = (cur.offices[off] || 0) + num(r[8]);
       if (sv) cur.services[sv] = (cur.services[sv] || 0) + num(r[8]);
     }
