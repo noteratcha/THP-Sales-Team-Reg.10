@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1725';
+    var APP_VERSION = 'Ver. 2026.1017.1729';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3847,7 +3847,7 @@
   <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
   ${list(ai.officeGrowth)}</div>
   ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'],
-            s.offices.slice(0, 25).sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดง 25 ที่ทำการที่มีรายได้สูงสุด`)}
+            s.offices.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกที่ทำการ (${s.offices.length} แห่ง)`)}
   </section>
 
   <section class="sec"><h2>สัดส่วนบริการ</h2>
