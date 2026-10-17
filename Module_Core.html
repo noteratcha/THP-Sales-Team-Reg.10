@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1049';
+    var APP_VERSION = 'Ver. 2026.1017.1107';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -573,6 +573,16 @@
             <div
                 class="flex flex-wrap items-center justify-start md:justify-end gap-1.5 sm:gap-2.5 py-1 sm:py-2 px-1 w-full md:w-auto md:flex-1 order-3 md:order-2">
 
+                <!-- เวลาซิงค์ข้อมูลล่าสุด + ปุ่มรีเฟรช -->
+                <div id="headerSyncInfo" class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-gray-200 shrink-0 text-[10px] sm:text-xs text-gray-500">
+                    <i class="far fa-clock text-gray-400"></i>
+                    <span>อัปเดต <span id="headerLastSyncTime">-</span></span>
+                    <button type="button" onclick="forceDashboardSync()" title="ดึงข้อมูลล่าสุด"
+                        class="ml-0.5 w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:text-theme-orange hover:bg-orange-50 transition-colors">
+                        <i id="headerSyncIcon" class="fas fa-sync-alt text-[10px]"></i>
+                    </button>
+                </div>
+
                 <div id="headerYearSelectorContainer"
                     class="hidden items-center gap-1.5 sm:gap-2 bg-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-gray-200 shadow-sm shrink-0">
                     <label class="text-gray-700 text-[10px] sm:text-xs font-bold whitespace-nowrap"><i
@@ -714,14 +724,14 @@
                 <div class="flex flex-col lg:flex-row gap-6 mb-8 items-start w-full" id="homeLayoutWrapper">
                     
                     <!-- Main Content Column (Greeting + Dashboards) -->
-                    <div class="flex-1 flex flex-col gap-6 w-full" id="mainContentColumn">
+                    <div class="flex-1 min-w-0 flex flex-col gap-6 w-full" id="mainContentColumn">
                         <!-- Greeting Section -->
-                        <div class="w-full bg-gradient-to-r from-theme-black to-theme-green custom-radius p-5 sm:p-6 text-white shadow-lg relative overflow-hidden" id="homeGreetingSection">
+                        <div class="w-full bg-gradient-to-r from-theme-black to-theme-green custom-radius p-4 sm:p-5 text-white shadow-lg relative overflow-hidden" id="homeGreetingSection">
                             <div class="relative z-10">
-                                <h1 class="text-lg sm:text-2xl font-bold mb-1.5">สวัสดี, <span id="welcomeName">คุณ...</span> 👋
+                                <h1 class="text-base sm:text-xl font-bold mb-1">สวัสดี, <span id="welcomeName">คุณ...</span> 👋
                                 </h1>
                                 <p class="opacity-90 text-xs sm:text-sm">ยินดีต้อนรับสู่ระบบ THP Sales Team Reg.10</p>
-                                <div class="flex w-full gap-2 sm:gap-3 mt-4 sm:mt-5">
+                                <div class="flex w-full gap-2 sm:gap-3 mt-3 sm:mt-4">
                                     <!-- ปุ่มเพิ่มข้อมูล (Primary Action) -->
                                     <button onclick="switchPage('form')" title="เพิ่มข้อมูลการเข้าพบลูกค้า"
                                         class="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 sm:px-2 lg:px-4 sm:py-2.5 rounded-xl sm:rounded-full font-semibold shadow-lg shadow-black/10 backdrop-blur-md border border-white/20 hover:border-white/40 transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center group">
@@ -782,7 +792,7 @@
                                         <h3 class="text-theme-black text-lg font-bold">สถิติการเข้าพบลูกค้า</h3>
                                         <span id="dashboardSyncStatus" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-full transition-all"></span>
                                     </div>
-                                    <span class="text-[10px] text-theme-orange opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-full"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
+                                    <span class="text-[11px] text-theme-orange flex items-center gap-1 bg-orange-50 group-hover:bg-orange-100 px-2 py-1 rounded-full transition-colors shrink-0"><span class="hidden sm:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
                                 </div>
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
@@ -823,7 +833,7 @@
                                         </div>
                                         <h3 class="text-theme-black text-lg font-bold">สถิติรายได้</h3>
                                     </div>
-                                    <span class="text-[10px] text-green-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full cursor-pointer" onclick="switchPage('revenue-report')"><i class="fas fa-hand-pointer"></i> คลิกเพื่อดูรายละเอียด</span>
+                                    <span class="text-[11px] text-green-600 flex items-center gap-1 bg-green-50 group-hover:bg-green-100 px-2 py-1 rounded-full transition-colors cursor-pointer shrink-0"><span class="hidden sm:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
                                 </div>
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
@@ -3099,7 +3109,22 @@
         return hydrated;
     }
 
+    function updateHeaderSyncTime() {
+        const el = document.getElementById('headerLastSyncTime');
+        if (!el || typeof SafeStorage === 'undefined') return;
+        const last = parseInt(SafeStorage.getItem('thp_cache_last_sync') || '0', 10);
+        el.textContent = last ? new Date(last).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.' : '-';
+    }
+
+    // กดปุ่มรีเฟรชบน Header: บังคับซิงค์ทันทีโดยไม่สนเงื่อนไข 45 วินาที
+    function forceDashboardSync() {
+        if (typeof SafeStorage === 'undefined') return;
+        SafeStorage.setItem('thp_cache_last_sync', '0');
+        triggerSilentBackgroundSync();
+    }
+
     function triggerSilentBackgroundSync() {
+        updateHeaderSyncTime();
         if (window.isSyncingDashboardData) return;
         if (typeof SafeStorage === 'undefined') return;
 
@@ -3108,6 +3133,8 @@
         if (Date.now() - lastSync < 45000) return;
 
         window.isSyncingDashboardData = true;
+        const syncIcon = document.getElementById('headerSyncIcon');
+        if (syncIcon) syncIcon.classList.add('fa-spin');
         const statusEl = document.getElementById('dashboardSyncStatus');
         if (statusEl) {
             statusEl.className = "inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-full animate-pulse";
@@ -3121,6 +3148,8 @@
             if (pending <= 0) {
                 window.isSyncingDashboardData = false;
                 SafeStorage.setItem('thp_cache_last_sync', Date.now().toString());
+                updateHeaderSyncTime();
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
                 if (statusEl) {
                     statusEl.className = "inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full transition-opacity duration-500";
                     statusEl.innerHTML = '<i class="fas fa-check-circle text-[10px]"></i> ข้อมูลล่าสุด';
@@ -3589,25 +3618,32 @@
 
         const revContainer = document.getElementById('homeSummaryRevContainer');
         if (revContainer) {
+            // แสดงยอดเงินแบบย่อ (เช่น 11.15 ล้าน) เพื่อให้ตัวเลขในการ์ดอ่านง่าย ยอดเต็มอยู่ใน title
+            const formatCompactBaht = function(v) {
+                if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ล้าน';
+                return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+            };
             const renderRevUI = function(actualRevVal) {
                 let revTargetHtml = '';
                 let revPctHtml = '';
                 if (myRevTarget > 0) {
-                    let revPct = Math.round((actualRevVal / myRevTarget) * 100);
+                    let revPctRaw = (actualRevVal / myRevTarget) * 100;
+                    let revPct = revPctRaw < 10 ? Math.round(revPctRaw * 10) / 10 : Math.round(revPctRaw);
                     let pctColor = revPct >= 100 ? 'text-green-700' : 'text-orange-600';
                     let barColor = revPct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
                     let iconColor = revPct >= 100 ? 'text-green-500' : 'text-orange-400';
                     
-                    let formattedTarget = myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    let fullTarget = myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+                    let formattedTarget = formatCompactBaht(myRevTarget);
                     let textClass = getAdaptiveKpiClass(formattedTarget);
                     
                     revTargetHtml = `
                         <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <div class="flex justify-between items-center w-full mb-1">
-                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
+                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย (บาท)</span>
                             </div>
                             <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                                <span class="${textClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${formattedTarget}">${formattedTarget}</span>
+                                <span class="${textClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${fullTarget}">${formattedTarget}</span>
                             </div>
                             <div class="w-full h-1.5"></div>
                         </div>
@@ -3639,7 +3675,8 @@
                     `;
                 }
 
-                let formattedMonthRev = actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                let fullMonthRev = actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
+                let formattedMonthRev = formatCompactBaht(actualRevVal);
                 let revClass = getAdaptiveKpiClass(formattedMonthRev);
                 
                 revContainer.innerHTML = `
@@ -3647,11 +3684,11 @@
                         <div class="col-span-2 xl:col-span-1 bg-white border border-green-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
                             <div class="flex justify-between items-center w-full mb-1">
                                 <span class="text-[11px] text-green-600 font-medium flex items-center gap-1 whitespace-nowrap">
-                                    <i class="fas fa-coins opacity-70"></i> รายได้สะสม
+                                    <i class="fas fa-coins opacity-70"></i> รายได้สะสม (บาท)
                                 </span>
                             </div>
                             <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                                <span id="homeSummaryRevenueMonth" class="${revClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${formattedMonthRev}">${formattedMonthRev}</span> 
+                                <span id="homeSummaryRevenueMonth" class="${revClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${fullMonthRev}">${formattedMonthRev}</span> 
                             </div>
                             <div class="w-full h-1.5"></div>
                         </div>
