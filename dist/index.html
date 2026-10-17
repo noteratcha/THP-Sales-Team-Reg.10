@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1909';
+    var APP_VERSION = 'Ver. 2026.1017.1911';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25700,8 +25700,6 @@
 
   <section class="sec"><h2>ข้อเสนอแนะ</h2>
   <div class="box">${list(ai.recommendations)}</div></section>
-
-  ${(ai.notes && ai.notes.length) ? `<section class="sec"><h2>หมายเหตุ</h2>${list(ai.notes)}</section>` : ''}
 </td></tr></tbody></table></div></body></html>`;
     }
 
