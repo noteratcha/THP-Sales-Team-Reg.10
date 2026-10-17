@@ -978,7 +978,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var monthSel = (options && options.month !== undefined && options.month !== 'all' && options.month !== '') ? parseInt(options.month, 10) : null;
     if (monthSel !== null && (isNaN(monthSel) || monthSel < 0 || monthSel > 11)) monthSel = null;
-    var cacheKey = 'ai_rev_v9_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
+    var cacheKey = 'ai_rev_v10_' + getHomeRevCacheVersion_() + '_' + scope + '_' + (monthSel === null ? 'all' : monthSel);
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1051,15 +1051,19 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
   // 2) เป้าหมายและทีม (จากชีตเป้าหมาย)
   var tgtRes = getRevenueTargets();
   var targets = (tgtRes && tgtRes.status === 'success') ? tgtRes.data.slice(1) : [];
-  var zipTeam = {}, zipTarget = {}, teamTarget = {};
+  var zipTeam = {}, zipTarget = {}, teamTarget = {}, zipProvince = {}, provinceTarget = {};
   targets.forEach(function(t) {
     var ty = parseInt(t[0], 10); if (ty > 2500) ty -= 543;
     var zip = String(t[2]).trim(); var team = String(t[6]).trim();
     if (zip && team) zipTeam[zip] = team;
+    // จังหวัดตามชีตเป้าหมาย (ศป.อุบลราชธานี / ศป.สกลนคร แยกเป็นหน่วยของตัวเองอยู่แล้ว)
+    var prov = String(t[7] || '').trim();
+    if (zip && prov) zipProvince[zip] = prov;
     var mi = MONTHS.indexOf(String(t[1]).trim());
     if (ty === curYear && mi !== -1 && mi >= fromIdx && mi <= toIdx && (scope === 'ALL' || zip === scope)) {
       zipTarget[zip] = (zipTarget[zip] || 0) + num(t[4]);
       if (team) teamTarget[team] = (teamTarget[team] || 0) + num(t[4]);
+      if (prov) provinceTarget[prov] = (provinceTarget[prov] || 0) + num(t[4]);
     }
   });
 
@@ -1090,6 +1094,14 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
     var t = teamTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
     return o;
   }).filter(function(t) { return t.name !== 'ไม่ระบุทีม'; }).sort(function(a, b) { return b.ytd - a.ytd; });
+
+  var provinces = agg(function(r) { return zipProvince[zipOf(r)] || null; }).map(function(o) {
+    var t = provinceTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
+    var zips = {};
+    offices.forEach(function(of) { var z = of.name.substring(0, 5); if (zipProvince[z] === o.name && of.ytd > 0) zips[z] = true; });
+    o.officeCount = Object.keys(zips).length;
+    return o;
+  }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   var services = agg(function(r) { return String(r[4]).trim() || 'อื่นๆ'; }).sort(function(a, b) { return b.ytd - a.ytd; });
   // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
@@ -1143,6 +1155,7 @@ function buildRevenueAnalysisStats_(rows, scope, monthSel) {
       top10SharePct: totalCur ? Math.round(top10Sum / totalCur * 1000) / 10 : null
     },
     monthly: MONTHS.map(function(n, idx) { return { month: n, cur: round(monthCur[idx]), lastYear: round(monthLy[idx]) }; }),
+    provinces: provinces,
     teams: teams,
     offices: offices,
     services: services.slice(0, 15),
@@ -1172,7 +1185,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     'ตอบเป็น JSON ตามโครงสร้างนี้เท่านั้น:',
     '{"executiveSummary":["3-5 ข้อ"],"highlights":["จุดเด่น 2-4 ข้อ"],"concerns":["จุดที่ต้องระวัง 2-4 ข้อ"],',
     '"customerWatch":["ลูกค้าที่ต้องจับตา 3-6 ข้อ ระบุชื่อลูกค้า"],"serviceMix":["วิเคราะห์สัดส่วนบริการ 2-4 ข้อ"],',
-    '"teamPerformance":["วิเคราะห์ผลงานรายทีม 2-5 ข้อ"],"officeGrowth":["วิเคราะห์การเติบโตรายที่ทำการ 2-5 ข้อ"],',
+    '"provinceOverview":["วิเคราะห์ภาพรวมรายจังหวัด 3-6 ข้อ (ศป.อุบลราชธานี และ ศป.สกลนคร เป็นหน่วยแยกจากจังหวัด)"],"teamPerformance":["วิเคราะห์ผลงานรายทีม 2-5 ข้อ"],"officeGrowth":["วิเคราะห์การเติบโตรายที่ทำการ 2-5 ข้อ"],',
     '"recommendations":["ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ"],"notes":["หมายเหตุเรื่องข้อมูล 0-2 ข้อ"]}',
     'ข้อมูล:',
     JSON.stringify(stats)

@@ -438,7 +438,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1312';
+    var APP_VERSION = 'Ver. 2026.1017.1336';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25103,6 +25103,12 @@
   <section class="sec"><h2>แนวโน้มรายได้รายเดือน</h2>
   <div class="legend muted"><span style="background:#ea580c"></span>ปี ${s.period.year + 543}<span style="background:#cbd5e1"></span>ปี ${s.period.compareYear + 543}</div>
   ${monthBars}</section>
+
+  ${(s.provinces && s.provinces.length) ? `<section class="sec"><h2>ภาพรวมรายจังหวัด</h2>
+  ${list(ai.provinceOverview)}
+  ${table(['จังหวัด / ศูนย์', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">โต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', '<span class="n">ที่ทำการ</span>'],
+            s.provinces.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `${revLabel}จากมากไปน้อย · ศป.อุบลราชธานี และ ศป.สกลนคร แยกจากจังหวัด`)}
+  </section>` : ''}
 
   <section class="sec-long"><div class="lead"><h2>ผลงานรายทีม</h2>
   ${list(ai.teamPerformance)}</div>
