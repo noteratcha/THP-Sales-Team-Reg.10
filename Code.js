@@ -947,7 +947,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v22_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v23_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1089,10 +1089,25 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   };
   var zipOf = function(r) { return String(r[0] || '').substring(0, 5); };
 
+  // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
+  var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
+  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
+  // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
+  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
+  var customerKey = function(r) {
+    var c = String(r[1]).trim();
+    if (!c || NOT_CUSTOMER.test(c)) return null;
+    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
+    return isMember(r) ? c : null;
+  };
+
   // รวบรวมชื่อที่ทำการจากข้อมูลจริงใน Tableau
   // เลือกชื่อที่มีจุด (.) เช่น "34000 - ปจ.อุบลราชธานี", "37120 - ปณ.ลืออำนาจ", "34010 - ศป.อุบลราชธานี" เป็นชื่อหลัก
   var zipNamesInRows = {};
   var zipStats = {};
+  var officeSrv = {}, officeCust = {};
+  var teamStats = {}, teamSrv = {}, teamCust = {};
+
   rows.forEach(function(r) {
     var z = zipOf(r);
     if (!z || !zipTeam[z]) return;
@@ -1103,9 +1118,40 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     }
     var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
     if (!cur && !ly) return;
+    var val = num(r[8]);
     if (!zipStats[z]) zipStats[z] = { cur: 0, ly: 0 };
-    if (cur) zipStats[z].cur += num(r[8]);
-    if (ly) zipStats[z].ly += num(r[8]);
+    if (cur) zipStats[z].cur += val;
+    if (ly) zipStats[z].ly += val;
+
+    // สะสมระดับที่ทำการ (Office-level): บริการ และ ลูกค้า
+    var srv = String(r[4] || '').trim() || 'อื่นๆ';
+    if (!officeSrv[z]) officeSrv[z] = {};
+    if (!officeSrv[z][srv]) officeSrv[z][srv] = { cur: 0, ly: 0 };
+    if (cur) officeSrv[z][srv].cur += val; else officeSrv[z][srv].ly += val;
+
+    var c = customerKey(r);
+    if (c) {
+      if (!officeCust[z]) officeCust[z] = {};
+      if (!officeCust[z][c]) officeCust[z][c] = { cur: 0, ly: 0 };
+      if (cur) officeCust[z][c].cur += val; else officeCust[z][c].ly += val;
+    }
+
+    // สะสมระดับทีม (Team-level)
+    var tm = zipTeam[z];
+    if (tm && tm !== 'ไม่ระบุทีม') {
+      if (!teamStats[tm]) teamStats[tm] = { cur: 0, ly: 0 };
+      if (!teamSrv[tm]) teamSrv[tm] = {};
+      if (!teamCust[tm]) teamCust[tm] = {};
+      if (cur) teamStats[tm].cur += val; else teamStats[tm].ly += val;
+
+      if (!teamSrv[tm][srv]) teamSrv[tm][srv] = { cur: 0, ly: 0 };
+      if (cur) teamSrv[tm][srv].cur += val; else teamSrv[tm][srv].ly += val;
+
+      if (c) {
+        if (!teamCust[tm][c]) teamCust[tm][c] = { cur: 0, ly: 0 };
+        if (cur) teamCust[tm][c].cur += val; else teamCust[tm][c].ly += val;
+      }
+    }
   });
 
   var pickPrimaryOfficeName = function(z) {
@@ -1125,64 +1171,6 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     }
     return chosen;
   };
-
-  var targetZips = Object.keys(zipTeam);
-  if (scope !== 'ALL') {
-    targetZips = targetZips.filter(function(z) { return z === scope; });
-  }
-
-  var offices = targetZips.map(function(z) {
-    var stat = zipStats[z] || { cur: 0, ly: 0 };
-    var t = zipTarget[z] || 0;
-    var cur = stat.cur, ly = stat.ly;
-    return {
-      name: pickPrimaryOfficeName(z),
-      ytd: round(cur),
-      lastYear: round(ly),
-      growthPct: pct(cur, ly),
-      diff: round(cur - ly),
-      team: zipTeam[z] || 'ไม่ระบุทีม',
-      target: round(t),
-      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null
-    };
-  }).sort(function(a, b) { return b.ytd - a.ytd; });
-
-  // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
-  var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
-  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
-  // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
-  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
-  var customerKey = function(r) {
-    var c = String(r[1]).trim();
-    if (!c || NOT_CUSTOMER.test(c)) return null;
-    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
-    return isMember(r) ? c : null;
-  };
-
-  var teamStats = {}, teamSrv = {}, teamCust = {};
-  rows.forEach(function(r) {
-    var z = zipOf(r);
-    var tm = zipTeam[z];
-    if (!tm || tm === 'ไม่ระบุทีม') return;
-    var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
-    if (!cur && !ly) return;
-    if (!teamStats[tm]) teamStats[tm] = { cur: 0, ly: 0 };
-    if (!teamSrv[tm]) teamSrv[tm] = {};
-    if (!teamCust[tm]) teamCust[tm] = {};
-
-    var val = num(r[8]);
-    if (cur) teamStats[tm].cur += val; else teamStats[tm].ly += val;
-
-    var srv = String(r[4] || '').trim() || 'อื่นๆ';
-    if (!teamSrv[tm][srv]) teamSrv[tm][srv] = { cur: 0, ly: 0 };
-    if (cur) teamSrv[tm][srv].cur += val; else teamSrv[tm][srv].ly += val;
-
-    var c = customerKey(r);
-    if (c) {
-      if (!teamCust[tm][c]) teamCust[tm][c] = { cur: 0, ly: 0 };
-      if (cur) teamCust[tm][c].cur += val; else teamCust[tm][c].ly += val;
-    }
-  });
 
   var targetTeams = Object.keys(teamTarget);
   Object.keys(teamStats).forEach(function(tm) {
@@ -1224,7 +1212,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   var provinces = agg(function(r) { return zipProvince[zipOf(r)] || null; }).map(function(o) {
     var t = provinceTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
     var zips = {};
-    offices.forEach(function(of) { var z = of.name.substring(0, 5); if (zipProvince[z] === o.name && of.ytd > 0) zips[z] = true; });
+    Object.keys(zipProvince).forEach(function(z) { if (zipProvince[z] === o.name && zipStats[z] && zipStats[z].cur > 0) zips[z] = true; });
     o.officeCount = Object.keys(zips).length;
     return o;
   }).sort(function(a, b) { return b.ytd - a.ytd; });
@@ -1328,6 +1316,112 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     return c;
   });
 
+  // 5) ประมวลผลข้อมูลรายที่ทำการอย่างละเอียด (ครบ 4 ด้าน: รายได้เด่น/ด้อย, ลูกค้าที่หายไป, แนวทางหารายได้, อัตราส่วนบริการ)
+  var targetZips = Object.keys(zipTeam);
+  if (scope !== 'ALL') {
+    targetZips = targetZips.filter(function(z) { return z === scope; });
+  }
+
+  var offices = targetZips.map(function(z) {
+    var stat = zipStats[z] || { cur: 0, ly: 0 };
+    var t = zipTarget[z] || 0;
+    var cur = stat.cur, ly = stat.ly;
+    var offTotalCur = cur;
+
+    // 4. อัตราส่วนแต่ละบริการ (Service Mix)
+    var srvMap = officeSrv[z] || {};
+    var srvList = Object.keys(srvMap).map(function(s) {
+      var o = srvMap[s];
+      return {
+        name: s,
+        ytd: round(o.cur),
+        lastYear: round(o.ly),
+        growthPct: pct(o.cur, o.ly),
+        diff: round(o.cur - o.ly),
+        sharePct: offTotalCur ? Math.round(o.cur / offTotalCur * 1000) / 10 : 0
+      };
+    }).sort(function(a, b) { return b.ytd - a.ytd; });
+
+    // 1. รายได้ เด่น - ด้อย
+    var strengths = srvList.filter(function(s) { return s.diff > 0; })
+      .sort(function(a, b) { return b.diff - a.diff; }).slice(0, 3);
+    var weaknesses = srvList.filter(function(s) { return s.diff < 0; })
+      .sort(function(a, b) { return a.diff - b.diff; }).slice(0, 3);
+
+    // 2. ลูกค้าที่หายไป (Inactive Customers ในระดับที่ทำการ)
+    var custMap = officeCust[z] || {};
+    var offInactive = Object.keys(custMap).filter(function(cn) {
+      var o = custMap[cn];
+      var lm = lastMonthByCustomer[cn];
+      // เคยส่งปีก่อนตั้งแต่ 10,000 บาทขึ้นไป และปีนี้หยุดส่ง 3 เดือนขึ้นไป หรือปีนี้ยอดเป็น 0
+      return o.ly >= 10000 && (o.cur === 0 || (lm === undefined || lm <= toIdx - 3));
+    }).map(function(cn) {
+      var o = custMap[cn];
+      var lm = lastMonthByCustomer[cn];
+      var svcs = custServiceRevLy[cn] ? Object.keys(custServiceRevLy[cn]).slice(0, 2).join(', ') : '-';
+      return {
+        name: cn,
+        lastYear: round(o.ly),
+        cur: round(o.cur),
+        diff: round(o.cur - o.ly),
+        lastActiveMonth: lm === undefined ? 'ไม่ใช้บริการปีนี้' : MONTHS[lm],
+        services: svcs
+      };
+    }).sort(function(a, b) { return b.lastYear - a.lastYear; });
+
+    // ลูกค้าที่ยอดลดลงมากสุดและเพิ่มขึ้นมากสุดในที่ทำการ
+    var offDecliningCust = Object.keys(custMap).map(function(cn) {
+      var o = custMap[cn];
+      return { name: cn, cur: round(o.cur), lastYear: round(o.ly), diff: round(o.cur - o.ly) };
+    }).filter(function(c) { return c.diff < 0 && c.cur > 0; }).sort(function(a, b) { return a.diff - b.diff; }).slice(0, 3);
+
+    var offGrowingCust = Object.keys(custMap).map(function(cn) {
+      var o = custMap[cn];
+      return { name: cn, cur: round(o.cur), lastYear: round(o.ly), diff: round(o.cur - o.ly) };
+    }).filter(function(c) { return c.diff > 0; }).sort(function(a, b) { return b.diff - a.diff; }).slice(0, 3);
+
+    // 3. แนวทางว่าจะหารายได้จากไหน (Revenue Opportunities)
+    var opps = [];
+    if (offInactive.length > 0) {
+      var sumLost = offInactive.reduce(function(acc, c) { return acc + c.lastYear; }, 0);
+      var sumStr = sumLost >= 1000000 ? ((Math.round(sumLost / 10000) / 100).toLocaleString('en-US') + ' ล้านบาท') : (Math.round(sumLost).toLocaleString('en-US') + ' บาท');
+      opps.push('ทวงคืนลูกค้าสมาชิกที่หยุดส่ง ' + offInactive.length + ' ราย คาดการณ์โอกาสฟื้นฟูรายได้รวม ' + sumStr);
+    }
+    if (weaknesses.length > 0) {
+      opps.push('ฟื้นฟูบริการ ' + weaknesses[0].name + ' ที่ยอดลดลง ' + Math.abs(weaknesses[0].diff).toLocaleString('en-US') + ' บาท โดยเข้าพบบัญชีลูกค้าเดิมที่เคยส่งสม่ำเสมอ');
+    }
+    // หาบริการที่มีส่วนแบ่งในภาพรวมภาคสูง แต่ที่ทำการนี้ยังมีสัดส่วนน้อย (Underpenetrated)
+    services.slice(0, 4).forEach(function(topS) {
+      var myS = srvList.find(function(s) { return s.name === topS.name; });
+      var myShare = myS ? myS.sharePct : 0;
+      if (topS.sharePct && topS.sharePct >= 10 && myShare < topS.sharePct * 0.5) {
+        opps.push('ผลักดันบริการ ' + topS.name + ' ซึ่งที่ทำการนี้มีสัดส่วนเพียง ' + myShare + '% (เทียบกับภาพรวมภาค ' + topS.sharePct + '%)');
+      }
+    });
+    if (opps.length < 3) {
+      opps.push('ขยายตลาดลูกค้า e-Commerce ในพื้นที่ และประสานงานหน่วยงานท้องถิ่น (อปท.) ใช้บริการส่งเอกสารและพัสดุ');
+    }
+
+    return {
+      name: pickPrimaryOfficeName(z),
+      zipcode: z,
+      ytd: round(cur),
+      lastYear: round(ly),
+      growthPct: pct(cur, ly),
+      diff: round(cur - ly),
+      team: zipTeam[z] || 'ไม่ระบุทีม',
+      target: round(t),
+      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null,
+      strengths: strengths,
+      weaknesses: weaknesses,
+      inactiveCustomers: offInactive,
+      decliningCustomers: offDecliningCust,
+      growingCustomers: offGrowingCust,
+      opportunities: opps,
+      services: srvList
+    };
+  }).sort(function(a, b) { return b.ytd - a.ytd; });
+
   return {
     period: {
       year: curYear, compareYear: lyYear, mode: sel.kind, quarter: sel.kind === 'quarter' ? sel.index : null,
@@ -1368,6 +1462,34 @@ function describeAnalysisPeriod_(pd) {
 
 function callGeminiForRevenueReport_(stats, apiKey) {
   var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
+  
+  // สร้างเวอร์ชันกระชับของ stats สำหรับส่งให้ AI เพื่อไม่ให้ขนาด prompt ใหญ่เกินไปและประมวลผลได้รวดเร็ว
+  var statsForAi = {
+    period: stats.period,
+    overall: stats.overall,
+    monthly: stats.monthly,
+    provinces: stats.provinces,
+    teams: stats.teams,
+    services: stats.services,
+    topCustomers: stats.topCustomers,
+    growingCustomers: stats.growingCustomers,
+    decliningCustomers: stats.decliningCustomers,
+    inactiveCustomers: (stats.inactiveCustomers || []).slice(0, 12),
+    keyOffices: {
+      top5ByTarget: (stats.offices || []).filter(function(o) { return o.achievementPct != null; }).slice().sort(function(a, b) { return b.achievementPct - a.achievementPct; }).slice(0, 5),
+      bottom5ByTarget: (stats.offices || []).filter(function(o) { return o.achievementPct != null; }).slice().sort(function(a, b) { return a.achievementPct - b.achievementPct; }).slice(0, 5)
+    },
+    officesOverview: (stats.offices || []).slice(0, 20).map(function(o) {
+      return {
+        name: o.name, team: o.team, ytd: o.ytd, target: o.target, achievementPct: o.achievementPct, growthPct: o.growthPct,
+        topStrength: (o.strengths && o.strengths[0]) ? (o.strengths[0].name + ' +' + o.strengths[0].diff) : '-',
+        topWeakness: (o.weaknesses && o.weaknesses[0]) ? (o.weaknesses[0].name + ' ' + o.weaknesses[0].diff) : '-',
+        inactiveCustCount: o.inactiveCustomers ? o.inactiveCustomers.length : 0,
+        mainService: (o.services && o.services[0]) ? (o.services[0].name + ' ' + o.services[0].sharePct + '%') : '-'
+      };
+    })
+  };
+
   var prompt = [
     'คุณคือนักวิเคราะห์ธุรกิจของทีมขาย ไปรษณีย์ไทย ภาค 10 เขียนรายงานภาษาไทยสำหรับนำเสนอหัวหน้า',
     'ข้อกำหนด:',
@@ -1380,6 +1502,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- กระชับ เป็นภาษาทางการแต่อ่านง่าย แต่ละข้อไม่เกิน 2 ประโยค',
     '- ในส่วน teamPerformance: ให้วิเคราะห์ผลงานรายทีม 3-5 ข้อ โดย"ต้อง"มีข้อที่วิเคราะห์เจาะลึกทีมที่ทำผลงานต่ำกว่าเป้าหมายมากที่สุด 2-3 อันดับล่าง ว่าไม่เข้าเป้าเพราะเหตุใด รายได้จากกลุ่มบริการใดลดลงมากที่สุด (ดูจากฟิลด์ decliningServices ของทีมนั้น เช่น EMS ในฯ Package ต่างๆ, e-Parcel, EMS VRich ฯลฯ พร้อมระบุจำนวนเงินที่ลดลง) และเกิดจากลูกค้ารายใดที่มียอดลดลงหรือหยุดส่ง (ดูจากฟิลด์ decliningCustomers) เพื่อให้ผู้บริหารทราบสาเหตุที่แท้จริง',
+    '- ในส่วน officeGrowth: วิเคราะห์ภาพรวมรายที่ทำการ 3-5 ข้อ โดยครอบคลุม 4 ประเด็นสำคัญ: 1) ที่ทำการที่มีรายได้เด่นและรายได้ด้อย 2) ที่ทำการที่ได้รับผลกระทบจากลูกค้าที่หายไป (inactive customers) 3) แนวทางว่าจะหารายได้จากไหนมาเติมเป้าหมาย (เช่น การดึงลูกค้าเดิมกลับมา และผลักดันบริการที่มีศักยภาพ) 4) อัตราส่วนบริการของที่ทำการสำคัญ เพื่อให้ที่ทำการนำไปปฏิบัติได้จริง',
     '- ในส่วน recommendations: ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ (เน้นลูกค้ารายอื่นที่มียอดตกจริง เช่น พงศกร กายราช, ลลียา นามวงศ์ และ"ห้าม"เสนอแนะให้ระดับพื้นที่ไปติดตามสำนักงานตำรวจแห่งชาติ)',
     '- ' + describeAnalysisPeriod_(stats.period) + ' (ข้อมูล monthly เป็นแนวโน้มทั้งปีไว้ประกอบเท่านั้น)',
     stats.period.selectedMonthIncomplete ? '- ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขต่ำกว่าความจริง ให้เตือนในหมายเหตุและอย่าสรุปว่ารายได้ลดลงจริง' : '',
@@ -1387,10 +1510,10 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     'ตอบเป็น JSON ตามโครงสร้างนี้เท่านั้น:',
     '{"executiveSummary":["3-5 ข้อ"],"highlights":["จุดเด่น 2-4 ข้อ"],"concerns":["จุดที่ต้องระวัง 2-4 ข้อ"],',
     '"customerWatch":["ลูกค้าที่ต้องจับตา 3-6 ข้อ ระบุชื่อลูกค้า"],"serviceMix":["วิเคราะห์สัดส่วนบริการ 2-4 ข้อ"],',
-    '"provinceOverview":["วิเคราะห์ภาพรวมรายจังหวัด 3-6 ข้อ (ศป.อุบลราชธานี และ ศป.สกลนคร เป็นหน่วยแยกจากจังหวัด)"],"teamPerformance":["วิเคราะห์ผลงานรายทีม 2-5 ข้อ"],"officeGrowth":["วิเคราะห์การเติบโตรายที่ทำการ 2-5 ข้อ"],',
-    '"recommendations":["ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ"],"notes":["หมายเหตุเรื่องข้อมูล 0-2 ข้อ"]}',
+    '"provinceOverview":["วิเคราะห์ภาพรวมรายจังหวัด 3-6 ข้อ (ศป.อุบลราชธานี และ ศป.สกลนคร เป็นหน่วยแยกจากจังหวัด)"],"teamPerformance":["วิเคราะห์ผลงานรายทีม 2-5 ข้อ"],"officeGrowth":["วิเคราะห์การเติบโตและเจาะลึกรายที่ทำการ 3-5 ข้อ (ครอบคลุมรายได้เด่น/ด้อย, ลูกค้าที่หายไป, การหารายได้, และอัตราส่วนบริการ)"],',
+    '"recommendations":["ข้อเสนอแนะที่ทำได้จริง 3-5 ข้อ"]}',
     'ข้อมูล:',
-    JSON.stringify(stats)
+    JSON.stringify(statsForAi)
   ].filter(Boolean).join('\n');
 
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';

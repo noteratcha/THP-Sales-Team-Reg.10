@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1943';
+    var APP_VERSION = 'Ver. 2026.1017.2012';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3860,9 +3860,35 @@
   .snap-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 9px; background: #f8fafc; font-size: 11px; }
   .snap-title { font-weight: 700; color: #0f3d2e; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; }
   .snap-body div { margin: 2px 0; line-height: 1.4; }
-  .summary-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #0f3d2e; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 999px; }
   .page-break-divider { break-after: page; page-break-after: always; height: 0; margin: 0; padding: 0; border: 0; }
   footer { margin-top: 14px; color: #9ca3af; font-size: 10px; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+
+  /* Office Deep-Dive Styling */
+  .office-picker-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; margin: 12px 0 10px; flex-wrap: wrap; }
+  .office-dropdown { font-family: inherit; font-size: 12px; font-weight: 700; color: #0f3d2e; border: 1px solid #059669; border-radius: 6px; padding: 5px 10px; background: #fff; cursor: pointer; outline: none; }
+  .office-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); break-inside: avoid; page-break-inside: avoid; }
+  .office-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f3d2e; padding-bottom: 8px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .office-card-title { font-size: 15px; font-weight: 800; color: #0f3d2e; margin: 0; }
+  .office-kpis { display: flex; gap: 6px; flex-wrap: wrap; }
+  .kpi-badge { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; }
+  .office-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .col-card { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fafafa; display: flex; flex-direction: column; }
+  .col-header { font-weight: 700; font-size: 11.5px; padding: 5px 9px; color: #fff; display: flex; align-items: center; justify-content: space-between; }
+  .col-header.green { background: #0f3d2e; }
+  .col-header.red { background: #991b1b; }
+  .col-header.blue { background: #1e40af; }
+  .col-header.purple { background: #6b21a8; }
+  .col-body { padding: 8px 10px; font-size: 11px; flex: 1; }
+  .col-body div { margin-bottom: 3px; }
+  .srv-bar-row { margin: 4px 0; }
+  .srv-bar-label { display: flex; justify-content: space-between; font-size: 10.5px; }
+  .srv-bar-track { height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 2px; }
+  .srv-bar-fill { height: 100%; background: #6b21a8; border-radius: 3px; }
+  .police-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 6px; padding: 4px 8px; margin-top: 6px; font-size: 10px; line-height: 1.35; }
+  .btn-office-view { background: #0f3d2e; color: #fff; border: 0; border-radius: 4px; padding: 2px 7px; font-size: 10.5px; cursor: pointer; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .btn-office-view:hover { background: #ea580c; }
+  .office-row:hover { background: #f0fdf4; cursor: pointer; }
+
   @media print {
     body { background: #fff; }
     .toolbar { display: none; }
@@ -3990,10 +4016,39 @@
     </section>`;
     })()}
 
-    <section class="sec-long"><div class="lead"><h2>การเติบโตรายที่ทำการ</h2>
+    <section class="sec-long" id="officeSection"><div class="lead"><h2>การเติบโตและการวิเคราะห์เจาะลึกรายที่ทำการ</h2>
     ${list(ai.officeGrowth)}</div>
-    ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'],
-              s.offices.slice().sort(byTarget).map(t => `<tr><td>${esc(t.name)}</td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · แสดงครบทุกที่ทำการ (${s.offices.length} แห่ง)`)}
+
+    <div id="officeDeepDivePanel">
+      <div class="office-picker-bar">
+        <div>
+          <span>📍 <b>เลือกที่ทำการเพื่อดูบทวิเคราะห์เจาะลึก 4 ด้าน:</b></span>
+          <select id="officeSelectDropdown" class="office-dropdown" onchange="renderOfficeAnalysis(this.value)">
+            ${s.offices.slice().sort(byTarget).map(t => {
+                const aVal = t.achievementPct == null ? '' : ` (${(t.achievementPct - 100) >= 0 ? '+' : ''}${Math.round((t.achievementPct - 100)*10)/10}%)`;
+                return `<option value="${esc(t.zipcode)}">${esc(t.name)}${aVal}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        <span class="muted" style="font-size:11px;">(คลิกเลือกที่ทำการ หรือคลิกแถวในตารางด้านล่าง)</span>
+      </div>
+
+      <div id="officeAnalysisContainer"></div>
+    </div>
+
+    <div style="margin: 14px 0 4px; font-weight:700; color:#0f3d2e;">ตารางเปรียบเทียบผลงานครบทุกที่ทำการ (${s.offices.length} แห่ง)</div>
+    ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', 'บริการเด่น / ฉุด', 'วิเคราะห์'],
+              s.offices.slice().sort(byTarget).map(t => {
+                const topStr = t.strengths && t.strengths.length ? t.strengths[0] : null;
+                const topWk = t.weaknesses && t.weaknesses.length ? t.weaknesses[0] : null;
+                let srvHighlight = '<span class="muted">-</span>';
+                if (topWk && topWk.diff < 0) {
+                  srvHighlight = `<span class="down" title="บริการที่ลดลงมากสุด">📉 ${esc(topWk.name)}</span>`;
+                } else if (topStr) {
+                  srvHighlight = `<span class="up" title="บริการที่เติบโตสูงสุด">▲ ${esc(topStr.name)}</span>`;
+                }
+                return `<tr class="office-row" onclick="selectOfficeByZip('${esc(t.zipcode)}')"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td><td style="text-align:center;"><button type="button" class="btn-office-view" onclick="event.stopPropagation();selectOfficeByZip('${esc(t.zipcode)}')">🔍 วิเคราะห์</button></td></tr>`;
+              }), `% เป้าจากมากไปน้อย (ถ้าเท่ากันดูเติบโต) · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · คลิกแถวหรือปุ่มวิเคราะห์เพื่อเปิดดูบทวิเคราะห์ 4 ด้าน`)}
     </section>
 
     <section class="sec"><h2>สัดส่วนบริการ</h2>
@@ -4017,6 +4072,114 @@
 </td></tr></tbody></table></div>
 
 <script>
+  var allOffices = ${JSON.stringify(s.offices)};
+  var curRevLabel = "${revLabel}";
+
+  function renderOfficeAnalysis(zip) {
+    if (!allOffices || !allOffices.length) return;
+    var off = allOffices.find(function(o) { return o.zipcode === zip; }) || allOffices[0];
+    if (!off) return;
+
+    var container = document.getElementById('officeAnalysisContainer');
+    if (!container) return;
+
+    var fmtMoney = function(v) {
+      if (v == null) return '-';
+      if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ล.';
+      return Math.round(v).toLocaleString('en-US');
+    };
+
+    // 1. บริการเด่น & ด้อย
+    var strHtml = (off.strengths && off.strengths.length)
+      ? off.strengths.map(function(s) {
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span class="up">▲ ' + s.name + '</span><span class="up">+' + fmtMoney(s.diff) + ' บ. (' + (s.growthPct != null ? ('+' + s.growthPct + '%') : 'ใหม่') + ')</span></div>';
+        }).join('')
+      : '<div class="muted">ไม่มีบริการที่เติบโตเด่นชัดเจน</div>';
+
+    var weakHtml = (off.weaknesses && off.weaknesses.length)
+      ? off.weaknesses.map(function(s) {
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;"><span class="down">▼ ' + s.name + '</span><span class="down">' + fmtMoney(s.diff) + ' บ. (' + s.growthPct + '%)</span></div>';
+        }).join('')
+      : '<div style="color:#047857;">✔ ไม่มีบริการที่ยอดลดลงอย่างมีนัยสำคัญ</div>';
+
+    // 2. ลูกค้าที่หายไป
+    var hasPolice = false;
+    var inactHtml = (off.inactiveCustomers && off.inactiveCustomers.length)
+      ? off.inactiveCustomers.map(function(c) {
+          if (c.name === 'สำนักงานตำรวจแห่งชาติ') hasPolice = true;
+          return '<div style="border-bottom:1px dashed #e2e8f0;padding:3px 0;"><b>' + c.name + '</b><div class="office">ปีก่อน ' + fmtMoney(c.lastYear) + ' บ. · ส่งล่าสุด ' + c.lastActiveMonth + ' · 📦 ' + (c.services || '-') + '</div></div>';
+        }).join('')
+      : '<div style="color:#047857;">✔ ไม่พบลููกค้าสมาชิกรายใหญ่ที่หยุดส่งเกิน 3 เดือน</div>';
+
+    if (hasPolice) {
+      inactHtml += '<div class="police-note">ℹ️ <b>สำนักงานตำรวจแห่งชาติ:</b> ย้ายไปชำระรวมจากส่วนกลาง (ไม่ได้หยุดส่งจริง)</div>';
+    }
+
+    // 3. ว่าจะหารายได้จากไหน
+    var oppHtml = (off.opportunities && off.opportunities.length)
+      ? '<ul style="margin:2px 0;padding-left:16px;">' + off.opportunities.map(function(o) { return '<li style="margin:3px 0;">' + o + '</li>'; }).join('') + '</ul>'
+      : '<div class="muted">-</div>';
+
+    // 4. อัตราส่วนแต่ละบริการ
+    var srvHtml = (off.services && off.services.length)
+      ? off.services.slice(0, 6).map(function(s) {
+          return '<div class="srv-bar-row">' +
+            '<div class="srv-bar-label"><span><b>' + s.name + '</b></span><span><b>' + s.sharePct + '%</b> (' + fmtMoney(s.ytd) + ' บ.)</span></div>' +
+            '<div class="srv-bar-track"><div class="srv-bar-fill" style="width:' + Math.min(100, s.sharePct * 1.5) + '%"></div></div>' +
+          '</div>';
+        }).join('')
+      : '<div class="muted">-</div>';
+
+    var achvClass = off.achievementPct == null ? 'muted' : ((off.achievementPct - 100) >= 0 ? 'up' : ((off.achievementPct - 100) >= -20 ? 'warn' : 'down'));
+    var achvText = off.achievementPct == null ? 'ไม่มีเป้า' : (((off.achievementPct - 100) >= 0 ? '+' : '') + Math.round((off.achievementPct - 100) * 10) / 10 + '%');
+    var growthText = off.growthPct == null ? 'ใหม่' : ((off.growthPct >= 0 ? '▲ +' : '▼ -') + Math.abs(off.growthPct) + '%');
+
+    container.innerHTML = '<div class="office-card">' +
+      '<div class="office-card-header">' +
+        '<div>' +
+          '<h3 class="office-card-title">' + off.name + '</h3>' +
+          '<span class="office" style="font-size:11px;color:#475569;">สังกัด: <b>' + off.team + '</b></span>' +
+        '</div>' +
+        '<div class="office-kpis">' +
+          '<span class="kpi-badge">' + curRevLabel + ': <b>' + fmtMoney(off.ytd) + ' บาท</b></span>' +
+          '<span class="kpi-badge">เติบโต: <b class="' + (off.growthPct >= 0 ? 'up' : 'down') + '">' + growthText + '</b></span>' +
+          '<span class="kpi-badge">เป้าหมาย: <b>' + (off.target ? fmtMoney(off.target) : '-') + ' บาท</b></span>' +
+          '<span class="kpi-badge">% เป้า: <b class="' + achvClass + '">' + achvText + '</b></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="office-grid-4">' +
+        '<div class="col-card">' +
+          '<div class="col-header green"><span>🌟 1. รายได้ เด่น - ด้อย</span></div>' +
+          '<div class="col-body">' +
+            '<div style="font-weight:700;color:#0f3d2e;margin-bottom:2px;">บริการเด่น (เติบโตหลัก):</div>' + strHtml +
+            '<div style="font-weight:700;color:#991b1b;margin-top:6px;margin-bottom:2px;">บริการด้อย (ลดลง/ฉุดยอด):</div>' + weakHtml +
+          '</div>' +
+        '</div>' +
+        '<div class="col-card">' +
+          '<div class="col-header red"><span>⚠️ 2. ลูกค้าที่หายไป (3 เดือนขึ้นไป)</span></div>' +
+          '<div class="col-body">' + inactHtml + '</div>' +
+        '</div>' +
+        '<div class="col-card">' +
+          '<div class="col-header blue"><span>💡 3. แนวทางว่าจะหารายได้จากไหน</span></div>' +
+          '<div class="col-body">' + oppHtml + '</div>' +
+        '</div>' +
+        '<div class="col-card">' +
+          '<div class="col-header purple"><span>📊 4. อัตราส่วนแต่ละบริการ (% Share)</span></div>' +
+          '<div class="col-body">' + srvHtml + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    var sel = document.getElementById('officeSelectDropdown');
+    if (sel && sel.value !== off.zipcode) sel.value = off.zipcode;
+  }
+
+  function selectOfficeByZip(zip) {
+    renderOfficeAnalysis(zip);
+    var panel = document.getElementById('officeDeepDivePanel');
+    if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function switchView(mode, btn) {
     document.querySelectorAll('.vtab').forEach(function(b) { b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
@@ -4038,6 +4201,13 @@
       if (brk) brk.style.display = 'block';
     }
   }
+
+  // เริ่มต้นแสดงที่ทำการแรกใน Deep Dive ทันที
+  setTimeout(function() {
+    if (allOffices && allOffices.length) {
+      renderOfficeAnalysis(allOffices[0].zipcode);
+    }
+  }, 60);
 <\/script>
 </body></html>`;
     }
