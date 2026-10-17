@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1343';
+    var APP_VERSION = 'Ver. 2026.1017.1344';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3322,8 +3322,8 @@
   <section class="sec"><h2>ลูกค้าสมาชิกที่ต้องจับตา</h2>
   ${list(ai.customerWatch)}</section>
   <section class="sec"><div class="two">
-    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 7).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
-    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 7).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}</div>
+    <div><b>โตมากที่สุด</b>${table(['ลูกค้า', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}</div>
+    <div><b>ลดลงมากที่สุด</b>${table(['ลูกค้า', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}</div>
   </div></section>
   <section class="sec"><b>หยุดใช้บริการ 3 เดือนขึ้นไป (เรียงตามรายได้ปีก่อน)</b>
   ${table(['ลูกค้า', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'รายได้ปีก่อนจากมากไปน้อย')}</section>
