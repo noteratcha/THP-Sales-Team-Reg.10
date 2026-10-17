@@ -9,13 +9,12 @@ if (!fs.existsSync(filePath)) {
 
 let content = fs.readFileSync(filePath, 'utf8');
 
-const now = new Date();
-const pad = (n) => String(n).padStart(2, '0');
-const year = now.getFullYear();
-const month = pad(now.getMonth() + 1);
-const day = pad(now.getDate());
-const hours = pad(now.getHours());
-const minutes = pad(now.getMinutes());
+// ใช้เวลาไทยเสมอ ไม่ขึ้นกับ timezone ของเครื่องที่รัน (เครื่อง CI/AI มักเป็น UTC)
+const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+}).formatToParts(new Date()).map(p => [p.type, p.value]));
+const { year, month, day, hour: hours, minute: minutes } = parts;
 
 const versionString = `Ver. ${year}.${month}${day}.${hours}${minutes}`;
 
