@@ -945,7 +945,7 @@ function getRevenueAnalysisReport(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v17_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v18_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) return JSON.parse(cached);
 
@@ -1145,10 +1145,41 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
     };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
 
-  var teams = agg(function(r) { return zipTeam[zipOf(r)] || 'ไม่ระบุทีม'; }).map(function(o) {
-    var t = teamTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
-    return o;
-  }).filter(function(t) { return t.name !== 'ไม่ระบุทีม'; }).sort(function(a, b) { return b.ytd - a.ytd; });
+  var teamStats = {};
+  rows.forEach(function(r) {
+    var z = zipOf(r);
+    var tm = zipTeam[z];
+    if (!tm || tm === 'ไม่ระบุทีม') return;
+    var cur = inPeriod(r, curYear), ly = inPeriod(r, lyYear);
+    if (!cur && !ly) return;
+    if (!teamStats[tm]) teamStats[tm] = { cur: 0, ly: 0 };
+    if (cur) teamStats[tm].cur += num(r[8]);
+    if (ly) teamStats[tm].ly += num(r[8]);
+  });
+
+  var targetTeams = Object.keys(teamTarget);
+  Object.keys(teamStats).forEach(function(tm) {
+    if (targetTeams.indexOf(tm) === -1) targetTeams.push(tm);
+  });
+  if (scope !== 'ALL') {
+    var myTeam = zipTeam[scope];
+    targetTeams = myTeam ? [myTeam] : [];
+  }
+
+  var teams = targetTeams.map(function(tm) {
+    var stat = teamStats[tm] || { cur: 0, ly: 0 };
+    var t = teamTarget[tm] || 0;
+    var cur = stat.cur, ly = stat.ly;
+    return {
+      name: tm,
+      ytd: round(cur),
+      lastYear: round(ly),
+      growthPct: pct(cur, ly),
+      diff: round(cur - ly),
+      target: round(t),
+      achievementPct: t ? Math.round(cur / t * 1000) / 10 : null
+    };
+  }).sort(function(a, b) { return b.ytd - a.ytd; });
 
   var provinces = agg(function(r) { return zipProvince[zipOf(r)] || null; }).map(function(o) {
     var t = provinceTarget[o.name] || 0; o.target = round(t); o.achievementPct = t ? Math.round(o.ytd / t * 1000) / 10 : null;
