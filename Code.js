@@ -449,6 +449,7 @@ function deleteVisitData(rowIndex) {
  * ฟังก์ชัน: ประมวลผลข้อมูลรายได้แบบ Batch (Tableau ทั่วไป)
  */
 function processRevenueBatch(csvChunk, selectedYear) {
+  bumpHomeRevCacheVersion_();
   try {
     var TARGET_TABLEAU_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
     var TARGET_SHEET_NAME = 'Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)';
@@ -842,6 +843,125 @@ function getRevenueReportData(requestingUser) {
  return { status: 'error', message: e.toString() }; }
 }
 
+// ==========================================
+// 📦 SECTION: Home Revenue Summary (สรุปยอดรายได้หน้าแรกฝั่งเซิร์ฟเวอร์)
+// ==========================================
+// หน้าแรกใช้แค่ยอดเดือนนี้ + ลูกค้า 10 อันดับแรก จึงสรุปที่หลังบ้านแทนการส่งข้อมูลดิบ 26MB
+// ผลลัพธ์อยู่ในรูปแบบแถวเดียวกับ getRevenueReportData:
+// [office, customer, member, level, item, month, year, pieces, revenue, type]
+var HOME_REV_CACHE_TTL = 1800; // 30 นาที
+
+function getHomeRevenueSummary(requestingUser) {
+  try {
+    var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
+    var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
+    if (!scope) return { status: 'success', data: [] };
+
+    var cacheKey = 'home_rev_' + getHomeRevCacheVersion_() + '_' + scope;
+    var cached = getChunkedCache_(cacheKey);
+    if (cached) return { status: 'success', data: JSON.parse(cached), cached: true };
+
+    var full = getRevenueReportData(requestingUser);
+    if (!full || full.status !== 'success') return full;
+
+    var rows = full.data;
+    if (scope !== 'ALL') {
+      rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
+    }
+    var data = buildHomeRevenueRows_(rows);
+    putChunkedCache_(cacheKey, JSON.stringify(data), HOME_REV_CACHE_TTL);
+    return { status: 'success', data: data, cached: false };
+  } catch (e) {
+    if (typeof sendErrorToLine === 'function') sendErrorToLine(e);
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+function buildHomeRevenueRows_(rows) {
+  var fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+  var now = new Date();
+  var curMonthName = fullThaiMonths[parseInt(Utilities.formatDate(now, "Asia/Bangkok", "M"), 10) - 1];
+  var curYear = parseInt(Utilities.formatDate(now, "Asia/Bangkok", "yyyy"), 10);
+  var isCurrent = function(r) {
+    var y = parseInt(r[6], 10); if (y > 2500) y -= 543;
+    return String(r[5]).trim() === curMonthName && y === curYear;
+  };
+
+  // 1) เดือนนี้: รวมยอดตาม office + ลูกค้า + บริการ
+  var curMap = {};
+  var customerTotals = {};
+  rows.forEach(function(r) {
+    if (!isCurrent(r)) return;
+    var rev = parseFloat(String(r[8]).replace(/,/g, '')) || 0;
+    var k = r[0] + '|' + r[1] + '|' + r[4];
+    if (!curMap[k]) curMap[k] = [r[0], r[1], '', '', r[4], r[5], r[6], 0, 0, ''];
+    curMap[k][7] += parseFloat(r[7]) || 0;
+    curMap[k][8] += rev;
+    customerTotals[r[1]] = (customerTotals[r[1]] || 0) + rev;
+  });
+
+  // 2) ลูกค้า 10 อันดับแรกของเดือนนี้: เก็บประวัติรายเดือน (รวมตาม office + ลูกค้า + เดือน)
+  var top = Object.keys(customerTotals).sort(function(a, b) { return customerTotals[b] - customerTotals[a]; }).slice(0, 10);
+  var topSet = {};
+  top.forEach(function(c) { topSet[c] = true; });
+  var histMap = {};
+  rows.forEach(function(r) {
+    if (!topSet[r[1]] || isCurrent(r)) return;
+    var k = r[0] + '|' + r[1] + '|' + r[5] + '|' + r[6];
+    if (!histMap[k]) histMap[k] = [r[0], r[1], '', '', 'อื่นๆ', r[5], r[6], 0, 0, ''];
+    histMap[k][7] += parseFloat(r[7]) || 0;
+    histMap[k][8] += parseFloat(String(r[8]).replace(/,/g, '')) || 0;
+  });
+
+  var out = [];
+  for (var a in curMap) out.push(curMap[a]);
+  for (var b in histMap) out.push(histMap[b]);
+  return out;
+}
+
+// เวอร์ชันแคช: เพิ่มค่าเมื่อมีการอัปโหลดข้อมูลรายได้ใหม่ เพื่อให้หน้าแรกคำนวณใหม่
+function getHomeRevCacheVersion_() {
+  return PropertiesService.getScriptProperties().getProperty('HOME_REV_CACHE_VER') || '1';
+}
+
+function bumpHomeRevCacheVersion_() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var v = parseInt(props.getProperty('HOME_REV_CACHE_VER') || '1', 10) + 1;
+    props.setProperty('HOME_REV_CACHE_VER', String(v));
+  } catch (e) {}
+}
+
+// CacheService เก็บได้ไม่เกิน 100KB ต่อคีย์ จึงแบ่งเป็นหลายชิ้น
+function putChunkedCache_(key, str, ttl) {
+  try {
+    var size = 90000;
+    var n = Math.ceil(str.length / size);
+    if (n > 50) return;
+    var obj = {};
+    for (var i = 0; i < n; i++) obj[key + '_' + i] = str.substring(i * size, (i + 1) * size);
+    obj[key + '_n'] = String(n);
+    CacheService.getScriptCache().putAll(obj, ttl);
+  } catch (e) {}
+}
+
+function getChunkedCache_(key) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var n = parseInt(cache.get(key + '_n') || '0', 10);
+    if (!n) return null;
+    var keys = [];
+    for (var i = 0; i < n; i++) keys.push(key + '_' + i);
+    var parts = cache.getAll(keys);
+    var str = '';
+    for (var j = 0; j < n; j++) {
+      if (parts[keys[j]] === undefined) return null;
+      str += parts[keys[j]];
+    }
+    return str;
+  } catch (e) { return null; }
+}
+
 /**
  * ฟังก์ชัน: ดึงข้อมูลเป้าหมายการเข้าพบลูกค้า (Target)
  */
@@ -935,6 +1055,7 @@ function getExpensesData() {
 // ==========================================
 
 function processDropOffExcelData(groupedJsonString) {
+  bumpHomeRevCacheVersion_();
   try {
     const groupedDataArray = JSON.parse(groupedJsonString);
     if (!groupedDataArray || groupedDataArray.length === 0) return { status: 'error', message: 'ไม่มีข้อมูลให้ประมวลผล' };
@@ -1153,6 +1274,7 @@ function processDropOffExcelData(groupedJsonString) {
  * ฟังก์ชัน: ประมวลผลข้อมูล Logistics เฉพาะ A1-A14 ลงชีตเป้าหมายหลัก
  */
 function processLogisticsBatch(csvChunk, selectedYear) {
+  bumpHomeRevCacheVersion_();
   try {
     var TARGET_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
     var ss = SpreadsheetApp.openById(TARGET_SS_ID);
@@ -1347,6 +1469,7 @@ function processLogisticsBatch(csvChunk, selectedYear) {
  * รับข้อมูลที่จัดกลุ่มแล้วจาก Client เพื่อลดภาระเซิร์ฟเวอร์
  */
 function processAddLogisticsBatch(jsonStr) {
+  bumpHomeRevCacheVersion_();
   try {
     var data = JSON.parse(jsonStr);
     if (!data || data.length === 0) return { status: 'success', addCount: 0 };
@@ -3832,6 +3955,7 @@ function sendBigLotLineNotification(message) {
 // 🔐 รายชื่อฟังก์ชันที่หน้าเว็บเรียกผ่าน executeFunction ได้ (ฟังก์ชันอื่นจะถูกปฏิเสธ)
 // เพิ่มฟังก์ชันใหม่ที่หน้าเว็บต้องเรียกใช้ลงในรายการนี้ด้วย
 var API_ALLOWED_FUNCTIONS = [
+  'getHomeRevenueSummary',
   'addMusicTrack', 'addPostNewsTemplate', 'addRecommendedService', 'checkDailyTriggerA1A14',
   'checkLineQuotaStatus', 'checkLogin', 'confirmPKCustomer', 'createBigLotProduct',
   'createDailyTriggerA1A14', 'deleteBigLotOrder', 'deleteBigLotProduct', 'deleteDailyTriggerA1A14',

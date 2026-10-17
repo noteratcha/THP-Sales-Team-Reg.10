@@ -6,7 +6,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.1107';
+    var APP_VERSION = 'Ver. 2026.1017.1124';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3094,7 +3094,7 @@
             }
             // 4. Revenue Data
             if (typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData) {
-                const cachedRevData = SafeStorage.getItem('thp_cache_rev_data');
+                const cachedRevData = SafeStorage.getItem('thp_cache_rev_home');
                 if (cachedRevData) {
                     const parsed = JSON.parse(cachedRevData);
                     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -3197,11 +3197,11 @@
             // 4. Revenue Report Data
             google.script.run.withSuccessHandler((res) => {
                 if (res && res.status === 'success' && Array.isArray(res.data)) {
-                    SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data));
+                    SafeStorage.setItem('thp_cache_rev_home', JSON.stringify(res.data));
                     window.globalRevenueData = res.data;
                 }
                 checkDone();
-            }).withFailureHandler(() => checkDone()).getRevenueReportData({
+            }).withFailureHandler(() => checkDone()).getHomeRevenueSummary({
                 user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
                 zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
             });
@@ -3236,8 +3236,24 @@
         const missingRevTargets = !currentRevTargets || currentRevTargets.length <= 1;
         const missingRevData = typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData;
 
+        // ข้อมูลรายได้ไม่บล็อกหน้าจอ: โหลดแยกในเบื้องหลัง การ์ดรายได้แสดงกรอบโหลดจนกว่าข้อมูลจะมา
+        if (missingRevData && !window.isFetchingRevData && typeof google !== 'undefined' && google.script && google.script.run) {
+            window.isFetchingRevData = true;
+            google.script.run.withSuccessHandler(function(res) {
+                window.isFetchingRevData = false;
+                if (res && res.status === 'success' && Array.isArray(res.data)) {
+                    SafeStorage.setItem('thp_cache_rev_home', JSON.stringify(res.data));
+                }
+                window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
+                updateHomeVisitSummary(true);
+            }).withFailureHandler(() => { window.isFetchingRevData = false; window.globalRevenueData = []; updateHomeVisitSummary(true); }).getHomeRevenueSummary({
+                user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
+                zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
+            });
+        }
+
         // ถ้ายังไม่มีข้อมูลในแคชเลย (เช่น เพิ่งเปิดเครื่องใหม่ครั้งแรก) ให้แสดงตัวโหลดเต็มจอ
-        if (missingVisitData || missingVisitTargets || missingRevTargets || missingRevData) {
+        if (missingVisitData || missingVisitTargets || missingRevTargets) {
             if (!isSilent && typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
 
             let pendingReqs = 0;
@@ -3293,21 +3309,6 @@
                     }).withFailureHandler(() => { window.isFetchingRevTargets = false; checkDone(); }).getRevenueTargets();
                 } else if (missingRevTargets && window.isFetchingRevTargets) { pendingReqs++; }
 
-                if (missingRevData && !window.isFetchingRevData) {
-                    window.isFetchingRevData = true;
-                    pendingReqs++;
-                    google.script.run.withSuccessHandler(function(res) {
-                        window.isFetchingRevData = false;
-                        if (res && res.status === 'success' && Array.isArray(res.data)) {
-                            SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data));
-                        }
-                        window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
-                        checkDone();
-                    }).withFailureHandler(() => { window.isFetchingRevData = false; checkDone(); }).getRevenueReportData({
-                        user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
-                        zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
-                    });
-                } else if (missingRevData && window.isFetchingRevData) { pendingReqs++; }
             }
             
             if (pendingReqs > 0) return;
@@ -3736,7 +3737,7 @@
                 return sum;
             };
 
-            renderRevUI(calcActualRev(revenueRowsToProcess || []));
+            if (window.globalRevenueData) renderRevUI(calcActualRev(revenueRowsToProcess || []));
         }
 
         const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
@@ -3833,6 +3834,7 @@
         }
 
         // --- Initialize Revenue Chart ---
+        if (!window.globalRevenueData) return; // ยังโหลดรายได้ไม่เสร็จ: คงกรอบโหลดไว้
         const revChartCanvas = document.getElementById('homeRevenueChart');
         const revChartSkeleton = document.getElementById('homeRevenueChartSkeleton');
         
