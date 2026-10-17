@@ -5109,6 +5109,17 @@
 <script>
   function jumpToOfficeCard(zip) {
     if (!zip) return;
+    var dSec = document.getElementById('detailedReportSection');
+    if (dSec && dSec.style.display === 'none') dSec.style.display = 'block';
+    var cardsSec = document.getElementById('officeCardsSequenceSection');
+    if (cardsSec && cardsSec.style.display === 'none') {
+      cardsSec.style.display = 'block';
+      var tabs = document.querySelectorAll('.vtab');
+      if (tabs.length) {
+        tabs.forEach(function(b) { b.classList.remove('active'); });
+        tabs[0].classList.add('active');
+      }
+    }
     var card = document.getElementById('office-card-' + zip);
     if (!card) return;
     card.style.display = 'block';
@@ -5153,8 +5164,18 @@
   });
 
   function scrollToOfficeCardsSection() {
-    var sec = document.getElementById('officeCardsSequenceSection');
-    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var dSec = document.getElementById('detailedReportSection');
+    if (dSec && dSec.style.display === 'none') dSec.style.display = 'block';
+    var cardsSec = document.getElementById('officeCardsSequenceSection');
+    if (cardsSec && cardsSec.style.display === 'none') {
+      cardsSec.style.display = 'block';
+      var tabs = document.querySelectorAll('.vtab');
+      if (tabs.length) {
+        tabs.forEach(function(b) { b.classList.remove('active'); });
+        tabs[0].classList.add('active');
+      }
+    }
+    if (cardsSec) cardsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function activateCatNav(el) {
