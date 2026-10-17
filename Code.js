@@ -221,40 +221,7 @@ function handleApiRequest(params) {
 // 📦 SECTION: Code_Visit.js
 // ==========================================
 
-/**
- * ฟังก์ชัน: ส่งข้อมูลแจ้งปัญหาไปที่ LINE Notify
- */
-function sendBugReportToLine(message, imageB64) {
-  var LINE_TOKEN = "YOUR_LINE_NOTIFY_TOKEN_HERE"; // <--- นำ Token จาก LINE Notify มาใส่ที่นี่
-  
-  if (!LINE_TOKEN || LINE_TOKEN === "YOUR_LINE_NOTIFY_TOKEN_HERE") {
-     return {status: "error", message: "ยังไม่ได้ตั้งค่า LINE Notify Token ในไฟล์ Code.js"};
-  }
-
-  var formData = { 'message': message };
-
-  if (imageB64 && imageB64.indexOf("base64,") !== -1) {
-    var base64Data = imageB64.split('base64,')[1];
-    var imageBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/png', 'bug_report.png');
-    formData['imageFile'] = imageBlob;
-  }
-
-  var options = {
-    'method': 'post',
-    'payload': formData,
-    'headers': {
-      'Authorization': 'Bearer ' + LINE_TOKEN
-    },
-    'muteHttpExceptions': true
-  };
-
-  try {
-    var response = UrlFetchApp.fetch('https://notify-api.line.me/api/notify', options);
-    return {status: "success", result: response.getContentText()};
-  } catch (e) {
-    return {status: "error", message: e.toString()};
-  }
-}
+// (หมายเหตุ: ฟังก์ชัน sendBugReportToLine แบบ Messaging API อยู่ใน SECTION: LINE OA)
 
 // ==========================================
 // การจัดการข้อมูลการเข้าพบลูกค้า (Visit Data)
@@ -4461,23 +4428,7 @@ function sendBugReportToLine(message, base64Image) {
         var file = folder.createFile(imageBlob);
         // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
         
-        // --- เริ่มต้นระบบลบไฟล์เก่าอัตโนมัติ (อายุเกิน 6 เดือน) ---
-        try {
-          // คำนวณวันที่ย้อนหลัง 6 เดือน
-          var sixMonthsAgo = new Date();
-          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-          var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
-          
-          // ค้นหาไฟล์ในโฟลเดอร์นี้ที่เก่ากว่า 6 เดือน
-          var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
-          while (oldFiles.hasNext()) {
-            var oldFile = oldFiles.next();
-            oldFile.setTrashed(true); // ย้ายไปถังขยะ
-          }
-        } catch (cleanupErr) {
-          console.error("Auto cleanup error: " + cleanupErr.toString());
-        }
-        // --- สิ้นสุดระบบลบไฟล์เก่า ---
+
         fileUrl = file.getUrl();
       } catch (driveErr) {
         console.error("Drive upload error: " + driveErr.toString());
@@ -4534,7 +4485,7 @@ function sendVisitSummaryImageToLine(base64Image, messageText) {
           try {
             folder = DriveApp.getFolderById(folderId);
             file = folder.createFile(imageBlob);
-            file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
+            // file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
             break;
           } catch (e) {
             if (retry === maxRetries - 1) {
@@ -4545,19 +4496,6 @@ function sendVisitSummaryImageToLine(base64Image, messageText) {
         }
         fileUrl = file.getUrl();
         downloadUrl = "https://drive.google.com/uc?export=download&id=" + file.getId();
-        
-        try {
-          var sixMonthsAgo = new Date();
-          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-          var dateString = Utilities.formatDate(sixMonthsAgo, "GMT", "yyyy-MM-dd");
-          var oldFiles = folder.searchFiles("modifiedDate < '" + dateString + "'");
-          while (oldFiles.hasNext()) {
-            var oldFile = oldFiles.next();
-            oldFile.setTrashed(true);
-          }
-        } catch (cleanupErr) {
-          console.error("Auto cleanup error: " + cleanupErr.toString());
-        }
       } catch (driveErr) {
         console.error("Drive upload error: " + driveErr.toString());
         return {status: 'error', message: 'ไม่สามารถอัปโหลดรูปภาพไปยัง Drive ได้: ' + driveErr.toString()};

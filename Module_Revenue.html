@@ -1127,10 +1127,10 @@
     }
     function toggleFilterAll(type, source) { document.querySelectorAll(`.${type}-checkbox`).forEach(cb => cb.checked = source.checked); updateFilterText(type); }
 
-    function updateServiceFilter() { updateFilterTextGeneral('revFilterServiceDropdown', '.service-checkbox', 'revFilterServiceText'); applyRevenueFilters(); }
-    function updateFilterText(type) { updateFilterTextGeneral(`revFilter${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`, `.${type}-checkbox`, `revFilter${type.charAt(0).toUpperCase() + type.slice(1)}Text`); applyRevenueFilters(); }
+    function updateServiceFilter() { updateRevFilterTextGeneral('revFilterServiceDropdown', '.service-checkbox', 'revFilterServiceText'); applyRevenueFilters(); }
+    function updateFilterText(type) { updateRevFilterTextGeneral(`revFilter${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`, `.${type}-checkbox`, `revFilter${type.charAt(0).toUpperCase() + type.slice(1)}Text`); applyRevenueFilters(); }
 
-    function updateFilterTextGeneral(dropdownId, checkboxClass, textId) {
+    function updateRevFilterTextGeneral(dropdownId, checkboxClass, textId) {
         const dropdown = document.getElementById(dropdownId); if (!dropdown) return;
         const allCb = dropdown.querySelector('input[value="ALL"]'); const checkboxes = dropdown.querySelectorAll(checkboxClass);
         const checked = Array.from(checkboxes).filter(cb => cb.checked);

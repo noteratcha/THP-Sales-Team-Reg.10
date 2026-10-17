@@ -15,7 +15,7 @@ description: >
 | Layer | Platform | URL |
 |---|---|---|
 | **Frontend SPA** | Vercel Edge CDN | `https://salesreg10.vercel.app` |
-| **Backend API** | Google Apps Script (GAS) | `AKfycbyHjKL4Sj873PZDGMoOUQ9e_4HAGWL3MqDBGqyicjqujyz4lLI0QytBvD0-0BzxAj5y` |
+| **Backend API** | Google Apps Script (GAS) | `AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx` |
 | **Legacy Fallback** | GAS Web App URL | รองรับแบบ In-frame เต็มรูปแบบ |
 | **Database** | Google Sheets | อ่าน/เขียนผ่าน Backend GAS |
 | **File Storage** | Google Drive | เก็บรูปภาพรายงาน |
@@ -146,7 +146,7 @@ git push origin main     # Vercel CI/CD ทำงานอัตโนมัต�
 ### Re-deploy GAS โดยไม่เพิ่ม Deployment Slot (สูงสุด 20 slots)
 
 ```powershell
-npx clasp deploy -i AKfycbyHjKL4Sj873PZDGMoOUQ9e_4HAGWL3MqDBGqyicjqujyz4lLI0QytBvD0-0BzxAj5y -V <versionNumber> -d "คำอธิบาย"
+npx clasp deploy -i AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx -V <versionNumber> -d "คำอธิบาย"
 ```
 
 ---

@@ -49,7 +49,7 @@ graph TD
   ```javascript
   // Universal Adapter Mechanism
   if (typeof google === 'undefined' || !google.script || !google.script.run) {
-    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyHjKL4Sj873PZDGMoOUQ9e_4HAGWL3MqDBGqyicjqujyz4lLI0QytBvD0-0BzxAj5y/exec';
+    const GAS_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx/exec';
     
     function createRunner(successHandler, failureHandler) {
       return new Proxy({}, {
@@ -256,7 +256,7 @@ graph TD
 - **วิธีอัปเดตเวอร์ชัน Production โดยไม่ให้โควตาเต็ม**:
   - อย่าสร้าง Deployment ใหม่ ให้ทำการ Re-deploy ทับ Deployment ID เดิมที่มีอยู่แล้ว:
     ```powershell
-    npx clasp deploy -i AKfycbyHjKL4Sj873PZDGMoOUQ9e_4HAGWL3MqDBGqyicjqujyz4lLI0QytBvD0-0BzxAj5y -V <versionNumber> -d "คำอธิบายเวอร์ชัน"
+    npx clasp deploy -i AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx -V <versionNumber> -d "คำอธิบายเวอร์ชัน"
     ```
 
 ### 5.4 การแสดงรูปภาพจาก Google Drive บนหน้าเว็บ
