@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1020.1131';
+    var APP_VERSION = 'Ver. 2026.1020.1703';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -5822,20 +5822,24 @@
 
         badge.classList.remove('hidden');
 
+        const totalLimit = info.totalLimit || (info.tokens || []).reduce((s, t) => s + (t.limit || 300), 0) || 300;
+        const totalUsed = info.totalUsed || (info.tokens || []).reduce((s, t) => s + (t.used || 0), 0) || 0;
+        const totalRemaining = info.totalRemaining != null ? info.totalRemaining : Math.max(0, totalLimit - totalUsed);
+        const botCount = (info.tokens && info.tokens.length) || 1;
+
         if (info.allFull) {
             badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-700 border border-red-300 items-center gap-1.5 cursor-pointer shadow-sm animate-pulse hover:bg-red-200 transition";
-            badge.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i> โควตาเต็ม (0/300)';
-            badge.title = "โควตาส่งข้อความฟรี LINE OA เต็มแล้วทุกบัญชี (คลิกดูรายละเอียด)";
+            badge.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500"></i> โควตารวมเต็ม (0/${totalLimit})`;
+            badge.title = `โควตาส่งข้อความฟรี LINE OA เต็มแล้วทุกบัญชี (${botCount} บอท) (คลิกดูรายละเอียด)`;
         } else if (info.activeTokenIndex > 0) {
             const activeToken = info.tokens[info.activeTokenIndex];
             badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-800 border border-amber-300 items-center gap-1.5 cursor-pointer shadow-sm hover:bg-amber-200 transition";
-            badge.innerHTML = `<i class="fas fa-shield-alt text-amber-600"></i> ใช้บอทสำรอง (เหลือ ${activeToken.remaining})`;
-            badge.title = "บอทหลักโควตาเต็ม ระบบกำลังใช้บอทสำรอง (คลิกดูรายละเอียด)";
+            badge.innerHTML = `<i class="fas fa-shield-alt text-amber-600"></i> โควตารวม ${totalRemaining}/${totalLimit} (${activeToken.label.split(' ')[0]})`;
+            badge.title = `บอทหลักโควตาเต็ม ระบบกำลังใช้บอทสำรอง · รวมเหลือ ${totalRemaining}/${totalLimit} ข้อความ (คลิกดูรายละเอียด)`;
         } else {
-            const primary = info.tokens[0];
             badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700 border border-green-200 items-center gap-1.5 cursor-pointer shadow-sm hover:bg-green-100 transition";
-            badge.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> โควตา ${primary.remaining}/${primary.limit}`;
-            badge.title = "สถานะโควตา LINE บอทหลัก (คลิกดูรายละเอียด)";
+            badge.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> โควตารวม ${totalRemaining}/${totalLimit}`;
+            badge.title = `โควตารวม ${botCount} บอท: เหลือ ${totalRemaining}/${totalLimit} ข้อความ (คลิกดูรายละเอียด)`;
         }
     }
 
@@ -5850,6 +5854,11 @@
             });
             return;
         }
+
+        const totalLimit = info.totalLimit || (info.tokens || []).reduce((s, t) => s + (t.limit || 300), 0) || 300;
+        const totalUsed = info.totalUsed || (info.tokens || []).reduce((s, t) => s + (t.used || 0), 0) || 0;
+        const totalRemaining = info.totalRemaining != null ? info.totalRemaining : Math.max(0, totalLimit - totalUsed);
+        const botCount = (info.tokens && info.tokens.length) || 1;
 
         let tokensHtml = '';
         if (info.tokens && info.tokens.length > 0) {
@@ -5884,14 +5893,18 @@
         Swal.fire({
             title: '📊 สถานะโควตาส่งข้อความ LINE OA',
             html: `<div class="text-left text-xs text-gray-700 space-y-3 mt-3">
-                <div class="p-2.5 rounded-xl ${info.allFull ? 'bg-red-50 text-red-800 border border-red-200' : (info.activeTokenIndex > 0 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-green-50 text-green-800 border border-green-200')} font-medium">
+                <div class="p-2.5 rounded-xl ${info.allFull ? 'bg-red-50 text-red-800 border border-red-200' : (info.activeTokenIndex > 0 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-green-50 text-green-800 border border-green-200')} font-medium leading-relaxed">
                     ${info.summaryText}
+                </div>
+                <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex justify-between items-center text-xs">
+                    <span class="font-bold text-blue-900"><i class="fas fa-layer-group text-blue-600 mr-1"></i> โควตารวมทั้งระบบ (${botCount} บอท):</span>
+                    <span class="font-bold text-blue-700">คงเหลือ ${totalRemaining} / ${totalLimit} ข้อความ (ใช้ไปแล้ว ${totalUsed})</span>
                 </div>
                 <div class="space-y-2">
                     ${tokensHtml}
                 </div>
                 <div class="bg-gray-50 p-2.5 rounded-lg text-[11px] text-gray-500 space-y-1">
-                    <p>💡 <b>ระบบ Multi-Token Auto-Failover:</b> เมื่อบอทหลักโควตาเต็ม 300 ข้อความ ระบบจะสลับไปใช้บอทสำรองตัวถัดไปให้อัตโนมัติ</p>
+                    <p>💡 <b>ระบบ Multi-Token Auto-Failover:</b> แต่ละบัญชี LINE OA มีโควตาส่งข้อความฟรีบัญชีละ 300 ข้อความ/เดือน รวมทั้งระบบมี ${botCount} บอท = ${totalLimit} ข้อความ เมื่อบอทหลักโควตาเต็ม ระบบจะสลับไปใช้บอทสำรองตัวถัดไปให้อัตโนมัติ</p>
                     <p>🔄 โควตาจะรีเซ็ตใหม่อัตโนมัติในวันแรกของทุกเดือน (00:00 น.)</p>
                 </div>
             </div>`,

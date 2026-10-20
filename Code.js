@@ -4729,6 +4729,9 @@ function checkLineQuotaStatus_() {
       allFull: true,
       hasAvailable: false,
       activeTokenIndex: -1,
+      totalLimit: 0,
+      totalUsed: 0,
+      totalRemaining: 0,
       summaryText: "",
       alertType: "info"
     };
@@ -4774,20 +4777,25 @@ function checkLineQuotaStatus_() {
       } catch (tErr) {
         quotaInfo.error = tErr.toString();
       }
+      result.totalLimit += quotaInfo.limit;
+      result.totalUsed += quotaInfo.used;
+      result.totalRemaining += quotaInfo.remaining;
       result.tokens.push(quotaInfo);
     }
 
     if (result.allFull) {
       result.alertType = "danger";
-      result.summaryText = "⚠️ โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทุกบัญชี (ไม่สามารถส่งได้จนกว่าจะขึ้นรอบบิลเดือนใหม่ หรือเพิ่ม Token สำรอง)";
+      result.summaryText = "⚠️ โควตาส่งข้อความฟรีประจำเดือนของ LINE OA เต็มแล้วทุกบัญชี (0/" + result.totalLimit + " ข้อความ) ไม่สามารถส่งได้จนกว่าจะขึ้นรอบบิลเดือนใหม่ หรือเพิ่ม Token สำรอง";
     } else if (result.activeTokenIndex > 0) {
       result.alertType = "warning";
       var activeToken = result.tokens[result.activeTokenIndex];
-      result.summaryText = "บอทหลักโควตาเต็ม (300/300) แล้ว ระบบกำลังส่งผ่าน " + activeToken.label + " (เหลือ " + activeToken.remaining + "/" + activeToken.limit + " ข้อความ)";
+      result.summaryText = "บอทหลักโควตาเต็มแล้ว ระบบกำลังส่งผ่าน " + activeToken.label + " · โควตารวมทุกบอทเหลือ " + result.totalRemaining + "/" + result.totalLimit + " ข้อความ";
     } else {
       result.alertType = "success";
-      var primary = result.tokens[0];
-      result.summaryText = "บอทหลักพร้อมใช้งาน (เหลือโควตา " + primary.remaining + "/" + primary.limit + " ข้อความ)";
+      var detailParts = result.tokens.map(function(t, idx) {
+        return (idx === 0 ? "บอทหลัก " : ("บอทสำรอง " + idx + " ")) + t.remaining + "/" + t.limit;
+      }).join(", ");
+      result.summaryText = "บอทหลักพร้อมใช้งาน · โควตารวมทุกบอทเหลือ " + result.totalRemaining + "/" + result.totalLimit + " ข้อความ (" + detailParts + ")";
     }
 
     return result;
