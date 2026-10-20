@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1017.2248';
+    var APP_VERSION = 'Ver. 2026.1020.1027';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4348,39 +4348,39 @@
               <div class="office-card-header">
                 <div>
                   <h3 class="office-card-title">${rankIdx ? `<span class="rank-badge">#${rankIdx}</span> ` : ''}${esc(off.name)} <span class="zip-tag">${esc(off.zipcode || '')}</span></h3>
-                  <span class="office" style="font-size:11px;color:#475569;">สังกัด: <b>${esc(off.team)}</b></span>
+                  <span class="office" style="font-size:11px;color:#475569;">ทีมขายรับผิดชอบ: <b>${esc(off.team)}</b></span>
                 </div>
                 <div class="office-kpis">
                   <span class="kpi-badge"><span class="badge-label">${revLabel}:</span> <b>${money(off.ytd)} บาท</b></span>
-                  <span class="kpi-badge"><span class="badge-label">เติบโต:</span> <b class="${off.growthPct >= 0 ? 'up' : 'down'}">${growthText}</b></span>
-                  <span class="kpi-badge"><span class="badge-label">เป้าหมาย:</span> <b>${off.target ? money(off.target) + ' บาท' : '-'}</b></span>
-                  <span class="kpi-badge"><span class="badge-label">% เป้า:</span> <b class="${achvClass}">${achvText}</b></span>
+                  <span class="kpi-badge"><span class="badge-label">อัตราเติบโต:</span> <b class="${off.growthPct >= 0 ? 'up' : 'down'}">${growthText}</b></span>
+                  <span class="kpi-badge"><span class="badge-label">เป้าหมายตามแผน:</span> <b>${off.target ? money(off.target) + ' บาท' : '-'}</b></span>
+                  <span class="kpi-badge"><span class="badge-label">% บรรลุเป้า:</span> <b class="${achvClass}">${achvText}</b></span>
                 </div>
               </div>
               <div class="office-grid-4">
                 <div class="col-card">
-                  <div class="col-header green"><span>🌟 1. รายได้ เด่น - ด้อย</span></div>
+                  <div class="col-header green"><span>🌟 1. บริการขับเคลื่อนและบริการชะลอตัว</span></div>
                   <div class="col-body">
-                    <div style="font-weight:700;color:#0f3d2e;margin-bottom:2px;font-size:11px;">บริการเด่น (เติบโตหลัก):</div>
+                    <div style="font-weight:700;color:#0f3d2e;margin-bottom:2px;font-size:11px;">กลุ่มบริการขับเคลื่อนหลัก (Growth Drivers):</div>
                     ${strHtml}
-                    <div style="font-weight:700;color:#991b1b;margin-top:6px;margin-bottom:2px;font-size:11px;">บริการด้อย (ลดลง/ฉุดยอด):</div>
+                    <div style="font-weight:700;color:#991b1b;margin-top:6px;margin-bottom:2px;font-size:11px;">กลุ่มบริการที่ชะลอตัว (Decline / Pressure Points):</div>
                     ${weakHtml}
                   </div>
                 </div>
                 <div class="col-card">
-                  <div class="col-header red"><span>⚠️ 2. ลูกค้าที่หายไป (3 เดือนขึ้นไป)</span></div>
+                  <div class="col-header red"><span>⚠️ 2. บัญชีลูกค้าที่ไม่มีความเคลื่อนไหว (≥ 3 เดือน)</span></div>
                   <div class="col-body">
                     ${inactHtml}
                   </div>
                 </div>
                 <div class="col-card">
-                  <div class="col-header blue"><span>💡 3. แนวทางว่าจะหารายได้จากไหน</span></div>
+                  <div class="col-header blue"><span>💡 3. โอกาสและมาตรการขับเคลื่อนรายได้ (Strategic Initiatives)</span></div>
                   <div class="col-body">
                     ${oppHtml}
                   </div>
                 </div>
                 <div class="col-card">
-                  <div class="col-header purple"><span>📊 4. อัตราส่วนแต่ละบริการ (% Share)</span></div>
+                  <div class="col-header purple"><span>📊 4. โครงสร้างสัดส่วนกลุ่มบริการ (% Share)</span></div>
                   <div class="col-body">
                     ${srvHtml}
                   </div>
@@ -4452,6 +4452,126 @@
         const botTeams = rTeams.slice(-3);
         const topSrv = (s.services && s.services.length) ? s.services[0] : null;
         const topDecCust = (s.decliningCustomers || []).slice(0, 2);
+
+        // Corporate Executive Palette
+        const PALETTE = ['#064e3b', '#ea580c', '#0284c7', '#7c3aed', '#059669', '#d97706', '#e11d48', '#475569', '#6366f1', '#64748b'];
+
+        // 1. กราฟวงกลม: สัดส่วนกลุ่มบริการ (Service Portfolio Donut)
+        const totalServiceRev = (s.services || []).reduce((acc, sv) => acc + (sv.ytd || 0), 0);
+        const topServices = (s.services || []).slice(0, 6);
+        const otherServicesRev = (s.services || []).slice(6).reduce((acc, sv) => acc + (sv.ytd || 0), 0);
+        const serviceSlices = topServices.map((sv, idx) => ({
+            label: sv.name,
+            value: sv.ytd,
+            pct: totalServiceRev ? Math.round(sv.ytd / totalServiceRev * 1000) / 10 : 0,
+            color: PALETTE[idx % PALETTE.length]
+        }));
+        if (otherServicesRev > 0) {
+            serviceSlices.push({
+                label: 'กลุ่มบริการอื่นๆ รวม',
+                value: otherServicesRev,
+                pct: totalServiceRev ? Math.round(otherServicesRev / totalServiceRev * 1000) / 10 : 0,
+                color: '#94a3b8'
+            });
+        }
+
+        // 2. กราฟวงกลม: สัดส่วนรายได้เชิงพื้นที่ (Provincial Revenue Contribution Donut)
+        const totalProvRev = (s.provinces || []).reduce((acc, pv) => acc + (pv.ytd || 0), 0);
+        const provSlices = (s.provinces || []).slice().sort((a,b) => b.ytd - a.ytd).map((pv, idx) => ({
+            label: pv.name,
+            value: pv.ytd,
+            pct: totalProvRev ? Math.round(pv.ytd / totalProvRev * 1000) / 10 : 0,
+            color: PALETTE[idx % PALETTE.length]
+        }));
+
+        // ฟังก์ชันสร้างกราฟวงกลม SVG Donut เวกเตอร์ความคมชัดสูง
+        const renderSvgDonut = (slices, title, centerVal, centerSub) => {
+            const R = 75;
+            const C = 2 * Math.PI * R; // ~471.24
+            let accumulatedPct = 0;
+            const circles = slices.map(sl => {
+                const p = Math.max(0, Math.min(100, sl.pct || 0));
+                const dash = (p / 100) * C;
+                const offset = -(accumulatedPct / 100) * C;
+                accumulatedPct += p;
+                return `<circle cx="120" cy="120" r="${R}" fill="transparent" stroke="${sl.color}" stroke-width="30" stroke-dasharray="${dash.toFixed(2)} ${(C - dash).toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 120 120)" style="transition:stroke-dasharray .3s;"/>`;
+            }).join('');
+
+            const legendRows = slices.map(sl => `
+                <div class="donut-legend-item">
+                    <span class="donut-legend-color" style="background:${sl.color};"></span>
+                    <span class="donut-legend-name" title="${esc(sl.label)}">${esc(sl.label)}</span>
+                    <span class="donut-legend-pct font-semibold">${sl.pct}%</span>
+                    <span class="donut-legend-val muted">(${money(sl.value)} บ.)</span>
+                </div>`).join('');
+
+            return `
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h3 class="chart-card-title">${title}</h3>
+                </div>
+                <div class="donut-container">
+                    <div class="donut-svg-wrap">
+                        <svg viewBox="0 0 240 240" class="donut-svg">
+                            <circle cx="120" cy="120" r="${R}" fill="transparent" stroke="#f1f5f9" stroke-width="30" />
+                            ${circles}
+                            <text x="120" y="113" text-anchor="middle" class="donut-center-val">${centerVal}</text>
+                            <text x="120" y="133" text-anchor="middle" class="donut-center-lbl">${centerSub}</text>
+                        </svg>
+                    </div>
+                    <div class="donut-legend-list">
+                        ${legendRows}
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // ฟังก์ชันสร้างกราฟแท่งแนวนอน เปรียบเทียบผลงานทีมขายเทียบเป้าหมาย (Benchmark 100%)
+        const renderTeamTargetBenchmarkChart = (teamsList) => {
+            if (!teamsList || !teamsList.length) return '';
+            const validTeams = teamsList.filter(t => t.name !== 'ไม่ระบุทีม' && t.target > 0);
+            if (!validTeams.length) return '';
+            const maxAchv = Math.max(120, ...validTeams.map(t => t.achievementPct || 0));
+            const benchmarkPos = (100 / maxAchv * 100).toFixed(1);
+
+            const teamBars = validTeams.slice().sort(byTarget).map(t => {
+                const achvVal = t.achievementPct || 0;
+                const widthPct = Math.min(100, Math.max(0, (achvVal / maxAchv * 100))).toFixed(1);
+                const isPassed = achvVal >= 100;
+                const barColor = isPassed ? '#059669' : (achvVal >= 80 ? '#d97706' : '#dc2626');
+                const badgeClass = isPassed ? 'up' : (achvVal >= 80 ? 'warn' : 'down');
+                return `
+                <div class="tbar-row">
+                    <div class="tbar-label" title="${esc(t.name)}"><b>${esc(t.name)}</b></div>
+                    <div class="tbar-track-wrap">
+                        <div class="tbar-track">
+                            <div class="tbar-fill" style="width:${widthPct}%; background:${barColor};"></div>
+                            <div class="tbar-target-marker" style="left:${benchmarkPos}%;" title="เป้าหมาย 100%"></div>
+                        </div>
+                    </div>
+                    <div class="tbar-val">
+                        <span class="${badgeClass}"><b>${achvVal}%</b></span>
+                        <span class="muted" style="font-size:10px;"> (${money(t.ytd)} / ${money(t.target)})</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            return `
+            <div class="chart-card" style="margin: 12px 0 16px;">
+                <div class="chart-card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <h3 class="chart-card-title">📊 กราฟเปรียบเทียบร้อยละผลงานทีมขายเทียบเป้าหมายตามแผนงาน (Benchmark 100%)</h3>
+                    <div class="tbar-legend">
+                        <span class="legend-item"><span class="legend-box" style="background:#059669;"></span> บรรลุเป้าหมาย (≥ 100%)</span>
+                        <span class="legend-item"><span class="legend-box" style="background:#d97706;"></span> เฝ้าระวัง (80–99%)</span>
+                        <span class="legend-item"><span class="legend-box" style="background:#dc2626;"></span> ต่ำกว่าเป้าหมาย (< 80%)</span>
+                        <span class="legend-item"><span style="display:inline-block;width:12px;border-top:2px dashed #064e3b;"></span> เส้นเป้าหมาย 100%</span>
+                    </div>
+                </div>
+                <div class="tbar-list">
+                    ${teamBars}
+                </div>
+            </div>`;
+        };
 
         return `<!doctype html><html lang="th"><head><meta charset="utf-8">
 <title>รายงานวิเคราะห์รายได้ ${esc(res.generatedAt)}</title>
@@ -4636,6 +4756,35 @@
   .legend { display: flex; align-items: center; gap: 14px; margin: 4px 0 8px; font-size: 11px; color: #64748b; font-weight: 600; }
   .legend-item { display: inline-flex; align-items: center; gap: 6px; }
   .legend-box { width: 14px; height: 7px; border-radius: 3px; display: inline-block; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* Visual Charts: Vector Donut & Target Benchmark Bars */
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 14px; align-items: start; }
+  @media (max-width: 768px) { .chart-grid-2 { grid-template-columns: 1fr; } }
+  .chart-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); break-inside: avoid; page-break-inside: avoid; }
+  .chart-card-header { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1.5px solid #f1f5f9; }
+  .chart-card-title { margin: 0; font-size: 12px; font-weight: 700; color: #064e3b; display: flex; align-items: center; gap: 6px; }
+  
+  .donut-container { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .donut-svg-wrap { flex-shrink: 0; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+  .donut-svg { width: 100%; height: 100%; overflow: visible; }
+  .donut-center-val { font-size: 18px; font-weight: 800; fill: #064e3b; font-family: 'Sarabun', sans-serif; }
+  .donut-center-lbl { font-size: 10px; fill: #64748b; font-family: 'Sarabun', sans-serif; font-weight: 600; }
+  .donut-legend-list { flex: 1; min-width: 170px; display: flex; flex-direction: column; gap: 4px; }
+  .donut-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .donut-legend-color { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .donut-legend-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+  .donut-legend-pct { width: 38px; text-align: right; color: #064e3b; font-weight: 700; font-size: 11px; }
+  .donut-legend-val { font-size: 10px; color: #94a3b8; white-space: nowrap; }
+
+  .tbar-legend { display: flex; gap: 10px; font-size: 10.5px; color: #64748b; flex-wrap: wrap; }
+  .tbar-list { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+  .tbar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+  .tbar-label { width: 135px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-size: 11px; }
+  .tbar-track-wrap { flex: 1; position: relative; }
+  .tbar-track { height: 11px; background: #f1f5f9; border-radius: 6px; position: relative; overflow: hidden; border: 1px solid #e2e8f0; }
+  .tbar-fill { height: 100%; border-radius: 5px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .tbar-target-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #064e3b; border-left: 1px dashed #ffffff; z-index: 2; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .tbar-val { width: 145px; text-align: right; white-space: nowrap; font-size: 10.5px; }
 
   /* Office Cards Sequential Styling (Image 2 format) */
   .office-cards-header-bar { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4.5px solid #064e3b; border-radius: 10px; padding: 12px 16px; margin: 16px 0 16px; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
@@ -4858,6 +5007,12 @@
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
+    .chart-grid-2 { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+    .chart-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+    .tbar-fill, .tbar-track, .donut-legend-color, .tbar-target-marker {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
   }
 </style></head><body>
 
@@ -4878,12 +5033,12 @@
 <!-- 2. Sticky Category Navigation Pills -->
 <div class="cat-nav-bar no-print" id="catNavBar">
   <span style="font-size:11px;color:#a7f3d0;font-weight:700;margin-right:4px;">ทางลัดหมวดหมู่:</span>
-  <a href="#cat-1" class="cat-nav-btn active" onclick="activateCatNav(this)">📌 1. สรุปผู้บริหาร</a>
-  <a href="#cat-2" class="cat-nav-btn" onclick="activateCatNav(this)">📈 2. แนวโน้ม & จังหวัด</a>
+  <a href="#cat-1" class="cat-nav-btn active" onclick="activateCatNav(this)">📌 1. บทสรุปเชิงบริหาร</a>
+  <a href="#cat-2" class="cat-nav-btn" onclick="activateCatNav(this)">📈 2. แนวโน้ม & พื้นที่</a>
   <a href="#cat-3" class="cat-nav-btn" onclick="activateCatNav(this)">👥 3. ผลงานทีมขาย</a>
-  <a href="#cat-4" class="cat-nav-btn" onclick="activateCatNav(this)">📦 4. กลุ่มบริการ</a>
-  <a href="#cat-5" class="cat-nav-btn" onclick="activateCatNav(this)">🤝 5. ลูกค้าสมาชิก</a>
-  <a href="#cat-6" class="cat-nav-btn" onclick="activateCatNav(this)">🏢 6. รายที่ทำการ (96 แห่ง)</a>
+  <a href="#cat-4" class="cat-nav-btn" onclick="activateCatNav(this)">📦 4. พอร์ตกลุ่มบริการ</a>
+  <a href="#cat-5" class="cat-nav-btn" onclick="activateCatNav(this)">🤝 5. บริหารลูกค้าสัมพันธ์</a>
+  <a href="#cat-6" class="cat-nav-btn" onclick="activateCatNav(this)">🏢 6. ประเมินรายที่ทำการ</a>
 </div>
 
 <!-- Floating Back to Top Button -->
@@ -4899,13 +5054,13 @@
 </td></tr></thead><tbody><tr><td>
 
   <!-- ============================================================== -->
-  <!-- 📄 หมวดที่ 1: บทสรุปสำหรับผู้บริหารและทิศทางกลยุทธ์ (Executive Brief) -->
+  <!-- 📄 หมวดที่ 1: บทสรุปเชิงบริหารและข้อเสนอแนะเชิงกลยุทธ์ (Executive Summary) -->
   <!-- ============================================================== -->
   <div id="execSummarySection" class="category-container">
     <div class="cat-header" id="cat-1">
       <div class="cat-badge no-print">หมวดที่ 1 · นโยบายและภาพรวมระดับบริหาร</div>
-      <h2 class="cat-title">📌 บทสรุปสำหรับผู้บริหารและทิศทางกลยุทธ์</h2>
-      <div class="cat-subtitle">ตัวชี้วัดหลัก ประเด็นสำคัญ จุดเด่น-จุดเสี่ยง และข้อเสนอแนะเชิงรุกในภาพรวม</div>
+      <h2 class="cat-title">📌 บทสรุปเชิงบริหารและข้อเสนอแนะเชิงกลยุทธ์</h2>
+      <div class="cat-subtitle">รายงานสรุปสาระสำคัญ ตัวชี้วัดหลัก ปัจจัยขับเคลื่อน ปัจจัยความเสี่ยง และทิศทางการขับเคลื่อนผลการดำเนินงาน</div>
     </div>
 
     ${s.period.selectedMonthIncomplete ? '<div class="box" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;margin-bottom:10px">⚠️ <b>ข้อสังเกต:</b> ช่วงที่เลือกมีเดือนที่ข้อมูลยังไม่ครบหรือยังมาไม่ถึง ตัวเลขอาจต่ำกว่าความเป็นจริง</div>' : ''}
@@ -4920,7 +5075,7 @@
 
     <!-- Executive Summary Box -->
     <section class="sec">
-      <h2 class="sub-title">📋 สรุปสถานการณ์หลักสำหรับผู้บริหาร</h2>
+      <h2 class="sub-title">📋 บทวิเคราะห์สถานการณ์ภาพรวมเชิงบริหาร</h2>
       <div class="box">${list(ai.executiveSummary)}</div>
     </section>
 
@@ -4928,11 +5083,11 @@
     <section class="sec">
       <div class="two">
         <div class="card-highlight-green">
-          <h2 class="sub-title" style="margin-top:0;color:#047857;border-left-color:#047857;">🟢 จุดเด่นและปัจจัยขับเคลื่อน</h2>
+          <h2 class="sub-title" style="margin-top:0;color:#047857;border-left-color:#047857;">🟢 ปัจจัยขับเคลื่อนผลการดำเนินงานและจุดแข็ง (Key Drivers)</h2>
           ${list(ai.highlights)}
         </div>
         <div class="card-highlight-red">
-          <h2 class="sub-title" style="margin-top:0;color:#991b1b;border-left-color:#991b1b;">🔴 จุดเสี่ยงและประเด็นที่ต้องระวัง</h2>
+          <h2 class="sub-title" style="margin-top:0;color:#991b1b;border-left-color:#991b1b;">🔴 ปัจจัยความเสี่ยงและประเด็นพึงระวัง (Risk Factors & Watchlist)</h2>
           ${list(ai.concerns)}
         </div>
       </div>
@@ -4940,27 +5095,27 @@
 
     <!-- Highlights Snapshot 3-Card Grid -->
     <section class="sec">
-      <h2 class="sub-title">⚡ ภาพรวมผลงานสำคัญ 3 มิติ</h2>
+      <h2 class="sub-title">⚡ มิติด้านผลการดำเนินงานเชิงประจักษ์ (Performance Dimensions)</h2>
       <div class="snap-grid">
         <div class="snap-card">
-          <div class="snap-title">🏢 จังหวัด / ศูนย์ ปข.10</div>
+          <div class="snap-title">🏢 ผลการดำเนินงานเชิงพื้นที่ (7 จังหวัด / 2 ศูนย์)</div>
           <div class="snap-body">
-            <div><b>ผลงานสูงสุด:</b> <span class="up">${esc(topProv.name)}</span> (${achv(topProv.achievementPct)} · ${growth(topProv.growthPct)})</div>
-            <div><b>จุดที่ต้องเร่งรัด:</b> <span class="down">${esc(botProv.name)}</span> (${achv(botProv.achievementPct)} · ${growth(botProv.growthPct)})</div>
+            <div><b>บรรลุเป้าหมายสูงสุด:</b> <span class="up">${esc(topProv.name)}</span> (${achv(topProv.achievementPct)} · ${growth(topProv.growthPct)})</div>
+            <div><b>พื้นที่เฝ้าระวังเร่งรัด:</b> <span class="down">${esc(botProv.name)}</span> (${achv(botProv.achievementPct)} · ${growth(botProv.growthPct)})</div>
           </div>
         </div>
         <div class="snap-card">
-          <div class="snap-title">👥 ทีมขายเด่น & ต่ำกว่าเป้า</div>
+          <div class="snap-title">👥 ประสิทธิภาพทีมขาย (Sales Performance)</div>
           <div class="snap-body">
-            <div><b>เกินเป้า:</b> ${topTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
-            <div><b>ต่ำกว่าเป้า:</b> ${botTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
+            <div><b>บรรลุเกินเป้าหมาย:</b> ${topTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
+            <div><b>ต่ำกว่าเป้าหมายตามแผน:</b> ${botTeams.map(t => esc(t.name) + ' (' + achv(t.achievementPct) + ')').join(', ') || '-'}</div>
           </div>
         </div>
         <div class="snap-card">
-          <div class="snap-title">📦 บริการหลัก & ลูกค้าที่ลดลง</div>
+          <div class="snap-title">📦 โครงสร้างผลิตภัณฑ์และบัญชีลูกค้า</div>
           <div class="snap-body">
-            <div><b>บริการหลัก:</b> ${topSrv ? esc(topSrv.name) + ' (' + money(topSrv.ytd) + ' · ' + (topSrv.sharePct ?? '-') + '%)' : '-'}</div>
-            <div><b>ลดลงมากสุด:</b> ${topDecCust.map(c => esc(c.name) + ' (' + money(c.diff) + ')').join(', ') || '-'}</div>
+            <div><b>บริการหลักสร้างรายได้:</b> ${topSrv ? esc(topSrv.name) + ' (' + money(topSrv.ytd) + ' · ' + (topSrv.sharePct ?? '-') + '%)' : '-'}</div>
+            <div><b>บัญชีที่ยอดชะลอตัว:</b> ${topDecCust.map(c => esc(c.name) + ' (' + money(c.diff) + ')').join(', ') || '-'}</div>
           </div>
         </div>
       </div>
@@ -4968,7 +5123,7 @@
 
     <!-- Strategic Recommendations -->
     <section class="sec">
-      <h2 class="sub-title">💡 ข้อเสนอแนะเชิงกลยุทธ์</h2>
+      <h2 class="sub-title">💡 ข้อเสนอแนะเชิงกลยุทธ์และมาตรการขับเคลื่อน (Strategic Recommendations)</h2>
       <div class="box-green">${list(ai.recommendations)}</div>
     </section>
   </div>
@@ -4980,23 +5135,23 @@
   <!-- ============================================================== -->
   <div id="detailedReportSection">
 
-    <!-- หมวดที่ 2: แนวโน้มรายได้และภาพรวมระดับจังหวัด -->
+    <!-- หมวดที่ 2: แนวโน้มรายได้และผลการดำเนินงานเชิงพื้นที่ -->
     <div id="sec-provinces" class="category-container">
       <div class="cat-header" id="cat-2">
-        <div class="cat-badge no-print">หมวดที่ 2 · แนวโน้มและภูมิศาสตร์</div>
-        <h2 class="cat-title">📈 แนวโน้มรายได้และภาพรวมระดับจังหวัด</h2>
-        <div class="cat-subtitle">สถิติเปรียบเทียบรายได้รายเดือน และผลการดำเนินงาน 7 จังหวัด พร้อม 2 ศูนย์ไปรษณีย์</div>
+        <div class="cat-badge no-print">หมวดที่ 2 · แนวโน้มรายได้และผลการดำเนินงานเชิงพื้นที่</div>
+        <h2 class="cat-title">📈 แนวโน้มรายได้และผลการดำเนินงานเชิงพื้นที่ (Geographic Performance)</h2>
+        <div class="cat-subtitle">สถิติเปรียบเทียบแนวโน้มรายได้รายเดือน และผลการดำเนินงานระดับ 7 จังหวัด พร้อม 2 ศูนย์ไปรษณีย์</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 2 -->
       <div class="cat-summary-box">
         <div class="cat-summary-header">
-          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: แนวโน้มรายได้และภูมิศาสตร์</div>
+          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: แนวโน้มรายได้และผลการดำเนินงานเชิงพื้นที่</div>
           <span class="cat-summary-tag">ฉบับย่อหมวด 2</span>
         </div>
         <div class="cat-summary-chips">
-          <span class="cat-chip"><span class="cat-chip-label">🏆 เกินเป้าสูงสุด:</span> <b class="up">${esc(topProv.name)} (${achv(topProv.achievementPct)})</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">⚠️ ต้องเร่งรัด:</span> <b class="down">${esc(botProv.name)} (${achv(botProv.achievementPct)})</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">🏆 บรรลุเป้าหมายสูงสุด:</span> <b class="up">${esc(topProv.name)} (${achv(topProv.achievementPct)})</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">⚠️ พื้นที่เฝ้าระวังเร่งรัด:</span> <b class="down">${esc(botProv.name)} (${achv(botProv.achievementPct)})</b></span>
           <span class="cat-chip"><span class="cat-chip-label">🏢 พื้นที่รับผิดชอบ:</span> <b>7 จังหวัด 2 ศูนย์ ปข.10</b></span>
         </div>
         <div class="cat-summary-text">
@@ -5004,56 +5159,65 @@
         </div>
       </div>
 
-      <section class="sec">
-        <h2 class="sub-title">เปรียบเทียบแนวโน้มรายได้รายเดือน</h2>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-box" style="background:#ea580c;border:1px solid #ea580c;box-shadow:inset 0 0 0 10px #ea580c;"></span> ปี ${s.period.year + 543}</span>
-          <span class="legend-item"><span class="legend-box" style="background:#cbd5e1;border:1px solid #94a3b8;box-shadow:inset 0 0 0 10px #cbd5e1;"></span> ปี ${s.period.compareYear + 543}</span>
+      <!-- 2-Column Chart Grid: Monthly Bars (Left) & Geographic Contribution Donut (Right) -->
+      <div class="chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3 class="chart-card-title">📊 สถิติเปรียบเทียบแนวโน้มรายได้รายเดือน</h3>
+          </div>
+          <div class="legend" style="margin-bottom:6px;">
+            <span class="legend-item"><span class="legend-box" style="background:#ea580c;border:1px solid #ea580c;box-shadow:inset 0 0 0 10px #ea580c;"></span> ปี ${s.period.year + 543}</span>
+            <span class="legend-item"><span class="legend-box" style="background:#cbd5e1;border:1px solid #94a3b8;box-shadow:inset 0 0 0 10px #cbd5e1;"></span> ปี ${s.period.compareYear + 543}</span>
+          </div>
+          ${monthBars}
         </div>
-        ${monthBars}
-      </section>
+        ${renderSvgDonut(provSlices, '🥧 สัดส่วนโครงสร้างรายได้เชิงพื้นที่ (7 จังหวัด 2 ศูนย์ ปข.10)', (Math.round(totalProvRev / 100000) / 10) + ' ล.', 'รายได้รวม')}
+      </div>
 
       ${(s.provinces && s.provinces.length) ? `
       <section class="sec">
-        <h2 class="sub-title">ผลการดำเนินงานระดับจังหวัดและศูนย์ ปข.10</h2>
+        <h2 class="sub-title">บทวิเคราะห์และผลการดำเนินงานระดับจังหวัดและศูนย์ปฏิบัติการ ปข.10</h2>
         ${list(ai.provinceOverview)}
-        ${table(['จังหวัด / ศูนย์', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', '<span class="n">ที่ทำการ</span>'],
-                  s.provinces.slice().sort(byTarget).map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `% เป้าจากมากไปน้อย · ศป.อุบลราชธานี และ ศป.สกลนคร แยกเป็นศูนย์ปฏิบัติการ`)}
+        ${table(['จังหวัด / ศูนย์ปฏิบัติการ', `<span class="n">${revLabel}</span>`, '<span class="n">ช่วงเดียวกันปีก่อน</span>', '<span class="n">อัตราเติบโต</span>', '<span class="n">เป้าหมายตามแผน</span>', '<span class="n">% บรรลุเป้า</span>', '<span class="n">จำนวนที่ทำการ</span>'],
+                  s.provinces.slice().sort(byTarget).map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td class="n">${t.officeCount}</td></tr>`), `จัดเรียงตามร้อยละผลสำเร็จเทียบเป้าหมายตามแผนงาน (จากมากไปน้อย) · ศป.อุบลราชธานี และ ศป.สกลนคร แสดงแยกเป็นศูนย์ปฏิบัติการ`)}
       </section>` : ''}
     </div>
 
     <!-- หมวดที่ 3: ประสิทธิภาพและผลงานรายทีมขาย -->
     <div id="sec-teams" class="category-container">
       <div class="cat-header" id="cat-3">
-        <div class="cat-badge no-print">หมวดที่ 3 · การบริหารทีมขาย</div>
-        <h2 class="cat-title">👥 ประสิทธิภาพและผลงานรายทีมขาย</h2>
-        <div class="cat-subtitle">เจาะลึกทีมขายที่ทำผลงานเด่นเกินเป้าหมาย และทีมที่ต้องเร่งรัดติดตามผล</div>
+        <div class="cat-badge no-print">หมวดที่ 3 · ผลการดำเนินงานและผลิตภาพทีมขาย</div>
+        <h2 class="cat-title">👥 ประสิทธิภาพและผลการดำเนินงานรายทีมขาย (Sales Team Performance)</h2>
+        <div class="cat-subtitle">เปรียบเทียบผลการดำเนินงานของทีมขายเทียบกับเป้าหมายตามแผนงาน และเจาะลึกโครงสร้างบริการของแต่ละทีม</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 3 -->
       <div class="cat-summary-box">
         <div class="cat-summary-header">
-          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การบริหารทีมขาย</div>
+          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การประเมินประสิทธิภาพทีมขาย</div>
           <span class="cat-summary-tag">ฉบับย่อหมวด 3</span>
         </div>
         <div class="cat-summary-chips">
-          <span class="cat-chip"><span class="cat-chip-label">🎯 สัดส่วนทีมผ่านเป้า:</span> <b class="up">${rTeams.filter(t => (t.achievementPct || 0) >= 100).length} จาก ${rTeams.length} ทีม</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">🎯 สัดส่วนทีมบรรลุเป้า:</span> <b class="up">${rTeams.filter(t => (t.achievementPct || 0) >= 100).length} จาก ${rTeams.length} ทีม</b></span>
           <span class="cat-chip"><span class="cat-chip-label">🥇 ทีมผลงานสูงสุด:</span> <b class="up">${topTeams.length ? esc(topTeams[0].name) + ' (' + achv(topTeams[0].achievementPct) + ')' : '-'}</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">📉 ต่ำกว่าเป้ามากสุด:</span> <b class="down">${botTeams.length ? esc(botTeams[botTeams.length - 1].name) + ' (' + achv(botTeams[botTeams.length - 1].achievementPct) + ')' : '-'}</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">📉 ทีมต่ำกว่าเป้าหมายมากสุด:</span> <b class="down">${botTeams.length ? esc(botTeams[botTeams.length - 1].name) + ' (' + achv(botTeams[botTeams.length - 1].achievementPct) + ')' : '-'}</b></span>
         </div>
         <div class="cat-summary-text">
           ${(ai.teamPerformance && ai.teamPerformance.length) ? esc(ai.teamPerformance[0]) : 'ทีมที่ทำผลงานเกินเป้าหมายขับเคลื่อนจากบริการหลัก ขณะที่ทีมต่ำกว่าเป้ามีปัจจัยหลักจากการลดลงของลูกค้ารายใหญ่ในพื้นที่'}
         </div>
       </div>
 
+      <!-- Sales Team Benchmark Horizontal Bar Chart -->
+      ${renderTeamTargetBenchmarkChart(s.teams)}
+
       ${(() => {
           const allTeams = s.teams.filter(t => t.name !== 'ไม่ระบุทีม').slice().sort(byTarget);
           const ranked = allTeams.filter(t => t.achievementPct != null);
-          const teamHead = ['ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">ปีก่อน</span>', '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>'];
+          const teamHead = ['ทีมขาย', `<span class="n">${revLabel}</span>`, '<span class="n">ช่วงเดียวกันปีก่อน</span>', '<span class="n">อัตราเติบโต</span>', '<span class="n">เป้าหมายตามแผน</span>', '<span class="n">% บรรลุเป้า</span>'];
           const teamRow = t => `<tr><td><b>${esc(t.name)}</b></td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
           const bottomTeamRow = t => {
               const decSrv = t.decliningServices && t.decliningServices.length ? t.decliningServices[0] : null;
-              const srvText = decSrv ? `<div class="office" style="color:#b91c1c;">📉 ลดลงหลัก: ${esc(decSrv.service)} (${money(decSrv.diff)} บาท)</div>` : '';
+              const srvText = decSrv ? `<div class="office" style="color:#b91c1c;">📉 บริการที่ชะลอตัวหลัก: ${esc(decSrv.service)} (${money(decSrv.diff)} บาท)</div>` : '';
               return `<tr><td><b>${esc(t.name)}</b>${srvText}</td><td class="n">${money(t.ytd)}</td><td class="n">${money(t.lastYear)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td></tr>`;
           };
           const hasSplit = ranked.length > 5;
@@ -5062,28 +5226,28 @@
           return `
           <section class="sec-long">
             <div class="lead">
-              <h2 class="sub-title">บทวิเคราะห์ผลงานทีมขาย</h2>
+              <h2 class="sub-title">บทวิเคราะห์ผลการดำเนินงานรายทีมขาย</h2>
               ${list(ai.teamPerformance)}
             </div>
             ${hasSplit ? `
             <div style="margin-top:12px;">
-              <b class="up" style="display:block;margin-bottom:4px;">▲ ทีมที่ทำผลงานเกินเป้าหมายสูงสุด 5 อันดับแรก</b>
-              ${table(teamHead, top5.map(teamRow), '% เป้าจากมากไปน้อย')}
-              <b class="down" style="display:block; margin-top:14px;margin-bottom:4px;">▼ ทีมที่ต่ำกว่าเป้าหมายมากที่สุด 5 อันดับล่าง (พร้อมบริการที่ลดลง)</b>
-              ${table(teamHead, bottom5.map(bottomTeamRow), '% เป้าจากมากไปน้อย')}
-              <b style="display:block; margin-top:14px; margin-bottom:4px; color:#064e3b;">ภาพรวมผลงานครบทุกทีมขายในสังกัด ปข.10 (${allTeams.length} ทีม)</b>
+              <b class="up" style="display:block;margin-bottom:4px;">▲ กลุ่มทีมขายที่มีผลการดำเนินงานบรรลุเป้าหมายสูงสุด 5 อันดับแรก (Top Performers)</b>
+              ${table(teamHead, top5.map(teamRow), 'จัดเรียงตามร้อยละผลสำเร็จเทียบเป้าหมายตามแผนงาน (จากมากไปน้อย)')}
+              <b class="down" style="display:block; margin-top:14px;margin-bottom:4px;">▼ กลุ่มทีมขายที่ต้องเร่งรัดติดตามผลการดำเนินงาน 5 อันดับล่าง (Priority Focus / Under Target)</b>
+              ${table(teamHead, bottom5.map(bottomTeamRow), 'จัดเรียงตามร้อยละผลสำเร็จเทียบเป้าหมายตามแผนงาน (จากมากไปน้อย)')}
+              <b style="display:block; margin-top:14px; margin-bottom:4px; color:#064e3b;">ภาพรวมผลการดำเนินงานทีมขายในสังกัด ปข.10 ทั้งหมด (${allTeams.length} ทีม)</b>
             </div>` : ''}
-            ${table(teamHead, allTeams.map(teamRow), `% เป้าจากมากไปน้อย · แสดงครบทุกทีม`)}
+            ${table(teamHead, allTeams.map(teamRow), `จัดเรียงตามร้อยละผลสำเร็จเทียบเป้าหมายตามแผนงาน (จากมากไปน้อย) · แสดงครบทุกทีม`)}
           </section>`;
       })()}
     </div>
 
-    <!-- หมวดที่ 4: ผลิตภัณฑ์และสัดส่วนกลุ่มบริการ -->
+    <!-- หมวดที่ 4: พอร์ตโฟลิโอผลิตภัณฑ์และกลุ่มบริการ -->
     <div id="sec-services" class="category-container">
       <div class="cat-header" id="cat-4">
-        <div class="cat-badge no-print">หมวดที่ 4 · พอร์ตโฟลิโอผลิตภัณฑ์</div>
-        <h2 class="cat-title">📦 ผลิตภัณฑ์และสัดส่วนกลุ่มบริการ</h2>
-        <div class="cat-subtitle">วิเคราะห์การกระจายตัวของรายได้ตามกลุ่มบริการ และอัตราการเติบโตของแต่ละบริการ</div>
+        <div class="cat-badge no-print">หมวดที่ 4 · พอร์ตโฟลิโอผลิตภัณฑ์และกลุ่มบริการ</div>
+        <h2 class="cat-title">📦 โครงสร้างรายได้และพอร์ตโฟลิโอกลุ่มบริการ (Service Revenue Portfolio)</h2>
+        <div class="cat-subtitle">วิเคราะห์สัดส่วนโครงสร้างรายได้จำแนกตามกลุ่มบริการหลัก อัตราการเติบโต และความเคลื่อนไหวของผลิตภัณฑ์</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 4 -->
@@ -5094,40 +5258,43 @@
         </div>
         <div class="cat-summary-chips">
           <span class="cat-chip"><span class="cat-chip-label">📦 บริการหลักอันดับ 1:</span> <b style="color:#064e3b">${topSrv ? esc(topSrv.name) + ' (' + (topSrv.sharePct ?? '-') + '% ของรายได้)' : '-'}</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">🚀 เติบโตเด่น:</span> <b class="up">${(() => { const g = (s.services||[]).slice().filter(x=>x.growthPct!=null).sort((a,b)=>b.growthPct-a.growthPct)[0]; return g ? esc(g.name) + ' (' + growth(g.growthPct) + ')' : '-'; })()}</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">📉 ลดลงมากสุด:</span> <b class="down">${(() => { const d = (s.services||[]).slice().filter(x=>x.growthPct!=null).sort((a,b)=>a.growthPct-b.growthPct)[0]; return d ? esc(d.name) + ' (' + growth(d.growthPct) + ')' : '-'; })()}</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">🚀 อัตราเติบโตสูงสุด:</span> <b class="up">${(() => { const g = (s.services||[]).slice().filter(x=>x.growthPct!=null).sort((a,b)=>b.growthPct-a.growthPct)[0]; return g ? esc(g.name) + ' (' + growth(g.growthPct) + ')' : '-'; })()}</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">📉 ยอดชะลอตัวมากสุด:</span> <b class="down">${(() => { const d = (s.services||[]).slice().filter(x=>x.growthPct!=null).sort((a,b)=>a.growthPct-b.growthPct)[0]; return d ? esc(d.name) + ' (' + growth(d.growthPct) + ')' : '-'; })()}</b></span>
         </div>
         <div class="cat-summary-text">
           ${(ai.serviceMix && ai.serviceMix.length) ? esc(ai.serviceMix[0]) : 'สัดส่วนรายได้หลักยังคงพึ่งพาบริการขนส่งและพัสดุเป็นสำคัญ ควรเร่งผลักดันบริการที่เติบโตสูงและติดตามบริการที่หดตัว'}
         </div>
       </div>
 
-      <section class="sec">
-        <h2 class="sub-title">บทวิเคราะห์สัดส่วนบริการ</h2>
+      <!-- Service Portfolio Vector SVG Donut Chart -->
+      ${renderSvgDonut(serviceSlices, '🥧 แผนภูมิวงกลมแสดงสัดส่วนโครงสร้างกลุ่มบริการ (Service Revenue Portfolio)', '100%', 'สัดส่วนพอร์ตโฟลิโอ')}
+
+      <section class="sec" style="margin-top: 14px;">
+        <h2 class="sub-title">บทวิเคราะห์โครงสร้างและสัดส่วนกลุ่มบริการ</h2>
         ${list(ai.serviceMix)}
-        ${table(['บริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วน</span>', '<span class="n">เติบโต</span>'],
-                  s.services.slice(0, 10).map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `${revLabel}จากมากไปน้อย · 10 อันดับแรก`)}
+        ${table(['กลุ่มบริการ', `<span class="n">${revLabel}</span>`, '<span class="n">สัดส่วนพอร์ตโฟลิโอ</span>', '<span class="n">อัตราเติบโต</span>'],
+                  s.services.slice(0, 10).map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="n">${money(t.ytd)}</td><td class="n">${t.sharePct ?? '-'}%</td><td class="n">${growth(t.growthPct)}</td></tr>`), `จัดเรียงตาม${revLabel}จากมากไปน้อย · แสดง 10 อันดับแรก`)}
       </section>
     </div>
 
     <!-- หมวดที่ 5: การบริหารพอร์ตลูกค้าสมาชิกและรักษาฐานรายได้ -->
     <div id="sec-customers" class="category-container">
       <div class="cat-header" id="cat-5">
-        <div class="cat-badge no-print">หมวดที่ 5 · การบริหารลูกค้าสัมพันธ์</div>
-        <h2 class="cat-title">🤝 การบริหารพอร์ตลูกค้าสมาชิกและรักษาฐานรายได้</h2>
-        <div class="cat-subtitle">ติดตามลูกค้าที่เติบโตสูง ลูกค้าที่ยอดลดลง และเฝ้าระวังลูกค้าที่หยุดส่งบริการเกิน 3 เดือน</div>
+        <div class="cat-badge no-print">หมวดที่ 5 · การบริหารความสัมพันธ์ลูกค้าและรักษาฐานรายได้</div>
+        <h2 class="cat-title">🤝 การบริหารพอร์ตลูกค้าสมาชิกและรักษาฐานรายได้ (Customer Portfolio Management)</h2>
+        <div class="cat-subtitle">ติดตามบัญชีลูกค้าที่มีอัตราการเติบโต บัญชีลูกค้าที่ยอดชะลอตัว และเฝ้าระวังลูกค้าที่หยุดส่งบริการเกิน 3 เดือน</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 5 -->
       <div class="cat-summary-box">
         <div class="cat-summary-header">
-          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การบริหารลูกค้าสัมพันธ์และรักษาฐานรายได้</div>
+          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การบริหารความสัมพันธ์ลูกค้าและรักษาฐานรายได้</div>
           <span class="cat-summary-tag">ฉบับย่อหมวด 5</span>
         </div>
         <div class="cat-summary-chips">
-          <span class="cat-chip"><span class="cat-chip-label">👥 สมาชิกทั้งหมด:</span> <b>${(o.customerCount || 0).toLocaleString('en-US')} ราย</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">📊 การกระจุกตัว:</span> <b>Top 1 = ${(o.top1SharePct ?? '-')}% · Top 10 = ${(o.top10SharePct ?? '-')}%</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">⚠️ หยุดใช้บริการ > 3 ด.:</span> <b class="down">${(s.inactiveCustomers || []).length} ราย</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">👥 ฐานลูกค้าสมาชิก:</span> <b>${(o.customerCount || 0).toLocaleString('en-US')} ราย</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">📊 อัตราการกระจุกตัว:</span> <b>Top 1 = ${(o.top1SharePct ?? '-')}% · Top 10 = ${(o.top10SharePct ?? '-')}%</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">⚠️ ไม่เคลื่อนไหวเกิน 3 ด.:</span> <b class="down">${(s.inactiveCustomers || []).length} ราย</b></span>
         </div>
         <div class="cat-summary-text">
           ${(ai.customerWatch && ai.customerWatch.length) ? esc(ai.customerWatch[0]) : 'ต้องเฝ้าระวังลูกค้ารายใหญ่ที่ชะลอตัว พร้อมสร้างความเข้าใจกรณีลูกค้าย้ายไปชำระรวมส่วนกลาง'}
@@ -5135,49 +5302,49 @@
       </div>
 
       <section class="sec">
-        <h2 class="sub-title">บทวิเคราะห์ลูกค้าสมาชิกที่ต้องจับตา</h2>
+        <h2 class="sub-title">บทวิเคราะห์สถานะบัญชีลูกค้าสมาชิกที่สำคัญ</h2>
         ${list(ai.customerWatch)}
       </section>
 
       <section class="sec">
         <div class="two">
           <div>
-            <b class="up" style="display:block;margin-bottom:4px;">▲ ลูกค้าที่ยอดเติบโตมากที่สุด</b>
-            ${table(['ลูกค้าสมาชิก', '<span class="n">เพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'ยอดที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}
+            <b class="up" style="display:block;margin-bottom:4px;">▲ กลุ่มบัญชีลูกค้าสมาชิกที่มีอัตราการเติบโตของรายได้สูงสุด (Top Revenue Growth Accounts)</b>
+            ${table(['บัญชีลูกค้าสมาชิก', '<span class="n">ยอดเพิ่มขึ้น</span>'], s.growingCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n up">+${money(c.diff)}</td></tr>`), 'จัดเรียงตามยอดรายได้ที่เพิ่มขึ้น (บาท) จากมากไปน้อย')}
           </div>
           <div>
-            <b class="down" style="display:block;margin-bottom:4px;">▼ ลูกค้าที่ยอดลดลงมากที่สุด</b>
-            ${table(['ลูกค้าสมาชิก', '<span class="n">ลดลง</span>'], s.decliningCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'ยอดที่ลดลง (บาท) จากมากไปน้อย')}
+            <b class="down" style="display:block;margin-bottom:4px;">▼ กลุ่มบัญชีลูกค้าสมาชิกที่มียอดรายได้ชะลอตัวมากที่สุด (Highest Revenue Decline Accounts)</b>
+            ${table(['บัญชีลูกค้าสมาชิก', '<span class="n">ยอดลดลง</span>'], s.decliningCustomers.slice(0, 10).map(c => `<tr>${custCell(c)}<td class="n down">${money(c.diff)}</td></tr>`), 'จัดเรียงตามยอดรายได้ที่ลดลง (บาท) จากมากไปน้อย')}
           </div>
         </div>
       </section>
 
       <section class="sec-long">
         <div class="lead">
-          <b style="color:#991b1b;display:block;margin-bottom:4px;">⚠️ ลูกค้าสมาชิกที่หยุดใช้บริการ 3 เดือนขึ้นไป (รายได้ปีก่อนตั้งแต่ 200,000 บาทขึ้นไป)</b>
+          <b style="color:#991b1b;display:block;margin-bottom:4px;">⚠️ กลุ่มบัญชีลูกค้าสมาชิกที่ไม่มีความเคลื่อนไหวเกิน 3 เดือนขึ้นไป (Inactive Accounts ≥ 3 Months - รายได้เดิม ≥ 200,000 บาท)</b>
         </div>
-        ${table(['ลูกค้าสมาชิก', '<span class="n">รายได้ปีก่อน</span>', 'ใช้ล่าสุด'], s.inactiveCustomers.map(c => `<tr>${custCell({ name: c.name, office: c.lastOffice || c.office, services: c.lastServices || c.services })}<td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'รายได้ปีก่อนจากมากไปน้อย')}
+        ${table(['บัญชีลูกค้าสมาชิก', '<span class="n">รายได้ช่วงเดียวกันปีก่อน</span>', 'ส่งใช้บริการล่าสุด'], s.inactiveCustomers.map(c => `<tr>${custCell({ name: c.name, office: c.lastOffice || c.office, services: c.lastServices || c.services })}<td class="n">${money(c.lastYear)}</td><td>${esc(c.lastActiveMonth)}</td></tr>`), 'จัดเรียงตามรายได้ปีก่อนจากมากไปน้อย')}
       </section>
     </div>
 
-    <!-- หมวดที่ 6: การวิเคราะห์เจาะลึกรายที่ทำการ 96 แห่ง (4 มิติ) -->
+    <!-- หมวดที่ 6: การประเมินผลการดำเนินงานรายที่ทำการ (4 มิติ) -->
     <div id="sec-offices" class="category-container">
       <div class="cat-header" id="cat-6">
-        <div class="cat-badge no-print">หมวดที่ 6 · เจาะลึกรายที่ทำการ (4 มิติ)</div>
-        <h2 class="cat-title">🏢 การวิเคราะห์เจาะลึกรายที่ทำการ 96 แห่ง</h2>
-        <div class="cat-subtitle">เปรียบเทียบผลงานทุกที่ทำการเรียงตามรหัสไปรษณีย์ พร้อมบทวิเคราะห์ 4 ด้านครบทุกแห่ง</div>
+        <div class="cat-badge no-print">หมวดที่ 6 · การประเมินผลการดำเนินงานรายที่ทำการ (4 มิติ)</div>
+        <h2 class="cat-title">🏢 การประเมินผลการดำเนินงานรายที่ทำการ 96 แห่ง (Postal Office Performance Analysis)</h2>
+        <div class="cat-subtitle">เปรียบเทียบผลการดำเนินงานทุกที่ทำการในสังกัด ปข.10 พร้อมบทวิเคราะห์ 4 ด้านเชิงลึกครบทุกแห่ง</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 6 -->
       <div class="cat-summary-box">
         <div class="cat-summary-header">
-          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การวิเคราะห์รายที่ทำการ 96 แห่ง</div>
+          <div class="cat-summary-title">⚡ สรุปสาระสำคัญ: การประเมินผลการดำเนินงานรายที่ทำการ 96 แห่ง</div>
           <span class="cat-summary-tag">ฉบับย่อหมวด 6</span>
         </div>
         <div class="cat-summary-chips">
-          <span class="cat-chip"><span class="cat-chip-label">🎯 ที่ทำการผ่านเป้า:</span> <b class="up">${officesByZip.filter(t => (t.achievementPct || 0) >= 100).length} / ${officesByZip.length} แห่ง (${((officesByZip.filter(t => (t.achievementPct || 0) >= 100).length / Math.max(1, officesByZip.length)) * 100).toFixed(1)}%)</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">🎯 ที่ทำการบรรลุเป้า:</span> <b class="up">${officesByZip.filter(t => (t.achievementPct || 0) >= 100).length} / ${officesByZip.length} แห่ง (${((officesByZip.filter(t => (t.achievementPct || 0) >= 100).length / Math.max(1, officesByZip.length)) * 100).toFixed(1)}%)</b></span>
           <span class="cat-chip"><span class="cat-chip-label">🥇 ยอดรายได้สูงสุด:</span> <b>${(() => { const topOff = officesByZip.slice().sort((a,b)=>b.ytd-a.ytd)[0]; return topOff ? esc(topOff.name) + ' (' + money(topOff.ytd) + ' บ.)' : '-'; })()}</b></span>
-          <span class="cat-chip"><span class="cat-chip-label">🚀 เติบโตสูงสุด:</span> <b class="up">${(() => { const topGrw = officesByZip.slice().filter(t=>t.growthPct!=null).sort((a,b)=>b.growthPct-a.growthPct)[0]; return topGrw ? esc(topGrw.name) + ' (' + growth(topGrw.growthPct) + ')' : '-'; })()}</b></span>
+          <span class="cat-chip"><span class="cat-chip-label">🚀 อัตราเติบโตสูงสุด:</span> <b class="up">${(() => { const topGrw = officesByZip.slice().filter(t=>t.growthPct!=null).sort((a,b)=>b.growthPct-a.growthPct)[0]; return topGrw ? esc(topGrw.name) + ' (' + growth(topGrw.growthPct) + ')' : '-'; })()}</b></span>
         </div>
         <div class="cat-summary-text">
           ${(ai.officeGrowth && ai.officeGrowth.length) ? esc(ai.officeGrowth[0]) : 'การวิเคราะห์เจาะลึก 4 มิติสะท้อนความสามารถในการสร้างรายได้และจุดเด่น-จุดด้อยเฉพาะของแต่ละที่ทำการ'}
@@ -5186,16 +5353,16 @@
 
       <section class="sec-long" id="officeSection">
         <div class="lead">
-          <h2 class="sub-title">บทวิเคราะห์ภาพรวมรายที่ทำการ</h2>
+          <h2 class="sub-title">บทวิเคราะห์ภาพรวมผลการดำเนินงานระดับที่ทำการ</h2>
           ${list(ai.officeGrowth)}
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin: 14px 0 6px; flex-wrap:wrap; gap:8px;">
-          <div style="font-weight:700; color:#064e3b; font-size:13px;">📋 ตารางเปรียบเทียบผลงานครบทุกที่ทำการ (${officesByZip.length} แห่ง)</div>
-          <button type="button" class="btn-scroll-to-cards no-print" onclick="scrollToOfficeCardsSection()">⬇️ เลื่อนไปดูบทวิเคราะห์การ์ด 4 ด้าน (${officesByZip.length} ที่ทำการ)</button>
+          <div style="font-weight:700; color:#064e3b; font-size:13px;">📋 ตารางเปรียบเทียบผลการดำเนินงานรายที่ทำการครบ 96 แห่ง</div>
+          <button type="button" class="btn-scroll-to-cards no-print" onclick="scrollToOfficeCardsSection()">⬇️ ไปยังรายงานการประเมิน 4 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</button>
         </div>
 
-        ${table(['ที่ทำการ', 'ทีม', `<span class="n">${revLabel}</span>`, '<span class="n">เติบโต</span>', '<span class="n">เป้า</span>', '<span class="n">% เป้า</span>', 'บริการเด่น / ฉุด'],
+        ${table(['ที่ทำการไปรษณีย์', 'ทีมขาย', `<span class="n">${revLabel}</span>`, '<span class="n">อัตราเติบโต</span>', '<span class="n">เป้าหมายตามแผน</span>', '<span class="n">% บรรลุเป้า</span>', 'บริการเด่น / บริการชะลอตัว'],
                   officesByZip.map(t => {
                     const topStr = t.strengths && t.strengths.length ? t.strengths[0] : null;
                     const topWk = t.weaknesses && t.weaknesses.length ? t.weaknesses[0] : null;
@@ -5206,26 +5373,26 @@
                       srvHighlight = `<span class="up" title="บริการที่เติบโตสูงสุด">▲ ${esc(topStr.name)}</span>`;
                     }
                     return `<tr class="office-row" onclick="jumpToOfficeCard('${esc(t.zipcode)}')" title="คลิกเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td></tr>`;
-                  }), `เรียงตามรหัสไปรษณีย์ · % เป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้า · คลิกแถวเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน`)}
+                  }), `จัดเรียงตามรหัสไปรษณีย์ · % บรรลุเป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้าหมายตามแผน · คลิกแถวเพื่อเลื่อนไปดูรายงานการประเมิน 4 มิติ`)}
 
         <div id="officeCardsSequenceSection" style="margin-top: 24px;">
           <div class="office-cards-header-bar no-print">
             <div>
-              <h3 style="margin:0; font-size:15px; font-weight:800; color:#064e3b;">🗂️ แผงควบคุมบทวิเคราะห์ 4 ด้าน (${officesByZip.length} ที่ทำการ)</h3>
-              <div class="muted" style="font-size:11px;">ค้นหาหรือกระโดดไปดูบทวิเคราะห์รายที่ทำการได้ทันที เรียงตามรหัสไปรษณีย์</div>
+              <h3 style="margin:0; font-size:15px; font-weight:800; color:#064e3b;">🗂️ แผงควบคุมรายงานการประเมิน 4 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</h3>
+              <div class="muted" style="font-size:11px;">ระบบค้นหาและเลือกกระโดดไปยังรายงานการประเมินผลการดำเนินงานรายที่ทำการ จัดเรียงตามรหัสไปรษณีย์</div>
             </div>
             <div class="office-cards-controls">
-              <input type="text" id="officeSearchInput" class="office-search-box" placeholder="🔍 ค้นหารหัส, ชื่อที่ทำการ หรือทีม..." oninput="filterOfficeCards(this.value)">
-              <button type="button" class="btn-clear-search" onclick="clearOfficeSearch()">ล้างค้นหา</button>
+              <input type="text" id="officeSearchInput" class="office-search-box" placeholder="🔍 ค้นหารหัสไปรษณีย์, ชื่อที่ทำการ หรือทีมขาย..." oninput="filterOfficeCards(this.value)">
+              <button type="button" class="btn-clear-search" onclick="clearOfficeSearch()">ล้างการค้นหา</button>
               <select id="officeQuickJump" class="office-dropdown" onchange="jumpToOfficeCard(this.value)">
-                <option value="">⚡ เลื่อนไปที่ทำการ...</option>
+                <option value="">⚡ เลือกที่ทำการเพื่อกระโดดข้าม...</option>
                 ${officesByZip.map((off, idx) => `<option value="${esc(off.zipcode)}">#${idx + 1} ${esc(off.name)} (${esc(off.zipcode)})</option>`).join('')}
               </select>
               <span id="officeCardCountBadge" class="office-count-badge">แสดงครบ ${officesByZip.length} ที่ทำการ</span>
             </div>
           </div>
 
-          <h2 class="print-only" style="display:none; margin: 18px 0 10px; font-size: 15px; color: #064e3b; border-left: 4px solid #ea580c; padding-left: 8px;">🗂️ บทวิเคราะห์เจาะลึก 4 ด้าน รายที่ทำการ (${officesByZip.length} แห่ง)</h2>
+          <h2 class="print-only" style="display:none; margin: 18px 0 10px; font-size: 15px; color: #064e3b; border-left: 4px solid #ea580c; padding-left: 8px;">🗂️ รายงานการประเมิน 4 มิติเชิงลึก รายที่ทำการในสังกัด ปข.10 (${officesByZip.length} แห่ง)</h2>
 
           <div id="officeCardsList" class="office-cards-list">
             ${officesByZip.map((off, idx) => buildOfficeCardHtml(off, idx + 1)).join('')}
