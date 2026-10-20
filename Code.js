@@ -833,11 +833,13 @@ function getHomeRevenueSummary_(requestingUser) {
     var full = getRevenueReportData_(requestingUser);
     if (!full || full.status !== 'success') return full;
 
-    var rows = full.data;
+    var allRows = full.data;
+    var memberToRealName = buildMemberToRealNameMap_(allRows);
+    var rows = allRows;
     if (scope !== 'ALL') {
       rows = rows.filter(function(r) { return String(r[0] || '').substring(0, 5) === scope; });
     }
-    var data = buildHomeRevenueRows_(rows);
+    var data = buildHomeRevenueRows_(rows, memberToRealName);
     putChunkedCache_(cacheKey, JSON.stringify(data), HOME_REV_CACHE_TTL);
     return { status: 'success', data: data, cached: false };
   } catch (e) {
@@ -846,7 +848,7 @@ function getHomeRevenueSummary_(requestingUser) {
   }
 }
 
-function buildHomeRevenueRows_(rows) {
+function buildHomeRevenueRows_(rows, memberToRealName) {
   var fullThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   var now = new Date();
   var curMonthName = fullThaiMonths[parseInt(Utilities.formatDate(now, "Asia/Bangkok", "M"), 10) - 1];
@@ -862,11 +864,14 @@ function buildHomeRevenueRows_(rows) {
   rows.forEach(function(r) {
     if (!isCurrent(r)) return;
     var rev = parseFloat(String(r[8]).replace(/,/g, '')) || 0;
-    var k = r[0] + '|' + r[1] + '|' + r[4];
-    if (!curMap[k]) curMap[k] = [r[0], r[1], '', '', r[4], r[5], r[6], 0, 0, ''];
+    var rawName = String(r[1] || '').trim();
+    var memId = String(r[2] || '').trim();
+    var cName = (memId && memberToRealName && memberToRealName[memId]) ? memberToRealName[memId] : rawName;
+    var k = r[0] + '|' + cName + '|' + r[4];
+    if (!curMap[k]) curMap[k] = [r[0], cName, '', '', r[4], r[5], r[6], 0, 0, ''];
     curMap[k][7] += parseFloat(r[7]) || 0;
     curMap[k][8] += rev;
-    customerTotals[r[1]] = (customerTotals[r[1]] || 0) + rev;
+    customerTotals[cName] = (customerTotals[cName] || 0) + rev;
   });
 
   // 2) ลูกค้า 10 อันดับแรกของเดือนนี้: เก็บประวัติรายเดือน (รวมตาม office + ลูกค้า + เดือน)
@@ -875,9 +880,12 @@ function buildHomeRevenueRows_(rows) {
   top.forEach(function(c) { topSet[c] = true; });
   var histMap = {};
   rows.forEach(function(r) {
-    if (!topSet[r[1]] || isCurrent(r)) return;
-    var k = r[0] + '|' + r[1] + '|' + r[5] + '|' + r[6];
-    if (!histMap[k]) histMap[k] = [r[0], r[1], '', '', 'อื่นๆ', r[5], r[6], 0, 0, ''];
+    var rawName = String(r[1] || '').trim();
+    var memId = String(r[2] || '').trim();
+    var cName = (memId && memberToRealName && memberToRealName[memId]) ? memberToRealName[memId] : rawName;
+    if (!topSet[cName] || isCurrent(r)) return;
+    var k = r[0] + '|' + cName + '|' + r[5] + '|' + r[6];
+    if (!histMap[k]) histMap[k] = [r[0], cName, '', '', 'อื่นๆ', r[5], r[6], 0, 0, ''];
     histMap[k][7] += parseFloat(r[7]) || 0;
     histMap[k][8] += parseFloat(String(r[8]).replace(/,/g, '')) || 0;
   });
@@ -1156,7 +1164,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v26_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v27_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) {
       var cachedResult = JSON.parse(cached);
@@ -1175,7 +1183,10 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var full = getRevenueReportData_(requestingUser);
     if (!full || full.status !== 'success') return full;
-    var rows = full.data;
+    var allRows = full.data;
+    var memberToRealName = buildMemberToRealNameMap_(allRows);
+
+    var rows = allRows;
     if (scope !== 'ALL') {
       if (PROVINCIAL_HUBS[scope]) {
         var hub = PROVINCIAL_HUBS[scope];
@@ -1185,7 +1196,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
       }
     }
 
-    var stats = buildRevenueAnalysisStats_(rows, scope, sel);
+    var stats = buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName);
     stats.scope = scope;
     var modelName = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
     var ai = callGeminiForRevenueReport_(stats, apiKey);
@@ -1241,8 +1252,70 @@ function parseAnalysisPeriod_(options) {
   return sel;
 }
 
-function buildRevenueAnalysisStats_(rows, scope, sel) {
+// ฟังก์ชัน: สร้างแผนที่เชื่อมโยงรหัสสมาชิก THP- กับชื่อจริงของลูกค้าที่ถูกต้องที่สุด
+function buildMemberToRealNameMap_(rows) {
+  var memberScores = {};
+  var NOT_NAME_REGEX = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ|ไม่พกบัตร|ไม่พกบัตรประชาชน)$/;
+  var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
+  var EVENT_REGEX = /^(EVENT\b|ส่วนลด)/i;
+
+  if (!rows || !rows.length) return {};
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var mem = String(r[2] || '').trim();
+    var name = String(r[1] || '').trim();
+    if (!/^THP-\d+/i.test(mem) && /^THP-\d+/i.test(name)) {
+      mem = name;
+    }
+    if (!/^THP-\d+/i.test(mem)) continue;
+
+    // กรองชื่อที่ไม่ใช่ชื่อลูกค้าจริง (เช่น รหัสสมาชิก, ข้อความระบบ, แคมเปญส่วนลด)
+    if (!name || NOT_NAME_REGEX.test(name) || POLICE.test(name) || /^THP-\d+/i.test(name) || EVENT_REGEX.test(name) || name.indexOf('ส่วนลด') !== -1) {
+      continue;
+    }
+
+    if (!memberScores[mem]) memberScores[mem] = {};
+    var val = parseFloat(String(r[8]).replace(/,/g, '')) || 0;
+    memberScores[mem][name] = (memberScores[mem][name] || 0) + (val > 0 ? val : 1);
+  }
+
+  var memberToRealName = {};
+  var keys = Object.keys(memberScores);
+  for (var k = 0; k < keys.length; k++) {
+    var memId = keys[k];
+    var names = Object.keys(memberScores[memId]);
+    if (names.length === 1) {
+      memberToRealName[memId] = names[0];
+    } else if (names.length > 1) {
+      names.sort(function(a, b) { return memberScores[memId][b] - memberScores[memId][a]; });
+      memberToRealName[memId] = names[0];
+    }
+  }
+
+  // เติมเต็มชื่อลูกค้าจากฐานข้อมูล ปก. (PK_SS_ID) เพิ่มเติมสำหรับรหัสที่ยังไม่มีชื่อจริงในประวัติ Tableau
+  try {
+    if (typeof getInactiveCustomersPK_ === 'function') {
+      var pkRes = getInactiveCustomersPK_();
+      if (pkRes && pkRes.status === 'success' && pkRes.data) {
+        for (var p = 0; p < pkRes.data.length; p++) {
+          var item = pkRes.data[p];
+          var m = String(item.memberCode || '').trim();
+          var n = String(item.name || '').trim();
+          if (/^THP-\d+/i.test(m) && n && !memberToRealName[m]) {
+            memberToRealName[m] = n;
+          }
+        }
+      }
+    }
+  } catch (pkErr) {}
+
+  return memberToRealName;
+}
+
+function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
   sel = sel || { kind: 'ytd' };
+  memberToRealName = memberToRealName || buildMemberToRealNameMap_(rows);
   var MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   var nowYear = parseInt(Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy"), 10);
   var curYear = sel.year || nowYear;
@@ -1337,15 +1410,37 @@ function buildRevenueAnalysisStats_(rows, scope, sel) {
   var zipOf = function(r) { return String(r[0] || '').substring(0, 5); };
 
   // ข้อมูลระดับลูกค้านับเฉพาะสมาชิกที่มีรหัส THP- (ไม่รวม "ไม่เป็นสมาชิก" และลูกค้าที่ไม่มีรหัส)
-  var isMember = function(r) { return /^THP-\d+/.test(String(r[2] || '').trim()); };
-  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ)$/;
+  var isMember = function(r) {
+    var m = String(r[2] || '').trim();
+    if (/^THP-\d+/i.test(m)) return true;
+    var c = String(r[1] || '').trim();
+    return /^THP-\d+/i.test(c);
+  };
+  var NOT_CUSTOMER = /^(-|ไม่บันทึกบัตร|ไม่ระบุ|ไม่ทราบ|ไม่พกบัตร|ไม่พกบัตรประชาชน)$/;
   // หน่วยงานตำรวจทุกหน่วย (กองบังคับการ/สถานี/กองกำกับการ/สำนักงานตำรวจ) รวมเป็นลูกค้ารายเดียว และนับเป็นลูกค้าแม้ไม่มีรหัส THP-
   var POLICE = /^(กองบังคับการตำรวจ|สถานีตำรวจ|กองกำกับการ|สำนักงานตำรวจ)/;
   var customerKey = function(r) {
-    var c = String(r[1]).trim();
-    if (!c || NOT_CUSTOMER.test(c)) return null;
-    if (POLICE.test(c)) return 'สำนักงานตำรวจแห่งชาติ';
-    return isMember(r) ? c : null;
+    var rawName = String(r[1] || '').trim();
+    if (POLICE.test(rawName)) return 'สำนักงานตำรวจแห่งชาติ';
+
+    var memId = String(r[2] || '').trim();
+    if (!/^THP-\d+/i.test(memId) && /^THP-\d+/i.test(rawName)) {
+      memId = rawName;
+    }
+
+    if (!isMember(r)) return null;
+
+    // ถ้ามีชื่อจริงที่แปลงจากรหัสสมาชิกได้ ให้ใช้ชื่อจริงเสมอ
+    if (memId && memberToRealName[memId]) {
+      return memberToRealName[memId];
+    }
+
+    // ถ้าไม่มีใน mapping แต่ชื่อในแถวเป็นชื่อคน/องค์กรจริง (ไม่ใช่คำระบบ)
+    if (rawName && !NOT_CUSTOMER.test(rawName)) {
+      return rawName;
+    }
+
+    return null;
   };
 
   // รวบรวมชื่อที่ทำการจากข้อมูลจริงใน Tableau

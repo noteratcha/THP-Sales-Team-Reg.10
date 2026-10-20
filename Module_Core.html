@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1020.1058';
+    var APP_VERSION = 'Ver. 2026.1020.1121';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4388,7 +4388,8 @@
             let inactHtml = inact.length
                 ? inact.map(c => {
                     if (c.name === 'สำนักงานตำรวจแห่งชาติ') hasPolice = true;
-                    return `<div style="border-bottom:1px dashed #e2e8f0;padding:4px 0;"><b>${esc(c.name)}</b><div class="office">ปีก่อน ${money(c.lastYear)} บ. · ส่งล่าสุด ${esc(c.lastActiveMonth)} · 📦 ${esc(c.services || '-')}</div></div>`;
+                    const custDisplayName = (c.name && /^THP-\d+/i.test(c.name)) ? ('ลูกค้าสมาชิก (' + esc(c.name) + ')') : esc(c.name);
+                    return `<div style="border-bottom:1px dashed #e2e8f0;padding:4px 0;"><b>${custDisplayName}</b><div class="office">ปีก่อน ${money(c.lastYear)} บ. · ส่งล่าสุด ${esc(c.lastActiveMonth)} · 📦 ${esc(c.services || '-')}</div></div>`;
                 }).join('')
                 : '<div style="color:#047857;padding:4px 0;font-weight:600;">✔ ไม่พบลูกค้าสมาชิกรายใหญ่ที่หยุดส่งเกิน 3 เดือน</div>';
 
@@ -4507,7 +4508,10 @@
                 <span class="mval">${money(m.cur)}</span>
             </div>`).join('');
 
-        const custCell = (c) => `<td><b>${esc(c.name)}</b>${c.office ? `<div class="office">📍 ${esc(c.office)}</div>` : ''}${c.services ? `<div class="office">📦 ${esc(c.services)}</div>` : ''}</td>`;
+        const custCell = (c) => {
+            const custDisplayName = (c.name && /^THP-\d+/i.test(c.name)) ? ('ลูกค้าสมาชิก (' + esc(c.name) + ')') : esc(c.name);
+            return `<td><b>${custDisplayName}</b>${c.office ? `<div class="office">📍 ${esc(c.office)}</div>` : ''}${c.services ? `<div class="office">📦 ${esc(c.services)}</div>` : ''}</td>`;
+        };
         const kpi = (label, value, sub, accentColor) => `
             <div class="kpi" style="${accentColor ? `border-top: 3px solid ${accentColor};` : ''}">
                 <div class="kl">${label}</div>
