@@ -948,6 +948,205 @@ var PROVINCIAL_HUBS = {
   '49000': { prefix: '49', province: 'มุกดาหาร' }
 };
 
+/**
+ * 💡 บันทึกสถิติการใช้งาน AI วิเคราะห์รายได้ในแต่ละเดือน
+ * บันทึกลง Google Sheet: (1) สรุปรายเดือน 'สรุปการใช้งาน AI รายเดือน' และ (2) ละเอียด 'ประวัติการใช้งาน AI'
+ * เริ่มต้นบันทึกใน SERVICES_SS_ID (หรือกำหนด AI_STATS_SS_ID ใน Script Properties ได้)
+ */
+function recordAiUsage_(requestingUser, scope, periodDesc, isNewAnalysis, modelName, status) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.tryLock(10000);
+
+    var now = new Date();
+    var timeZone = "Asia/Bangkok";
+    var timestampStr = Utilities.formatDate(now, timeZone, "dd/MM/yyyy HH:mm:ss");
+    var monthKey = Utilities.formatDate(now, timeZone, "yyyy-MM");
+
+    var THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    var mIdx = parseInt(Utilities.formatDate(now, timeZone, "MM"), 10) - 1;
+    var thaiYear = parseInt(Utilities.formatDate(now, timeZone, "yyyy"), 10) + 543;
+    var thaiMonthName = THAI_MONTHS[mIdx] + " " + thaiYear;
+
+    var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim() : 'ไม่ระบุ';
+    var scopeName = scope === 'ALL' ? 'ภาพรวมทั้งภาค ปข.10' : (PROVINCIAL_HUBS[scope] ? ('จังหวัด' + PROVINCIAL_HUBS[scope].province) : ('ที่ทำการ ' + scope));
+
+    var ssId = PropertiesService.getScriptProperties().getProperty('AI_STATS_SS_ID') || SERVICES_SS_ID;
+    var ss = SpreadsheetApp.openById(ssId);
+
+    // 1. ชีต "สรุปการใช้งาน AI รายเดือน"
+    var summarySheet = ss.getSheetByName('สรุปการใช้งาน AI รายเดือน');
+    if (!summarySheet) {
+      summarySheet = ss.insertSheet('สรุปการใช้งาน AI รายเดือน');
+      summarySheet.getRange(1, 1, 1, 6).setValues([[
+        "เดือน-ปี (Key)", "เดือน (ภาษาไทย)", "จำนวนครั้งที่ AI วิเคราะห์ (ครั้ง)", "จำนวนครั้งที่ดูจากแคช (ครั้ง)", "รวมทั้งหมด (ครั้ง)", "อัปเดตล่าสุด"
+      ]]);
+      summarySheet.getRange(1, 1, 1, 6).setFontWeight("bold").setBackground("#fed7aa").setFontColor("#9a3412");
+      summarySheet.setFrozenRows(1);
+      try {
+        summarySheet.setColumnWidth(1, 120);
+        summarySheet.setColumnWidth(2, 160);
+        summarySheet.setColumnWidth(3, 190);
+        summarySheet.setColumnWidth(4, 180);
+        summarySheet.setColumnWidth(5, 140);
+        summarySheet.setColumnWidth(6, 170);
+      } catch (_) {}
+    }
+
+    var summaryData = summarySheet.getDataRange().getValues();
+    var targetRowIdx = -1;
+    for (var i = 1; i < summaryData.length; i++) {
+      if (String(summaryData[i][0]).trim() === monthKey) {
+        targetRowIdx = i + 1;
+        break;
+      }
+    }
+
+    var currentApiCalls = 0;
+    var currentCacheHits = 0;
+    var currentTotal = 0;
+
+    if (targetRowIdx > 0) {
+      currentApiCalls = parseInt(summaryData[targetRowIdx - 1][2], 10) || 0;
+      currentCacheHits = parseInt(summaryData[targetRowIdx - 1][3], 10) || 0;
+
+      if (isNewAnalysis) {
+        currentApiCalls++;
+      } else {
+        currentCacheHits++;
+      }
+      currentTotal = currentApiCalls + currentCacheHits;
+
+      summarySheet.getRange(targetRowIdx, 3, 1, 4).setValues([[
+        currentApiCalls,
+        currentCacheHits,
+        currentTotal,
+        timestampStr
+      ]]);
+    } else {
+      currentApiCalls = isNewAnalysis ? 1 : 0;
+      currentCacheHits = isNewAnalysis ? 0 : 1;
+      currentTotal = 1;
+
+      summarySheet.appendRow([
+        monthKey,
+        thaiMonthName,
+        currentApiCalls,
+        currentCacheHits,
+        currentTotal,
+        timestampStr
+      ]);
+    }
+
+    // 2. ชีต "ประวัติการใช้งาน AI" (Detailed Log)
+    var logSheet = ss.getSheetByName('ประวัติการใช้งาน AI');
+    if (!logSheet) {
+      logSheet = ss.insertSheet('ประวัติการใช้งาน AI');
+      logSheet.getRange(1, 1, 1, 9).setValues([[
+        "วัน-เวลา", "เดือน-ปี (Key)", "เดือน (ภาษาไทย)", "ผู้ใช้งาน", "รหัสไปรษณีย์ / พื้นที่", "ช่วงเวลาที่วิเคราะห์", "ประเภทการเรียก", "โมเดล AI", "สถานะ"
+      ]]);
+      logSheet.getRange(1, 1, 1, 9).setFontWeight("bold").setBackground("#fed7aa").setFontColor("#9a3412");
+      logSheet.setFrozenRows(1);
+      try {
+        logSheet.setColumnWidth(1, 160);
+        logSheet.setColumnWidth(2, 110);
+        logSheet.setColumnWidth(3, 150);
+        logSheet.setColumnWidth(4, 150);
+        logSheet.setColumnWidth(5, 180);
+        logSheet.setColumnWidth(6, 280);
+        logSheet.setColumnWidth(7, 180);
+        logSheet.setColumnWidth(8, 140);
+        logSheet.setColumnWidth(9, 140);
+      } catch (_) {}
+    }
+
+    logSheet.appendRow([
+      timestampStr,
+      monthKey,
+      thaiMonthName,
+      login,
+      scopeName,
+      periodDesc || "-",
+      isNewAnalysis ? "วิเคราะห์ใหม่ (Gemini API)" : "ดึงจากแคช (Cache)",
+      isNewAnalysis ? (modelName || "-") : "-",
+      status || "สำเร็จ"
+    ]);
+
+    return {
+      monthKey: monthKey,
+      monthName: thaiMonthName,
+      apiCalls: currentApiCalls,
+      cacheHits: currentCacheHits,
+      total: currentTotal,
+      lastUpdated: timestampStr
+    };
+  } catch (err) {
+    console.error("recordAiUsage_ error: " + err);
+    return null;
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
+  }
+}
+
+/**
+ * 💡 ดึงข้อมูลสถิติการใช้งาน AI วิเคราะห์รายได้ในแต่ละเดือน
+ */
+function getAiUsageStats_() {
+  try {
+    var ssId = PropertiesService.getScriptProperties().getProperty('AI_STATS_SS_ID') || SERVICES_SS_ID;
+    var ss = SpreadsheetApp.openById(ssId);
+    var summarySheet = ss.getSheetByName('สรุปการใช้งาน AI รายเดือน');
+
+    var now = new Date();
+    var timeZone = "Asia/Bangkok";
+    var currentMonthKey = Utilities.formatDate(now, timeZone, "yyyy-MM");
+    var THAI_MONTHS = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    var mIdx = parseInt(Utilities.formatDate(now, timeZone, "MM"), 10) - 1;
+    var thaiYear = parseInt(Utilities.formatDate(now, timeZone, "yyyy"), 10) + 543;
+    var currentThaiMonthName = THAI_MONTHS[mIdx] + " " + thaiYear;
+
+    var currentMonthStats = {
+      monthKey: currentMonthKey,
+      monthName: currentThaiMonthName,
+      apiCalls: 0,
+      cacheHits: 0,
+      total: 0,
+      lastUpdated: '-'
+    };
+
+    var list = [];
+    if (summarySheet) {
+      var data = summarySheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var mKey = String(row[0] || '').trim();
+        if (!mKey) continue;
+        var item = {
+          monthKey: mKey,
+          monthName: String(row[1] || ''),
+          apiCalls: parseInt(row[2], 10) || 0,
+          cacheHits: parseInt(row[3], 10) || 0,
+          total: parseInt(row[4], 10) || 0,
+          lastUpdated: String(row[5] || '')
+        };
+        list.push(item);
+        if (mKey === currentMonthKey) {
+          currentMonthStats = item;
+        }
+      }
+    }
+
+    return {
+      status: 'success',
+      currentMonth: currentMonthStats,
+      monthlySummary: list
+    };
+  } catch (err) {
+    console.error("getAiUsageStats_ error: " + err);
+    return { status: 'error', message: err.toString() };
+  }
+}
+
 // options.month: 0-11 = วิเคราะห์เฉพาะเดือนนั้น (เทียบเดือนเดียวกันปีก่อน), ไม่ระบุ/'all' = สะสมทั้งปี
 function getRevenueAnalysisReport_(requestingUser, options) {
   try {
@@ -959,7 +1158,17 @@ function getRevenueAnalysisReport_(requestingUser, options) {
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
     var cacheKey = 'ai_rev_v26_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      var cachedResult = JSON.parse(cached);
+      try {
+        var periodDesc = (cachedResult.stats && cachedResult.stats.period) ? describeAnalysisPeriod_(cachedResult.stats.period) : ('ช่วง ' + periodKeyPart);
+        var usage = recordAiUsage_(requestingUser, scope, periodDesc, false, '-', 'สำเร็จ (จากแคช)');
+        if (usage) cachedResult.aiUsage = usage;
+      } catch (logErr) {
+        console.warn('recordAiUsage_ (cache hit) error: ' + logErr);
+      }
+      return cachedResult;
+    }
 
     var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
     if (!apiKey) return { status: 'error', message: 'ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน Script Properties' };
@@ -978,19 +1187,32 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var stats = buildRevenueAnalysisStats_(rows, scope, sel);
     stats.scope = scope;
+    var modelName = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
     var ai = callGeminiForRevenueReport_(stats, apiKey);
+
+    var periodDesc = describeAnalysisPeriod_(stats.period);
+    var usageStats = null;
+    try {
+      usageStats = recordAiUsage_(requestingUser, scope, periodDesc, true, modelName, 'สำเร็จ');
+    } catch (logErr) {
+      console.warn('recordAiUsage_ (new analysis) error: ' + logErr);
+    }
 
     var result = {
       status: 'success',
       generatedAt: Utilities.formatDate(new Date(), "Asia/Bangkok", "dd/MM/yyyy HH:mm"),
       scope: scope,
       stats: stats,
-      ai: ai
+      ai: ai,
+      aiUsage: usageStats
     };
     putChunkedCache_(cacheKey, JSON.stringify(result), AI_REPORT_CACHE_TTL);
     return result;
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
+    try {
+      recordAiUsage_(requestingUser, scope, (typeof periodDesc !== 'undefined' ? periodDesc : 'เกิดข้อผิดพลาด'), true, '-', 'ข้อผิดพลาด: ' + e.message);
+    } catch (_) {}
     return { status: 'error', message: e.toString() };
   }
 }
@@ -4628,6 +4850,7 @@ function sendBigLotLineNotification(message) {
 var API_ALLOWED_FUNCTIONS = [
   'endSession',
   'getRevenueAnalysisReport',
+  'getAiUsageStats',
   'getHomeRevenueSummary',
   'addMusicTrack', 'addPostNewsTemplate', 'addRecommendedService', 'checkDailyTriggerA1A14',
   'checkLineQuotaStatus', 'checkLogin', 'confirmPKCustomer', 'createBigLotProduct',
@@ -4655,7 +4878,7 @@ var API_ALLOWED_FUNCTIONS = [
 // ฟังก์ชันที่หน้าเว็บเรียกได้ทั้งหมดเป็น private (ลงท้าย _) เรียกตรงจาก google.script.run ไม่ได้
 // ต้องผ่าน api() (โหมด Apps Script) หรือ doPost executeFunction (โหมด Vercel) ซึ่งตรวจ session token ก่อน
 // Script Property AUTH_ENFORCE = 'true' → บังคับต้องมี token (ปิดไว้ = ยอมให้เรียกได้แม้ไม่มี token ระหว่างทยอยเปลี่ยน)
-var AUTH_PUBLIC_FUNCTIONS = ['checkLogin', 'incrementVisitorCount', 'logFrontendErrorToLine', 'sendBugReportToLine'];
+var AUTH_PUBLIC_FUNCTIONS = ['checkLogin', 'incrementVisitorCount', 'logFrontendErrorToLine', 'sendBugReportToLine', 'getAiUsageStats'];
 var AUTH_USER_SCOPED_FUNCTIONS = ['getRevenueAnalysisReport', 'getHomeRevenueSummary', 'getRevenueReportData'];
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

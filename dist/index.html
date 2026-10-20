@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1020.1037';
+    var APP_VERSION = 'Ver. 2026.1020.1054';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25698,6 +25698,60 @@
     // ==========================================
     // AI REVENUE ANALYSIS REPORT (A4 / PDF)
     // ==========================================
+    // ป๊อปอัปแสดงประวัติสถิติการใช้งาน AI ในแต่ละเดือน
+    window.showAiUsageHistoryModal = function() {
+        Swal.fire({
+            title: '📊 สถิติการใช้งาน AI วิเคราะห์รายได้ในแต่ละเดือน',
+            html: '<div id="aiUsageHistoryContainer" style="padding:15px 0;"><i class="fas fa-spinner fa-spin text-orange-500 text-2xl"></i> กำลังโหลดข้อมูลสถิติ...</div>',
+            showCloseButton: true,
+            confirmButtonText: 'ปิด',
+            confirmButtonColor: '#ea580c',
+            width: '580px',
+            customClass: {
+                popup: 'rounded-3xl shadow-2xl p-5',
+                title: 'text-base font-black text-gray-800'
+            },
+            didOpen: function() {
+                if (typeof google === 'undefined' || !google.script || !google.script.run || typeof google.script.run.getAiUsageStats !== 'function') {
+                    const c = document.getElementById('aiUsageHistoryContainer');
+                    if (c) c.innerHTML = '<p class="text-gray-500 text-sm py-4">ไม่สามารถเชื่อมต่อระบบหลังบ้านได้</p>';
+                    return;
+                }
+                google.script.run.withSuccessHandler(function(res) {
+                    const container = document.getElementById('aiUsageHistoryContainer');
+                    if (!container) return;
+                    if (!res || res.status !== 'success' || !res.monthlySummary || !res.monthlySummary.length) {
+                        container.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs bg-gray-50 rounded-2xl border border-gray-100">ยังไม่มีข้อมูลการใช้งาน AI ที่บันทึกไว้ในระบบ<br><span class="text-[11px] text-gray-400 mt-1 block">ข้อมูลจะเริ่มบันทึกอัตโนมัติเมื่อมีการกดวิเคราะห์รายได้</span></div>';
+                        return;
+                    }
+                    let html = '<div class="overflow-x-auto text-left" style="max-height:360px;"><table class="w-full text-xs border-collapse">';
+                    html += '<thead><tr class="bg-orange-50/80 text-orange-900 border-b border-orange-200 font-bold">';
+                    html += '<th class="p-2.5 text-left">เดือน / ปี</th>';
+                    html += '<th class="p-2.5 text-center">วิเคราะห์ใหม่ (AI)</th>';
+                    html += '<th class="p-2.5 text-center">เปิดจากแคช</th>';
+                    html += '<th class="p-2.5 text-center">รวมทั้งหมด</th>';
+                    html += '<th class="p-2.5 text-right">อัปเดตล่าสุด</th>';
+                    html += '</tr></thead><tbody>';
+                    res.monthlySummary.slice().reverse().forEach(function(item) {
+                        html += '<tr class="border-b border-gray-100 hover:bg-orange-50/20 transition">';
+                        html += '<td class="p-2.5 font-bold text-gray-800">' + window.escapeHtml(item.monthName || item.monthKey) + '</td>';
+                        html += '<td class="p-2.5 text-center text-orange-600 font-black">' + (item.apiCalls || 0).toLocaleString() + ' ครั้ง</td>';
+                        html += '<td class="p-2.5 text-center text-gray-500">' + (item.cacheHits || 0).toLocaleString() + ' ครั้ง</td>';
+                        html += '<td class="p-2.5 text-center font-bold text-gray-900">' + (item.total || 0).toLocaleString() + ' ครั้ง</td>';
+                        html += '<td class="p-2.5 text-right text-[11px] text-gray-400">' + window.escapeHtml(item.lastUpdated || '-') + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    html += '<div class="text-[11px] text-gray-400 text-right mt-3">💡 ข้อมูลบันทึกและซิงค์กับ Google Sheet "สรุปการใช้งาน AI รายเดือน" อัตโนมัติ</div>';
+                    container.innerHTML = html;
+                }).withFailureHandler(function(err) {
+                    const c = document.getElementById('aiUsageHistoryContainer');
+                    if (c) c.innerHTML = '<p class="text-red-500 text-xs py-4">โหลดข้อมูลไม่สำเร็จ: ' + window.escapeHtml(err.message || String(err)) + '</p>';
+                }).getAiUsageStats();
+            }
+        });
+    };
+
     // ป๊อปอัปเลือกช่วงเวลาแบบ Interactive Cards & Tabs สวยงามทันสมัย
     async function promptAiReportPeriod() {
         const MONTHS_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -25922,9 +25976,10 @@
                                 <i class="fas fa-brain text-xl"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <h3 class="text-lg font-black text-gray-800 tracking-tight">วิเคราะห์ข้อมูลรายได้ด้วย AI</h3>
                                     <span class="px-2 py-0.5 text-[10px] font-bold bg-orange-100 text-orange-600 rounded-full border border-orange-200/60">Gemini</span>
+                                    <span id="aiMonthUsageBadge" class="hidden cursor-pointer hover:bg-orange-100 transition px-2 py-0.5 text-[10px] font-bold bg-orange-50 text-orange-700 rounded-full border border-orange-200" title="คลิกเพื่อดูสถิติรายเดือนทั้งหมด"></span>
                                 </div>
                                 <p class="text-xs text-gray-500 mt-0.5">เลือกช่วงเวลาที่ต้องการประเมินและเปรียบเทียบสถิติกับปีก่อนหน้า</p>
                             </div>
@@ -26085,6 +26140,22 @@
                     renderQuarterGrid(qGrid, state.quarterYear, popup);
                     renderMonthGrid(mGrid, state.monthYear, popup);
                     renderRangeView(popup);
+
+                    // โหลดสถิติการใช้งาน AI ประจำเดือน
+                    const usageBadge = popup.querySelector('#aiMonthUsageBadge');
+                    if (usageBadge && typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.getAiUsageStats === 'function') {
+                        google.script.run.withSuccessHandler(function(res) {
+                            if (res && res.status === 'success' && res.currentMonth) {
+                                const m = res.currentMonth;
+                                usageBadge.innerHTML = `<i class="fas fa-chart-line text-orange-500"></i> วิเคราะห์เดือนนี้: <b>${m.apiCalls.toLocaleString()}</b> ครั้ง`;
+                                usageBadge.title = `สถิติประจำเดือน ${m.monthName}\n- วิเคราะห์ใหม่: ${m.apiCalls} ครั้ง\n- ดูจากแคช: ${m.cacheHits} ครั้ง\n- รวม: ${m.total} ครั้ง\n(คลิกเพื่อดูสถิติทุกเดือน)`;
+                                usageBadge.classList.remove('hidden');
+                                usageBadge.onclick = function() {
+                                    window.showAiUsageHistoryModal();
+                                };
+                            }
+                        }).getAiUsageStats();
+                    }
 
                     // สลับแท็บ ภาพรวม / ไตรมาส / รายเดือน / ช่วงเดือน
                     const tabs = ['overview', 'quarter', 'month', 'range'];
@@ -27535,7 +27606,14 @@
   <header>
     <div>
       <h1>รายงานวิเคราะห์รายได้ทีมขายในสังกัด ปข.10 (${scopeLabel})${titleSuffix ? '<br>' + titleSuffix.trim() : ''}</h1>
-      <div class="muted" style="font-size:12px;margin-top:2px;">${periodLabel} · สร้างข้อมูลเมื่อ: ${esc(res.generatedAt)}</div>
+      <div class="muted" style="font-size:12px;margin-top:2px;display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span>${periodLabel} · สร้างข้อมูลเมื่อ: ${esc(res.generatedAt)}</span>
+        ${res.aiUsage ? `
+          <span class="no-print" style="background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:9999px;padding:1px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" title="สถิติการใช้งาน AI ประจำเดือน: วิเคราะห์ใหม่ ${(res.aiUsage.apiCalls || 0).toLocaleString()} ครั้ง, ดูจากแคช ${(res.aiUsage.cacheHits || 0).toLocaleString()} ครั้ง">
+            <i class="fas fa-robot" style="font-size:10px;"></i> สถิติ AI เดือนนี้: วิเคราะห์แล้ว ${(res.aiUsage.apiCalls || 0).toLocaleString()} ครั้ง
+          </span>
+        ` : ''}
+      </div>
     </div>
   </header>
 </td></tr></thead><tbody><tr><td>
