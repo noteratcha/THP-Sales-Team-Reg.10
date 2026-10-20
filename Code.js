@@ -1164,7 +1164,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
 
     var sel = parseAnalysisPeriod_(options);
     var periodKeyPart = sel.kind === 'range' ? ('range_' + sel.year + '_' + sel.from + '_' + sel.to) : (sel.kind + '_' + sel.year + '_' + sel.index);
-    var cacheKey = 'ai_rev_v27_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
+    var cacheKey = 'ai_rev_v28_' + getHomeRevCacheVersion_() + '_' + scope + '_' + periodKeyPart;
     var cached = getChunkedCache_(cacheKey);
     if (cached) {
       var cachedResult = JSON.parse(cached);
@@ -1447,7 +1447,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
   // เลือกชื่อที่มีจุด (.) เช่น "34000 - ปจ.อุบลราชธานี", "37120 - ปณ.ลืออำนาจ", "34010 - ศป.อุบลราชธานี" เป็นชื่อหลัก
   var zipNamesInRows = {};
   var zipStats = {};
-  var officeSrv = {}, officeCust = {};
+  var officeSrv = {}, officeCust = {}, officeCustSrv = {};
   var teamStats = {}, teamSrv = {}, teamCust = {};
 
   rows.forEach(function(r) {
@@ -1476,6 +1476,14 @@ function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
       if (!officeCust[z]) officeCust[z] = {};
       if (!officeCust[z][c]) officeCust[z][c] = { cur: 0, ly: 0 };
       if (cur) officeCust[z][c].cur += val; else officeCust[z][c].ly += val;
+
+      // สะสมบริการรายลูกค้า (ยกเว้น ตร. ที่เปลี่ยนไปชำระรวมส่วนกลาง) เพื่อวิเคราะห์แนวโน้มการเปลี่ยนกลุ่มบริการ (Service Migration)
+      if (c !== 'สำนักงานตำรวจแห่งชาติ') {
+        if (!officeCustSrv[z]) officeCustSrv[z] = {};
+        if (!officeCustSrv[z][c]) officeCustSrv[z][c] = {};
+        if (!officeCustSrv[z][c][srv]) officeCustSrv[z][c][srv] = { cur: 0, ly: 0 };
+        if (cur) officeCustSrv[z][c][srv].cur += val; else officeCustSrv[z][c][srv].ly += val;
+      }
     }
 
     // สะสมระดับทีม (Team-level)
@@ -1762,6 +1770,66 @@ function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
       opps.push('ขยายตลาดลูกค้า e-Commerce ในพื้นที่ และประสานงานหน่วยงานท้องถิ่น (อปท.) ใช้บริการส่งเอกสารและพัสดุ');
     }
 
+    // 5. ภาพรวมแนวโน้มการเปลี่ยนกลุ่มบริการของลูกค้า (Service Migration Analysis)
+    var custSrvMap = officeCustSrv[z] || {};
+    var migrationMap = {};
+    var migratedCustSet = {};
+
+    Object.keys(custSrvMap).forEach(function(cn) {
+      var srvs = custSrvMap[cn];
+      var drops = [];
+      var gains = [];
+
+      Object.keys(srvs).forEach(function(s) {
+        var scur = srvs[s].cur;
+        var sly = srvs[s].ly;
+        var sdiff = scur - sly;
+        // เกณฑ์ยอดลดลง: ลดลงเกิน 500 บาท และยอดเดิมปีที่แล้วอย่างน้อย 500 บาท
+        if (sdiff < -500 && sly >= 500) {
+          drops.push({ srv: s, drop: Math.abs(sdiff) });
+        }
+        // เกณฑ์ยอดเพิ่มขึ้น: เพิ่มขึ้นเกิน 500 บาท
+        if (sdiff > 500) {
+          gains.push({ srv: s, gain: sdiff });
+        }
+      });
+
+      if (drops.length > 0 && gains.length > 0) {
+        drops.sort(function(a, b) { return b.drop - a.drop; });
+        gains.sort(function(a, b) { return b.gain - a.gain; });
+        var topDrop = drops[0];
+        var topGain = gains[0];
+        var shiftAmount = Math.min(topDrop.drop, topGain.gain);
+
+        if (shiftAmount >= 500) {
+          var flowKey = topDrop.srv + ' ➔ ' + topGain.srv;
+          if (!migrationMap[flowKey]) {
+            migrationMap[flowKey] = {
+              from: topDrop.srv,
+              to: topGain.srv,
+              amount: 0,
+              custCount: 0
+            };
+          }
+          migrationMap[flowKey].amount += shiftAmount;
+          migrationMap[flowKey].custCount += 1;
+          migratedCustSet[cn] = true;
+        }
+      }
+    });
+
+    var offMigrations = Object.keys(migrationMap).map(function(k) {
+      return {
+        from: migrationMap[k].from,
+        to: migrationMap[k].to,
+        amount: round(migrationMap[k].amount),
+        custCount: migrationMap[k].custCount
+      };
+    }).sort(function(a, b) { return b.amount - a.amount; }).slice(0, 5);
+
+    var totalMigratedCust = Object.keys(migratedCustSet).length;
+    var totalMigratedAmount = round(offMigrations.reduce(function(sum, m) { return sum + m.amount; }, 0));
+
     return {
       name: pickPrimaryOfficeName(z),
       zipcode: z,
@@ -1778,9 +1846,33 @@ function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
       decliningCustomers: offDecliningCust,
       growingCustomers: offGrowingCust,
       opportunities: opps,
+      serviceMigrations: offMigrations,
+      migratedCustomerCount: totalMigratedCust,
+      migratedTotalAmount: totalMigratedAmount,
       services: srvList
     };
   }).sort(function(a, b) { return b.ytd - a.ytd; });
+
+  // สรุปภาพรวมแนวโน้มการเปลี่ยนกลุ่มบริการระดับพื้นที่/ภาค (Regional Service Migrations)
+  var regMigrationMap = {};
+  offices.forEach(function(o) {
+    (o.serviceMigrations || []).forEach(function(m) {
+      var k = m.from + ' ➔ ' + m.to;
+      if (!regMigrationMap[k]) {
+        regMigrationMap[k] = { from: m.from, to: m.to, amount: 0, custCount: 0 };
+      }
+      regMigrationMap[k].amount += m.amount;
+      regMigrationMap[k].custCount += m.custCount;
+    });
+  });
+  var regionalMigrations = Object.keys(regMigrationMap).map(function(k) {
+    return {
+      from: regMigrationMap[k].from,
+      to: regMigrationMap[k].to,
+      amount: round(regMigrationMap[k].amount),
+      custCount: regMigrationMap[k].custCount
+    };
+  }).sort(function(a, b) { return b.amount - a.amount; }).slice(0, 8);
 
   return {
     scope: scope,
@@ -1802,6 +1894,7 @@ function buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName) {
     teams: teams,
     offices: offices,
     services: services.slice(0, 15),
+    serviceMigrations: regionalMigrations,
     topCustomers: byCur.slice(0, 15),
     growingCustomers: customers.filter(function(c) { return c.diff > 0; }).sort(function(a, b) { return b.diff - a.diff; }).slice(0, 10),
     decliningCustomers: customers.filter(function(c) { return c.diff < 0 && c.ytd > 0; }).sort(function(a, b) { return a.diff - b.diff; }).slice(0, 10),
@@ -1832,6 +1925,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     provinces: stats.provinces,
     teams: stats.teams,
     services: stats.services,
+    serviceMigrations: (stats.serviceMigrations || []).slice(0, 5),
     topCustomers: stats.topCustomers,
     growingCustomers: stats.growingCustomers,
     decliningCustomers: stats.decliningCustomers,
@@ -1875,6 +1969,7 @@ function callGeminiForRevenueReport_(stats, apiKey) {
     '- ห้ามใช้ชื่อฟิลด์ภาษาอังกฤษจาก JSON (เช่น growthPct, diff, achievementPct, sharePct, ytd) ให้ใช้คำไทยทางการแทน เช่น "มีอัตราการเติบโต 61%", "มีรายได้เพิ่มขึ้น 15.0 ล้านบาท", "บรรลุเป้าหมายคิดเป็น 84.1% ของเป้าหมายตามแผนงาน", "สัดส่วนรายได้คิดเป็น 35.4%"',
     '- ใช้ปีพุทธศักราช (พ.ศ.) โดยบวก 543 จากปีในข้อมูล เช่น 2026 = พ.ศ. 2569',
     '- โครงสร้างประโยค: กระชับ เป็นทางการ ชัดเจน นำเสนอเป็นประเด็นตรงเป้าหมาย แต่ละข้อไม่เกิน 2-3 ประโยค',
+    '- ในส่วน serviceMix หรือ executiveSummary: หากพบข้อมูลการเปลี่ยนกลุ่มบริการของลูกค้า (serviceMigrations) ให้ระบุแนวโน้มว่าลูกค้าส่วนใหญ่เปลี่ยนจากบริการเดิมใดไปสู่บริการใหม่ใด พร้อมมูลค่าการสับเปลี่ยน เพื่อสะท้อนการปรับพฤติกรรมของลูกค้าในพื้นที่',
     '- ในส่วน teamPerformance: ให้วิเคราะห์ผลงานรายทีม 3-5 ข้อ โดย"ต้อง"มีข้อที่วิเคราะห์เจาะลึกทีมที่ทำผลงานต่ำกว่าเป้าหมายมากที่สุด 2-3 อันดับล่าง ว่าไม่เข้าเป้าเพราะเหตุใด รายได้จากกลุ่มบริการใดลดลงมากที่สุด (ดูจากฟิลด์ decliningServices ของทีมนั้น เช่น EMS ในฯ Package ต่างๆ, e-Parcel, EMS VRich ฯลฯ พร้อมระบุจำนวนเงินที่ลดลง) และเกิดจากลูกค้ารายใดที่มียอดลดลงหรือหยุดส่ง (ดูจากฟิลด์ decliningCustomers) เพื่อให้ผู้บริหารทราบสาเหตุที่แท้จริง',
     '- ในส่วน officeGrowth: วิเคราะห์ภาพรวมรายที่ทำการ 3-5 ข้อ โดยครอบคลุม 4 ประเด็นสำคัญ: 1) ที่ทำการที่มีรายได้เด่นและรายได้ด้อย 2) ที่ทำการที่ได้รับผลกระทบจากลูกค้าที่หายไป (inactive customers) 3) แนวทางว่าจะหารายได้จากไหนมาเติมเป้าหมาย (เช่น การดึงลูกค้าเดิมกลับมา และผลักดันบริการที่มีศักยภาพ) 4) อัตราส่วนบริการของที่ทำการสำคัญ เพื่อให้ที่ทำการนำไปปฏิบัติได้จริง',
     '- ในส่วน recommendations: ข้อเสนอแนะเชิงยุทธศาสตร์ที่สามารถนำไปปฏิบัติได้จริง 3-5 ข้อ (เน้นลูกค้ารายอื่นที่มียอดตกจริง เช่น พงศกร กายราช, ลลียา นามวงศ์ และ"ห้าม"เสนอแนะให้ระดับพื้นที่ไปติดตามสำนักงานตำรวจแห่งชาติ)',

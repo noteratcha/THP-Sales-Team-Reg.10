@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1020.1121';
+    var APP_VERSION = 'Ver. 2026.1020.1131';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -26860,6 +26860,7 @@
             const inact = off.inactiveCustomers && off.inactiveCustomers.length ? off.inactiveCustomers : [];
             const opps = off.opportunities && off.opportunities.length ? off.opportunities : [];
             const srvs = off.services && off.services.length ? off.services.slice(0, 6) : [];
+            const migrations = off.serviceMigrations && off.serviceMigrations.length ? off.serviceMigrations : [];
 
             // 1. บริการเด่น & ด้อย
             const strHtml = topStr.length
@@ -26897,6 +26898,26 @@
                         <div class="srv-bar-track"><div class="srv-bar-fill" style="width:${Math.min(100, Math.max(0, item.sharePct))}%"></div></div>
                     </div>`).join('')
                 : '<div class="muted">-</div>';
+
+            // 5. ภาพรวมแนวโน้มการเปลี่ยนกลุ่มบริการของลูกค้า (Service Migration Analysis)
+            const migrationHtml = migrations.length
+                ? `<div class="migration-grid">${migrations.map(m => `
+                    <div class="migration-item">
+                        <div class="migration-flow">
+                            <span class="srv-tag from" title="บริการเดิมที่ยอดลดลง">▼ ${esc(m.from)}</span>
+                            <span class="migration-arrow">➔</span>
+                            <span class="srv-tag to" title="บริการใหม่ที่ปรับเปลี่ยนไปส่ง">▲ ${esc(m.to)}</span>
+                        </div>
+                        <div class="migration-stats">
+                            <span class="migration-amount">${money(m.amount)} บ.</span>
+                            <span class="migration-count">(${m.custCount} ราย)</span>
+                        </div>
+                    </div>`).join('')}</div>
+                    <div class="migration-footer">
+                        <span>* สรุปภาพรวมพฤติกรรมลูกค้าที่มียอดบริการเดิมลดลงและสลับไปส่งบริการอื่นเพิ่มขึ้นในที่ทำการนี้ (ไม่ต้องระบุรายชื่อบุคคล)</span>
+                        <span>รวมลูกค้าที่ปรับเปลี่ยน: <b>${off.migratedCustomerCount || 0} ราย</b> (มูลค่าสับเปลี่ยนรวม <b>${money(off.migratedTotalAmount || 0)} บ.</b>)</span>
+                    </div>`
+                : '<div style="color:#047857;padding:5px 0;font-weight:600;font-size:11px;">✔ ไม่พบพฤติกรรมการเปลี่ยนกลุ่มบริการที่ชัดเจน (ลูกค้าใช้บริการเดิมต่อเนื่องสม่ำเสมอ)</div>';
 
             const achvClass = off.achievementPct == null ? 'muted' : ((off.achievementPct - 100) >= 0 ? 'up' : ((off.achievementPct - 100) >= -20 ? 'warn' : 'down'));
             const achvText = off.achievementPct == null ? 'ไม่มีเป้า' : (((off.achievementPct - 100) >= 0 ? '+' : '') + Math.round((off.achievementPct - 100) * 10) / 10 + '%');
@@ -26943,6 +26964,15 @@
                   <div class="col-body">
                     ${srvHtml}
                   </div>
+                </div>
+              </div>
+              <div class="col-card" style="margin-top:10px;">
+                <div class="col-header teal">
+                  <span>🔄 5. ภาพรวมแนวโน้มการเปลี่ยนกลุ่มบริการของลูกค้า (Service Migration Analysis)</span>
+                  <span style="font-size:10px;font-weight:normal;opacity:0.9;">บริการเดิม ➔ บริการใหม่</span>
+                </div>
+                <div class="col-body">
+                  ${migrationHtml}
                 </div>
               </div>
             </div>`;
@@ -27378,12 +27408,24 @@
   .col-header.red { background: #991b1b; }
   .col-header.blue { background: #1e40af; }
   .col-header.purple { background: #6b21a8; }
+  .col-header.teal { background: #0f766e; }
   .col-body { padding: 9px 12px; font-size: 11px; flex: 1; }
   .srv-bar-row { margin: 5px 0; }
   .srv-bar-label { display: flex; justify-content: space-between; font-size: 10.5px; }
   .srv-bar-track { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 2px; }
   .srv-bar-fill { height: 100%; background: #7c3aed; border-radius: 3px; }
   .police-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 7px; padding: 5px 9px; margin-top: 6px; font-size: 10px; line-height: 1.4; }
+  .migration-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin-top: 4px; }
+  .migration-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .migration-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11px; }
+  .migration-arrow { color: #0f766e; font-weight: 700; font-size: 12px; }
+  .srv-tag { padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 10.5px; }
+  .srv-tag.from { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .srv-tag.to { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  .migration-stats { text-align: right; white-space: nowrap; font-size: 11px; }
+  .migration-amount { font-weight: 700; color: #0f766e; }
+  .migration-count { font-size: 10px; color: #64748b; margin-left: 2px; }
+  .migration-footer { font-size: 10px; color: #64748b; margin-top: 6px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 5px; }
   .office-row:hover { background: #f0fdf4 !important; cursor: pointer; }
 
   /* Floating Back to Top Button */
@@ -27896,12 +27938,12 @@
       </section>
     </div>
 
-    <!-- หมวดที่ 6: การประเมินผลการดำเนินงานรายที่ทำการ (4 มิติ) -->
+    <!-- หมวดที่ 6: การประเมินผลการดำเนินงานรายที่ทำการ (5 มิติเชิงลึก) -->
     <div id="sec-offices" class="category-container">
       <div class="cat-header" id="cat-6">
-        <div class="cat-badge no-print">หมวดที่ 6 · การประเมินผลการดำเนินงานรายที่ทำการ (4 มิติ)</div>
+        <div class="cat-badge no-print">หมวดที่ 6 · การประเมินผลการดำเนินงานรายที่ทำการ (5 มิติเชิงลึก)</div>
         <h2 class="cat-title">🏢 การประเมินผลการดำเนินงานรายที่ทำการ 96 แห่ง (Postal Office Performance Analysis)</h2>
-        <div class="cat-subtitle">เปรียบเทียบผลการดำเนินงานทุกที่ทำการในสังกัด ปข.10 พร้อมบทวิเคราะห์ 4 ด้านเชิงลึกครบทุกแห่ง</div>
+        <div class="cat-subtitle">เปรียบเทียบผลการดำเนินงานทุกที่ทำการในสังกัด ปข.10 พร้อมบทวิเคราะห์ 5 ด้านเชิงลึกครบทุกแห่ง (รวมการเปลี่ยนกลุ่มบริการของลูกค้า)</div>
       </div>
 
       <!-- รายงานฉบับย่อหมวด 6 -->
@@ -27916,7 +27958,7 @@
           <span class="cat-chip"><span class="cat-chip-label">🚀 อัตราเติบโตสูงสุด:</span> <b class="up">${(() => { const topGrw = officesByZip.slice().filter(t=>t.growthPct!=null).sort((a,b)=>b.growthPct-a.growthPct)[0]; return topGrw ? esc(topGrw.name) + ' (' + growth(topGrw.growthPct) + ')' : '-'; })()}</b></span>
         </div>
         <div class="cat-summary-text">
-          ${(ai.officeGrowth && ai.officeGrowth.length) ? esc(ai.officeGrowth[0]) : 'การวิเคราะห์เจาะลึก 4 มิติสะท้อนความสามารถในการสร้างรายได้และจุดเด่น-จุดด้อยเฉพาะของแต่ละที่ทำการ'}
+          ${(ai.officeGrowth && ai.officeGrowth.length) ? esc(ai.officeGrowth[0]) : 'การวิเคราะห์เจาะลึก 5 มิติสะท้อนความสามารถในการสร้างรายได้ จุดเด่น-จุดด้อย และแนวโน้มการเปลี่ยนกลุ่มบริการของลูกค้าในแต่ละที่ทำการ'}
         </div>
       </div>
 
@@ -27928,7 +27970,7 @@
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin: 14px 0 6px; flex-wrap:wrap; gap:8px;">
           <div style="font-weight:700; color:#064e3b; font-size:13px;">📋 ตารางเปรียบเทียบผลการดำเนินงานรายที่ทำการครบ 96 แห่ง</div>
-          <button type="button" class="btn-scroll-to-cards no-print" onclick="scrollToOfficeCardsSection()">⬇️ ไปยังรายงานการประเมิน 4 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</button>
+          <button type="button" class="btn-scroll-to-cards no-print" onclick="scrollToOfficeCardsSection()">⬇️ ไปยังรายงานการประเมิน 5 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</button>
         </div>
 
         ${table(['ที่ทำการไปรษณีย์', 'ทีมขาย', `<span class="n">${revLabel}</span>`, '<span class="n">อัตราเติบโต</span>', '<span class="n">เป้าหมายตามแผน</span>', '<span class="n">% บรรลุเป้า</span>', 'บริการเด่น / บริการชะลอตัว'],
@@ -27941,13 +27983,13 @@
                     } else if (topStr) {
                       srvHighlight = `<span class="up" title="บริการที่เติบโตสูงสุด">▲ ${esc(topStr.name)}</span>`;
                     }
-                    return `<tr class="office-row" onclick="jumpToOfficeCard('${esc(t.zipcode)}')" title="คลิกเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 4 ด้าน"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td></tr>`;
-                  }), `จัดเรียงตามรหัสไปรษณีย์ · % บรรลุเป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้าหมายตามแผน · คลิกแถวเพื่อเลื่อนไปดูรายงานการประเมิน 4 มิติ`)}
+                    return `<tr class="office-row" onclick="jumpToOfficeCard('${esc(t.zipcode)}')" title="คลิกเพื่อเลื่อนไปดูการ์ดวิเคราะห์ 5 ด้าน"><td><b>${esc(t.name)}</b></td><td>${t.team === 'ไม่ระบุทีม' ? '-' : esc(t.team)}</td><td class="n">${money(t.ytd)}</td><td class="n">${growth(t.growthPct)}</td><td class="n">${money(t.target)}</td><td class="n">${achv(t.achievementPct)}</td><td>${srvHighlight}</td></tr>`;
+                  }), `จัดเรียงตามรหัสไปรษณีย์ · % บรรลุเป้า = ส่วนที่เกิน (+) หรือขาด (-) จากเป้าหมายตามแผน · คลิกแถวเพื่อเลื่อนไปดูรายงานการประเมิน 5 มิติ`)}
 
         <div id="officeCardsSequenceSection" style="margin-top: 24px;">
           <div class="office-cards-header-bar no-print">
             <div>
-              <h3 style="margin:0; font-size:15px; font-weight:800; color:#064e3b;">🗂️ แผงควบคุมรายงานการประเมิน 4 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</h3>
+              <h3 style="margin:0; font-size:15px; font-weight:800; color:#064e3b;">🗂️ แผงควบคุมรายงานการประเมิน 5 มิติเชิงลึก (${officesByZip.length} ที่ทำการ)</h3>
               <div class="muted" style="font-size:11px;">ระบบค้นหาและเลือกกระโดดไปยังรายงานการประเมินผลการดำเนินงานรายที่ทำการ จัดเรียงตามรหัสไปรษณีย์</div>
             </div>
             <div class="office-cards-controls">
@@ -27961,7 +28003,7 @@
             </div>
           </div>
 
-          <h2 class="print-only" style="display:none; margin: 18px 0 10px; font-size: 15px; color: #064e3b; border-left: 4px solid #ea580c; padding-left: 8px;">🗂️ รายงานการประเมิน 4 มิติเชิงลึก รายที่ทำการในสังกัด ปข.10 (${officesByZip.length} แห่ง)</h2>
+          <h2 class="print-only" style="display:none; margin: 18px 0 10px; font-size: 15px; color: #064e3b; border-left: 4px solid #ea580c; padding-left: 8px;">🗂️ รายงานการประเมิน 5 มิติเชิงลึก รายที่ทำการในสังกัด ปข.10 (${officesByZip.length} แห่ง)</h2>
 
           <div id="officeCardsList" class="office-cards-list">
             ${officesByZip.map((off, idx) => buildOfficeCardHtml(off, idx + 1)).join('')}
