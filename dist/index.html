@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1020.1054';
+    var APP_VERSION = 'Ver. 2026.1020.1058';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -26956,7 +26956,7 @@
         const table = (head, rows, sortNote) => `<table><thead><tr><th class="rank">#</th>${head.map(h => {
             const isNum = h.indexOf('<span class="n">') === 0;
             return isNum ? `<th class="n">${h.replace(/<\/?span[^>]*>/g, '')}</th>` : `<th>${h}</th>`;
-        }).join('')}</tr></thead><tbody>${rows.map((r, i) => r.replace('<tr>', `<tr><td class="rank">${i + 1}</td>`)).join('')}</tbody></table>${sortNote ? `<p class="sort-note">* เรียงตาม${sortNote}</p>` : ''}`;
+        }).join('')}</tr></thead><tbody>${rows.map((r, i) => r.replace(/<tr\b([^>]*)>/i, `<tr$1><td class="rank">${i + 1}</td>`)).join('')}</tbody></table>${sortNote ? `<p class="sort-note">* เรียงตาม${sortNote}</p>` : ''}`;
         
         const PROV_HUBS = {
             '33000': 'จังหวัดศรีสะเกษ',
