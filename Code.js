@@ -5138,7 +5138,7 @@ function isValidTableauSecret_(value) {
 }
 
 // นำเข้าข้อมูลจากส่วนขยายเข้าชีตรายได้ ด้วยฟังก์ชันเดียวกับการ์ด "นำเข้าข้อมูลรายได้ (Tableau)"
-// json.year เป็น ค.ศ. เหมือนค่าใน globalUploadYear
+// json.year เป็น ค.ศ. เหมือนค่าใน globalUploadYear; json.kind = 'logistics' ใช้การ์ดขนส่งและโลจิสติกส์
 function importTableauCsvBatch_(json) {
   if (!isValidTableauSecret_(json.secret)) {
     return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
@@ -5154,10 +5154,22 @@ function importTableauCsvBatch_(json) {
     return { status: 'error', message: 'ระบบกำลังทำงานอื่นอยู่ กรุณาลองใหม่' };
   }
   try {
+    if (json.kind === 'logistics') return processLogisticsBatch_(json.csvChunk, String(json.year));
     return processRevenueBatch_(json.csvChunk, String(json.year));
   } finally {
     lock.releaseLock();
   }
+}
+
+// แจ้งปัญหาจากส่วนขยาย SalesReg10 ไปที่ LINE
+function reportExtensionError_(json) {
+  if (!isValidTableauSecret_(json.secret)) {
+    return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
+  }
+  var message = String(json.message || '').substring(0, 1500);
+  if (!message) return { status: 'error', message: 'ไม่มีข้อความ' };
+  sendErrorToLine_({ message: message, stack: message }, 'ส่วนขยาย Chrome SalesReg10 (ดาวน์โหลดรายงาน Tableau)');
+  return { status: 'success' };
 }
 
 // บันทึก CSV จาก Tableau ลงโฟลเดอร์ Download บน Drive (ไฟล์ชื่อซ้ำจะถูกแทนที่)
@@ -5168,7 +5180,7 @@ function saveTableauCsv_(json) {
     if (!isValidTableauSecret_(json.secret)) {
       return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
     }
-    if (!/^(EMS_Package_A1-A12_\d{4}-\d{2}|EMS_Specific_Customer_\d{4}-\d{2}|EPARCEL_\d{4}-\d{2})\.csv$/.test(String(json.fileName))) {
+    if (!/^(EMS_Package_A1-A12_\d{4}-\d{2}|EMS_Specific_Customer_\d{4}-\d{2}|EPARCEL_\d{4}-\d{2}|LOGISTICS_\d{4}-\d{2}_[23])\.csv$/.test(String(json.fileName))) {
       return { status: 'error', message: 'ชื่อไฟล์ไม่ถูกต้อง' };
     }
     if (typeof json.csv !== 'string' || !json.csv) {
@@ -5215,6 +5227,10 @@ function doPost(e) {
     // 0.1 รับไฟล์ CSV จากส่วนขยาย Chrome (thp-tableau-downloader)
     if (json && json.action === 'saveTableauCsv') {
       return ContentService.createTextOutput(JSON.stringify(saveTableauCsv_(json))).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (json && json.action === 'reportExtensionError') {
+      return ContentService.createTextOutput(JSON.stringify(reportExtensionError_(json))).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (json && json.action === 'importTableauCsvBatch') {
