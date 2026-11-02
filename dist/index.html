@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1102.1533';
+    var APP_VERSION = 'Ver. 2026.1102.1613';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -15113,20 +15113,42 @@
                         let offset = 0;
                         let remainder = '';
                         let headers = [];
+                        // เลือกการถอดรหัสจากชิ้นแรกครั้งเดียว แล้วใช้ตัวถอดรหัสเดียวทั้งไฟล์ (stream: true ต่ออักขระที่ถูกหั่นกลางชิ้นได้)
+                        // เดิมอ่านทุกชิ้นเป็น TIS-620: ชิ้นแรกมี BOM จึงอ่านเป็น UTF-8 ถูก แต่ชิ้นที่ 2 เป็นต้นไปไม่มี BOM ภาษาไทยจึงเพี้ยน
+                        let decoder = null;
 
                         while (offset < file.size) {
                             const chunk = file.slice(offset, offset + CHUNK_SIZE);
-                            const text = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = e => resolve(e.target.result);
-                                reader.onerror = e => reject(e);
-                                reader.readAsText(chunk, 'TIS-620'); // รองรับภาษาไทยจาก Excel CSV
-                            });
+                            const buf = await chunk.arrayBuffer();
+                            let text;
+                            if (!decoder) {
+                                try {
+                                    const probe = new TextDecoder('utf-8', { fatal: true });
+                                    text = probe.decode(buf, { stream: true });
+                                    decoder = probe;
+                                } catch (e) {
+                                    decoder = new TextDecoder('windows-874'); // CSV ที่ Excel บันทึกแบบ ANSI
+                                    text = decoder.decode(buf, { stream: true });
+                                }
+                            } else {
+                                try {
+                                    text = decoder.decode(buf, { stream: true });
+                                } catch (e) {
+                                    throw new Error('ไฟล์ ' + file.name + ' มีการเข้ารหัสภาษาไทยปนกันหลายแบบ กรุณาบันทึกไฟล์ใหม่เป็น CSV UTF-8');
+                                }
+                            }
+                            if (offset + CHUNK_SIZE >= file.size) text += decoder.decode();
 
-                            let lines = (remainder + text).split(/\r?\n/);
-                            // เก็บประโยคสุดท้ายที่อาจจะถูกหั่นขาดครึ่งไว้ต่อกับรอบถัดไป
-                            remainder = lines.pop(); 
-
+                            // แยกบรรทัดโดยไม่ตัดกลางช่องที่อยู่ในเครื่องหมายคำพูด (เช่น ที่อยู่ที่ขึ้นบรรทัดใหม่)
+                            let rawLines = (remainder + text).split(/\r?\n/);
+                            let lines = [];
+                            let pending = null;
+                            for (let k = 0; k < rawLines.length; k++) {
+                                pending = pending === null ? rawLines[k] : pending + '\n' + rawLines[k];
+                                if (((pending.match(/"/g) || []).length % 2) === 0) { lines.push(pending); pending = null; }
+                            }
+                            // เก็บแถวสุดท้ายที่อาจถูกหั่นขาดครึ่งไว้ต่อกับรอบถัดไป
+                            remainder = pending !== null ? pending : lines.pop();
                             if (offset === 0) {
                                 // รอบแรกสุดคือส่วนหัวคอลัมน์
                                 headers = lines.shift().split(',').map(h => h.replace(/^"|"$/g, '').trim());
