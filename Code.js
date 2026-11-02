@@ -5155,6 +5155,7 @@ function importTableauCsvBatch_(json) {
   }
   try {
     if (json.kind === 'logistics') return processLogisticsBatch_(json.csvChunk, String(json.year));
+    if (json.kind === 'addLogistics') return processAddLogisticsBatch_(json.csvChunk);
     return processRevenueBatch_(json.csvChunk, String(json.year));
   } finally {
     lock.releaseLock();
@@ -5180,7 +5181,7 @@ function saveTableauCsv_(json) {
     if (!isValidTableauSecret_(json.secret)) {
       return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
     }
-    if (!/^(EMS_Package_A1-A12_\d{4}-\d{2}|EMS_Specific_Customer_\d{4}-\d{2}|EPARCEL_\d{4}-\d{2}|LOGISTICS_\d{4}-\d{2}_[23])\.csv$/.test(String(json.fileName))) {
+    if (!/^(EMS_Package_A1-A12_\d{4}-\d{2}|EMS_Specific_Customer_\d{4}-\d{2}|EPARCEL_\d{4}-\d{2}|LOGISTICS_\d{4}-\d{2}_[23]|ADD_LOGISTICS_\d{4}-\d{2})\.csv$/.test(String(json.fileName))) {
       return { status: 'error', message: 'ชื่อไฟล์ไม่ถูกต้อง' };
     }
     if (typeof json.csv !== 'string' || !json.csv) {

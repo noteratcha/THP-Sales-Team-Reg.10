@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1102.1427';
+    var APP_VERSION = 'Ver. 2026.1102.1533';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -14112,6 +14112,18 @@
     // ==========================================
     // 0. HELPER FUNCTIONS FOR TIMER
     // ==========================================
+    // อ่านไฟล์ CSV ภาษาไทย: ลอง UTF-8 ก่อน (ไฟล์จาก Tableau หรือไฟล์ที่ไม่มี BOM) ถ้าไม่ใช่จึงอ่านเป็น TIS-620 (Excel)
+    // เดิมอ่าน TIS-620 ตายตัว ไฟล์ UTF-8 ที่ไม่มี BOM จึงกลายเป็นข้อความอ่านไม่ออก เช่น "เธเธ.10"
+    window.readThaiCsvText = function (file) {
+        return file.arrayBuffer().then(function (buffer) {
+            try {
+                return new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+            } catch (e) {
+                return new TextDecoder('windows-874').decode(buffer);
+            }
+        });
+    };
+
     window.formatUploadTimerStr = function (ms) {
         let diff = Math.floor(ms / 1000);
         let h = Math.floor(diff / 3600);
@@ -14549,7 +14561,7 @@
                     window.resetTableauUI();
                 }
             };
-            reader.readAsText(file, 'TIS-620');
+            window.readThaiCsvText(file).then(function (text) { reader.onload({ target: { result: text } }); });
         };
         
         processNextFile();
@@ -14734,7 +14746,7 @@
                 window.resetLogisticsUI();
             }
         };
-        reader.readAsText(file, 'TIS-620');
+        window.readThaiCsvText(file).then(function (text) { reader.onload({ target: { result: text } }); });
     };
 
     // ==========================================
@@ -14960,7 +14972,7 @@
                 window.resetAddLogisticsUI();
             }
         };
-        reader.readAsText(file, 'TIS-620');
+        window.readThaiCsvText(file).then(function (text) { reader.onload({ target: { result: text } }); });
     };
 
     // ==========================================
