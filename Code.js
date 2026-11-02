@@ -5132,6 +5132,61 @@ function api(token, funcName, args) {
  * LINE Webhook Handler
  * ใช้จับ Event เพื่อดึง Group ID อัตโนมัติเมื่อเชิญบอทเข้ากลุ่ม หรือเมื่อพิมพ์ .id
  */
+function isValidTableauSecret_(value) {
+  var secret = PropertiesService.getScriptProperties().getProperty('TABLEAU_UPLOAD_SECRET');
+  return !!secret && value === secret;
+}
+
+// นำเข้าข้อมูลจากส่วนขยายเข้าชีตรายได้ ด้วยฟังก์ชันเดียวกับการ์ด "นำเข้าข้อมูลรายได้ (Tableau)"
+// json.year เป็น ค.ศ. เหมือนค่าใน globalUploadYear
+function importTableauCsvBatch_(json) {
+  if (!isValidTableauSecret_(json.secret)) {
+    return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
+  }
+  if (!/^20\d{2}$/.test(String(json.year))) {
+    return { status: 'error', message: 'ปีไม่ถูกต้อง' };
+  }
+  if (typeof json.csvChunk !== 'string' || !json.csvChunk) {
+    return { status: 'error', message: 'ไม่มีข้อมูล CSV' };
+  }
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(60000)) {
+    return { status: 'error', message: 'ระบบกำลังทำงานอื่นอยู่ กรุณาลองใหม่' };
+  }
+  try {
+    return processRevenueBatch_(json.csvChunk, String(json.year));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// บันทึก CSV จาก Tableau ลงโฟลเดอร์ Download บน Drive (ไฟล์ชื่อซ้ำจะถูกแทนที่)
+// ต้องตั้ง Script Properties: TABLEAU_UPLOAD_SECRET
+function saveTableauCsv_(json) {
+  var TABLEAU_FOLDER_ID = '1kKobnpRB9DfEn1mlPRtr3NpHLaY6Ytnf';
+  try {
+    if (!isValidTableauSecret_(json.secret)) {
+      return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
+    }
+    if (!/^(EMS_Package_A1-A12_\d{4}-\d{2}|EMS_Specific_Customer_\d{4}-\d{2}|EPARCEL_\d{4}-\d{2})\.csv$/.test(String(json.fileName))) {
+      return { status: 'error', message: 'ชื่อไฟล์ไม่ถูกต้อง' };
+    }
+    if (typeof json.csv !== 'string' || !json.csv) {
+      return { status: 'error', message: 'ไม่มีข้อมูล CSV' };
+    }
+    var folder = DriveApp.getFolderById(TABLEAU_FOLDER_ID);
+    var existing = folder.getFilesByName(json.fileName);
+    while (existing.hasNext()) {
+      existing.next().setTrashed(true);
+    }
+    var file = folder.createFile(Utilities.newBlob(json.csv, 'text/csv', json.fileName));
+    return { status: 'success', message: 'บันทึกแล้ว', fileId: file.getId() };
+  } catch (e) {
+    sendErrorToLine_(e, 'saveTableauCsv_');
+    return { status: 'error', message: e.message || String(e) };
+  }
+}
+
 function doPost(e) {
   try {
     var textData = e.postData.contents;
@@ -5155,6 +5210,15 @@ function doPost(e) {
           error: fnErr.message || fnErr.toString()
         })).setMimeType(ContentService.MimeType.JSON);
       }
+    }
+
+    // 0.1 รับไฟล์ CSV จากส่วนขยาย Chrome (thp-tableau-downloader)
+    if (json && json.action === 'saveTableauCsv') {
+      return ContentService.createTextOutput(JSON.stringify(saveTableauCsv_(json))).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (json && json.action === 'importTableauCsvBatch') {
+      return ContentService.createTextOutput(JSON.stringify(importTableauCsvBatch_(json))).setMimeType(ContentService.MimeType.JSON);
     }
 
     // 1. ตรวจสอบว่าเป็นการส่ง Bug Report จากหน้าเว็บ (มี action = bugReport)
