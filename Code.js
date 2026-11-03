@@ -5187,13 +5187,16 @@ function saveTableauCsv_(json) {
     if (typeof json.csv !== 'string' || !json.csv) {
       return { status: 'error', message: 'ไม่มีข้อมูล CSV' };
     }
-    var folder = DriveApp.getFolderById(TABLEAU_FOLDER_ID);
+    // ผู้ใช้ต้องการให้ไฟล์อยู่ในโฟลเดอร์ย่อยชื่อ "Download" (สร้างให้ถ้ายังไม่มี)
+    var parent = DriveApp.getFolderById(TABLEAU_FOLDER_ID);
+    var found = parent.getFoldersByName('Download');
+    var folder = found.hasNext() ? found.next() : parent.createFolder('Download');
     var existing = folder.getFilesByName(json.fileName);
     while (existing.hasNext()) {
       existing.next().setTrashed(true);
     }
     var file = folder.createFile(Utilities.newBlob(json.csv, 'text/csv', json.fileName));
-    return { status: 'success', message: 'บันทึกแล้ว', fileId: file.getId() };
+    return { status: 'success', message: 'บันทึกแล้ว', fileId: file.getId(), folderUrl: folder.getUrl() };
   } catch (e) {
     sendErrorToLine_(e, 'saveTableauCsv_');
     return { status: 'error', message: e.message || String(e) };
