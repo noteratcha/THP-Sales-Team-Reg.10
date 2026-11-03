@@ -1206,7 +1206,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
     var periodDesc = describeAnalysisPeriod_(stats.period);
     var usageStats = null;
     try {
-      usageStats = recordAiUsage_(requestingUser, scope, periodDesc, true, modelName, 'สำเร็จ');
+      usageStats = recordAiUsage_(requestingUser, scope, periodDesc, true, lastGeminiModelUsed_ || modelName, 'สำเร็จ');
     } catch (logErr) {
       console.warn('recordAiUsage_ (new analysis) error: ' + logErr);
     }
@@ -1916,6 +1916,9 @@ function describeAnalysisPeriod_(pd) {
   return 'ช่วงเวลาที่เปรียบเทียบ: สะสม ' + pd.fromMonth + '–' + pd.toMonth + ' พ.ศ. ' + be + ' เทียบช่วงเดียวกัน พ.ศ. ' + cbe;
 }
 
+// รุ่น Gemini ที่ตอบสำเร็จล่าสุด (อาจเป็นรุ่นสำรอง) ใช้บันทึกประวัติการใช้งาน
+var lastGeminiModelUsed_ = '';
+
 // deadline (ms) = เวลาที่ต้องหยุดลองใหม่ เพื่อให้ตอบกลับก่อน Apps Script ตัดที่ 6 นาที (ไม่ระบุ = ไม่จำกัด)
 function callGeminiForRevenueReport_(stats, apiKey, deadline) {
   var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
@@ -1988,7 +1991,6 @@ function callGeminiForRevenueReport_(stats, apiKey, deadline) {
     JSON.stringify(statsForAi)
   ].filter(Boolean).join('\n');
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
   var fetchOptions = {
     method: 'post',
     contentType: 'application/json',
@@ -1999,27 +2001,49 @@ function callGeminiForRevenueReport_(stats, apiKey, deadline) {
     }),
     muteHttpExceptions: true
   };
-  // 429/500/503 = โมเดลมีผู้ใช้หนาแน่นชั่วคราว ลองใหม่สูงสุด 4 ครั้ง (รอ 2, 5, 10 วินาที)
-  var retryDelays = [2000, 5000, 10000];
-  var res, code, lastCallMs = 0, outOfTime = false;
-  for (var attempt = 0; ; attempt++) {
+  // 429/500/503 = โมเดลมีผู้ใช้หนาแน่น: สลับไปโมเดลสำรองทันที (โมเดลเดิมมักยังไม่ว่างในไม่กี่วินาที)
+  // โมเดลสำรองตั้งได้ที่ Script Properties GEMINI_FALLBACK_MODELS (คั่นด้วย ,) ค่าเริ่มต้นเป็นชื่อแฝงรุ่นล่าสุดของ Gemini
+  var fallbackProp = PropertiesService.getScriptProperties().getProperty('GEMINI_FALLBACK_MODELS');
+  var models = [model].concat((fallbackProp || 'gemini-flash-latest,gemini-flash-lite-latest').split(','))
+    .map(function(m) { return String(m).trim(); })
+    .filter(function(m, i, arr) { return m && arr.indexOf(m) === i; });
+  // ลำดับการลอง: ทุกโมเดล 1 รอบ แล้ววนซ้ำอีกรอบหลังรอ (สูงสุด 2 รอบ)
+  var plan = [];
+  for (var round = 0; round < 2; round++) {
+    models.forEach(function(m, i) { plan.push({ model: m, wait: round > 0 && i === 0 ? 5000 : (plan.length ? 2000 : 0) }); });
+  }
+  var res = null, code = 0, lastCallMs = 0, outOfTime = false, tried = [];
+  for (var p = 0; p < plan.length; p++) {
+    if (p > 0) {
+      // ไม่ลองต่อถ้าเวลาที่เหลือไม่พอสำหรับรอ + เรียกอีกรอบ (ประมาณจากเวลาที่ใช้ครั้งล่าสุด)
+      if (deadline && Date.now() + plan[p].wait + Math.max(lastCallMs, 30000) > deadline) {
+        outOfTime = true;
+        break;
+      }
+      Utilities.sleep(plan[p].wait);
+    }
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(plan[p].model) + ':generateContent';
     var callStart = Date.now();
-    res = UrlFetchApp.fetch(url, fetchOptions);
+    var r = UrlFetchApp.fetch(url, fetchOptions);
     lastCallMs = Date.now() - callStart;
-    code = res.getResponseCode();
-    if (code === 200 || [429, 500, 503].indexOf(code) === -1 || attempt >= retryDelays.length) break;
-    // ไม่ลองใหม่ถ้าเวลาที่เหลือไม่พอสำหรับรอ + เรียกอีกรอบ (ประมาณจากเวลาที่ใช้ครั้งล่าสุด)
-    if (deadline && Date.now() + retryDelays[attempt] + Math.max(lastCallMs, 30000) > deadline) {
-      outOfTime = true;
+    var c = r.getResponseCode();
+    tried.push(plan[p].model + ' ' + c);
+    // โมเดลสำรองที่ไม่มี (404) ข้ามไป แต่ถ้าเป็นโมเดลหลักให้แสดง error นั้น
+    if (c === 404 && p > 0) continue;
+    res = r;
+    code = c;
+    if (c === 200) {
+      lastGeminiModelUsed_ = plan[p].model;
       break;
     }
-    Utilities.sleep(retryDelays[attempt]);
+    if ([429, 500, 503].indexOf(c) === -1) break;
   }
+  console.log('Gemini attempts: ' + tried.join(', '));
   if (code !== 200) {
-    if (outOfTime || code === 429 || code === 503) {
-      throw new Error('ระบบ AI ของ Google มีผู้ใช้งานหนาแน่นชั่วคราว (Gemini API ' + code + ') กรุณาลองใหม่อีกครั้งในอีก 1-2 นาที');
+    if (outOfTime || code === 429 || code === 500 || code === 503) {
+      throw new Error('ระบบ AI ของ Google มีผู้ใช้งานหนาแน่นชั่วคราว (Gemini API ' + code + ', ลองแล้ว ' + tried.length + ' ครั้ง ' + models.length + ' รุ่น) กรุณาลองใหม่อีกครั้งในอีก 5-10 นาที');
     }
-    throw new Error('Gemini API ' + code + ': ' + res.getContentText().substring(0, 300));
+    throw new Error('Gemini API ' + code + ': ' + (res ? res.getContentText().substring(0, 300) : ''));
   }
   var body = JSON.parse(res.getContentText());
   var text = body.candidates && body.candidates[0] && body.candidates[0].content && body.candidates[0].content.parts
