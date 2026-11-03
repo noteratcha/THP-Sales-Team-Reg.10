@@ -1379,12 +1379,39 @@
         };
         const FIXED = ['ลำดับที่', 'ชื่อ ปณ.', 'ทีม', 'รายชื่อลูกค้า', 'รหัสสมาชิก', 'ระดับ', 'บริการ'];
         const groups = {}; const order = []; const yearSet = {};
+        const clean = (v) => String(v == null ? '' : v).trim();
+        // คนเดียวกัน = รหัสสมาชิกเดียวกัน (ถ้าไม่มีรหัส ใช้ ปณ.+ชื่อลูกค้า) — ระดับไม่ใช้แยกแถว
+        const personKey = (row) => {
+            const id = clean(row[2]);
+            return (id && id !== '-') ? 'ID:' + id.toUpperCase() : 'NM:' + clean(row[0]) + '\u0001' + clean(row[1]);
+        };
+        // ระดับสูงสุดของลูกค้าแต่ละคน (PLATINUM BOX > BLUE BOX > RED BOX > Customer > ไม่เป็นสมาชิก)
+        const LEVEL_RANK = ['PLATINUM BOX', 'BLUE BOX', 'RED BOX', 'CUSTOMER', 'ไม่เป็นสมาชิก'];
+        const levelRank = (lv) => {
+            const u = clean(lv).toUpperCase();
+            if (!u || u === '-') return 99;
+            let i = LEVEL_RANK.indexOf(u);
+            if (i === -1) i = LEVEL_RANK.findIndex(x => u.includes(x.split(' ')[0]));
+            return i === -1 ? 50 : i;
+        };
+        const bestLevel = {};
+        revenueFilteredRows.forEach(row => {
+            const pk = personKey(row);
+            if (!(pk in bestLevel) || levelRank(row[3]) < levelRank(bestLevel[pk])) bestLevel[pk] = clean(row[3]);
+        });
         revenueFilteredRows.forEach(row => {
             const mi = monthIdx(row[5]); const y = String(row[6] || '').trim();
             if (mi < 0 || !y) return;
             yearSet[y] = true;
-            const key = [row[0], row[10], row[1], row[2], row[3], row[4]].map(v => String(v == null ? '' : v).trim()).join('\u0001');
-            if (!groups[key]) { groups[key] = { info: [row[0], row[10], row[1], row[2], row[3], row[4]], vals: {} }; order.push(key); }
+            const pk = personKey(row);
+            const key = pk + '\u0002' + clean(row[4]).toUpperCase();
+            const stamp = (parseInt(y, 10) || 0) * 12 + mi;
+            if (!groups[key]) { groups[key] = { info: [row[0], row[10], row[1], row[2], bestLevel[pk], row[4]], vals: {}, stamp: -1 }; order.push(key); }
+            // ชื่อ ปณ./ทีม/ชื่อลูกค้า ใช้ของเดือนล่าสุด
+            if (stamp > groups[key].stamp) {
+                groups[key].stamp = stamp;
+                groups[key].info = [row[0], row[10], row[1], row[2], bestLevel[pk], row[4]];
+            }
             const g = groups[key].vals; const k = y + '|' + mi;
             if (!g[k]) g[k] = { q: 0, r: 0 };
             g[k].q += toNum(row[7]); g[k].r += toNum(row[8]);
