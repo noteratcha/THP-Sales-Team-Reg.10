@@ -443,13 +443,18 @@
     // ลองพาทั้งหน้าไป Vercel อัตโนมัติ ถ้าเบราว์เซอร์/กรอบของ Sites ไม่อนุญาต แสดงปุ่มให้กดไปเอง
     (function () {
         var VERCEL_URL = 'https://salesreg10.vercel.app/';
-        if (window.__THP_VERCEL_ADAPTER__) return; // อยู่บน Vercel แล้ว
+        // ทำงานเฉพาะตอนถูกฝังอยู่ในกรอบ (Sites ฝังได้ทั้งหน้า Vercel และหน้า Apps Script) — เปิดตรงๆ ไม่ต้องย้าย
+        var framed = true;
+        try { framed = window.self !== window.top; } catch (e) { framed = true; }
+        if (!framed) return;
         var fromSites = false;
         try {
             var ao = window.location.ancestorOrigins;
             if (ao) for (var i = 0; i < ao.length; i++) if (/sites\.google\.com$/i.test(String(ao[i]).replace(/\/$/, ''))) fromSites = true;
         } catch (e) {}
         if (!fromSites && /sites\.google\.com/i.test(document.referrer || '')) fromSites = true;
+        // Firefox ไม่มี ancestorOrigins: หน้า Vercel ที่ถูกฝังผ่านกรอบ googleusercontent ของ Sites ถือว่ามาจาก Sites
+        if (!fromSites && window.__THP_VERCEL_ADAPTER__ && /googleusercontent\.com/i.test(document.referrer || '')) fromSites = true;
         if (!fromSites) return;
 
         window.__THP_REDIRECTING_TO_VERCEL__ = true;
@@ -552,7 +557,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2121';
+    var APP_VERSION = 'Ver. 2026.1103.2126';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
