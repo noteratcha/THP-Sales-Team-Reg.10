@@ -507,7 +507,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2049';
+    var APP_VERSION = 'Ver. 2026.1103.2054';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -23617,6 +23617,8 @@
     // 0. BUG TRACKER & GLOBAL ERROR HANDLER
     // ==========================================
     window.onerror = function (message, source, lineno, colno, error) {
+        // คำเตือนของเบราว์เซอร์ที่ไม่ใช่ข้อผิดพลาดจริง (ไม่กระทบการทำงาน) ไม่ต้องแจ้งผู้ใช้
+        if (/ResizeObserver loop/i.test(String(message || ''))) return true;
         if (typeof Swal !== 'undefined') Swal.close();
         showDebugAlert(message, source, lineno, colno, error);
         return false;
@@ -28749,8 +28751,11 @@
             // แนบ ResizeObserver เพื่อคำนวณขนาดตัวอักษรใหม่อัตโนมัติเมื่อขนาดหน้าจอเปลี่ยน
             if (typeof ResizeObserver !== 'undefined' && !window.__kpiResizeObserverAttached) {
                 window.__kpiResizeObserverAttached = true;
+                let roFrame = 0;
                 const ro = new ResizeObserver(function() {
-                    autoFitAllKpiValues();
+                    // เลื่อนไปเฟรมถัดไป กัน ResizeObserver loop (ปรับขนาดตัวอักษรในกรอบที่กำลังถูกสังเกต)
+                    cancelAnimationFrame(roFrame);
+                    roFrame = requestAnimationFrame(autoFitAllKpiValues);
                 });
                 if (countContainer) ro.observe(countContainer);
                 if (revContainer) ro.observe(revContainer);
