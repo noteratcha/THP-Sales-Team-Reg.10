@@ -529,6 +529,8 @@
                     try { w.opener = null; } catch (e) {}
                     opened = true;
                     label.textContent = '✓ เปิดเว็บไซต์ใหม่แล้ว';
+                    // ลูกโลกหมุนหายไปตอนเปิด → แสดงเครื่องหมายสำเร็จแทนวงว่าง
+                    if (rocket) { rocket.textContent = '✅'; rocket.style.animation = 'thpPop .5s ease-out both'; }
                     btn.style.animation = 'none';
                     btn.style.background = '#16a34a';
                     var card = btn.parentElement;
@@ -621,7 +623,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2145';
+    var APP_VERSION = 'Ver. 2026.1103.2149';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
