@@ -74,20 +74,39 @@
                     label.textContent = 'กำลังเปิดเว็บไซต์ใหม่...';
                     if (rocket) rocket.style.animation = 'thpLaunch .9s ease-in forwards';
                     try { window.top.location.href = VERCEL_URL; } catch (e) {}
-                    try { window.open(VERCEL_URL, '_blank', 'noopener'); } catch (e) {}
+                    openNewTab();
                     setTimeout(function () {
+                        if (opened) return;
                         // ยังอยู่หน้าเดิม = ถูกบล็อก ให้กดเอง (ลูกโลกกลับมาแกว่งรอ)
                         label.textContent = 'กดที่นี่เพื่อเปิดเว็บไซต์ใหม่';
                         if (rocket) rocket.style.animation = 'thpFloat 2.4s ease-in-out infinite';
                     }, 1400);
                 };
+                // เปิดแท็บใหม่ ถ้าสำเร็จแจ้งให้ปิดแท็บนี้ (เบราว์เซอร์ไม่ให้เว็บปิดแท็บที่ผู้ใช้เปิดเอง จึงลองปิดได้แค่ "ลอง")
+                var opened = false;
+                function openNewTab() {
+                    if (opened) return true;
+                    var w = null;
+                    try { w = window.open(VERCEL_URL, '_blank'); } catch (e) {}
+                    if (!w) return false;
+                    try { w.opener = null; } catch (e) {}
+                    opened = true;
+                    label.textContent = '✓ เปิดเว็บไซต์ใหม่แล้ว';
+                    btn.style.animation = 'none';
+                    btn.style.background = '#16a34a';
+                    var card = btn.parentElement;
+                    var note = card.lastElementChild;
+                    if (note) note.innerHTML = '<b style="color:#16a34a;font-size:14px">ปิดแท็บนี้ได้เลย</b><br>ใช้งานต่อที่แท็บ salesreg10.vercel.app';
+                    try { window.top.close(); } catch (e) {}
+                    try { window.close(); } catch (e) {}
+                    return true;
+                }
                 tick();
                 btn.addEventListener('click', function (ev) {
-                    // target=_top ถูกกรอบบล็อกได้ → เปิดแท็บใหม่แทน
-                    try { window.top.location.href = VERCEL_URL; ev.preventDefault(); } catch (e) {
-                        ev.preventDefault(); window.open(VERCEL_URL, '_blank', 'noopener');
-                    }
-                    setTimeout(function () { window.open(VERCEL_URL, '_blank', 'noopener'); }, 600);
+                    ev.preventDefault();
+                    // เปิดแท็บใหม่ทันทีในจังหวะที่ผู้ใช้กด (เบราว์เซอร์ยอมเปิดเฉพาะตอนกดจริง)
+                    if (opened) { window.open(VERCEL_URL, '_blank'); return; }
+                    if (!openNewTab()) { try { window.top.location.href = VERCEL_URL; } catch (e) {} }
                 });
             };
             if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
@@ -165,7 +184,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2133';
+    var APP_VERSION = 'Ver. 2026.1103.2145';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
