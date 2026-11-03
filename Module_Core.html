@@ -10,7 +10,19 @@
             return raw ? (JSON.parse(raw).token || '') : '';
         } catch (e) { return ''; }
     };
+    // งานที่ต้องเรียกหลังบ้านด้วย session: ถ้ายังไม่ล็อกอิน เก็บไว้ทำหลังล็อกอิน (restoreSession เรียก flush)
+    window.__postLoginQueue = window.__postLoginQueue || [];
+    window.runWhenLoggedIn = function (fn) {
+        if (window.getThpSessionToken()) { try { fn(); } catch (e) { console.error(e); } }
+        else window.__postLoginQueue.push(fn);
+    };
+    window.flushPostLoginQueue = function () {
+        var q = window.__postLoginQueue.splice(0);
+        q.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
+    };
     window.handleSessionExpired = function () {
+        // ยังไม่ได้ล็อกอิน (ไม่มี token) ไม่ต้องเด้งและรีโหลด กันวนรีโหลดที่หน้าเข้าสู่ระบบ
+        if (!window.getThpSessionToken()) return;
         if (window.__sessionExpiredShown) return;
         window.__sessionExpiredShown = true;
         try { if (typeof SafeStorage !== 'undefined') SafeStorage.removeItem('thp_user_session'); else localStorage.removeItem('thp_user_session'); } catch (e) {}
@@ -54,7 +66,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1531';
+    var APP_VERSION = 'Ver. 2026.1103.1904';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2136,7 +2148,8 @@
             }
 
             switchPage(targetPage);
-            
+            if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();
+
             // 💡 เรียกให้แสดง Skeleton ทันทีที่เข้าสู่ระบบ
             if (typeof window.updateHomeVisitSummary === 'function') {
                 window.updateHomeVisitSummary();

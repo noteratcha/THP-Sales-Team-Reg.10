@@ -5967,7 +5967,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof setupRevenueDragAndDrop === 'function') setupRevenueDragAndDrop();
         if (typeof setupYearDropdown === 'function') setupYearDropdown();
-        if (typeof fetchLastUpdateA1A14 === 'function') fetchLastUpdateA1A14();
+        if (typeof fetchLastUpdateA1A14 === 'function') window.runWhenLoggedIn(fetchLastUpdateA1A14);
 
         // ผูก Event ให้ดึงข้อมูล Template เมื่อเปิดหน้าเมนูตั้งค่า
         const settingsMenu = document.getElementById('menu-settings');

@@ -584,8 +584,11 @@
 
     function checkGoogleAndLoad() {
         if (typeof google !== 'undefined' && google.script && google.script.run) {
-            loadDropdownOptions();
-            loadServicesDropdown();
+            // ต้องมี session ก่อน (ข้อมูลเข้าพบ/บริการ ไม่ดึงตอนยังไม่ล็อกอิน)
+            window.runWhenLoggedIn(function () {
+                loadDropdownOptions();
+                loadServicesDropdown();
+            });
         } else {
             setTimeout(checkGoogleAndLoad, 50);
         }

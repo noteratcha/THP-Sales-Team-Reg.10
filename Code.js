@@ -288,7 +288,16 @@ function saveData_(data) {
 /**
  * ฟังก์ชัน: ดึงข้อมูลการเข้าพบทั้งหมดเพื่อแสดงในตาราง
  */
-function getDataForTable_() {
+// requestingUser มาจาก session เสมอ (อยู่ใน AUTH_USER_SCOPED_FUNCTIONS) ไม่มี session = ต้องล็อกอินใหม่
+// admin/viewer ได้ข้อมูลเต็ม ผู้ใช้อื่นได้ข้อมูลเต็มเฉพาะที่ทำการของตน
+// ที่ทำการอื่นตัดข้อมูลส่วนบุคคลออก (ชื่อ, เบอร์โทร, รหัส Post Family, รูป) แต่คงคอลัมน์ที่ใช้นับ/สรุปภาพรวม
+var VISIT_PII_COLUMNS = [7, 8, 17, 18];
+
+function getDataForTable_(requestingUser) {
+  var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
+  if (!login) throw new Error('SESSION_EXPIRED');
+  var fullAccess = (login === 'admin' || login === 'viewer');
+  var ownZip = String(requestingUser.zipcode || '').trim();
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
@@ -330,6 +339,17 @@ function getDataForTable_() {
       }
     }
     
+    if (!fullAccess) {
+      for (var k = 0; k < filteredRows.length; k++) {
+        var rowZip = String(filteredRows[k][5]).replace(/^'/, "").trim();
+        if (rowZip !== ownZip) {
+          for (var c = 0; c < VISIT_PII_COLUMNS.length; c++) {
+            if (filteredRows[k].length > VISIT_PII_COLUMNS[c]) filteredRows[k][VISIT_PII_COLUMNS[c]] = '';
+          }
+        }
+      }
+    }
+
     var resultData = [headers].concat(filteredRows);
     return { status: 'success', data: resultData };
   } catch (e) {
@@ -5111,7 +5131,7 @@ var API_ALLOWED_FUNCTIONS = [
 // ต้องผ่าน api() (โหมด Apps Script) หรือ doPost executeFunction (โหมด Vercel) ซึ่งตรวจ session token ก่อน
 // Script Property AUTH_ENFORCE = 'true' → บังคับต้องมี token (ปิดไว้ = ยอมให้เรียกได้แม้ไม่มี token ระหว่างทยอยเปลี่ยน)
 var AUTH_PUBLIC_FUNCTIONS = ['checkLogin', 'incrementVisitorCount', 'logFrontendErrorToLine', 'sendBugReportToLine', 'getAiUsageStats'];
-var AUTH_USER_SCOPED_FUNCTIONS = ['getRevenueAnalysisReport', 'getHomeRevenueSummary', 'getRevenueReportData'];
+var AUTH_USER_SCOPED_FUNCTIONS = ['getRevenueAnalysisReport', 'getHomeRevenueSummary', 'getRevenueReportData', 'getDataForTable'];
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
 function createSession_(info) {
@@ -5146,10 +5166,15 @@ function dispatchApiCall_(token, funcName, args) {
       throw new Error('SESSION_EXPIRED');
     }
     // ฟังก์ชันที่ดูข้อมูลตามพื้นที่: ใช้ผู้ใช้จาก session เสมอ (ปลอม user จากหน้าเว็บไม่ได้)
-    if (sess && AUTH_USER_SCOPED_FUNCTIONS.indexOf(funcName) !== -1) {
-      var u = (args[0] && typeof args[0] === 'object') ? args[0] : {};
-      u.user = sess.user; u.zipcode = sess.zipcode;
-      args[0] = u;
+    if (AUTH_USER_SCOPED_FUNCTIONS.indexOf(funcName) !== -1) {
+      if (sess) {
+        var u = (args[0] && typeof args[0] === 'object') ? args[0] : {};
+        u.user = sess.user; u.zipcode = sess.zipcode;
+        args[0] = u;
+      } else if (funcName === 'getDataForTable') {
+        // ไม่มี session ห้ามใช้ข้อมูลผู้ใช้ที่หน้าเว็บส่งมาเอง (ปลอมเป็น admin ได้)
+        args[0] = {};
+      }
     }
   }
   var fn = globalThis[funcName + '_'] || globalThis[funcName];
