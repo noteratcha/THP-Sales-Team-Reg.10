@@ -1049,7 +1049,7 @@
         } else {
             errorSound.play().catch(e => { });
             const errMsg = res ? res.message : 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง';
-            
+
             if (errMsg.includes('DriveApp') || errMsg.includes('ไม่ได้รับอนุญาตให้เข้าถึง')) {
                 Swal.fire({
                     icon: 'warning',
@@ -1076,7 +1076,7 @@
         const btn = document.getElementById('btnSave'); if (btn) btn.disabled = false;
         errorSound.play().catch(e => { });
         const errMsg = e ? e.toString() : 'Unknown Error';
-        
+
         if (errMsg.includes('DriveApp') || errMsg.includes('ไม่ได้รับอนุญาตให้เข้าถึง')) {
             Swal.fire({
                 icon: 'warning',
@@ -1109,7 +1109,7 @@
                     <span class="bg-blue-500 text-white p-1.5 rounded-lg text-xs"><i class="fas fa-chart-bar"></i></span>
                     สรุปการเข้าพบลูกค้า
                 </h3>
-                
+
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
                     <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-[10px] sm:text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm">
@@ -1126,6 +1126,8 @@
             </div>
             <!-- Body -->
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
+                <!-- แถบสรุปตัวเลข (แสดงบนจอเท่านั้น ไม่ติดไปกับรูปที่บันทึก/ส่ง LINE) -->
+                <div id="visitSummaryKpis" class="mb-5"></div>
                 <div id="visitSummaryContent" class="space-y-8">
                     <!-- Tables will be injected here -->
                     <div class="text-center py-8 text-gray-500">กำลังประมวลผลข้อมูล...</div>
@@ -2578,7 +2580,7 @@
                     .popup-scrollbar::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
                     .popup-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
                     .popup-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-                    
+
                     /* Override Swal Defaults for Full Screen Modal effect matching Revenue Modal */
                     .custom-swal-container { padding: 0 !important; }
                     .custom-swal-popup { 
@@ -2600,7 +2602,7 @@
                     }
                     .swal2-title { display: none !important; }
                 ${'</' + 'style>'}
-                
+
                 <!-- Header (Style exactly like Revenue Modal) -->
                 <div class="flex justify-between items-center p-4 sm:p-5 border-b border-gray-100 bg-white z-10 shadow-sm shrink-0 text-left">
                     <div class="flex items-center gap-3">
@@ -2624,10 +2626,10 @@
 
                 <!-- Content Area (Scrollable with Cards) -->
                 <div id="monthVisitExportArea" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 w-full flex flex-col gap-4 sm:gap-6 relative">
-                    
+
                     <!-- Stats Area (Top Cards) -->
                     <div class="flex flex-col xl:flex-row gap-4 sm:gap-6 w-full shrink-0">
-                        
+
                         <!-- 1. Overall Stats Card -->
                         <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 flex-1 flex flex-wrap items-center justify-center sm:justify-around gap-4 text-sm font-bold text-gray-700">
                             <div class="flex flex-col items-center gap-1"><span class="text-[10px] text-gray-400 uppercase tracking-wider"><i class="fas fa-users text-theme-orange mr-1"></i> รวมเข้าพบ</span><span class="text-theme-orange text-xl sm:text-2xl">${totalActual.toLocaleString()} <span class="text-xs text-gray-500 font-medium">ครั้ง</span></span></div>
@@ -2668,10 +2670,10 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Dashboard Grid -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-                        
+
                         <!-- Chart Area -->
                         <div class="bg-white p-5 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 lg:col-span-2 flex flex-col min-h-[400px]">
                             <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center justify-between shrink-0 border-b border-gray-100 pb-3 text-left">
@@ -2682,7 +2684,7 @@
                             </h4>
                             <div class="relative flex-1 w-full"><canvas id="popupMonthChart"></canvas></div>
                         </div>
-                        
+
                         <!-- Top 5 Offices -->
                         <div class="bg-white p-5 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 lg:col-span-1 flex flex-col min-h-[400px] max-h-[500px]">
                             <h4 class="text-sm font-bold text-gray-700 mb-4 flex items-center justify-between shrink-0 border-b border-gray-100 pb-3 text-left">
@@ -2754,13 +2756,13 @@
                                         <tr>
                                             <th style="width: 35px;" class="py-2.5 px-2 text-white font-semibold border-b border-slate-700 text-center align-middle text-[10px] uppercase tracking-wider rounded-tl-lg">#</th>
                                             <th style="width: 150px;" class="py-2.5 px-2 text-white font-semibold border-b border-slate-700 align-middle text-[10px] uppercase tracking-wider">ที่ทำการ</th>
-                                            
+
                                             <!-- Group Headers -->
                                             <th style="width: 80px;" class="py-2.5 px-1.5 text-white font-semibold border-b border-slate-700 text-center align-middle text-[10px] tracking-wider whitespace-normal leading-tight">ระหว่างประเทศ</th>
                                             <th style="width: 75px;" class="py-2.5 px-1.5 text-white font-semibold border-b border-slate-700 text-center align-middle text-[10px] tracking-wider whitespace-normal leading-tight">e-Commerce</th>
                                             <th style="width: 95px;" class="py-2.5 px-1.5 text-white font-semibold border-b border-slate-700 text-center align-middle text-[10px] tracking-wider whitespace-normal leading-tight">ไปรษณียภัณฑ์/<br>การเงิน/ค้าปลีก</th>
                                             <th style="width: 55px;" class="py-2.5 px-1.5 text-white font-semibold border-b border-slate-700 text-center align-middle text-[10px] tracking-wider whitespace-normal leading-tight">Fuze</th>
-                                            
+
                                             <th style="width: 65px;" class="py-2.5 px-2 text-white font-semibold border-b border-slate-700 text-right align-middle text-[10px] uppercase tracking-wider">เป้าหมาย</th>
                                             <th style="width: 65px;" class="py-2.5 px-2 text-white font-semibold border-b border-slate-700 text-right align-middle text-[10px] uppercase tracking-wider">เข้าพบ</th>
                                             <th style="width: 70px;" class="py-2.5 px-2 text-white font-semibold border-b border-slate-700 text-right align-middle text-[10px] uppercase tracking-wider">% เข้าพบ</th>
@@ -4050,7 +4052,7 @@
     // ==========================================
     // 5. สรุปการเข้าพบลูกค้า (Summary Modal)
     // ==========================================
-    
+
     async function getVisitSummaryBase64(targetEl) {
         if (!targetEl) return null;
 
@@ -4062,7 +4064,7 @@
         offScreen.style.backgroundColor = '#ffffff';
         offScreen.style.padding = '40px';
         offScreen.style.zIndex = '-1';
-        
+
         const styleFix = document.createElement('style');
         styleFix.innerHTML = `
             table th, table td {
@@ -4087,7 +4089,7 @@
             .cell-wrapper-right { justify-content: flex-end; text-align: right; }
         `;
         offScreen.appendChild(styleFix);
-        
+
         const headerHtml = `
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;">
                 <div style="background-color: #3b82f6; color: white; padding: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
@@ -4096,16 +4098,16 @@
                 <h2 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0; font-family: 'Sarabun', sans-serif;">สรุปการเข้าพบลูกค้า</h2>
             </div>
         `;
-        
+
         const titleContainer = document.createElement('div');
         titleContainer.innerHTML = headerHtml;
         offScreen.appendChild(titleContainer);
-        
+
         const clone = targetEl.cloneNode(true);
         clone.style.height = 'auto';
         clone.style.overflow = 'visible';
         clone.style.maxHeight = 'none';
-        
+
         const cells = clone.querySelectorAll('td, th');
         cells.forEach(cell => {
             const inner = cell.innerHTML;
@@ -4117,14 +4119,14 @@
             }
             cell.innerHTML = `<div class="cell-wrapper ${wrapClass}">${inner}</div>`;
         });
-        
+
         offScreen.appendChild(clone);
         document.body.appendChild(offScreen);
-        
+
         await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 80)));
-        
+
         offScreen.offsetHeight;
-        
+
         const tbodyTrs = Array.from(clone.querySelectorAll('table tbody tr'));
         for (let i = 0; i < tbodyTrs.length; i++) {
             const tr = tbodyTrs[i];
@@ -4138,17 +4140,17 @@
                             totalHeight += tbodyTrs[i + k].offsetHeight;
                         }
                     }
-                    
+
                     firstTd.removeAttribute('rowspan');
                     const cellContent = firstTd.textContent.trim();
                     const className = firstTd.className;
-                    
+
                     firstTd.style.position = 'relative';
                     firstTd.style.setProperty('border-bottom', 'none', 'important');
                     firstTd.innerHTML = `<div style="position: absolute; top: 0; left: 0; width: 100%; height: ${totalHeight}px; display: flex; align-items: center; justify-content: center; z-index: 10; padding: 0 12px; box-sizing: border-box; background: transparent;">
                         <div style="width: 100%; text-align: center; white-space: normal; word-break: break-word;">${cellContent}</div>
                     </div>`;
-                    
+
                     for (let j = 1; j < rowspan; j++) {
                         const nextTr = tbodyTrs[i + j];
                         if (nextTr) {
@@ -4165,7 +4167,7 @@
                 }
             }
         }
-        
+
         await document.fonts.ready;
         await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -4190,18 +4192,18 @@
             Swal.fire('ข้อผิดพลาด', 'ไม่พบไลบรารี html2canvas สำหรับบันทึกรูปภาพ', 'error');
             return;
         }
-        
+
         try {
             showGlobalLoader('กำลังบันทึกรูปภาพ...');
             await new Promise(resolve => setTimeout(resolve, 80));
-            
+
             const targetEl = document.querySelector('#visitSummaryContent');
             const base64Data = await getVisitSummaryBase64(targetEl);
             if (!base64Data) {
                 hideGlobalLoader();
                 return;
             }
-            
+
             const link = document.createElement('a');
             link.download = `สรุปการเข้าพบลูกค้า_${new Date().toISOString().slice(0,10)}.jpg`;
             link.href = base64Data;
@@ -4227,7 +4229,7 @@
         try {
             showGlobalLoader('กำลังเตรียมส่งรูปภาพ...');
             await new Promise(resolve => setTimeout(resolve, 80));
-            
+
             const tables = document.querySelectorAll('#visitSummaryContent > div.bg-white');
             if (!tables || tables.length === 0) {
                 hideGlobalLoader();
@@ -4239,7 +4241,7 @@
                 showGlobalLoader(`กำลังสร้างรูปภาพตารางที่ ${i+1}/${tables.length}...`);
                 const base64Data = await getVisitSummaryBase64(tables[i]);
                 if (!base64Data) continue;
-                
+
                 let titleText = "สรุปการเข้าพบลูกค้า";
                 let dateText = "";
                 const headerDivs = tables[i].querySelectorAll('.bg-gray-50 > div');
@@ -4292,7 +4294,7 @@
             }
 
             showGlobalLoader('กำลังอัปโหลดและส่งรูปภาพทั้งหมดไปยัง LINE...');
-            
+
             const result = await new Promise((resolve, reject) => {
                 google.script.run
                     .withSuccessHandler(function(response) {
@@ -4309,9 +4311,9 @@
                     })
                     .sendVisitSummaryImagesToLine(imagesData);
             });
-            
+
             hideGlobalLoader();
-            
+
             // อัปเดตสถานะโควตาใหม่หลังส่งสำเร็จ
             fetchLineQuotaStatus();
 
@@ -4343,7 +4345,7 @@
             hideGlobalLoader();
             console.error('Send to LINE Error:', err);
             const isQuota = err.isQuotaFull || (err.message && (err.message.includes('โควตา') || err.message.includes('429') || err.message.includes('monthly limit')));
-            
+
             if (isQuota) {
                 fetchLineQuotaStatus();
                 Swal.fire({
@@ -4459,7 +4461,7 @@
                 const statusBadge = t.isFull
                     ? '<span class="px-2 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">โควตาเต็ม</span>'
                     : `<span class="px-2 py-0.5 rounded-full text-[10px] bg-green-100 text-green-700 font-bold">เหลือ ${t.remaining} ข้อความ</span>`;
-                
+
                 return `
                     <div class="p-3 rounded-xl border ${isCurrent ? 'border-blue-400 bg-blue-50/50' : 'border-gray-200 bg-white'} space-y-2">
                         <div class="flex items-center justify-between">
@@ -4509,11 +4511,11 @@
     // ==========================================
     function openVisitSummaryModal() {
         const modal = document.getElementById('visitSummaryModal');
-        
+
         // Check if admin to show LINE OA button
         const btnLineOA = document.getElementById('btnSendLineOA');
         const btnDownload = document.getElementById('btnDownloadVisitSummary');
-        
+
         if (btnLineOA) {
             const isAdmin = typeof currentUserInfo !== 'undefined' && currentUserInfo.user && String(currentUserInfo.user).toLowerCase() === 'admin';
             if (isAdmin) {
@@ -4525,14 +4527,14 @@
                 btnLineOA.classList.remove('flex');
             }
         }
-        
+
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.remove('opacity-0');
             modal.querySelector('.bg-white').classList.remove('scale-95');
             modal.querySelector('.bg-white').classList.add('scale-100');
         }, 10);
-        
+
         // ตรวจสอบว่ามีการโหลดข้อมูลหรือยัง ถ้ายังไม่มีในแรม ให้ตรวจจากแคชความเร็วสูงก่อน
         if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
             const cachedVisitRaw = (typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_cache_visit_raw') : null;
@@ -4544,7 +4546,7 @@
                         generateVisitSummary();
                         if (btnLineOA) { btnLineOA.disabled = false; btnLineOA.classList.remove('opacity-50', 'cursor-not-allowed'); }
                         if (btnDownload) { btnDownload.disabled = false; btnDownload.classList.remove('opacity-50', 'cursor-not-allowed'); }
-                        
+
                         // แอบซิงค์สดเบื้องหลังแบบเงียบๆ เพื่อความสดใหม่ของข้อมูล
                         google.script.run
                             .withSuccessHandler((res) => {
@@ -4563,10 +4565,10 @@
             // ถ้าไม่มีแคชจริงๆ ให้หมุนโหลดตามปกติ
             if (btnLineOA) { btnLineOA.disabled = true; btnLineOA.classList.add('opacity-50', 'cursor-not-allowed'); }
             if (btnDownload) { btnDownload.disabled = true; btnDownload.classList.add('opacity-50', 'cursor-not-allowed'); }
-            
+
             const content = document.getElementById('visitSummaryContent');
             content.innerHTML = `<div class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-blue-500"></i><br>กำลังดึงข้อมูล...</div>`;
-            
+
             google.script.run
                 .withSuccessHandler((res) => {
                     if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 1) {
@@ -4599,6 +4601,51 @@
         }, 300);
     }
 
+    // แถบสรุปตัวเลขด้านบนหน้าต่าง: เดือนนี้ (สะสม) และเมื่อวาน
+    function renderVisitSummaryKpis(dataMonth, dataYesterday, monthStr, yesterdayStr) {
+        const box = document.getElementById('visitSummaryKpis');
+        if (!box) return;
+        const sum = (data) => {
+            const r = { lead: 0, visit: 0, ok: 0, ng: 0 };
+            Object.keys(data || {}).forEach(p => Object.keys(data[p]).forEach(t => {
+                const x = data[p][t];
+                r.lead += x.lead_ecom + x.lead_inter + x.lead_fuze;
+                r.visit += x.visit_ecom + x.visit_inter + x.visit_fuze;
+                r.ok += x.success; r.ng += x.fail;
+            }));
+            return r;
+        };
+        const card = (label, value, icon, color, sub) => `
+            <div class="bg-white border border-gray-100 rounded-xl px-3 py-2.5 shadow-sm min-w-0">
+                <div class="text-[11px] text-gray-500 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas ${icon} ${color}"></i> ${label}</div>
+                <div class="text-2xl font-black ${color} leading-tight mt-0.5">${value}</div>
+                ${sub ? `<div class="text-[10px] text-gray-400 truncate">${sub}</div>` : ''}
+            </div>`;
+        const group = (title, dateStr, r, accent) => {
+            const decided = r.ok + r.ng;
+            const rate = decided > 0 ? Math.round(r.ok / decided * 100) + '%' : '–';
+            return `
+            <div class="rounded-2xl border ${accent.border} ${accent.bg} p-3">
+                <div class="flex items-center justify-between mb-2 gap-2">
+                    <div class="text-sm font-bold ${accent.text}"><i class="fas ${accent.icon} mr-1"></i>${title}</div>
+                    <div class="text-[11px] text-gray-500 truncate">${dateStr}</div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    ${card('Lead', r.lead.toLocaleString(), 'fa-user-tag', 'text-sky-600')}
+                    ${card('เข้าพบ', r.visit.toLocaleString(), 'fa-handshake', 'text-orange-600')}
+                    ${card('ปิดได้', r.ok.toLocaleString(), 'fa-check-circle', 'text-emerald-600', 'ปิดไม่ได้ ' + r.ng.toLocaleString())}
+                    ${card('อัตราปิดได้', rate, 'fa-percent', 'text-violet-600', decided > 0 ? 'จาก ' + decided + ' รายที่มีผล' : 'ยังไม่มีผลการเสนอ')}
+                </div>
+            </div>`;
+        };
+        box.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                ${group('สะสมเดือนนี้', monthStr, sum(dataMonth), { border: 'border-blue-100', bg: 'bg-blue-50/50', text: 'text-blue-800', icon: 'fa-calendar-alt' })}
+                ${group('เมื่อวาน', yesterdayStr, sum(dataYesterday), { border: 'border-purple-100', bg: 'bg-purple-50/50', text: 'text-purple-800', icon: 'fa-calendar-day' })}
+            </div>
+            <div class="mt-2 text-[11px] text-gray-400 flex items-center gap-1.5"><i class="fas fa-hand-pointer"></i> คลิกชื่อจังหวัด ทีม หรือที่ทำการในตาราง เพื่อดูรายการเข้าพบ · แถวสีเหลืองอ่อน = มีความเคลื่อนไหว</div>`;
+    }
+
     function generateVisitSummary() {
         const content = document.getElementById('visitSummaryContent');
         if (typeof globalAllFetchedRows === 'undefined' || !globalAllFetchedRows || globalAllFetchedRows.length === 0) {
@@ -4609,29 +4656,29 @@
         }
 
         const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
-        
+
         // กำหนดวันที่: เมื่อวาน
         let today = new Date();
         let yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         // เดือนของเมื่อวาน
         let monthName = yesterday.toLocaleDateString('th-TH', { month: 'long' });
         let yearThai = yesterday.getFullYear() + 543;
-        
+
         // หาช่วงวันที่ 1 ถึงเมื่อวาน
         let startDay = 1;
         let endDay = yesterday.getDate();
-        
+
         const globalOfficeMap = {};
-        
+
         // Build globalOfficeMap to ensure 1 office -> 1 team, and store ZIP code
         globalAllFetchedRows.forEach(row => {
             const teamFull = String(row[6] || '').trim();
             if (!teamFull) return;
-            
+
             const zip = String(row[5] || '').trim().replace(/^'/, "");
-            
+
             let province = "ไม่ระบุ";
             let foundProv = customProvOrder.find(p => teamFull.includes(p));
             if (foundProv) {
@@ -4643,25 +4690,25 @@
             else if (zip.startsWith('47')) province = 'สกลนคร';
             else if (zip.startsWith('48')) province = 'นครพนม';
             else if (zip.startsWith('49')) province = 'มุกดาหาร';
-            
+
             if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') province = 'ศป.อุบลราชธานี';
             if (teamFull.includes('ศป.สกลนคร') || zip === '47010') province = 'ศป.สกลนคร';
-            
+
             let rawOfficeName = String(row[4] || '').trim();
             let officeName = rawOfficeName;
             if (province !== 'ศป.อุบลราชธานี' && province !== 'ศป.สกลนคร') {
                 officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
             }
             officeName = officeName.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
-            
+
             if (officeName && officeName !== 'ไม่ระบุ') {
                 globalOfficeMap[officeName] = { team: teamFull, province: province, zip: zip };
             }
         });
-        
+
         const processData = (predicate) => {
             const summary = {};
-            
+
             // Initialize summary structure based on globalOfficeMap
             Object.values(globalOfficeMap).forEach(info => {
                 let p = info.province;
@@ -4680,25 +4727,25 @@
                 let info = globalOfficeMap[officeName];
                 summary[info.province][info.team || 'ไม่ระบุทีม'].offices.add(officeName);
             });
-            
+
             // Phase 3: Process the data
             globalAllFetchedRows.forEach(row => {
                 const dateStr = row[0] ? String(row[0]).split(' ')[0] : ''; // DD/MM/YYYY
                 if (!dateStr) return;
-                
+
                 const parts = dateStr.split('/');
                 if (parts.length < 3) return;
-                
+
                 const rDay = parseInt(parts[0], 10);
                 const rMonth = parseInt(parts[1], 10) - 1; // 0-11
                 const rYear = parseInt(parts[2], 10);
                 const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
                 const rDate = new Date(rYearCE, rMonth, rDay);
-                
+
                 if (predicate(rDate)) {
                     const teamFull = String(row[6] || '').trim();
                     const zip = String(row[5] || '').trim().replace(/^'/, "");
-                    
+
                     let initialProv = "ไม่ระบุ";
                     let foundProv = customProvOrder.find(p => teamFull.includes(p));
                     if (foundProv) {
@@ -4710,69 +4757,69 @@
                     else if (zip.startsWith('47')) initialProv = 'สกลนคร';
                     else if (zip.startsWith('48')) initialProv = 'นครพนม';
                     else if (zip.startsWith('49')) initialProv = 'มุกดาหาร';
-                    
+
                     if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') initialProv = 'ศป.อุบลราชธานี';
                     if (teamFull.includes('ศป.สกลนคร') || zip === '47010') initialProv = 'ศป.สกลนคร';
-                    
+
                     let rawOfficeName = String(row[4] || '').trim();
                     let officeName = rawOfficeName;
                     if (initialProv !== 'ศป.อุบลราชธานี' && initialProv !== 'ศป.สกลนคร') {
                         officeName = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
                     }
                     officeName = officeName.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
-                    
+
                     let mappedInfo = globalOfficeMap[officeName];
                     if (!mappedInfo) return;
-                    
+
                     let province = mappedInfo.province;
                     let teamName = mappedInfo.team || 'ไม่ระบุทีม';
 
                     const group = String(row[2] || '').trim(); // คอลัมน์ C: บริการ / Group
-                    
+
                     let ecomCount = 0;
                     if (group.includes('e-Commerce')) ecomCount++;
                     if (group.includes('ไปรษณียภัณฑ์')) ecomCount++;
-                    
+
                     let interCount = group.includes('ระหว่างประเทศ') ? 1 : 0;
                     let fuzeCount = group.includes('Fuze') ? 1 : 0;
-                    
+
                     let totalCount = ecomCount + interCount + fuzeCount;
                     if (totalCount === 0) totalCount = 1; // Fallback in case of unmatched group but valid result
-                    
+
                     const result = String(row[19] || '').trim(); // คอลัมน์ T
                     let isSuccess = result === 'ปิดได้' || result === 'จัดได้';
                     let isFail = result === 'ปิดไม่ได้' || result === 'จัดไม่ได้';
-                    
+
                     let t = summary[province][teamName];
-                    
+
                     if (ecomCount > 0) { t.lead_ecom += ecomCount; t.visit_ecom += ecomCount; }
                     if (interCount > 0) { t.lead_inter += interCount; t.visit_inter += interCount; }
                     if (fuzeCount > 0) { t.lead_fuze += fuzeCount; t.visit_fuze += fuzeCount; }
-                    
+
                     if (isSuccess) t.success += totalCount;
                     if (isFail) t.fail += totalCount;
                 }
             });
             return summary;
         };
-        
+
         const dataMonth = processData((d) => {
             return d.getFullYear() === yesterday.getFullYear() && 
                    d.getMonth() === yesterday.getMonth() && 
                    d.getDate() >= 1 && d.getDate() <= endDay;
         });
-        
+
         const dataYesterday = processData((d) => {
             return d.getFullYear() === yesterday.getFullYear() && 
                    d.getMonth() === yesterday.getMonth() && 
                    d.getDate() === yesterday.getDate();
         });
-        
+
         const renderTableHtml = (data, dateRangeStr, isPurple = false) => {
             const colStyle = isPurple ? 'background-color: #faf5ff; color: #9333ea;' : 'background-color: #eff6ff; color: #2563eb;';
             const rowStyle = isPurple ? 'background-color: #f3e8ff; color: #581c87;' : 'background-color: #dbeafe; color: #1e3a8a;';
             const intStyle = isPurple ? 'background-color: #e9d5ff; color: #581c87;' : 'background-color: #bfdbfe; color: #1e3a8a;';
-            
+
             let html = `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
                 <div class="text-center py-4 font-bold text-sm bg-gray-50 border-b border-gray-200">
@@ -4787,28 +4834,27 @@
                             <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 whitespace-nowrap min-w-[80px] text-center align-middle">จังหวัด</th>
                             <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 whitespace-nowrap min-w-[70px] text-center align-middle">ทีมขาย</th>
                             <th rowspan="2" class="border border-gray-600 px-2 py-2 bg-gray-800 min-w-[200px] max-w-[250px] w-[220px] text-center align-middle">ที่ทำการ</th>
-                            <th colspan="4" class="border border-gray-600 px-2 py-1 bg-gray-700 text-center align-middle">Lead (ราย)</th>
-                            <th colspan="6" class="border border-gray-600 px-2 py-1 bg-gray-700 text-center align-middle">การเข้าพบลูกค้า (ราย)</th>
+                            <th colspan="4" class="border border-sky-800 px-2 py-1.5 bg-sky-700 text-center align-middle"><i class="fas fa-user-tag mr-1 opacity-80"></i>Lead (ราย)</th>
+                            <th colspan="4" class="border border-orange-700 px-2 py-1.5 bg-orange-600 text-center align-middle"><i class="fas fa-handshake mr-1 opacity-80"></i>การเข้าพบลูกค้า (ราย)</th>
+                            <th colspan="2" class="border border-gray-600 px-2 py-1.5 bg-gray-700 text-center align-middle">ผลการเสนอ</th>
                         </tr>
                         <tr class="text-white">
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">e-Commerce</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">บริการระหว่างประเทศ</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">Fuze</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-700 font-bold text-center align-middle">รวม</th>
-                            
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">e-Commerce</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">บริการระหว่างประเทศ</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">Fuze</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-700 font-bold text-center align-middle">รวม</th>
-                            
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">ปิดได้</th>
-                            <th class="border border-gray-600 px-1 py-1 bg-gray-600 text-[10px] text-center align-middle">ปิดไม่ได้</th>
+                            <th class="border border-sky-800 px-1 py-1 bg-sky-600 text-[10px] font-medium text-center align-middle whitespace-nowrap">e-Commerce</th>
+                            <th class="border border-sky-800 px-1 py-1 bg-sky-600 text-[10px] font-medium text-center align-middle whitespace-nowrap">ระหว่างประเทศ</th>
+                            <th class="border border-sky-800 px-1 py-1 bg-sky-600 text-[10px] font-medium text-center align-middle whitespace-nowrap">Fuze</th>
+                            <th class="border border-sky-800 px-1 py-1 bg-sky-800 font-bold text-[11px] text-center align-middle whitespace-nowrap">รวม</th>
+                            <th class="border border-orange-700 px-1 py-1 bg-orange-500 text-[10px] font-medium text-center align-middle whitespace-nowrap">e-Commerce</th>
+                            <th class="border border-orange-700 px-1 py-1 bg-orange-500 text-[10px] font-medium text-center align-middle whitespace-nowrap">ระหว่างประเทศ</th>
+                            <th class="border border-orange-700 px-1 py-1 bg-orange-500 text-[10px] font-medium text-center align-middle whitespace-nowrap">Fuze</th>
+                            <th class="border border-orange-700 px-1 py-1 bg-orange-700 font-bold text-[11px] text-center align-middle whitespace-nowrap">รวม</th>
+                            <th class="border border-gray-600 px-1 py-1 bg-emerald-600 text-[10px] font-medium text-center align-middle whitespace-nowrap">ปิดได้</th>
+                            <th class="border border-gray-600 px-1 py-1 bg-rose-600 text-[10px] font-medium text-center align-middle whitespace-nowrap">ปิดไม่ได้</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
-            
-            
+
+
             const currentUser = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
             let allowedProv = null;
             if (currentUser === 'admin' || currentUser === 'viewer') {
@@ -4826,37 +4872,39 @@
             let totalLeadEcom = 0, totalLeadInter = 0, totalLeadFuze = 0, totalLeadSum = 0;
             let totalVisitEcom = 0, totalVisitInter = 0, totalVisitFuze = 0, totalVisitSum = 0;
             let totalSuccess = 0, totalFail = 0;
-            
+
             customProvOrder.forEach(prov => {
                 const teamsData = data[prov];
                 if (!teamsData) return;
-                
+
                 const teams = Object.keys(teamsData).sort();
                 const isProvClickable = allowedProv === 'ALL' || allowedProv === prov;
                 let provLeadEcom = 0, provLeadInter = 0, provLeadFuze = 0, provLeadSum = 0;
                 let provVisitEcom = 0, provVisitInter = 0, provVisitFuze = 0, provVisitSum = 0;
                 let provSuccess = 0, provFail = 0;
-                
+
                 teams.forEach((team, idx) => {
                     const t = teamsData[team];
                     const leadSum = t.lead_ecom + t.lead_inter + t.lead_fuze;
                     const visitSum = t.visit_ecom + t.visit_inter + t.visit_fuze;
-                    
+
                     provLeadEcom += t.lead_ecom; provLeadInter += t.lead_inter; provLeadFuze += t.lead_fuze; provLeadSum += leadSum;
                     provVisitEcom += t.visit_ecom; provVisitInter += t.visit_inter; provVisitFuze += t.visit_fuze; provVisitSum += visitSum;
                     provSuccess += t.success; provFail += t.fail;
-                    
-                    const format = (num) => num === 0 ? '<span class="text-gray-300">0</span>' : num;
-                    
-                    html += `<tr class="hover:bg-gray-50">`;
+
+                    const format = (num) => num === 0 ? '<span class="text-gray-300">–</span>' : '<span class="font-semibold text-gray-800">' + num + '</span>';
+                    const fmtOk = (num) => num === 0 ? '<span class="text-gray-300">–</span>' : '<span class="font-bold text-emerald-600">' + num + '</span>';
+                    const fmtNg = (num) => num === 0 ? '<span class="text-gray-300">–</span>' : '<span class="font-bold text-rose-600">' + num + '</span>';
+
+                    html += `<tr class="${(leadSum + visitSum) > 0 ? 'bg-amber-50/60' : ''} hover:bg-gray-50">`;
                     if (idx === 0) {
                         html += `<td rowspan="${teams.length}" class="border border-gray-300 px-2 py-1 font-bold text-gray-800 align-middle text-center bg-white ${isProvClickable ? 'cursor-pointer hover:underline hover:bg-blue-50 hover:text-blue-600 transition' : ''}" ${isProvClickable ? `onclick="openProvVisitDetailPopup('${prov}', ${isPurple})"` : ''}>${prov}</td>`;
                     }
-                    
+
                     let officeStr = 'ไม่ระบุ';
                     if (t.offices.size > 0) {
                         const officesArr = Array.from(t.offices);
-                        
+
                         // Sort by zip code
                         officesArr.sort((a, b) => {
                             let zipA = globalOfficeMap[a] ? globalOfficeMap[a].zip : '';
@@ -4865,69 +4913,69 @@
                         });
                         officeStr = officesArr.map(o => isProvClickable ? `<span class="whitespace-nowrap cursor-pointer hover:underline hover:text-blue-600 transition" onclick="openOfficeVisitDetailPopup('${prov}', '${team}', '${o}', ${isPurple})">${o}</span>` : `<span class="whitespace-nowrap text-gray-600">${o}</span>`).join(', ');
                     }
-                    
+
                     let shortTeam = team;
                     const numMatch = team.match(/\d+/);
                     if (numMatch && team.includes('ทีม')) {
                         shortTeam = "ทีม " + numMatch[0];
                     }
-                    
+
                     html += `
                         <td class="border border-gray-300 px-2 py-1 text-center font-semibold text-gray-800 align-middle ${isProvClickable ? 'cursor-pointer hover:underline hover:text-blue-600 transition' : ''}" ${isProvClickable ? `onclick="openTeamVisitDetailPopup('${prov}', '${team}', ${isPurple})"` : ''}>${shortTeam}</td>
-                        <td class="border border-gray-300 px-2 py-1 text-left text-gray-600 align-top whitespace-normal min-w-[200px] max-w-[250px] w-[220px]">${officeStr}</td>
+                        <td class="border border-gray-300 px-2 py-1 text-left text-[10.5px] leading-snug text-gray-500 align-middle whitespace-normal min-w-[200px] max-w-[250px] w-[220px]">${officeStr}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_ecom)}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_inter)}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.lead_fuze)}</td>
                         <td class="border border-gray-300 px-1 py-1 font-bold align-middle text-center" style="${colStyle}">${format(leadSum)}</td>
-                        
+
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_ecom)}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_inter)}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.visit_fuze)}</td>
                         <td class="border border-gray-300 px-1 py-1 font-bold align-middle text-center" style="${colStyle}">${format(visitSum)}</td>
-                        
-                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.success)}</td>
-                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${format(t.fail)}</td>
+
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${fmtOk(t.success)}</td>
+                        <td class="border border-gray-300 px-1 py-1 align-middle text-center">${fmtNg(t.fail)}</td>
                     </tr>`;
                 });
-                
+
                 html += `
                     <tr class="font-bold" style="${rowStyle}">
-                        <td colspan="3" class="border border-gray-300 px-2 py-1 text-center align-middle">รวม</td>
+                        <td colspan="3" class="border border-gray-300 px-2 py-1 text-center align-middle">รวม ${prov}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadEcom}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadInter}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provLeadFuze}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center" style="${intStyle}">${provLeadSum}</td>
-                        
+
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitEcom}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitInter}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provVisitFuze}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center" style="${intStyle}">${provVisitSum}</td>
-                        
+
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provSuccess}</td>
                         <td class="border border-gray-300 px-1 py-1 align-middle text-center">${provFail}</td>
                     </tr>
                 `;
-                
+
                 totalLeadEcom += provLeadEcom; totalLeadInter += provLeadInter; totalLeadFuze += provLeadFuze; totalLeadSum += provLeadSum;
                 totalVisitEcom += provVisitEcom; totalVisitInter += provVisitInter; totalVisitFuze += provVisitFuze; totalVisitSum += provVisitSum;
                 totalSuccess += provSuccess; totalFail += provFail;
             });
-            
+
             html += `
                 </tbody>
                 <tfoot>
                     <tr class="bg-[#94d257] font-bold text-black">
-                        <td colspan="3" class="border border-gray-300 px-2 py-1 text-center">รวม</td>
+                        <td colspan="3" class="border border-gray-300 px-2 py-1.5 text-center">รวมทั้งหมด ปข.10</td>
                         <td class="border border-gray-300 px-1 py-1">${totalLeadEcom}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalLeadInter}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalLeadFuze}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalLeadSum}</td>
-                        
+
                         <td class="border border-gray-300 px-1 py-1">${totalVisitEcom}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalVisitInter}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalVisitFuze}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalVisitSum}</td>
-                        
+
                         <td class="border border-gray-300 px-1 py-1">${totalSuccess}</td>
                         <td class="border border-gray-300 px-1 py-1">${totalFail}</td>
                     </tr>
@@ -4937,19 +4985,20 @@
             </div>`;
             return html;
         };
-        
+
         let monthStr = `ระหว่างวันที่ 1 - ${endDay} กรกฎาคม ${yearThai}`; // Fixed later to dynamic month
         monthStr = `ระหว่างวันที่ 1 - ${endDay} ${monthName} ${yearThai}`;
         let yesterdayStr = `ประจำวันที่ ${endDay} ${monthName} ${yearThai}`;
-        
+
         content.innerHTML = renderTableHtml(dataMonth, monthStr) + renderTableHtml(dataYesterday, yesterdayStr, true);
+        renderVisitSummaryKpis(dataMonth, dataYesterday, monthStr, yesterdayStr);
     }
-    
+
     window.showImagePopup = function(url) {
         window.open(url, '_blank');
     };
 
-    
+
     window.currentVisitPopupData = [];
     window.currentVisitPopupTitle = '';
     window.currentVisitSortCol = -1;
@@ -4963,7 +5012,7 @@
             window.currentVisitSortCol = colIndex;
             window.currentVisitSortAsc = true;
         }
-        
+
         const parseDate = (dStr) => {
             if (!dStr) return 0;
             const cleanStr = String(dStr).replace(',', '').split(' ')[0];
@@ -4998,7 +5047,7 @@
 
             const valA = getVal(a, window.currentVisitSortCol);
             const valB = getVal(b, window.currentVisitSortCol);
-            
+
             let cmp = 0;
             if (typeof valA === 'number' && typeof valB === 'number') {
                 cmp = valA - valB;
@@ -5007,14 +5056,14 @@
             }
             return window.currentVisitSortAsc ? cmp : -cmp;
         });
-        
+
         window.updateVisitDetailTable(false);
     };
 
     window.updateVisitDetailTable = function(isInitial) {
         const container = document.getElementById('visitDetailTableContainer');
         if (!container && !isInitial) return;
-        
+
         const headers = [
             'วันที่', 'หัวข้อเรื่อง', 'กลุ่มลูกค้า', 'ที่ทำการไปรษณีย์', 'รหัสไปรษณีย์', 
             'ทีมขาย', 'ชื่อลูกค้า', 'เบอร์โทร', 'ประเภทสินค้า', 'ช่องทางจำหน่าย', 
@@ -5056,18 +5105,18 @@
                 const colS = row[18] || '';
                 const colT = row[19] || '';
                 const colU = row[20] || '';
-                
+
                 let statusClass = 'text-gray-700';
                 if (colT === 'ปิดได้' || colT === 'จัดได้') statusClass = 'text-green-600 font-bold';
                 else if (colT === 'ปิดไม่ได้' || colT === 'จัดไม่ได้') statusClass = 'text-red-600 font-bold';
-                
+
                 let imgHtml = '-';
                 if (String(colS).startsWith('http')) {
                     imgHtml = `<button onclick="window.showImagePopup('${colS}')" class="text-white bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-[10px] shadow-sm inline-flex items-center gap-1"><i class="fas fa-image"></i> รูปภาพ</button>`;
                 } else if (colS) {
                     imgHtml = `<span class="text-[10px] text-gray-500">มีรูป (ไม่มีลิงก์)</span>`;
                 }
-                
+
                 return `
                     <tr class="hover:bg-blue-50 transition border-b border-gray-100">
                         <td class="border-x border-gray-200 px-2 py-1.5">${colA}</td>
@@ -5105,7 +5154,7 @@
                 </table>
             </div>
         `;
-        
+
         if (container) {
             container.innerHTML = html;
         } else if (isInitial) {
@@ -5119,7 +5168,7 @@
         window.currentVisitPopupTitle = titleHtml;
         window.currentVisitSortCol = -1; 
         window.currentVisitSortAsc = true;
-        
+
         const parseDate = (dStr) => {
             if (!dStr) return 0;
             const parts = String(dStr).split(' ')[0].split('/');
@@ -5131,20 +5180,20 @@
             const zipA = String(a[5] || '').trim();
             const zipB = String(b[5] || '').trim();
             if (zipA !== zipB) return zipA.localeCompare(zipB);
-            
+
             const teamA = String(a[6] || '').trim();
             const teamB = String(b[6] || '').trim();
             if (teamA !== teamB) return teamA.localeCompare(teamB);
-            
+
             const dateA = parseDate(a[0]);
             const dateB = parseDate(b[0]);
             if (dateA !== dateB) return dateA - dateB;
-            
+
             const topicA = String(a[1] || '').trim();
             const topicB = String(b[1] || '').trim();
             return topicA.localeCompare(topicB, 'th');
         });
-        
+
         Swal.fire({
             title: titleHtml,
             html: '<div id="visitDetailTableContainer"></div>',
@@ -5164,12 +5213,12 @@
 
     window.openProvVisitDetailPopup = function(provinceName, isYesterday) {
         if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
-        
+
         let today = new Date();
         let yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         let endDay = yesterday.getDate();
-        
+
         const predicate = (d) => {
             if (isYesterday) {
                 return d.getFullYear() === yesterday.getFullYear() && 
@@ -5183,24 +5232,24 @@
         };
 
         const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
-        
+
         let filteredRows = window.allFetchedRows.filter(row => {
             const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
             if (!dateStr) return false;
             const parts = dateStr.split('/');
             if (parts.length < 3) return false;
-            
+
             const rDay = parseInt(parts[0], 10);
             const rMonth = parseInt(parts[1], 10) - 1;
             const rYear = parseInt(parts[2], 10);
             const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
             const rDate = new Date(rYearCE, rMonth, rDay);
-            
+
             if (!predicate(rDate)) return false;
-            
+
             const teamFull = String(row[6] || '').trim();
             const zip = String(row[5] || '').trim().replace(/^'/, "");
-            
+
             let prov = "ไม่ระบุ";
             let foundProv = customProvOrder.find(p => teamFull.includes(p));
             if (foundProv) {
@@ -5212,14 +5261,14 @@
             else if (zip.startsWith('47')) prov = 'สกลนคร';
             else if (zip.startsWith('48')) prov = 'นครพนม';
             else if (zip.startsWith('49')) prov = 'มุกดาหาร';
-            
+
             if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
             if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
-            
+
             return prov === provinceName;
         });
 
-        
+
 
         let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
         let titleHtml = `<div class="text-lg font-bold text-gray-800 border-b pb-2 text-left">ข้อมูลเข้าพบลูกค้า${titleDateStr} - ${provinceName}</div>`;
@@ -5229,12 +5278,12 @@
 
     window.openTeamVisitDetailPopup = function(provinceName, teamName, isYesterday) {
         if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
-        
+
         let today = new Date();
         let yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         let endDay = yesterday.getDate();
-        
+
         const predicate = (d) => {
             if (isYesterday) {
                 return d.getFullYear() === yesterday.getFullYear() && 
@@ -5248,24 +5297,24 @@
         };
 
         const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
-        
+
         let filteredRows = window.allFetchedRows.filter(row => {
             const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
             if (!dateStr) return false;
             const parts = dateStr.split('/');
             if (parts.length < 3) return false;
-            
+
             const rDay = parseInt(parts[0], 10);
             const rMonth = parseInt(parts[1], 10) - 1;
             const rYear = parseInt(parts[2], 10);
             const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
             const rDate = new Date(rYearCE, rMonth, rDay);
-            
+
             if (!predicate(rDate)) return false;
-            
+
             const teamFull = String(row[6] || '').trim();
             const zip = String(row[5] || '').trim().replace(/^'/, "");
-            
+
             let prov = "ไม่ระบุ";
             let foundProv = customProvOrder.find(p => teamFull.includes(p));
             if (foundProv) {
@@ -5277,14 +5326,14 @@
             else if (zip.startsWith('47')) prov = 'สกลนคร';
             else if (zip.startsWith('48')) prov = 'นครพนม';
             else if (zip.startsWith('49')) prov = 'มุกดาหาร';
-            
+
             if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
             if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
-            
+
             return prov === provinceName && teamFull === teamName;
         });
 
-        
+
 
         let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
         let shortTeam = teamName;
@@ -5297,15 +5346,15 @@
         window.renderVisitDetailPopup(filteredRows, titleHtml);
     };
 
-    
+
     window.openOfficeVisitDetailPopup = function(provinceName, teamName, officeName, isYesterday) {
         if (!window.allFetchedRows || window.allFetchedRows.length === 0) return;
-        
+
         let today = new Date();
         let yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
         let endDay = yesterday.getDate();
-        
+
         const predicate = (d) => {
             if (isYesterday) {
                 return d.getFullYear() === yesterday.getFullYear() && 
@@ -5319,24 +5368,24 @@
         };
 
         const customProvOrder = ["ศรีสะเกษ", "อุบลราชธานี", "ยโสธร", "อำนาจเจริญ", "สกลนคร", "นครพนม", "มุกดาหาร", "ศป.อุบลราชธานี", "ศป.สกลนคร"];
-        
+
         let filteredRows = window.allFetchedRows.filter(row => {
             const dateStr = row[0] ? String(row[0]).split(' ')[0] : '';
             if (!dateStr) return false;
             const parts = dateStr.split('/');
             if (parts.length < 3) return false;
-            
+
             const rDay = parseInt(parts[0], 10);
             const rMonth = parseInt(parts[1], 10) - 1;
             const rYear = parseInt(parts[2], 10);
             const rYearCE = rYear > 2500 ? rYear - 543 : rYear;
             const rDate = new Date(rYearCE, rMonth, rDay);
-            
+
             if (!predicate(rDate)) return false;
-            
+
             const teamFull = String(row[6] || '').trim();
             const zip = String(row[5] || '').trim().replace(/^'/, "");
-            
+
             let prov = "ไม่ระบุ";
             let foundProv = customProvOrder.find(p => teamFull.includes(p));
             if (foundProv) {
@@ -5348,21 +5397,21 @@
             else if (zip.startsWith('47')) prov = 'สกลนคร';
             else if (zip.startsWith('48')) prov = 'นครพนม';
             else if (zip.startsWith('49')) prov = 'มุกดาหาร';
-            
+
             if (teamFull.includes('ศป.อุบลราชธานี') || zip === '34010') prov = 'ศป.อุบลราชธานี';
             if (teamFull.includes('ศป.สกลนคร') || zip === '47010') prov = 'ศป.สกลนคร';
-            
+
             let rawOfficeName = String(row[4] || '').trim();
             let officeNameRow = rawOfficeName;
             if (prov !== 'ศป.อุบลราชธานี' && prov !== 'ศป.สกลนคร') {
                 officeNameRow = rawOfficeName.replace(/^(ปณ\.?|ปปณ\.?|ปจ\.?|ศป\.?|ที่ทำการไปรษณีย์)\s*/, '');
             }
             officeNameRow = officeNameRow.replace(/อุบลอุบลราชธานี/g, 'อุบลราชธานี');
-            
+
             return prov === provinceName && teamFull === teamName && officeNameRow === officeName;
         });
 
-        
+
 
         let titleDateStr = isYesterday ? 'รายวัน (เมื่อวาน)' : 'สะสมรายเดือน';
         let shortTeam = teamName;
