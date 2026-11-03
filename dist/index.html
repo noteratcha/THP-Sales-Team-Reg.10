@@ -437,6 +437,51 @@
   <!-- 1. มอดูลหลักของระบบ (โครงสร้าง, เข้าสู่ระบบ, เมนู, หน้าหลัก และแกนประมวลผล) -->
   <script>
     // ==========================================
+    // ↪️ เปิดผ่าน Google Sites → ย้ายไปเว็บหลักบน Vercel
+    // ==========================================
+    // Google Sites ฝังเวอร์ชัน Apps Script ไว้ในกรอบ (เพลง/ฟีเจอร์บางอย่างใช้ไม่ได้ในกรอบ)
+    // ลองพาทั้งหน้าไป Vercel อัตโนมัติ ถ้าเบราว์เซอร์/กรอบของ Sites ไม่อนุญาต แสดงปุ่มให้กดไปเอง
+    (function () {
+        var VERCEL_URL = 'https://salesreg10.vercel.app/';
+        if (window.__THP_VERCEL_ADAPTER__) return; // อยู่บน Vercel แล้ว
+        var fromSites = false;
+        try {
+            var ao = window.location.ancestorOrigins;
+            if (ao) for (var i = 0; i < ao.length; i++) if (/sites\.google\.com$/i.test(String(ao[i]).replace(/\/$/, ''))) fromSites = true;
+        } catch (e) {}
+        if (!fromSites && /sites\.google\.com/i.test(document.referrer || '')) fromSites = true;
+        if (!fromSites) return;
+
+        window.__THP_REDIRECTING_TO_VERCEL__ = true;
+        try { window.top.location.replace(VERCEL_URL); } catch (e) {}
+
+        // ถ้ายังอยู่หน้าเดิม (ย้ายอัตโนมัติไม่ได้) แสดงหน้าจอแนะนำพร้อมปุ่ม
+        setTimeout(function () {
+            var show = function () {
+                if (document.getElementById('thpGoVercelOverlay')) return;
+                var d = document.createElement('div');
+                d.id = 'thpGoVercelOverlay';
+                d.setAttribute('style', 'position:fixed;inset:0;z-index:2147483647;background:linear-gradient(135deg,#052e2b,#065f46);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Sarabun,Prompt,sans-serif');
+                d.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+                    + '<div style="font-size:40px;margin-bottom:8px">🚀</div>'
+                    + '<div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:6px">ย้ายไปเว็บไซต์ใหม่แล้ว</div>'
+                    + '<div style="font-size:14px;color:#6b7280;margin-bottom:20px">THP Sales Team Reg.10 เปิดใช้งานที่<br><b style="color:#ea580c">salesreg10.vercel.app</b> ทำงานได้เร็วและครบทุกฟีเจอร์</div>'
+                    + '<a id="thpGoVercelBtn" href="' + VERCEL_URL + '" target="_top" rel="noopener" style="display:block;background:#ea580c;color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:12px 16px;border-radius:999px">เปิดเว็บไซต์ใหม่</a>'
+                    + '<div style="font-size:12px;color:#9ca3af;margin-top:12px">แนะนำให้บันทึก Bookmark ลิงก์ใหม่ไว้</div></div>';
+                document.body.appendChild(d);
+                document.getElementById('thpGoVercelBtn').addEventListener('click', function (ev) {
+                    // target=_top ถูกกรอบบล็อกได้ → เปิดแท็บใหม่แทน
+                    try { window.top.location.href = VERCEL_URL; ev.preventDefault(); } catch (e) {
+                        ev.preventDefault(); window.open(VERCEL_URL, '_blank', 'noopener');
+                    }
+                    setTimeout(function () { window.open(VERCEL_URL, '_blank', 'noopener'); }, 600);
+                });
+            };
+            if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+        }, 700);
+    })();
+
+    // ==========================================
     // 🔐 SESSION TOKEN: แนบ token กับทุกคำขอไปหลังบ้าน
     // ==========================================
     // โหมด Apps Script (เปิดผ่าน script.google.com / Google Sites): ห่อ google.script.run ให้ทุกคำสั่งวิ่งผ่าน api(token, ชื่อฟังก์ชัน, args)
@@ -507,7 +552,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2113';
+    var APP_VERSION = 'Ver. 2026.1103.2121';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
