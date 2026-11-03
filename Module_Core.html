@@ -54,7 +54,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1425';
+    var APP_VERSION = 'Ver. 2026.1103.1444';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -4326,17 +4326,41 @@
         win.document.close();
 
         const user = (typeof currentUserInfo !== 'undefined') ? currentUserInfo : {};
-        google.script.run.withSuccessHandler(function (res) {
-            if (!res || res.status !== 'success') {
-                win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml((res && res.message) || 'ไม่ทราบสาเหตุ') + '</p></div>';
-                return;
-            }
-            win.document.open();
-            win.document.write(buildAiRevenueReportHtml(res, user));
-            win.document.close();
-        }).withFailureHandler(function (err) {
-            win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml(err && err.message ? err.message : String(err)) + '</p></div>';
-        }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' }, { period: monthSel });
+        const showError = function (msg) {
+            if (win.closed) return;
+            win.document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#b91c1c"><h2>วิเคราะห์ไม่สำเร็จ</h2><p>' + window.escapeHtml(msg) + '</p></div>';
+        };
+        // "Failed to fetch" = การเชื่อมต่อหลุดหรือหลังบ้านถูกตัดเวลา ไม่ได้รับคำตอบเลย
+        // ลองใหม่อัตโนมัติ: ถ้าหลังบ้านวิเคราะห์เสร็จไปแล้ว ผลอยู่ในแคช รอบใหม่จะเร็ว
+        // ลองใหม่แค่ 1 ครั้ง เพราะถ้าหลังบ้านยังทำงานอยู่ รอบใหม่จะเรียก Gemini ซ้ำ (เปลืองโควตา)
+        const MAX_NETWORK_RETRIES = 1;
+        const isNetworkError = function (err) {
+            return /Failed to fetch|NetworkError|Load failed|network/i.test(err && err.message ? err.message : String(err));
+        };
+        const run = function (attempt) {
+            google.script.run.withSuccessHandler(function (res) {
+                if (win.closed) return;
+                if (!res || res.status !== 'success') {
+                    showError((res && res.message) || 'ไม่ทราบสาเหตุ');
+                    return;
+                }
+                win.document.open();
+                win.document.write(buildAiRevenueReportHtml(res, user));
+                win.document.close();
+            }).withFailureHandler(function (err) {
+                if (win.closed) return;
+                if (isNetworkError(err) && attempt < MAX_NETWORK_RETRIES) {
+                    const stepEl = win.document.getElementById('stepText');
+                    if (stepEl) stepEl.textContent = '🔄 การเชื่อมต่อหลุด กำลังลองใหม่ (ครั้งที่ ' + (attempt + 1) + '/' + MAX_NETWORK_RETRIES + ')...';
+                    setTimeout(function () { run(attempt + 1); }, 5000);
+                    return;
+                }
+                showError(isNetworkError(err)
+                    ? 'เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ (' + (err && err.message ? err.message : String(err)) + ') อาจเป็นเพราะอินเทอร์เน็ตหลุด หรือการวิเคราะห์ใช้เวลานานเกินกำหนด กรุณาลองใหม่อีกครั้งในอีก 1-2 นาที'
+                    : (err && err.message ? err.message : String(err)));
+            }).getRevenueAnalysisReport({ user: user.user || '', zipcode: user.zipcode || '' }, { period: monthSel });
+        };
+        run(0);
     };
 
     function buildAiRevenueReportHtml(res, user) {

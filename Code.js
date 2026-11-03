@@ -1157,6 +1157,8 @@ function getAiUsageStats_() {
 
 // options.month: 0-11 = วิเคราะห์เฉพาะเดือนนั้น (เทียบเดือนเดียวกันปีก่อน), ไม่ระบุ/'all' = สะสมทั้งปี
 function getRevenueAnalysisReport_(requestingUser, options) {
+  // Apps Script ตัดการทำงานที่ 6 นาที ถ้าถูกตัด เว็บจะได้แค่ "Failed to fetch" จึงกันเวลาไว้ให้ตอบกลับเป็นข้อความได้ทัน
+  var startedAt = Date.now();
   try {
     var login = (requestingUser && requestingUser.user) ? String(requestingUser.user).trim().toLowerCase() : '';
     var scope = (login === 'admin' || login === 'viewer') ? 'ALL' : String((requestingUser && requestingUser.zipcode) || '').trim();
@@ -1199,7 +1201,7 @@ function getRevenueAnalysisReport_(requestingUser, options) {
     var stats = buildRevenueAnalysisStats_(rows, scope, sel, memberToRealName);
     stats.scope = scope;
     var modelName = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
-    var ai = callGeminiForRevenueReport_(stats, apiKey);
+    var ai = callGeminiForRevenueReport_(stats, apiKey, startedAt + 270 * 1000);
 
     var periodDesc = describeAnalysisPeriod_(stats.period);
     var usageStats = null;
@@ -1914,7 +1916,8 @@ function describeAnalysisPeriod_(pd) {
   return 'ช่วงเวลาที่เปรียบเทียบ: สะสม ' + pd.fromMonth + '–' + pd.toMonth + ' พ.ศ. ' + be + ' เทียบช่วงเดียวกัน พ.ศ. ' + cbe;
 }
 
-function callGeminiForRevenueReport_(stats, apiKey) {
+// deadline (ms) = เวลาที่ต้องหยุดลองใหม่ เพื่อให้ตอบกลับก่อน Apps Script ตัดที่ 6 นาที (ไม่ระบุ = ไม่จำกัด)
+function callGeminiForRevenueReport_(stats, apiKey, deadline) {
   var model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || 'gemini-3.8-flash';
   
   // สร้างเวอร์ชันกระชับของ stats สำหรับส่งให้ AI เพื่อไม่ให้ขนาด prompt ใหญ่เกินไปและประมวลผลได้รวดเร็ว
@@ -1998,15 +2001,22 @@ function callGeminiForRevenueReport_(stats, apiKey) {
   };
   // 429/500/503 = โมเดลมีผู้ใช้หนาแน่นชั่วคราว ลองใหม่สูงสุด 4 ครั้ง (รอ 2, 5, 10 วินาที)
   var retryDelays = [2000, 5000, 10000];
-  var res, code;
+  var res, code, lastCallMs = 0, outOfTime = false;
   for (var attempt = 0; ; attempt++) {
+    var callStart = Date.now();
     res = UrlFetchApp.fetch(url, fetchOptions);
+    lastCallMs = Date.now() - callStart;
     code = res.getResponseCode();
     if (code === 200 || [429, 500, 503].indexOf(code) === -1 || attempt >= retryDelays.length) break;
+    // ไม่ลองใหม่ถ้าเวลาที่เหลือไม่พอสำหรับรอ + เรียกอีกรอบ (ประมาณจากเวลาที่ใช้ครั้งล่าสุด)
+    if (deadline && Date.now() + retryDelays[attempt] + Math.max(lastCallMs, 30000) > deadline) {
+      outOfTime = true;
+      break;
+    }
     Utilities.sleep(retryDelays[attempt]);
   }
   if (code !== 200) {
-    if (code === 429 || code === 503) {
+    if (outOfTime || code === 429 || code === 503) {
       throw new Error('ระบบ AI ของ Google มีผู้ใช้งานหนาแน่นชั่วคราว (Gemini API ' + code + ') กรุณาลองใหม่อีกครั้งในอีก 1-2 นาที');
     }
     throw new Error('Gemini API ' + code + ': ' + res.getContentText().substring(0, 300));
