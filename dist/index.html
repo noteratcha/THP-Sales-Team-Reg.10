@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1145';
+    var APP_VERSION = 'Ver. 2026.1103.1307';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -10721,9 +10721,40 @@
             if (i >= 1) { sumRev += mRev[i - 1]; sumPieces += mPieces[i - 1]; count++; }
             if (i >= 2) { sumRev += mRev[i - 2]; sumPieces += mPieces[i - 2]; count++; }
             if (i >= 3) { sumRev += mRev[i - 3]; sumPieces += mPieces[i - 3]; count++; }
-            movingAvgRev.push(count > 0 ? Math.round(sumRev / count) : 0);
-            movingAvgPieces.push(count > 0 ? Math.round(sumPieces / count) : 0);
+            // เดือนแรกยังไม่มีค่าเฉลี่ย ใช้ null เพื่อไม่ให้เส้นดิ่งลงไปที่ 0
+            movingAvgRev.push(count > 0 ? Math.round(sumRev / count) : null);
+            movingAvgPieces.push(count > 0 ? Math.round(sumPieces / count) : null);
         }
+        // เดือนที่ไม่มีเป้าหมาย ไม่วาดเส้นเป้าหมาย (เดิมวาดเป็น 0 ลากไปตามแกนล่าง)
+        var mTargetLine = mTarget.map(function (v) { return v > 0 ? v : null; });
+
+        // ตัวเลขบนแท่งแบบย่อ เช่น 19.7 ล้าน, 6.3 แสน (ตัวเลขเต็มดูได้ใน tooltip)
+        var compactThFormat = new Intl.NumberFormat('th-TH', { notation: 'compact', compactDisplay: 'long', maximumFractionDigits: 1 });
+        var formatCompactTh = function (v) { return v > 0 ? compactThFormat.format(v) : ''; };
+        // แท่งแคบเกินกว่าจะวางตัวเลขแนวนอน ให้หมุนตั้ง
+        var isNarrowBar = function (context) {
+            var bar = context.chart.getDatasetMeta(context.datasetIndex).data[context.dataIndex];
+            return !bar || bar.width < 44;
+        };
+        var barValueLabels = function (textColor) {
+            return {
+                anchor: 'end',
+                align: 'end',
+                offset: 2,
+                clamp: true,
+                rotation: function (context) { return isNarrowBar(context) ? -90 : 0; },
+                color: textColor,
+                // พื้นขาวโปร่ง ให้อ่านออกแม้ทับเส้นเป้าหมาย/ค่าเฉลี่ย
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                borderRadius: 3,
+                padding: { top: 1, bottom: 1, left: 3, right: 3 },
+                formatter: formatCompactTh,
+                font: { size: 10, weight: 'bold', family: "'Prompt', sans-serif" },
+                textShadowBlur: 0,
+                textShadowColor: 'transparent'
+            };
+        };
+        var compactAxisTicks = { font: { size: 10 }, callback: function (v) { return v === 0 ? '0' : compactThFormat.format(v); } };
 
         var generateYearlySummaryHtml = function (dataObj, targetObj, unit, colorClass) {
             var html = '<div class="flex gap-3 items-center flex-wrap justify-end">';
@@ -11509,30 +11540,12 @@
                             borderWidth: 1,
                             borderRadius: 6,
                             order: 2,
-                            datalabels: {
-                                rotation: -90,
-                                anchor: 'end',
-                                align: function (context) {
-                                    var val = context.dataset.data[context.dataIndex];
-                                    var maxVal = Math.max(...context.dataset.data);
-                                    return val < (maxVal * 0.45) ? 'end' : 'start';
-                                },
-                                offset: 8,
-                                color: function (context) {
-                                    var val = context.dataset.data[context.dataIndex];
-                                    var maxVal = Math.max(...context.dataset.data);
-                                    return val < (maxVal * 0.45) ? '#e27d3d' : '#ffffff';
-                                },
-                                formatter: function (v) { return v > 0 ? v.toLocaleString().split('').join('\u2009') : ''; },
-                                font: function (context) { return { size: window.calculateFontSize(context, 10), weight: 'normal', family: 'sans-serif' }; },
-                                textShadowBlur: 0,
-                                textShadowColor: 'transparent'
-                            }
+                            datalabels: barValueLabels('#9a4a17')
                         },
                         {
                             type: 'line',
                             label: 'เป้าหมาย (บาท)',
-                            data: mTarget,
+                            data: mTargetLine,
                             borderColor: '#ef4444',
                             backgroundColor: '#ffffff',
                             borderWidth: 2,
@@ -11542,26 +11555,8 @@
                             fill: false,
                             tension: 0.2,
                             order: 1,
-                            datalabels: {
-                                display: function (context) { return context.dataset.data[context.dataIndex] > 0; },
-                                align: function (context) {
-                                    var targetVal = context.dataset.data[context.dataIndex];
-                                    var actualVal = context.chart.data.datasets[0] ? context.chart.data.datasets[0].data[context.dataIndex] || 0 : 0;
-                                    var avgVal = context.chart.data.datasets[2] ? context.chart.data.datasets[2].data[context.dataIndex] || 0 : 0;
-                                    return (targetVal >= actualVal && targetVal >= avgVal) ? 'top' : 'bottom';
-                                },
-                                anchor: 'center',
-                                color: '#ef4444',
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                borderColor: 'rgba(239, 68, 68, 0.5)',
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                padding: 3,
-                                font: { size: 9, weight: 'bold', family: "'Prompt', sans-serif" },
-                                formatter: function (v) { return v > 0 ? v.toLocaleString() : ''; },
-                                offset: 6,
-                                textShadowBlur: 0
-                            }
+                            // ตัวเลขเป้าหมายดูใน tooltip เพื่อไม่ให้ซ้อนกับตัวเลขบนแท่ง
+                            datalabels: { display: false }
                         },
                         {
                             type: 'line',
@@ -11570,30 +11565,12 @@
                             borderColor: '#3b82f6',
                             backgroundColor: '#ffffff',
                             borderWidth: 2,
-                            pointRadius: 4,
+                            pointRadius: 3,
                             pointBackgroundColor: '#3b82f6',
                             fill: false,
                             tension: 0.3,
                             order: 0,
-                            datalabels: {
-                                display: function (context) { return context.dataset.data[context.dataIndex] > 0; },
-                                align: function (context) {
-                                    var avgVal = context.dataset.data[context.dataIndex];
-                                    var actualVal = context.chart.data.datasets[0] ? context.chart.data.datasets[0].data[context.dataIndex] || 0 : 0;
-                                    var targetVal = context.chart.data.datasets[1] ? context.chart.data.datasets[1].data[context.dataIndex] || 0 : 0;
-                                    return (avgVal >= actualVal && avgVal >= targetVal) ? 'top' : 'bottom';
-                                },
-                                anchor: 'center',
-                                color: '#3b82f6',
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                borderColor: 'rgba(59, 130, 246, 0.5)',
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                padding: 3,
-                                font: { size: 9, weight: 'bold', family: "'Prompt', sans-serif" },
-                                formatter: function (v) { return v > 0 ? v.toLocaleString() : ''; },
-                                offset: 6
-                            }
+                            datalabels: { display: false }
                         }
                     ]
                 },
@@ -11601,7 +11578,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    layout: { padding: { bottom: 10 } },
+                    layout: { padding: { top: 6, bottom: 10 } },
+                    onHover: function (evt, activeElements) {
+                        evt.native.target.style.cursor = activeElements && activeElements.length ? 'pointer' : 'default';
+                    },
                     onClick: function (evt, activeElements) {
                         if (activeElements && activeElements.length > 0) {
                             var dataIndex = activeElements[0].index;
@@ -11611,7 +11591,7 @@
                         }
                     },
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left', grid: { display: true, color: '#f1f5f9' }, title: { display: true, text: 'รายได้ (บาท)', font: { size: 10 } }, grace: '40%' },
+                        y: { type: 'linear', display: true, position: 'left', grid: { display: true, color: '#f1f5f9' }, title: { display: true, text: 'รายได้ (บาท)', font: { size: 10 } }, grace: '12%', ticks: compactAxisTicks },
                         x: { grid: { display: false }, ticks: { font: { size: 10 } } }
                     },
                     plugins: {
@@ -11658,25 +11638,7 @@
                             borderWidth: 1,
                             borderRadius: 6,
                             order: 1,
-                            datalabels: {
-                                rotation: -90,
-                                anchor: 'end',
-                                align: function (context) {
-                                    var val = context.dataset.data[context.dataIndex];
-                                    var maxVal = Math.max(...context.dataset.data);
-                                    return val < (maxVal * 0.45) ? 'end' : 'start';
-                                },
-                                offset: 8,
-                                color: function (context) {
-                                    var val = context.dataset.data[context.dataIndex];
-                                    var maxVal = Math.max(...context.dataset.data);
-                                    return val < (maxVal * 0.45) ? '#047857' : '#ffffff';
-                                },
-                                formatter: function (v) { return v > 0 ? v.toLocaleString().split('').join('\u2009') : ''; },
-                                font: function (context) { return { size: window.calculateFontSize(context, 10), weight: 'normal', family: 'sans-serif' }; },
-                                textShadowBlur: 0,
-                                textShadowColor: 'transparent'
-                            }
+                            datalabels: barValueLabels('#047857')
                         },
                         {
                             type: 'line',
@@ -11685,29 +11647,13 @@
                             borderColor: '#3b82f6',
                             backgroundColor: '#ffffff',
                             borderWidth: 2,
-                            pointRadius: 4,
+                            pointRadius: 3,
                             pointBackgroundColor: '#3b82f6',
                             fill: false,
                             tension: 0.3,
                             order: 0,
-                            datalabels: {
-                                display: function (context) { return context.dataset.data[context.dataIndex] > 0; },
-                                align: function (context) {
-                                    var avgVal = context.dataset.data[context.dataIndex];
-                                    var barVal = context.chart.data.datasets[0] ? context.chart.data.datasets[0].data[context.dataIndex] || 0 : 0;
-                                    return avgVal >= barVal ? 'top' : 'bottom';
-                                },
-                                anchor: 'center',
-                                color: '#3b82f6',
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                borderColor: 'rgba(59, 130, 246, 0.5)',
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                padding: 3,
-                                font: { size: 9, weight: 'bold', family: "'Prompt', sans-serif" },
-                                formatter: function (v) { return v > 0 ? v.toLocaleString() : ''; },
-                                offset: 6
-                            }
+                            // ค่าเฉลี่ยดูใน tooltip เพื่อไม่ให้ซ้อนกับตัวเลขบนแท่ง
+                            datalabels: { display: false }
                         }
                     ]
                 },
@@ -11715,7 +11661,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    layout: { padding: { bottom: 10 } },
+                    layout: { padding: { top: 6, bottom: 10 } },
+                    onHover: function (evt, activeElements) {
+                        evt.native.target.style.cursor = activeElements && activeElements.length ? 'pointer' : 'default';
+                    },
                     onClick: function (evt, activeElements) {
                         if (activeElements && activeElements.length > 0) {
                             var dataIndex = activeElements[0].index;
@@ -11725,7 +11674,7 @@
                         }
                     },
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left', grid: { display: true, color: '#f1f5f9' }, title: { display: true, text: 'ปริมาณ (ชิ้น)', font: { size: 10 } }, grace: '40%' },
+                        y: { type: 'linear', display: true, position: 'left', grid: { display: true, color: '#f1f5f9' }, title: { display: true, text: 'ปริมาณ (ชิ้น)', font: { size: 10 } }, grace: '12%', ticks: compactAxisTicks },
                         x: { grid: { display: false }, ticks: { font: { size: 10 } } }
                     },
                     plugins: {
@@ -30887,7 +30836,7 @@
                     <h3 class="text-lg sm:text-xl font-bold text-gray-800 leading-tight mb-0">
                         สรุปข้อมูลการใช้บริการรายปี</h3>
                     <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5 mb-0" id="revenueChartSubtitle">
-                        ข้อมูลแสดงผลตามตัวกรองที่เลือกไว้</p>
+                        ข้อมูลแสดงผลตามตัวกรองที่เลือกไว้ · ชี้ที่แท่งกราฟเพื่อดูตัวเลขเต็ม เป้าหมาย และรายทีม · คลิกแท่งเพื่อเปิดรายละเอียด</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">
