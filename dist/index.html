@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1316';
+    var APP_VERSION = 'Ver. 2026.1103.1325';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -10728,13 +10728,13 @@
         // เดือนที่ไม่มีเป้าหมาย ไม่วาดเส้นเป้าหมาย (เดิมวาดเป็น 0 ลากไปตามแกนล่าง)
         var mTargetLine = mTarget.map(function (v) { return v > 0 ? v : null; });
 
-        // ตัวเลขบนแท่งแบบย่อ เช่น 19.7 ล้าน, 6.3 แสน (ตัวเลขเต็มดูได้ใน tooltip)
+        // ตัวเลขย่อภาษาไทยสำหรับแกน y เช่น 20 ล้าน, 5 แสน (ตัวเลขบนแท่งเป็นเลขเต็ม)
         var compactThFormat = new Intl.NumberFormat('th-TH', { notation: 'compact', compactDisplay: 'long', maximumFractionDigits: 1 });
-        var formatCompactTh = function (v) { return v > 0 ? compactThFormat.format(v) : ''; };
         // แท่งแคบเกินกว่าจะวางตัวเลขแนวนอน ให้หมุนตั้ง
         var isNarrowBar = function (context) {
             var bar = context.chart.getDatasetMeta(context.datasetIndex).data[context.dataIndex];
-            return !bar || bar.width < 44;
+            // เลขเต็ม เช่น 19,663,757 ต้องการแท่งกว้างราว 64px จึงจะวางแนวนอนได้
+            return !bar || bar.width < 64;
         };
         var barValueLabels = function (textColor) {
             return {
@@ -10748,7 +10748,8 @@
                 backgroundColor: 'rgba(255, 255, 255, 0.85)',
                 borderRadius: 3,
                 padding: { top: 1, bottom: 1, left: 3, right: 3 },
-                formatter: formatCompactTh,
+                // ผู้ใช้ต้องการเลขเต็มบนแท่ง (ไม่ย่อ) — แกน y ยังย่อด้วย compactAxisTicks
+                formatter: function (v) { return v > 0 ? Number(v).toLocaleString() : ''; },
                 font: { size: 10, weight: 'bold', family: "'Prompt', sans-serif" },
                 textShadowBlur: 0,
                 textShadowColor: 'transparent'
