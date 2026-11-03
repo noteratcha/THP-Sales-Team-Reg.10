@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1350';
+    var APP_VERSION = 'Ver. 2026.1103.1425';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -3714,6 +3714,11 @@
         });
 
         // เตรียมข้อมูลกราฟและตารางสรุปรายทีม
+        const visitAchievementColor = (actual, target) => {
+            if (!(target > 0)) return '#94a3b8';
+            const p = actual / target * 100;
+            return p >= 100 ? '#22c55e' : (p >= 50 ? '#f97316' : '#ef4444');
+        };
         let filteredTeams = [];
         let actualData = [];
         let targetData = [];
@@ -3736,7 +3741,8 @@
                 filteredTeams.push(teamName);
                 actualData.push(tActual);
                 targetData.push(tTarget);
-                bgColors.push(colors[index % colors.length]);
+                // สีบอกผลงานเทียบเป้า (ตรงกับแถบ % ในตาราง): เขียว ≥100%, ส้ม 50-99%, แดง <50%, เทา = ไม่มีเป้า
+                bgColors.push(visitAchievementColor(tActual, tTarget));
                 totalActual += tActual;
                 totalTarget += tTarget;
             }
@@ -4212,6 +4218,10 @@
             },
             didOpen: () => {
                 const ctxPopup = document.getElementById('popupMonthChart').getContext('2d');
+                const targetMarkerRadius = (c) => {
+                    const bar = c.chart.getDatasetMeta(0).data[c.dataIndex];
+                    return bar ? Math.max(6, Math.round(bar.width * 0.65)) : 8;
+                };
                 new Chart(ctxPopup, {
                     type: 'bar',
                     data: {
@@ -4220,37 +4230,50 @@
                             {
                                 label: 'ยอดเข้าพบจริง',
                                 data: actualData,
+                                // สีตามผลงานเทียบเป้า (ดู visitAchievementColor)
                                 backgroundColor: bgColors,
                                 borderRadius: 6,
-                                order: 2
+                                order: 2,
+                                datalabels: {
+                                    anchor: 'end',
+                                    align: 'end',
+                                    offset: 2,
+                                    clamp: true,
+                                    color: '#374151',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                    borderRadius: 3,
+                                    padding: { top: 1, bottom: 1, left: 3, right: 3 },
+                                    font: { weight: 'bold', family: "'Prompt', sans-serif", size: 11 },
+                                    formatter: (v) => v > 0 ? v.toLocaleString() : ''
+                                }
                             },
                             {
+                                // ทีมไม่ใช่ลำดับเวลา จึงไม่ลากเส้นต่อกัน แสดงเป้าหมายเป็นขีดพาดบนแท่งของแต่ละทีม
                                 type: 'line',
                                 label: 'เป้าหมาย',
-                                data: targetData,
-                                borderColor: '#ef4444',
-                                backgroundColor: '#ffffff',
-                                borderWidth: 2,
-                                borderDash: [5, 5],
-                                pointRadius: 4,
-                                pointHoverRadius: 7,
-                                pointBorderWidth: 2,
-                                pointBackgroundColor: '#ffffff',
-                                pointBorderColor: '#ef4444',
-                                fill: false,
-                                tension: 0.2,
-                                order: 1
+                                data: targetData.map(v => v > 0 ? v : null),
+                                showLine: false,
+                                borderColor: '#1f2937',
+                                backgroundColor: '#1f2937',
+                                pointStyle: 'line',
+                                pointRadius: targetMarkerRadius,
+                                pointHoverRadius: targetMarkerRadius,
+                                pointBorderWidth: 3,
+                                pointHoverBorderWidth: 3,
+                                order: 1,
+                                datalabels: { display: false }
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        interaction: { mode: 'nearest', intersect: true },
+                        // ชี้ที่ทีมไหนก็เห็นทั้งยอดเข้าพบ เป้าหมาย และ % ใน tooltip เดียว
+                        interaction: { mode: 'index', intersect: false },
+                        layout: { padding: { top: 6 } },
                         onClick: (event, elements, chart) => {
                             if (elements.length > 0) {
                                 const element = elements[0];
-                                if (chart.data.datasets[element.datasetIndex].type === 'line') return;
 
                                 const clickedTeamName = chart.data.labels[element.index];
                                 const popupChartEl = document.getElementById('popupMonthChart');
@@ -4286,9 +4309,9 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                suggestedMax: Math.max(...actualData, ...targetData) * 1.2,
+                                grace: '12%',
                                 grid: { color: '#f3f4f6' },
-                                ticks: { font: { family: "'Prompt', sans-serif" } }
+                                ticks: { precision: 0, font: { family: "'Prompt', sans-serif" } }
                             },
                             x: {
                                 grid: { display: false },
@@ -4298,31 +4321,28 @@
                         plugins: {
                             legend: {
                                 position: 'bottom',
-                                labels: { font: { family: "'Prompt', sans-serif", size: 11 } }
+                                // คำอธิบายสีแท่งตามผลงาน + ขีดเป้าหมาย (กดซ่อนไม่ได้)
+                                onClick: () => {},
+                                labels: {
+                                    font: { family: "'Prompt', sans-serif", size: 11 },
+                                    usePointStyle: true,
+                                    generateLabels: () => [
+                                        { text: 'ถึงเป้า (100% ขึ้นไป)', fillStyle: '#22c55e', strokeStyle: '#22c55e', pointStyle: 'rect', lineWidth: 0 },
+                                        { text: '50–99%', fillStyle: '#f97316', strokeStyle: '#f97316', pointStyle: 'rect', lineWidth: 0 },
+                                        { text: 'ต่ำกว่า 50%', fillStyle: '#ef4444', strokeStyle: '#ef4444', pointStyle: 'rect', lineWidth: 0 },
+                                        { text: 'เป้าหมาย', fillStyle: '#1f2937', strokeStyle: '#1f2937', pointStyle: 'line', lineWidth: 3 }
+                                    ]
+                                }
                             },
-                            datalabels: {
-                                display: true,
-                                anchor: c => c.dataset.type === 'line' ? 'center' : 'end',
-                                align: c => {
-                                    if (c.dataset.type === 'line') {
-                                        let actualVal = 0;
-                                        c.chart.data.datasets.forEach(d => {
-                                            if (d.type !== 'line') actualVal += d.data[c.dataIndex] || 0;
-                                        });
-                                        let targetVal = c.dataset.data[c.dataIndex];
-                                        if (Math.abs(targetVal - actualVal) <= (Math.max(targetVal, actualVal) * 0.2) || targetVal <= actualVal) {
-                                            return 'bottom';
-                                        }
-                                        return 'top';
+                            tooltip: {
+                                callbacks: {
+                                    label: (c) => c.raw == null ? null : ' ' + c.dataset.label + ': ' + Number(c.raw).toLocaleString() + ' ครั้ง',
+                                    footer: (items) => {
+                                        const i = items[0].dataIndex;
+                                        const t = targetData[i];
+                                        return (t > 0 ? 'สำเร็จ ' + Math.round(actualData[i] / t * 100) + '% · ' : '') + 'คลิกเพื่อกรองตารางที่ทำการ';
                                     }
-                                    return 'top';
-                                },
-                                color: c => c.dataset.type === 'line' ? '#ef4444' : '#6b7280',
-                                font: { weight: 'bold', family: "'Prompt', sans-serif", size: 10 },
-                                backgroundColor: c => c.dataset.type === 'line' ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
-                                borderRadius: 4,
-                                padding: c => c.dataset.type === 'line' ? 4 : 0,
-                                formatter: (v) => v > 0 ? v.toLocaleString() : ''
+                                }
                             }
                         }
                     }
@@ -4840,9 +4860,11 @@
                 ['10%', '30%', '20%', '20%', '20%']
             );
 
-            // ยกเลิกการจำกัดความสูงและการบีบอัด ให้ใช้ Padding ปกติเสมอ
+            // ผู้ใช้ต้องการให้ตารางสรุปรายทีมอยู่หน้าเดียว: ลดระยะห่างแถวตามจำนวนทีม
+            // หน้าแนวตั้งมีพื้นที่เนื้อหา ~950px (หัวตาราง ~90px) แถวสูง = ตัวอักษร ~17px + padding บน-ล่าง
+            const teamRowPadY = Math.max(3, Math.min(10, Math.floor(((860 - 90) / Math.max(1, teamRows.length) - 17) / 2)));
             teamClean.querySelectorAll('td').forEach(cell => {
-                cell.style.padding = '10px 12px';
+                cell.style.padding = teamRowPadY + 'px 12px';
                 cell.style.fontSize = '11.5px';
                 cell.style.lineHeight = '1.5';
                 cell.style.verticalAlign = 'middle';
@@ -4854,8 +4876,8 @@
                 cell.style.verticalAlign = 'middle';
             });
 
-            // 💡 ส่ง maxRows = 20 เพื่อตัดขึ้นหน้าใหม่ทุก 20 รายการ
-            addElementToPage(teamClean, 'table', 'p', 20);
+            // ทุกทีมในหน้าเดียว (ถ้าสูงเกินหน้าจริง ๆ addElementToPage ยังตัดขึ้นหน้าใหม่ตามความสูง)
+            addElementToPage(teamClean, 'table', 'p', Math.max(20, teamRows.length));
 
             // --- เปลี่ยนเป็นแนวนอน (Landscape) สำหรับตารางที่ทำการ ---
 
