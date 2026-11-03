@@ -623,7 +623,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2149';
+    var APP_VERSION = 'Ver. 2026.1103.2212';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -9633,9 +9633,80 @@
 
     function exportRevenueToExcel() {
         if (!revenueFilteredRows || revenueFilteredRows.length === 0) { Swal.fire('ไม่มีข้อมูล', 'กรุณาดึงข้อมูลก่อนดาวน์โหลด', 'warning'); return; }
+        // ===== ชีต 1: ตารางแบบไขว้ 1 แถว = ลูกค้า+บริการ, คอลัมน์ = ปี > เดือน > (จำนวน, รายได้) + รวมรายปี =====
+        const MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const toNum = (v) => parseFloat(String(v == null ? '' : v).replace(/,/g, '')) || 0;
+        const monthIdx = (m) => {
+            const s = String(m || '').trim();
+            let i = MONTHS_FULL.indexOf(s); if (i === -1) i = MONTHS_SHORT.indexOf(s);
+            if (i === -1 && /^\d+$/.test(s)) i = parseInt(s, 10) - 1;
+            return (i >= 0 && i < 12) ? i : -1;
+        };
+        const FIXED = ['ลำดับที่', 'ชื่อ ปณ.', 'ทีม', 'รายชื่อลูกค้า', 'รหัสสมาชิก', 'ระดับ', 'บริการ'];
+        const groups = {}; const order = []; const yearSet = {};
+        revenueFilteredRows.forEach(row => {
+            const mi = monthIdx(row[5]); const y = String(row[6] || '').trim();
+            if (mi < 0 || !y) return;
+            yearSet[y] = true;
+            const key = [row[0], row[10], row[1], row[2], row[3], row[4]].map(v => String(v == null ? '' : v).trim()).join('\u0001');
+            if (!groups[key]) { groups[key] = { info: [row[0], row[10], row[1], row[2], row[3], row[4]], vals: {} }; order.push(key); }
+            const g = groups[key].vals; const k = y + '|' + mi;
+            if (!g[k]) g[k] = { q: 0, r: 0 };
+            g[k].q += toNum(row[7]); g[k].r += toNum(row[8]);
+        });
+        const years = Object.keys(yearSet).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+        const BLOCK = 26; // 12 เดือน x 2 + รวม 2
+        const nFix = FIXED.length;
+        const hdr1 = FIXED.slice(), hdr2 = FIXED.map(() => ''), hdr3 = FIXED.map(() => '');
+        const merges = [];
+        FIXED.forEach((_, c) => merges.push({ s: { r: 0, c: c }, e: { r: 2, c: c } }));
+        years.forEach((y, yi) => {
+            const c0 = nFix + yi * BLOCK;
+            merges.push({ s: { r: 0, c: c0 }, e: { r: 0, c: c0 + BLOCK - 1 } });
+            for (let m = 0; m < 13; m++) {
+                const c = c0 + m * 2;
+                hdr1.push(m === 0 ? y : '', '');
+                hdr2.push(m < 12 ? MONTHS_SHORT[m] : 'รวม', '');
+                hdr3.push('จำนวน (ชิ้น)', 'รายได้ (บาท)');
+                merges.push({ s: { r: 1, c: c }, e: { r: 1, c: c + 1 } });
+            }
+        });
+        const body = []; const colTotals = new Array(years.length * BLOCK).fill(0);
+        order.forEach((key, i) => {
+            const g = groups[key]; const line = [i + 1].concat(g.info);
+            years.forEach((y, yi) => {
+                let sq = 0, sr = 0;
+                for (let m = 0; m < 12; m++) {
+                    const v = g.vals[y + '|' + m];
+                    if (v) { sq += v.q; sr += v.r; colTotals[yi * BLOCK + m * 2] += v.q; colTotals[yi * BLOCK + m * 2 + 1] += v.r; }
+                    line.push(v ? v.q : '', v ? v.r : '');
+                }
+                colTotals[yi * BLOCK + 24] += sq; colTotals[yi * BLOCK + 25] += sr;
+                line.push(sq || '', sr || '');
+            });
+            body.push(line);
+        });
+        const totalLine = ['รวมทั้งหมด', '', '', '', '', '', ''].concat(colTotals.map(v => v || ''));
+        const ws = XLSX.utils.aoa_to_sheet([hdr1, hdr2, hdr3].concat(body, [totalLine]));
+        merges.push({ s: { r: 3 + body.length, c: 0 }, e: { r: 3 + body.length, c: nFix - 1 } });
+        ws['!merges'] = merges;
+        ws['!cols'] = [{ wch: 7 }, { wch: 22 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 10 }, { wch: 32 }]
+            .concat(new Array(years.length * BLOCK).fill(0).map((_, i) => ({ wch: (i % 2 === 0) ? 11 : 12 })));
+        // รูปแบบตัวเลขมีคอมมา
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let r = 3; r <= range.e.r; r++) for (let c = nFix; c <= range.e.c; c++) {
+            const cell = ws[XLSX.utils.encode_cell({ r: r, c: c })];
+            if (cell && typeof cell.v === 'number') cell.z = '#,##0';
+        }
+
+        // ===== ชีต 2: ข้อมูลรายการแบบเดิม (เผื่อใช้กรอง/คำนวณต่อ) =====
         const headers = ['ลำดับที่', 'ชื่อ ปณ.', 'ทีม', 'รายชื่อลูกค้า', 'รหัสสมาชิก', 'ระดับ', 'บริการ', 'เดือน', 'ปี', 'จำนวน (ชิ้น)', 'รายได้ (บาท)'];
         const data = revenueFilteredRows.map((row, index) => [index + 1, row[0], row[10], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]]);
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Report");
+        const wsList = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "สรุปรายเดือน");
+        XLSX.utils.book_append_sheet(wb, wsList, "ข้อมูลรายการ");
         const d = new Date(); const fileName = `ข้อมูลการใช้บริการ${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.xlsx`;
         XLSX.writeFile(wb, fileName);
     }
