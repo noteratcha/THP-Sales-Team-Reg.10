@@ -9,6 +9,48 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script>
+    // ไลบรารี Excel (XLSX): ถ้า cdn.sheetjs.com โหลดไม่ได้ (เช่น ถูกไฟร์วอลล์บล็อก) ใช้ CDN สำรอง
+    window.XLSX_CDNS = [
+      'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+      'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+    ];
+    if (typeof XLSX === 'undefined') document.write('<script src="' + window.XLSX_CDNS[0] + '"><\/script>');
+    // เรียกก่อนใช้ XLSX ตอนกดปุ่ม: คืน Promise ที่สำเร็จเมื่อมี XLSX แล้ว (ลองทุก CDN ตามลำดับ)
+    window.ensureXLSX = function () {
+      if (typeof XLSX !== 'undefined') return Promise.resolve();
+      if (window.__xlsxLoading) return window.__xlsxLoading;
+      var urls = ['https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js'].concat(window.XLSX_CDNS);
+      window.__xlsxLoading = urls.reduce(function (p, url) {
+        return p.catch(function () {
+          return new Promise(function (ok, fail) {
+            var s = document.createElement('script');
+            s.src = url;
+            s.onload = function () { typeof XLSX !== 'undefined' ? ok() : fail(); };
+            s.onerror = fail;
+            document.head.appendChild(s);
+          });
+        });
+      }, Promise.reject()).catch(function (e) { window.__xlsxLoading = null; throw new Error('โหลดไลบรารี Excel ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'); });
+      return window.__xlsxLoading;
+    };
+    // กดปุ่มที่เกี่ยวกับ Excel ตอนที่ยังไม่มี XLSX: หยุดไว้ก่อน โหลดไลบรารี แล้วกดปุ่มนั้นให้อีกครั้ง
+    document.addEventListener('click', function (ev) {
+      if (typeof XLSX !== 'undefined') return;
+      var el = ev.target && ev.target.closest ? ev.target.closest('[onclick]') : null;
+      if (!el) return;
+      var code = String(el.getAttribute('onclick') || '');
+      if (!/excel|xlsx/i.test(code + ' ' + (el.textContent || ''))) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (typeof Swal !== 'undefined') Swal.fire({ title: 'กำลังเตรียมไฟล์ Excel...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+      window.ensureXLSX().then(function () {
+        if (typeof Swal !== 'undefined') Swal.close();
+        el.click();
+      }).catch(function (e) {
+        if (typeof Swal !== 'undefined') Swal.fire('ดาวน์โหลด Excel ไม่ได้', e.message, 'error'); else alert(e.message);
+      });
+    }, true);
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -623,7 +665,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2258';
+    var APP_VERSION = 'Ver. 2026.1103.2313';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
