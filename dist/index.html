@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1345';
+    var APP_VERSION = 'Ver. 2026.1103.1350';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -12254,12 +12254,12 @@
             pdf.addImage(imgData1, 'JPEG', marginX, marginY, availWidthL, imgHeight1);
             currentPage++;
 
-            // singlePage = ใส่ทุกแถวในหน้าเดียว (ตารางสรุปรายทีม ~25 ทีม) โดยลดระยะห่างแถว และย่อภาพให้พอดีหน้า
-            async function addTablePagesToPDF(title, dataRows, typeStr, singlePage) {
+            // maxPages = จำนวนหน้าสูงสุดของตาราง (สรุปรายทีม 1 หน้า, สรุปรายที่ทำการ 4 หน้า) แถวเกิน 23 ต่อหน้าจะลดระยะห่างแถว และย่อภาพให้พอดีหน้า
+            async function addTablePagesToPDF(title, dataRows, typeStr, maxPages) {
                 if (dataRows.length === 0) dataRows = [{ name: 'ไม่มีข้อมูล', actual: '-', target: '-', pct: '-' }];
 
-                var chunkSize = singlePage ? dataRows.length : 23;
-                var cellPadY = singlePage && dataRows.length > 23 ? 8 : 12;
+                var chunkSize = maxPages ? Math.max(23, Math.ceil(dataRows.length / maxPages)) : 23;
+                var cellPadY = chunkSize > 23 ? (chunkSize > 30 ? 5 : 8) : 12;
 
                 for (var i = 0; i < dataRows.length; i += chunkSize) {
                     await updateStep(`กำลังเรนเดอร์ตาราง ${title} (ส่วนที่ ${Math.floor(i / chunkSize) + 1})...`);
@@ -12356,8 +12356,8 @@
                 }
             }
 
-            await addTablePagesToPDF('สรุปรายทีม', teamRowsData, type, true);
-            await addTablePagesToPDF('สรุปรายที่ทำการ', officeRowsData, type);
+            await addTablePagesToPDF('สรุปรายทีม', teamRowsData, type, 1);
+            await addTablePagesToPDF('สรุปรายที่ทำการ', officeRowsData, type, 4);
 
             await updateStep('กำลังบันทึกไฟล์...');
 
