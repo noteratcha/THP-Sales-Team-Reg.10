@@ -638,12 +638,19 @@
             <div class="group-filter col-span-1 sm:col-span-2 relative flex flex-col justify-end">
                 <label class="text-[10px] font-bold text-gray-400 mb-1.5 block uppercase tracking-wider"><i
                         class="far fa-calendar-alt text-theme-orange mr-1"></i> ช่วงเดือน/ปี</label>
+                <!-- ช่องเก็บค่าจริง (รูปแบบ YYYY-MM ค.ศ.) ที่โค้ดกรองใช้อยู่ — หน้าจอแสดงเป็นเดือนไทย/ปี พ.ศ. ผ่าน select ด้านล่าง -->
+                <input type="hidden" id="revFilterDateStart">
+                <input type="hidden" id="revFilterDateEnd">
                 <div class="flex items-center gap-1">
-                    <input type="month" id="revFilterDateStart" onchange="applyRevenueFilters()"
-                        class="w-full text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans">
-                    <span class="text-gray-400 text-xs font-light">-</span>
-                    <input type="month" id="revFilterDateEnd" onchange="applyRevenueFilters()"
-                        class="w-full text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans">
+                    <div class="flex items-center gap-1 flex-1 min-w-0">
+                        <select id="revFilterDateStartM" onchange="onRevThaiMonthChange('Start')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนเริ่มต้น"></select>
+                        <select id="revFilterDateStartY" onchange="onRevThaiMonthChange('Start')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีเริ่มต้น (พ.ศ.)"></select>
+                    </div>
+                    <span class="text-gray-400 text-xs font-light px-0.5">ถึง</span>
+                    <div class="flex items-center gap-1 flex-1 min-w-0">
+                        <select id="revFilterDateEndM" onchange="onRevThaiMonthChange('End')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนสิ้นสุด"></select>
+                        <select id="revFilterDateEndY" onchange="onRevThaiMonthChange('End')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีสิ้นสุด (พ.ศ.)"></select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1125,7 +1132,48 @@
         }
     }
 
+    // ===== ตัวเลือกช่วงเดือนแบบไทย (เดือนไทย + ปี พ.ศ.) ซิงก์กับช่อง hidden revFilterDateStart/End (YYYY-MM ค.ศ.) =====
+    var REV_THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    function syncRevThaiMonthPickers() {
+        ['Start', 'End'].forEach(function (k) {
+            var hid = document.getElementById('revFilterDate' + k);
+            var mSel = document.getElementById('revFilterDate' + k + 'M');
+            var ySel = document.getElementById('revFilterDate' + k + 'Y');
+            if (!hid || !mSel || !ySel) return;
+            var parts = String(hid.value || '').split('-');
+            var y = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+            var nowY = new Date().getFullYear();
+            if (!mSel.options.length) {
+                mSel.innerHTML = REV_THAI_MONTHS.map(function (name, i) { return '<option value="' + String(i + 1).padStart(2, '0') + '">' + name + '</option>'; }).join('');
+            }
+            // ปีให้เลือก: ย้อนหลัง 5 ปีถึงปีหน้า และรวมปีของค่าปัจจุบันเสมอ
+            var minY = Math.min(nowY - 5, isNaN(y) ? nowY : y), maxY = Math.max(nowY + 1, isNaN(y) ? nowY : y);
+            if (ySel.getAttribute('data-range') !== minY + '-' + maxY) {
+                var html = '';
+                for (var yy = maxY; yy >= minY; yy--) html += '<option value="' + yy + '">' + (yy + 543) + '</option>';
+                ySel.innerHTML = html;
+                ySel.setAttribute('data-range', minY + '-' + maxY);
+            }
+            if (!isNaN(y)) ySel.value = String(y);
+            if (!isNaN(m)) mSel.value = String(m).padStart(2, '0');
+        });
+    }
+    function onRevThaiMonthChange(k) {
+        var mSel = document.getElementById('revFilterDate' + k + 'M');
+        var ySel = document.getElementById('revFilterDate' + k + 'Y');
+        var hid = document.getElementById('revFilterDate' + k);
+        if (!mSel || !ySel || !hid) return;
+        hid.value = ySel.value + '-' + mSel.value;
+        // กันช่วงกลับด้าน: ถ้าเริ่มต้นเลยสิ้นสุด ให้อีกฝั่งเท่ากัน
+        var st = document.getElementById('revFilterDateStart'), en = document.getElementById('revFilterDateEnd');
+        if (st && en && st.value && en.value && st.value > en.value) {
+            if (k === 'Start') en.value = st.value; else st.value = en.value;
+        }
+        applyRevenueFilters();
+    }
+
     function applyRevenueFilters() {
+        syncRevThaiMonthPickers();
         const fOffice = document.getElementById('revFilterOffice')?.value.toLowerCase().trim() || '';
         const fCustomer = document.getElementById('revFilterCustomer')?.value.toLowerCase().trim() || '';
         const fMember = document.getElementById('revFilterMemberID')?.value.toLowerCase().trim() || '';
@@ -1224,6 +1272,10 @@
         const defaultEnd = `${todayVal.getFullYear()}-${currentMonthVal}`;
         toggleHighlight('revFilterDateStart', dateStartStr && dateStartStr !== defaultStart);
         toggleHighlight('revFilterDateEnd', dateEndStr && dateEndStr !== defaultEnd);
+        ['M', 'Y'].forEach(function (p) {
+            toggleHighlight('revFilterDateStart' + p, dateStartStr && dateStartStr !== defaultStart);
+            toggleHighlight('revFilterDateEnd' + p, dateEndStr && dateEndStr !== defaultEnd);
+        });
 
         // Dropdowns highlights
         toggleHighlight('revFilterLevelBtn', !allLvlChecked, true);
@@ -1337,6 +1389,12 @@
             if (!g[k]) g[k] = { q: 0, r: 0 };
             g[k].q += toNum(row[7]); g[k].r += toNum(row[8]);
         });
+        // เรียงจากน้อยไปมาก: ชื่อ ปณ. แล้วตามรายชื่อลูกค้า (ตามด้วยรหัสสมาชิก/บริการ ให้ลำดับคงที่)
+        const cmpTh = (a, b) => String(a == null ? '' : a).trim().localeCompare(String(b == null ? '' : b).trim(), 'th', { numeric: true, sensitivity: 'base' });
+        order.sort((ka, kb) => {
+            const a = groups[ka].info, b = groups[kb].info; // [ปณ., ทีม, ลูกค้า, รหัส, ระดับ, บริการ]
+            return cmpTh(a[0], b[0]) || cmpTh(a[2], b[2]) || cmpTh(a[3], b[3]) || cmpTh(a[5], b[5]);
+        });
         const years = Object.keys(yearSet).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
         const BLOCK = 26; // 12 เดือน x 2 + รวม 2
         const nFix = FIXED.length;
@@ -1384,7 +1442,10 @@
 
         // ===== ชีต 2: ข้อมูลรายการแบบเดิม (เผื่อใช้กรอง/คำนวณต่อ) =====
         const headers = ['ลำดับที่', 'ชื่อ ปณ.', 'ทีม', 'รายชื่อลูกค้า', 'รหัสสมาชิก', 'ระดับ', 'บริการ', 'เดือน', 'ปี', 'จำนวน (ชิ้น)', 'รายได้ (บาท)'];
-        const data = revenueFilteredRows.map((row, index) => [index + 1, row[0], row[10], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]]);
+        // ชีตรายการ: เรียง ปณ. > ลูกค้า > ปี > เดือน (ไม่แก้ลำดับบนหน้าจอ)
+        const listRows = revenueFilteredRows.slice().sort((a, b) =>
+            cmpTh(a[0], b[0]) || cmpTh(a[1], b[1]) || (parseInt(a[6], 10) - parseInt(b[6], 10)) || (monthIdx(a[5]) - monthIdx(b[5])) || cmpTh(a[4], b[4]));
+        const data = listRows.map((row, index) => [index + 1, row[0], row[10], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]]);
         const wsList = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "สรุปรายเดือน");
