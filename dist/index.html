@@ -492,7 +492,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1325';
+    var APP_VERSION = 'Ver. 2026.1103.1345';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -12254,10 +12254,12 @@
             pdf.addImage(imgData1, 'JPEG', marginX, marginY, availWidthL, imgHeight1);
             currentPage++;
 
-            async function addTablePagesToPDF(title, dataRows, typeStr) {
+            // singlePage = ใส่ทุกแถวในหน้าเดียว (ตารางสรุปรายทีม ~25 ทีม) โดยลดระยะห่างแถว และย่อภาพให้พอดีหน้า
+            async function addTablePagesToPDF(title, dataRows, typeStr, singlePage) {
                 if (dataRows.length === 0) dataRows = [{ name: 'ไม่มีข้อมูล', actual: '-', target: '-', pct: '-' }];
 
-                var chunkSize = 23;
+                var chunkSize = singlePage ? dataRows.length : 23;
+                var cellPadY = singlePage && dataRows.length > 23 ? 8 : 12;
 
                 for (var i = 0; i < dataRows.length; i += chunkSize) {
                     await updateStep(`กำลังเรนเดอร์ตาราง ${title} (ส่วนที่ ${Math.floor(i / chunkSize) + 1})...`);
@@ -12285,19 +12287,19 @@
                             pctColor = pVal >= 100 ? '#16a34a' : (pVal >= 50 ? '#f97316' : '#ef4444');
                         }
 
-                        let tdName = `<td style="text-align:center; padding: 12px 10px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${r.no || '-'}</td> <td style="text-align:left; padding: 12px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 500;">${r.name}</td>`;
+                        let tdName = `<td style="text-align:center; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${r.no || '-'}</td> <td style="text-align:left; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 500;">${r.name}</td>`;
 
                         if (typeStr === 'revenue') {
                             trs += `<tr style="${bg}">
                                 ${tdName}
-                                <td style="text-align:right; color: #94a3b8; padding: 12px 10px; border-bottom: 1px solid #f1f5f9;">${r.target || '-'}</td>
-                                <td style="text-align:right; font-weight:bold; color: #e27d3d; padding: 12px 10px; border-bottom: 1px solid #f1f5f9;">${r.actual || '-'}</td>
-                                <td style="text-align:center; font-weight:bold; color: ${pctColor}; padding: 12px 10px; border-bottom: 1px solid #f1f5f9;">${r.pct || '-'}</td>
+                                <td style="text-align:right; color: #94a3b8; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9;">${r.target || '-'}</td>
+                                <td style="text-align:right; font-weight:bold; color: #e27d3d; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9;">${r.actual || '-'}</td>
+                                <td style="text-align:center; font-weight:bold; color: ${pctColor}; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9;">${r.pct || '-'}</td>
                             </tr>`;
                         } else {
                             trs += `<tr style="${bg}">
                                 ${tdName}
-                                <td style="text-align:right; font-weight:bold; color: #10b981; padding: 12px 10px; border-bottom: 1px solid #f1f5f9;">${r.actual || '-'}</td>
+                                <td style="text-align:right; font-weight:bold; color: #10b981; padding: ${cellPadY}px 10px; border-bottom: 1px solid #f1f5f9;">${r.actual || '-'}</td>
                             </tr>`;
                         }
                     });
@@ -12341,13 +12343,20 @@
                     var availWidthP = pWidth - (marginX * 2);
                     var imgDataT = canvasTable.toDataURL('image/jpeg', 1.0);
                     var imgHeightT = (canvasTable.height * availWidthP) / canvasTable.width;
-                    pdf.addImage(imgDataT, 'JPEG', marginX, marginY, availWidthP, imgHeightT);
+                    // ถ้าภาพสูงเกินหน้ากระดาษ ย่อทั้งภาพให้พอดีหน้า (กันแถวท้ายถูกตัด)
+                    var availHeightP = pdf.internal.pageSize.getHeight() - (marginY * 2);
+                    var drawWidthT = availWidthP;
+                    if (imgHeightT > availHeightP) {
+                        drawWidthT = availWidthP * availHeightP / imgHeightT;
+                        imgHeightT = availHeightP;
+                    }
+                    pdf.addImage(imgDataT, 'JPEG', marginX + (availWidthP - drawWidthT) / 2, marginY, drawWidthT, imgHeightT);
 
                     currentPage++;
                 }
             }
 
-            await addTablePagesToPDF('สรุปรายทีม', teamRowsData, type);
+            await addTablePagesToPDF('สรุปรายทีม', teamRowsData, type, true);
             await addTablePagesToPDF('สรุปรายที่ทำการ', officeRowsData, type);
 
             await updateStep('กำลังบันทึกไฟล์...');
