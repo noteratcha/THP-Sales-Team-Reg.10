@@ -3221,8 +3221,9 @@
                 var actualVal = 0;
                 var targetVal = 0;
                 chart.data.datasets.forEach(function (ds) {
-                    if (ds.type === 'line') targetVal = ds.data[dataIndex];
-                    else actualVal = ds.data[dataIndex];
+                    // ทีมที่ไม่มีเป้าหมายเก็บเป็น null (ไม่วาดขีดเป้าหมาย)
+                    if (ds.type === 'line') targetVal = ds.data[dataIndex] || 0;
+                    else actualVal = ds.data[dataIndex] || 0;
                 });
 
                 var targetHtml = isRev ? '<div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">' +
@@ -3269,47 +3270,23 @@
                 if (window.teamDetailChartInst) window.teamDetailChartInst.destroy();
 
                 var datasets = [{
-                    label: mainTitle, data: values, backgroundColor: mainColor, borderRadius: 4, order: 2,
-                    datalabels: {
-                        rotation: -90,
-                        anchor: 'end',
-                        align: function (context) {
-                            var val = context.dataset.data[context.dataIndex];
-                            var maxVal = Math.max(...context.dataset.data);
-                            return val < (maxVal * 0.25) ? 'end' : 'start';
-                        },
-                        color: function (context) {
-                            var val = context.dataset.data[context.dataIndex];
-                            var maxVal = Math.max(...context.dataset.data);
-                            return val < (maxVal * 0.25) ? mainColor : '#ffffff';
-                        },
-                        offset: 8,
-                        formatter: function (v) { return v > 0 ? v.toLocaleString() : ''; },
-                        font: { size: 9, family: "'Prompt', sans-serif" }
-                    }
+                    label: mainTitle, data: values, backgroundColor: mainColor, borderRadius: 4, order: 2, pointStyle: 'rect',
+                    // ตัวเลขย่อเหนือแท่ง (ตัวเลขเต็มดูใน tooltip)
+                    datalabels: barValueLabels(isRev ? '#9a4a17' : '#047857')
                 }];
 
                 if (isRev) {
+                    // ทีมไม่ใช่ลำดับเวลา จึงไม่ลากเส้นต่อกัน แสดงเป้าหมายเป็นขีดแดงพาดบนแท่งของแต่ละทีม
+                    var targetMarkerRadius = function (context) {
+                        var bar = context.chart.getDatasetMeta(0).data[context.dataIndex];
+                        return bar ? Math.max(6, Math.round(bar.width * 0.65)) : 8;
+                    };
                     datasets.push({
-                        type: 'line', label: 'เป้าหมาย (บาท)', data: targets, borderColor: '#ef4444', backgroundColor: '#ffffff',
-                        borderWidth: 2, borderDash: [5, 5], pointRadius: 4, pointBackgroundColor: '#ffffff', pointBorderWidth: 2, fill: false, order: 1,
-                        datalabels: {
-                            display: true,
-                            anchor: 'center',
-                            align: function (context) {
-                                var targetVal = context.dataset.data[context.dataIndex];
-                                var actualVal = context.chart.data.datasets[0].data[context.dataIndex] || 0;
-                                // 💡 ป้องกันการทับกัน: ถ้าเป้าหมายสูงกว่าหรือเท่ากับผลงาน ให้แสดงเป้าหมายด้านบน (top) ถ้าผลงานสูงกว่า ให้แสดงด้านล่าง (bottom)
-                                return targetVal >= actualVal ? 'top' : 'bottom';
-                            },
-                            color: '#ef4444',
-                            backgroundColor: 'rgba(255, 255, 255, 0.85)',
-                            borderRadius: 4,
-                            padding: 2,
-                            font: { size: 10, weight: 'bold', family: "'Prompt', sans-serif" },
-                            formatter: function (v) { return v > 0 ? v.toLocaleString() : ''; },
-                            offset: 6
-                        }
+                        type: 'line', label: 'เป้าหมาย (บาท)', data: targets.map(function (v) { return v > 0 ? v : null; }),
+                        showLine: false, borderColor: '#dc2626', backgroundColor: '#dc2626',
+                        pointStyle: 'line', pointRadius: targetMarkerRadius, pointHoverRadius: targetMarkerRadius,
+                        pointBorderWidth: 3, pointHoverBorderWidth: 3, order: 1,
+                        datalabels: { display: false }
                     });
                 }
 
@@ -3318,13 +3295,13 @@
                     data: { labels: labels, datasets: datasets },
                     options: {
                         responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                        layout: { padding: { top: isRev ? 30 : 10 } },
+                        layout: { padding: { top: 8 } },
                         scales: {
                             x: { ticks: { font: { size: 10, family: "'Prompt', sans-serif" }, autoSkip: false, maxRotation: 90, minRotation: 90 }, grid: { display: false } },
-                            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, grace: '20%', ticks: { font: { family: "'Prompt', sans-serif" } } }
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, grace: '12%', ticks: { font: { family: "'Prompt', sans-serif" }, callback: compactAxisTicks.callback } }
                         },
                         plugins: {
-                            legend: { position: 'top', labels: { font: { family: "'Prompt', sans-serif", size: 12 } } },
+                            legend: { position: 'top', labels: { usePointStyle: true, font: { family: "'Prompt', sans-serif", size: 12 } } },
                             tooltip: {
                                 enabled: false,
                                 position: 'nearest',
