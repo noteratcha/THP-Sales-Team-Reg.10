@@ -20,16 +20,20 @@
         var q = window.__postLoginQueue.splice(0);
         q.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
     };
+    // คืนค่า true เมื่อจัดการแล้ว (เด้งให้ล็อกอินใหม่) — false ให้ผู้เรียกส่งต่อไป failureHandler ตามปกติ
     window.handleSessionExpired = function () {
-        // ยังไม่ได้ล็อกอิน (ไม่มี token) ไม่ต้องเด้งและรีโหลด กันวนรีโหลดที่หน้าเข้าสู่ระบบ
-        if (!window.getThpSessionToken()) return;
-        if (window.__sessionExpiredShown) return;
+        // ยังไม่ได้ล็อกอินเลย (ไม่มี session ในเครื่อง) ไม่ต้องเด้งและรีโหลด กันวนรีโหลดที่หน้าเข้าสู่ระบบ
+        var hasSaved = false;
+        try { hasSaved = !!((typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_user_session') : localStorage.getItem('thp_user_session')); } catch (e) {}
+        if (!window.getThpSessionToken() && !hasSaved) return false;
+        if (window.__sessionExpiredShown) return true;
         window.__sessionExpiredShown = true;
         try { if (typeof SafeStorage !== 'undefined') SafeStorage.removeItem('thp_user_session'); else localStorage.removeItem('thp_user_session'); } catch (e) {}
         var done = function () { location.reload(); };
         if (typeof Swal !== 'undefined') {
             Swal.fire({ icon: 'info', title: 'กรุณาเข้าสู่ระบบใหม่', text: 'เซสชันหมดอายุหรือยังไม่ได้เข้าสู่ระบบ', confirmButtonColor: '#ea580c' }).then(done);
         } else { done(); }
+        return true;
     };
     (function () {
         if (window.__THP_VERCEL_ADAPTER__) return;
@@ -46,7 +50,7 @@
                         realRun
                             .withSuccessHandler(function (res) { if (typeof successCb === 'function') successCb(res, userObj); })
                             .withFailureHandler(function (err) {
-                                if (err && String(err.message || err).indexOf('SESSION_EXPIRED') !== -1) { window.handleSessionExpired(); return; }
+                                if (err && String(err.message || err).indexOf('SESSION_EXPIRED') !== -1 && window.handleSessionExpired()) return;
                                 if (typeof failureCb === 'function') failureCb(err, userObj); else console.error('GAS Error:', err);
                             })
                             .api(window.getThpSessionToken(), String(prop), args);
@@ -66,7 +70,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.1904';
+    var APP_VERSION = 'Ver. 2026.1103.2049';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1718,8 +1722,9 @@
         if (savedSession) {
             try { 
                 const sessionData = JSON.parse(savedSession);
-                let isValid = true;
-                if (sessionData.user !== 'admin' && sessionData.loginTime) {
+                // session เก่าที่บันทึกก่อนมีระบบ token เรียกข้อมูลหลังบ้านไม่ได้ ให้ล็อกอินใหม่
+                let isValid = !!sessionData.token;
+                if (isValid && sessionData.user !== 'admin' && sessionData.loginTime) {
                     const hoursPassed = (new Date().getTime() - sessionData.loginTime) / (1000 * 60 * 60);
                     if (hoursPassed > 12) isValid = false;
                 }
@@ -2019,6 +2024,12 @@
                         window.homeVisitChartInstance = null;
                     }
                 }
+
+                // ล้างสถานะ "กำลังโหลด" ที่อาจค้างจากคำขอก่อนล็อกอิน ไม่งั้นจะไม่ดึงข้อมูลใหม่จนกว่าจะรีเฟรช
+                window.isFetchingVisitData = false; window.isFetchingVisitTargets = false;
+                window.isFetchingRevTargets = false; window.isFetchingRevData = false;
+                window.isSyncingDashboardData = false;
+                try { SafeStorage.setItem('thp_cache_last_sync', '0'); } catch (e) {}
 
                 res.loginTime = new Date().getTime();
                 SafeStorage.setItem('thp_user_session', JSON.stringify(res));
@@ -5797,6 +5808,22 @@
     // ==========================================
     // HOME VISIT SUMMARY
     // ==========================================
+    // ข้อความ "ไม่มีข้อมูล" ทับบนกราฟ แทนกราฟว่างเปล่า
+    function setHomeChartEmpty(canvasId, isEmpty, message, icon) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !canvas.parentElement) return;
+        let el = document.getElementById(canvasId + 'Empty');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = canvasId + 'Empty';
+            el.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 pointer-events-none z-10';
+            canvas.parentElement.appendChild(el);
+        }
+        el.innerHTML = '<i class="fas ' + (icon || 'fa-inbox') + ' text-3xl opacity-60"></i><span class="text-sm font-medium">' + message + '</span>';
+        el.style.display = isEmpty ? '' : 'none';
+        canvas.style.opacity = isEmpty ? '0.25' : '';
+    }
+
     function updateHomeVisitSummary(isSilent) {
         const card = document.getElementById('homeVisitSummaryCard');
         const monthSpan = document.getElementById('homeSummaryMonth');
@@ -5830,9 +5857,10 @@
                 if (res && res.status === 'success' && Array.isArray(res.data)) {
                     SafeStorage.setItem('thp_cache_rev_home', JSON.stringify(res.data));
                 }
+                window.__homeRevError = !(res && res.status === 'success');
                 window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
                 updateHomeVisitSummary(true);
-            }).withFailureHandler(() => { window.isFetchingRevData = false; window.globalRevenueData = []; updateHomeVisitSummary(true); }).getHomeRevenueSummary({
+            }).withFailureHandler(() => { window.isFetchingRevData = false; window.__homeRevError = true; window.globalRevenueData = []; updateHomeVisitSummary(true); }).getHomeRevenueSummary({
                 user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
                 zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
             });
@@ -6043,6 +6071,34 @@
             });
         }
 
+        // เดือนที่ใช้แสดงรายได้: ถ้าเดือนปัจจุบันยังไม่มีข้อมูล (ต้นเดือนข้อมูลมักยังไม่เข้า) ใช้เดือนล่าสุดที่มีข้อมูลแทน
+        const revMonthNamesFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const revRowMonthIdx = function(row) {
+            let m = String(row[5]).trim();
+            let idx = revMonthNamesFull.indexOf(m);
+            if (idx === -1) idx = thaiMonths.indexOf(m);
+            if (idx === -1 && !isNaN(parseInt(m))) idx = parseInt(m) - 1;
+            return idx;
+        };
+        const revRowYear = function(row) { let y = parseInt(row[6], 10); return y > 2500 ? y - 543 : y; };
+        let revMonth = currentMonth, revYear = currentYear, revIsFallback = false;
+        (function() {
+            let best = -1, hasCurrent = false;
+            (revenueRowsToProcess || []).forEach(function(row) {
+                if (!row || row.length < 9 || !(parseFloat(String(row[8]).replace(/,/g, '')) > 0)) return;
+                const mi = revRowMonthIdx(row), yy = revRowYear(row);
+                if (mi < 0 || isNaN(yy)) return;
+                const key = yy * 12 + mi;
+                if (key > currentYear * 12 + currentMonth) return;
+                if (mi === currentMonth && yy === currentYear) hasCurrent = true;
+                if (key > best) best = key;
+            });
+            if (!hasCurrent && best >= 0) {
+                revYear = Math.floor(best / 12); revMonth = best % 12; revIsFallback = true;
+            }
+        })();
+        const revMonthThaiName = revMonthNamesFull[revMonth];
+
         let myRevTarget = 0;
         const targetsToProcess = (typeof window.globalRevenueTargets !== 'undefined' && window.globalRevenueTargets && window.globalRevenueTargets.length > 1)
             ? window.globalRevenueTargets
@@ -6063,7 +6119,7 @@
                 if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mStr);
                 if (mIdx === -1 && !isNaN(parseInt(mStr))) mIdx = parseInt(mStr) - 1;
 
-                if (y === currentYear && (mStr === currentThaiMonthName || mIdx === currentMonth)) {
+                if (y === revYear && (mStr === revMonthThaiName || mIdx === revMonth)) {
                     let rZip = String(r[2]).trim();
                     let tVal = parseFloat(String(r[4]).replace(/,/g, '')) || 0;
                     if (isAdmin) {
@@ -6119,89 +6175,72 @@
             });
         }
 
-        let targetHtml = '';
-        let pctHtml = '';
-        if (myTarget > 0) {
-            let pct = Math.round((myMonthlyCount / myTarget) * 100);
-            let pctColor = pct >= 100 ? 'text-green-700' : 'text-orange-600';
-            let barColor = pct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
-            let iconColor = pct >= 100 ? 'text-green-500' : 'text-orange-400';
-            let formattedTarget = myTarget.toLocaleString();
-            let targetClass = getAdaptiveKpiClass(formattedTarget);
-            
-            targetHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                    <div class="flex justify-between items-center w-full mb-1">
-                        <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย</span>
-                    </div>
-                    
-                    <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                        <span class="${targetClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="11" title="${formattedTarget}">${formattedTarget}</span>
-                    </div>
-
-                    <div class="w-full h-1.5"></div>
-                </div>
-            `;
-            
-            pctHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                    <div class="flex justify-between items-center w-full mb-1">
-                        <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
-                    </div>
-                    
-                    <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                        <span class="text-2xl xl:text-3xl font-black ${pctColor} leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="12">${pct}%</span>
-                    </div>
-
-                    <div class="w-full bg-gray-100/80 rounded-full h-1.5 overflow-hidden shadow-inner relative">
-                        <div class="${barColor} h-full rounded-full transition-all duration-1000 ease-out relative" style="width: ${Math.min(pct, 100)}%">
-                            ${pct >= 100 ? '<div class="absolute inset-0 bg-white/30 animate-pulse"></div>' : ''}
+        // แผงตัวเลขหลัก (ใช้ร่วมกันทั้งการ์ดเข้าพบและรายได้): ตัวเลขใหญ่ 1 ตัว + เป้าหมาย + แถบความคืบหน้า
+        function buildKpiPanel(o) {
+            const hasTarget = o.target > 0;
+            let pct = hasTarget ? (o.value / o.target) * 100 : 0;
+            pct = pct < 10 ? Math.round(pct * 10) / 10 : Math.round(pct);
+            const done = pct >= 100;
+            const barColor = done ? 'bg-emerald-500' : o.bar;
+            const pctColor = done ? 'text-emerald-600' : o.pctColor;
+            return `
+                <div class="w-full bg-white border ${o.border} rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-end justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5 whitespace-nowrap"><i class="fas ${o.icon} ${o.iconColor}"></i> ${o.label}</div>
+                            <div class="mt-1 flex items-baseline gap-1.5 overflow-hidden">
+                                <span class="text-4xl font-black tracking-tight ${o.valueColor} leading-none whitespace-nowrap inline-block max-w-full" data-kpi-autofit="true" data-max-size="40" data-min-size="16" title="${o.valueTitle}">${o.valueText}</span>
+                                <span class="text-xs font-bold text-gray-400 whitespace-nowrap">${o.unit}</span>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-[11px] font-semibold text-gray-500 flex items-center justify-end gap-1"><i class="fas fa-bullseye text-gray-400"></i> เป้าหมาย</div>
+                            <div class="mt-1 text-lg font-black text-gray-700 leading-none whitespace-nowrap" title="${o.targetTitle || ''}">${hasTarget ? o.targetText : '<span class="text-sm font-medium text-gray-400">ยังไม่กำหนด</span>'}</div>
                         </div>
                     </div>
-                </div>
-            `;
-        } else {
-            targetHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                    <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> ไม่มีเป้า</span>
-                </div>
-            `;
-            pctHtml = `
-                <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                    <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
-                </div>
-            `;
+                    ${hasTarget ? `
+                    <div class="mt-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-medium text-gray-500">ความสำเร็จ</span>
+                            <span class="text-sm font-black ${pctColor}">${pct}%</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div class="${barColor} h-full rounded-full transition-all duration-700" style="width: ${Math.min(pct, 100)}%"></div>
+                        </div>
+                    </div>` : ''}
+                </div>`;
+        }
+
+        // auto-fit ตัวเลขให้พอดีกรอบ
+        function autoFitAllKpiValues() {
+            document.querySelectorAll('[data-kpi-autofit="true"]').forEach(function(el) {
+                const parent = el.parentElement;
+                if (!parent || parent.clientWidth <= 0) return;
+                const maxPx = parseInt(el.getAttribute('data-max-size') || '36', 10);
+                const minPx = parseInt(el.getAttribute('data-min-size') || '12', 10);
+                let size = maxPx;
+                el.style.fontSize = size + 'px';
+                const avail = parent.clientWidth - 40;
+                let guard = 0;
+                while (el.scrollWidth > avail && size > minPx && guard++ < 60) { size -= 1; el.style.fontSize = size + 'px'; }
+            });
         }
 
         const countContainer = document.getElementById('homeSummaryCountContainer');
         if (countContainer) {
-            countContainer.className = "flex flex-col items-center justify-center mt-3 w-full px-2";
-            let formattedCount = myMonthlyCount.toLocaleString();
-            let countClass = getAdaptiveKpiClass(formattedCount);
-            
-            countContainer.innerHTML = `
-                <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-                    <!-- Box 1: Visits -->
-                    <div class="col-span-2 xl:col-span-1 bg-white border border-orange-100/60 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                        <span class="text-[11px] text-gray-500 font-medium mb-1 flex items-center gap-1 whitespace-nowrap"><i class="fas fa-walking text-orange-400"></i> เข้าพบแล้ว</span>
-                        
-                        <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                            <span id="homeSummaryCount" class="${countClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-orange-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="11" title="${formattedCount}">${formattedCount}</span> 
-                        </div>
-                        
-                        <div class="w-full h-1.5"></div>
-                    </div>
-                    <!-- Box 2: Target -->
-                    ${targetHtml}
-                    <!-- Box 3: % Success -->
-                    ${pctHtml}
-                </div>
-            `;
+            countContainer.className = "w-full";
+            countContainer.innerHTML = buildKpiPanel({
+                label: 'เข้าพบแล้ว', icon: 'fa-walking', iconColor: 'text-orange-500', unit: 'ครั้ง',
+                value: myMonthlyCount, valueText: myMonthlyCount.toLocaleString(), valueTitle: myMonthlyCount.toLocaleString() + ' ครั้ง',
+                valueColor: 'text-orange-600', border: 'border-orange-100',
+                target: myTarget, targetText: myTarget.toLocaleString(), targetTitle: myTarget.toLocaleString() + ' ครั้ง',
+                bar: 'bg-orange-500', pctColor: 'text-orange-600'
+            });
             setTimeout(autoFitAllKpiValues, 30);
         }
 
         const monthRevSpan = document.getElementById('homeSummaryRevMonth');
-        if (monthRevSpan) monthRevSpan.textContent = thaiMonths[currentMonth] + ' ' + (currentYear + 543);
+        if (monthRevSpan) monthRevSpan.textContent = thaiMonths[revMonth] + ' ' + (revYear + 543) + (revIsFallback ? ' (ล่าสุดที่มีข้อมูล)' : '');
 
         const revContainer = document.getElementById('homeSummaryRevContainer');
         if (revContainer) {
@@ -6211,78 +6250,24 @@
                 return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
             };
             const renderRevUI = function(actualRevVal) {
-                let revTargetHtml = '';
-                let revPctHtml = '';
-                if (myRevTarget > 0) {
-                    let revPctRaw = (actualRevVal / myRevTarget) * 100;
-                    let revPct = revPctRaw < 10 ? Math.round(revPctRaw * 10) / 10 : Math.round(revPctRaw);
-                    let pctColor = revPct >= 100 ? 'text-green-700' : 'text-orange-600';
-                    let barColor = revPct >= 100 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-orange-400 to-orange-500';
-                    let iconColor = revPct >= 100 ? 'text-green-500' : 'text-orange-400';
-                    
-                    let fullTarget = myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
-                    let formattedTarget = formatCompactBaht(myRevTarget);
-                    let textClass = getAdaptiveKpiClass(formattedTarget);
-                    
-                    revTargetHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                            <div class="flex justify-between items-center w-full mb-1">
-                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-bullseye ${iconColor}"></i> เป้าหมาย (บาท)</span>
-                            </div>
-                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                                <span class="${textClass} font-black text-gray-700 leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${fullTarget}">${formattedTarget}</span>
-                            </div>
-                            <div class="w-full h-1.5"></div>
-                        </div>
-                    `;
-                    
-                    revPctHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                            <div class="flex justify-between items-center w-full mb-1">
-                                <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1 whitespace-nowrap"><i class="fas fa-percent ${iconColor}"></i> สำเร็จ</span>
-                            </div>
-                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                                <span class="text-2xl xl:text-3xl font-black ${pctColor} leading-none whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="30" data-min-size="12">${revPct}%</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                <div class="${barColor} h-1.5 rounded-full" style="width: ${Math.min(revPct, 100)}%"></div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    revTargetHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                            <span class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 whitespace-nowrap"><i class="fas fa-info-circle"></i> เป้าหมาย</span>
-                        </div>
-                    `;
-                    revPctHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-2.5 flex flex-col items-center justify-center shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                            <span class="text-[11px] text-gray-400 font-medium whitespace-nowrap">-</span>
-                        </div>
-                    `;
+                revContainer.className = "w-full";
+                if (window.__homeRevError) {
+                    revContainer.innerHTML = `
+                        <div class="w-full bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
+                            <div class="text-sm font-bold text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i> โหลดข้อมูลรายได้ไม่สำเร็จ</div>
+                            <button type="button" class="mt-2 text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-full" onclick="event.stopPropagation(); window.__homeRevError = false; window.globalRevenueData = undefined; updateHomeVisitSummary(true);"><i class="fas fa-redo mr-1"></i> ลองใหม่</button>
+                        </div>`;
+                    return;
                 }
-
-                let fullMonthRev = actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท';
-                let formattedMonthRev = formatCompactBaht(actualRevVal);
-                let revClass = getAdaptiveKpiClass(formattedMonthRev);
-                
-                revContainer.innerHTML = `
-                    <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-                        <div class="col-span-2 xl:col-span-1 bg-white border border-green-100 rounded-xl p-2.5 flex flex-col justify-between shadow-sm w-full h-full min-h-[86px] overflow-hidden">
-                            <div class="flex justify-between items-center w-full mb-1">
-                                <span class="text-[11px] text-green-600 font-medium flex items-center gap-1 whitespace-nowrap">
-                                    <i class="fas fa-coins opacity-70"></i> รายได้สะสม (บาท)
-                                </span>
-                            </div>
-                            <div class="flex justify-center items-center w-full max-w-full overflow-hidden my-auto py-1 px-0.5">
-                                <span id="homeSummaryRevenueMonth" class="${revClass} tracking-tight font-black leading-none drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-green-600 whitespace-nowrap text-center select-all inline-block max-w-full" data-kpi-autofit="true" data-max-size="28" data-min-size="10" title="${fullMonthRev}">${formattedMonthRev}</span> 
-                            </div>
-                            <div class="w-full h-1.5"></div>
-                        </div>
-                        ${revTargetHtml}
-                        ${revPctHtml}
-                    </div>
-                `;
+                revContainer.innerHTML = buildKpiPanel({
+                    label: 'รายได้สะสม', icon: 'fa-coins', iconColor: 'text-green-600', unit: 'บาท',
+                    value: actualRevVal, valueText: formatCompactBaht(actualRevVal),
+                    valueTitle: actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท',
+                    valueColor: 'text-green-600', border: 'border-green-100',
+                    target: myRevTarget, targetText: formatCompactBaht(myRevTarget),
+                    targetTitle: myRevTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท',
+                    bar: 'bg-green-500', pctColor: 'text-green-700'
+                });
                 setTimeout(autoFitAllKpiValues, 30);
             };
 
@@ -6316,7 +6301,7 @@
                     let mIdx = fullThaiMonths.indexOf(mName);
                     if (mIdx === -1) mIdx = shortThaiMonths.indexOf(mName);
                     
-                    if (mIdx === currentMonth && yYear === currentYear) {
+                    if (mIdx === revMonth && yYear === revYear) {
                         sum += rev;
                     }
                 });
@@ -6334,6 +6319,8 @@
             window.homeVisitChartInstance.destroy();
         }
         
+        setHomeChartEmpty('homeVisitChart', my10DaysCount === 0, 'ยังไม่มีการเข้าพบในช่วง 10 วันที่ผ่านมา', 'fa-calendar-times');
+
         const labels = last10DaysLabels;
         const data = last10Days.map(d => dailyCounts[d]);
         const maxDataValue = Math.max(...data, 0);
@@ -6391,13 +6378,13 @@
                                 size: 14
                             },
                             formatter: function(value) {
-                                return value;
+                                return value > 0 ? value : '';
                             }
                         }
                     },
                     scales: {
-                        y: { 
-                            beginAtZero: true, 
+                        y: {
+                            beginAtZero: true,
                             max: Math.ceil(maxDataValue * 1.2) || 5,
                             ticks: { stepSize: 1, precision: 0 } 
                         },
@@ -6464,7 +6451,7 @@
                 }
                 topCustomers[customerName].months[monthKey].rev += rev;
 
-                if (mIdx === currentMonth && yYear === currentYear) {
+                if (mIdx === revMonth && yYear === revYear) {
                     topCustomers[customerName].total += rev;
                     if (!topCustomers[customerName].services[serviceName]) {
                         topCustomers[customerName].services[serviceName] = 0;
@@ -6495,6 +6482,8 @@
                 return [name.substring(0, 15), name.substring(15, 30) + (name.length > 30 ? '..' : '')];
             }
         });
+        setHomeChartEmpty('homeRevenueChart', !window.__homeRevError && top10Arr.length === 0,
+            'ยังไม่มีข้อมูลรายได้ของ ' + thaiMonths[revMonth] + ' ' + (revYear + 543), 'fa-chart-bar');
         let top10Data = top10Arr.map(item => item.rev);
         const maxRevValue = top10Data.length > 0 ? Math.max(...top10Data, 0) : 0;
 

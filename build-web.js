@@ -98,8 +98,7 @@ const adapterScript = `
                       }
                     } else {
                       const err = new Error(json.error || 'Execution failed on Google Apps Script');
-                      if (String(json.error || '').indexOf('SESSION_EXPIRED') !== -1 && typeof window.handleSessionExpired === 'function') {
-                        window.handleSessionExpired();
+                      if (String(json.error || '').indexOf('SESSION_EXPIRED') !== -1 && typeof window.handleSessionExpired === 'function' && window.handleSessionExpired()) {
                         return;
                       }
                       if (typeof failureCb === 'function') {
