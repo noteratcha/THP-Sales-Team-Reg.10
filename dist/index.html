@@ -928,7 +928,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1108.2329';
+    var APP_VERSION = 'Ver. 2026.1109.0620';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -25958,15 +25958,20 @@
     }
 
     // โหลดข้อมูลเพลงจากเซิร์ฟเวอร์ (ดึงจากชีต "เพลง")
-    google.script.run.withSuccessHandler(function(res) {
-        if (res && res.status === 'success' && res.data && res.data.length > 0) {
-            BG_MUSIC_TRACKS = res.data;
-        }
-        initMusicPlayerAndUI();
-    }).withFailureHandler(function(err) {
-        console.error('Failed to load music playlist', err);
-        initMusicPlayerAndUI();
-    }).getMusicPlaylist();
+    // getMusicPlaylist ต้องมี session (เมื่อเปิด AUTH_ENFORCE คำขอก่อนล็อกอินจะถูกปฏิเสธ แล้วเพลงจะว่างทั้งรอบ)
+    // จึงรอให้ล็อกอินก่อน — ผู้ใช้ที่มี session ในเครื่องอยู่แล้วโหลดทันทีเหมือนเดิม
+    function loadMusicPlaylist() {
+        google.script.run.withSuccessHandler(function(res) {
+            if (res && res.status === 'success' && res.data && res.data.length > 0) {
+                BG_MUSIC_TRACKS = res.data;
+            }
+            initMusicPlayerAndUI();
+        }).withFailureHandler(function(err) {
+            console.error('Failed to load music playlist', err);
+            initMusicPlayerAndUI();
+        }).getMusicPlaylist();
+    }
+    if (typeof window.runWhenLoggedIn === 'function') window.runWhenLoggedIn(loadMusicPlaylist); else loadMusicPlaylist();
 
     // ฟังก์ชัน callback ส่วนกลางเมื่อ API พร้อมใช้งาน
     window.onYouTubeIframeAPIReady = function () {
