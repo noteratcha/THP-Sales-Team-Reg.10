@@ -217,10 +217,13 @@
         class="bg-white p-5 rounded-2xl shadow-md border border-gray-150/80 mb-6 w-full focus-within:shadow-lg focus-within:border-theme-orange/20 transition-all duration-300">
         <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 border-b border-gray-100 pb-3">
-            <div class="cursor-pointer group" onclick="document.getElementById('visitFiltersContainer').classList.toggle('hidden'); this.querySelector('.fa-chevron-up').classList.toggle('rotate-180')">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+            <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
+                onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
+                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
-                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i></h4>
+                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
+                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -1104,28 +1107,29 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onclick="closeVisitSummaryModal()"></div>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden relative flex flex-col transform scale-95 transition-transform duration-300">
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <!-- มือถือ: ชื่ออยู่แถวบน ปุ่มอยู่แถวล่าง (เดิมบีบแถวเดียวจนชื่อแตกคำละบรรทัด) ปุ่มปิดลอยมุมขวาบน -->
+            <div class="relative px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 sm:gap-3 bg-gray-50/50">
+                <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 whitespace-nowrap pr-12 sm:pr-0">
                     <span class="bg-blue-500 text-white p-1.5 rounded-lg text-xs"><i class="fas fa-chart-bar"></i></span>
                     สรุปการเข้าพบลูกค้า
                 </h3>
 
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
-                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-[10px] sm:text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105 whitespace-nowrap" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
+                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm whitespace-nowrap">
                         <i class="fab fa-line"></i> ส่ง LINE OA
                     </button>
-                    <button type="button" onclick="downloadVisitSummary()" class="text-[10px] sm:text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex">
+                    <button type="button" onclick="downloadVisitSummary()" class="text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex whitespace-nowrap">
                         <i class="fas fa-download"></i> บันทึกรูปภาพ
                     </button>
-                    <button type="button" onclick="closeVisitSummaryModal()" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none">
+                    <button type="button" onclick="closeVisitSummaryModal()" aria-label="ปิดหน้าต่างสรุปการเข้าพบ" class="absolute top-2.5 right-3 sm:static text-gray-500 hover:text-red-500 hover:bg-red-50 w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
             </div>
             <!-- Body -->
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
+            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
                 <!-- แถบสรุปตัวเลข (แสดงบนจอเท่านั้น ไม่ติดไปกับรูปที่บันทึก/ส่ง LINE) -->
                 <div id="visitSummaryKpis" class="mb-5"></div>
                 <div id="visitSummaryContent" class="space-y-8">
@@ -1358,6 +1362,7 @@
         toggleHighlight('filterSubjectBtn', !allSubjChecked, true);
         toggleHighlight('filterSalesBtn', !allSalesChecked, true);
         toggleHighlight('filterCustomerGroupBtn', !allGrpChecked, true);
+        if (typeof window.thpUpdateFilterBadge === 'function') window.thpUpdateFilterBadge('visitFiltersContainer');
     }
 
     window.resetVisitFilters = function () {

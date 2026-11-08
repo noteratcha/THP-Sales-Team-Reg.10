@@ -547,10 +547,13 @@
         class="bg-white p-5 rounded-2xl shadow-md border border-gray-150/80 mb-6 w-full focus-within:shadow-lg focus-within:border-theme-orange/20 transition-all duration-300">
         <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 border-b border-gray-100 pb-3">
-            <div class="cursor-pointer group" onclick="document.getElementById('revenueFiltersContainer').classList.toggle('hidden'); this.querySelector('.fa-chevron-up').classList.toggle('rotate-180')">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+            <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="revenueFiltersContainer"
+                onclick="thpToggleFilterPanel(this, 'revenueFiltersContainer')"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'revenueFiltersContainer'); }">
+                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
-                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i></h4>
+                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
+                    <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">จำกัดขอบเขตและกรองรายงานยอดขายและรายได้ในมิติต่าง
                     ๆ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -641,12 +644,13 @@
                 <!-- ช่องเก็บค่าจริง (รูปแบบ YYYY-MM ค.ศ.) ที่โค้ดกรองใช้อยู่ — หน้าจอแสดงเป็นเดือนไทย/ปี พ.ศ. ผ่าน select ด้านล่าง -->
                 <input type="hidden" id="revFilterDateStart">
                 <input type="hidden" id="revFilterDateEnd">
-                <div class="flex items-center gap-1">
+                <!-- มือถือเรียง เริ่ม/ถึง เป็น 2 แถว ชื่อเดือนเต็มจะไม่ถูกตัด -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-1">
                     <div class="flex items-center gap-1 flex-1 min-w-0">
                         <select id="revFilterDateStartM" onchange="onRevThaiMonthChange('Start')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนเริ่มต้น"></select>
                         <select id="revFilterDateStartY" onchange="onRevThaiMonthChange('Start')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีเริ่มต้น (พ.ศ.)"></select>
                     </div>
-                    <span class="text-gray-400 text-xs font-light px-0.5">ถึง</span>
+                    <span class="text-gray-500 text-xs px-0.5">ถึง</span>
                     <div class="flex items-center gap-1 flex-1 min-w-0">
                         <select id="revFilterDateEndM" onchange="onRevThaiMonthChange('End')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนสิ้นสุด"></select>
                         <select id="revFilterDateEndY" onchange="onRevThaiMonthChange('End')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีสิ้นสุด (พ.ศ.)"></select>
@@ -1287,6 +1291,7 @@
         const serviceCbs = Array.from(document.querySelectorAll('.service-checkbox'));
         const isServiceActive = serviceCbs.some(cb => (cb.value.toLowerCase().includes('e-parcel') ? cb.checked : !cb.checked));
         toggleHighlight('revFilterServiceBtn', isServiceActive, true);
+        if (typeof window.thpUpdateFilterBadge === 'function') window.thpUpdateFilterBadge('revenueFiltersContainer');
     }
 
     function clearRevenueFilters() {

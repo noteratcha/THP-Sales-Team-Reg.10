@@ -3,7 +3,7 @@
 
 <head>
   <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -373,6 +373,117 @@
     .music-wave.playing .bar-3 {
         animation: waveAnim 1.2s ease-in-out infinite 0.4s;
     }
+
+    /* ===== มือถือ (<768px): คำสั่งของหน้าบนแถบบนย้ายเข้าเมนู ⋯ (toggleHeaderActions ใน Module_Core) ===== */
+    @media (max-width: 767.98px) {
+        #headerActions { display: none; }
+        #headerActions.is-open {
+            display: flex; position: absolute; top: 100%; left: 0; right: 0; z-index: 40;
+            flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px;
+            padding: 10px 12px 14px; background: #fff; border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 18px 24px -18px rgba(6, 46, 33, 0.35);
+            max-height: 72vh; overflow-y: auto;
+        }
+        #headerActions.is-open > :not(.hidden) {
+            width: 100%; min-height: 46px; justify-content: flex-start; gap: 10px;
+            font-size: 15px; padding: 10px 14px; border-radius: 12px; transform: none;
+        }
+        /* รายการในเมนูใช้สีกลางเหมือนกันทุกปุ่ม (ไอคอนสีส้มเข้ม) แทนปุ่มคนละสี */
+        #headerActions.is-open > button:not(.hidden),
+        #headerActions.is-open > a:not(.hidden) {
+            display: flex; align-items: center; text-align: left;
+            background: #fff; background-image: none; color: #1f2937;
+            border: 1px solid #e5e7eb; box-shadow: none; font-weight: 600;
+        }
+        #headerActions.is-open > button:not(.hidden):active,
+        #headerActions.is-open > a:not(.hidden):active { background: #fff7ed; }
+        #headerActions.is-open > button:not(.hidden) i,
+        #headerActions.is-open > a:not(.hidden) i { color: #c2410c; width: 20px; text-align: center; }
+        #headerActions.is-open #headerSyncInfo { background: #f9fafb; color: #374151; }
+        #headerActions.is-open #headerSyncInfo button { width: 40px; height: 40px; margin-left: auto; }
+        #headerActions.is-open #headerSyncInfo i { font-size: 15px; }
+    }
+
+    /* ===== ตารางที่เลื่อนข้างได้บนมือถือ: ขอบด้านที่ยังมีคอลัมน์ซ่อนอยู่จะจางลง (เบราว์เซอร์ที่รองรับ scroll timeline) ===== */
+    @keyframes thpTableEdgeFade {
+        0% { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+        2%, 98% { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 36px), transparent); }
+        100% { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px); mask-image: linear-gradient(to right, transparent, #000 28px); }
+    }
+    @media (max-width: 767.98px) {
+        @supports (animation-timeline: scroll()) {
+            .overflow-x-auto:has(> table) {
+                animation: thpTableEdgeFade linear both;
+                animation-timeline: scroll(self inline);
+            }
+        }
+    }
+
+    /* =====================================================================
+       ขั้นที่ 2 ตัวอักษรและสี (impeccable typeset) — มีผลเฉพาะหน้าจอแอป:
+       main, เมนูด้านข้าง (#appSidebar) และหน้าต่างระดับ body ที่ id ลงท้าย "Modal"
+       ไม่รวม: กล่องชั่วคราวที่สร้างไว้จับภาพ/ทำ PDF (ต่อท้าย body) -> รูปที่ส่งออกเหมือนเดิม,
+               หน้าสร้างภาพข่าว (#page-postnews), ไอคอน <i>, วงกลมขนาดตายตัว (w-4/w-5/w-6 rounded-full)
+       ===================================================================== */
+
+    /* 1) ขนาดขั้นต่ำ 12px สำหรับตัวอักษร 8–11px */
+    :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[10.5px]"]):not([class*="sm:text-"]):not([class*="md:text-"]):not([class*="lg:text-"]):not([class*="xl:text-"]):not(i):not(:is(.w-4, .w-5, .w-6).rounded-full):not(#page-postnews *) {
+        font-size: 12px;
+    }
+    /* มือถือ (<640px) ขนาดตามจอ sm:/md: ยังไม่ทำงาน จึงยกทุกตัวที่เล็ก */
+    @media (max-width: 639.98px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[10.5px]"]):not(i):not(:is(.w-4, .w-5, .w-6).rounded-full):not(#page-postnews *) {
+            font-size: 12px;
+        }
+    }
+    @media (min-width: 640px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="sm:text-[9px]"], [class~="sm:text-[10px]"], [class~="sm:text-[11px]"]):not(i):not(#page-postnews *) { font-size: 12px; }
+    }
+    @media (min-width: 768px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) [class~="md:text-[10px]"]:not(i):not(#page-postnews *) { font-size: 12px; }
+    }
+
+    /* 2) ตัวหนังสือเทาจาง #9ca3af (2.5:1 บนพื้นขาว) -> #6b7280 (≈4.8:1); คำแนะนำในช่องกรอกเช่นกัน (ไม่รวมเมนูด้านข้างที่เป็นพื้นเข้ม) */
+    :is(main, body > [id$="Modal"]) .text-gray-400:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #6b7280; }
+    :is(main, body > [id$="Modal"]) :is(input, textarea)::placeholder { color: #6b7280; opacity: 1; }
+
+    /* 3) ส้ม: ตัวหนังสือขาวบนพื้นส้ม และตัวหนังสือสีส้มบนพื้นสว่าง -> ส้มเข้ม #c2410c (ขาวบนพื้นนี้ 5.2:1) */
+    :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:not(#page-postnews *) { background-color: #c2410c; }
+    :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:hover:not(#page-postnews *) { background-color: #9a3412; }
+    :is(main, body > [id$="Modal"]) :is(.text-theme-orange, .text-orange-500, .text-orange-600):not(i):not(svg):not(:hover):not(#page-postnews *) { color: #c2410c; }
+
+    /* 4) ปุ่มแคปซูลบนแถบบน (จอ md ขึ้นไป): ตัวหนังสือสีอ่อนเกินไป -> เฉดเข้มขึ้นของสีเดิม */
+    @media (min-width: 768px) {
+        #headerActions .text-yellow-600:not(:hover) { color: #a16207; }
+        #headerActions .text-green-600:not(:hover) { color: #15803d; }
+        #headerActions .text-red-500:not(:hover) { color: #b91c1c; }
+        #headerActions .text-blue-500:not(:hover) { color: #1d4ed8; }
+    }
+
+    /* 5) มือถือ: ช่องกรอก 16px — Safari บน iPhone ซูมหน้าเข้าเองเมื่อแตะช่องที่เล็กกว่า 16px (หลังเปิดให้ซูมได้ในขั้นที่ 1) */
+    @media (max-width: 767.98px) {
+        :root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+        :root select,
+        :root textarea { font-size: 16px; }
+        /* ปุ่มเลือกแบบเปิดรายการในแผงตัวกรอง ให้ขนาดเท่าช่องกรอก */
+        :is(main, body > [id$="Modal"]) .group-filter > button.w-full { font-size: 16px; }
+    }
+
+    /* 6) ป้ายภาษาไทย: ไม่ถ่างตัวอักษร (ตัวพิมพ์ใหญ่ไม่มีผลกับภาษาไทย แต่ tracking ทำให้สระ/วรรณยุกต์ห่าง) */
+    :is(main, body > [id$="Modal"]) .uppercase:is(.tracking-wide, .tracking-wider, .tracking-widest):not(#page-postnews *) { letter-spacing: 0.01em; }
+
+    /* 8) สีสถานะบนพื้นอ่อน: เขียว/แดงเข้มขึ้น 1 ระดับ (เขียว 600 บนพื้นเขียวอ่อน 3.2:1, แดง 600 บนชมพู 4.4:1) */
+    :is(main, body > [id$="Modal"]) .text-green-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #15803d; }
+    :is(main, body > [id$="Modal"]) .text-red-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #b91c1c; }
+
+    /* 9) เหรียญอันดับ 1–3: ตัวเลขขาวบนเหลือง/เทา/อำพันอ่านไม่ออก (1.5–3.2:1) -> พื้นอ่อน ตัวเลขเข้ม (ยังเป็นทอง/เงิน/ทองแดง) */
+    :is(main, body > [id$="Modal"]) :is(.bg-yellow-400, .from-yellow-300).text-white { background-image: none; background-color: #fde68a; color: #713f12; }
+    :is(main, body > [id$="Modal"]) :is(.bg-gray-400, .from-gray-300).text-white { background-image: none; background-color: #e5e7eb; color: #374151; }
+    :is(main, body > [id$="Modal"]) :is(.bg-amber-600, .from-amber-500).text-white { background-image: none; background-color: #fed7aa; color: #7c2d12; }
+
+    /* 7) ตัดบรรทัดหัวข้อให้สมดุล และย่อหน้าไม่ให้เหลือคำเดียวบรรทัดท้าย (เบราว์เซอร์ที่ไม่รองรับใช้แบบเดิม) */
+    :is(main, body > [id$="Modal"]) :is(h1, h2, h3, h4) { text-wrap: balance; }
+    :is(main, body > [id$="Modal"]) p { text-wrap: pretty; }
 </style>
 
   <!-- Vercel Google Apps Script Adapter -->
@@ -656,6 +767,60 @@
         google.script.run = createRunner();
         google.script.__thpWrapped = true;
     })();
+
+    // ==========================================
+    // 📱 มือถือ: เมนู ⋯ บนแถบบน + แผงตัวกรองแบบพับได้
+    // ==========================================
+    // จอ < 768px ซ่อนปุ่มคำสั่งของหน้าไว้ใน #headerActions (CSS ใน Style.html) แล้วเปิดด้วยปุ่ม #headerMoreBtn
+    window.toggleHeaderActions = function (force) {
+        var panel = document.getElementById('headerActions');
+        var btn = document.getElementById('headerMoreBtn');
+        if (!panel) return;
+        var open = (typeof force === 'boolean') ? force : !panel.classList.contains('is-open');
+        panel.classList.toggle('is-open', open);
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    document.addEventListener('click', function (e) {
+        var panel = document.getElementById('headerActions');
+        if (!panel || !panel.classList.contains('is-open') || !e.target.closest) return;
+        if (e.target.closest('#headerMoreBtn')) return;
+        // กดคำสั่งในเมนูแล้วปิดเมนู / แตะนอกเมนูก็ปิด (ช่องเลือกปีในเมนูไม่ปิด)
+        if (e.target.closest('#headerActions button, #headerActions a')) { setTimeout(function () { window.toggleHeaderActions(false); }, 0); return; }
+        if (!e.target.closest('#headerActions')) window.toggleHeaderActions(false);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') window.toggleHeaderActions(false);
+    });
+
+    // แผงตัวกรอง (หน้าเข้าพบ / หน้าข้อมูลการใช้บริการ): พับ-เปิด + บอกจำนวนตัวกรองที่ใช้อยู่ตอนพับ
+    window.thpUpdateFilterBadge = function (containerId) {
+        var box = document.getElementById(containerId);
+        var badge = document.querySelector('[data-filter-badge="' + containerId + '"]');
+        if (!box || !badge) return;
+        var n = 0;
+        // ตัวกรองที่ใช้อยู่ = กลุ่มที่มีกรอบไฮไลต์ (ring-1 จาก toggleHighlight ของแต่ละหน้า)
+        box.querySelectorAll('.group-filter').forEach(function (g) { if (g.querySelector('.ring-1')) n++; });
+        badge.textContent = 'กรองอยู่ ' + n + ' รายการ';
+        badge.classList.toggle('hidden', n === 0 || !box.classList.contains('hidden'));
+    };
+    window.thpToggleFilterPanel = function (header, containerId, force) {
+        var box = document.getElementById(containerId);
+        if (!box) return;
+        var show = (typeof force === 'boolean') ? force : box.classList.contains('hidden');
+        box.classList.toggle('hidden', !show);
+        var h = header || document.querySelector('[aria-controls="' + containerId + '"]');
+        if (h) {
+            h.setAttribute('aria-expanded', show ? 'true' : 'false');
+            var chev = h.querySelector('.fa-chevron-up');
+            if (chev) chev.classList.toggle('rotate-180', !show);
+        }
+        window.thpUpdateFilterBadge(containerId);
+    };
+    // มือถือเริ่มแบบพับตัวกรองไว้ ให้ข้อมูลขึ้นในจอแรก
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.matchMedia || !window.matchMedia('(max-width: 767.98px)').matches) return;
+        ['visitFiltersContainer', 'revenueFiltersContainer'].forEach(function (id) { window.thpToggleFilterPanel(null, id, false); });
+    });
 </script>
 <script>
     // ==========================================
@@ -665,7 +830,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1103.2313';
+    var APP_VERSION = 'Ver. 2026.1108.2305';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1226,21 +1391,21 @@
     <!-- CONTENT AREA -->
     <main class="flex-1 overflow-y-auto relative bg-gray-50 h-screen w-full overflow-x-hidden">
         <header
-            class="min-h-[72px] py-3 bg-white shadow-sm border-b flex flex-wrap items-center justify-between px-3 sm:px-8 sticky top-0 z-30 gap-y-2 sm:gap-y-3">
-            
+            class="min-h-[60px] sm:min-h-[72px] py-2.5 sm:py-3 bg-white shadow-sm border-b flex flex-wrap items-center justify-between px-3 sm:px-8 sticky top-0 z-30 gap-y-2 sm:gap-y-3">
+
             <!-- Left: Menu & Title -->
             <div class="flex items-center shrink-0 flex-1 min-w-0 md:flex-none order-1">
                 <button onclick="toggleSidebar()"
                     class="lg:hidden mr-2.5 sm:mr-4 text-gray-500 hover:text-theme-orange transition-colors shrink-0"><i
                         class="fas fa-bars text-[1.3rem] sm:text-2xl"></i></button>
-                <h2 class="text-[13px] sm:text-lg lg:text-xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
+                <h1 class="text-base sm:text-lg lg:text-xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
                     <span class="w-1.5 sm:w-2 h-6 sm:h-8 bg-theme-orange rounded hidden sm:block mr-2 sm:mr-3 shrink-0"></span>
-                    <span id="pageTitle" class="truncate max-w-[200px] sm:max-w-none">หน้าหลัก</span>
-                </h2>
+                    <span id="pageTitle" class="truncate min-w-0">หน้าหลัก</span>
+                </h1>
             </div>
 
-            <!-- Middle: Action Buttons (drops to next line on mobile) -->
-            <div
+            <!-- Middle: Action Buttons — จอ md ขึ้นไปแสดงในแถบ / มือถือย้ายเข้าเมนู ⋯ (#headerMoreBtn, CSS ใน Style.html) -->
+            <div id="headerActions"
                 class="flex flex-wrap items-center justify-start md:justify-end gap-1.5 sm:gap-2.5 py-1 sm:py-2 px-1 w-full md:w-auto md:flex-1 order-3 md:order-2">
 
                 <!-- เวลาซิงค์ข้อมูลล่าสุด + ปุ่มรีเฟรช -->
@@ -1271,7 +1436,7 @@
                 </div>
 
                 <button type="button" id="headerAiReportBtn" onclick="openAiRevenueReport()" title="วิเคราะห์ข้อมูลรายได้ด้วย AI แล้วสร้างรายงาน A4 (PDF)"
-                    class="hidden text-[10px] sm:text-xs bg-gradient-to-r from-orange-500 to-pink-500 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-semibold transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                    class="hidden text-[10px] sm:text-xs bg-[#c2410c] hover:bg-[#9a3412] text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-semibold transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-robot"></i> วิเคราะห์ด้วย AI</button>
                 <button type="button" id="headerRevenueReportBtn" onclick="openRevenueChartModal()"
                     class="hidden text-[10px] sm:text-xs bg-white text-purple-600 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
@@ -1314,6 +1479,12 @@
             <!-- Permanent Right Section (Background Music Note) -->
             <div class="flex items-center shrink-0 ml-auto md:ml-2 border-l border-gray-200 pl-3 relative order-2 md:order-3"
                 id="headerMusicContainer">
+                <!-- มือถือ: เปิดเมนูคำสั่งของหน้านี้ + เวลาอัปเดตล่าสุด -->
+                <button type="button" id="headerMoreBtn" onclick="toggleHeaderActions()"
+                    aria-label="คำสั่งของหน้านี้และเวลาอัปเดต" aria-expanded="false" aria-controls="headerActions"
+                    class="md:hidden w-10 h-10 mr-2 rounded-full bg-gray-50 border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-100 active:scale-95 transition">
+                    <i class="fas fa-ellipsis-h text-base"></i>
+                </button>
                 <button onclick="toggleBgMusic()" oncontextmenu="handleMusicContextMenu(event); return false;"
                     id="btnBgMusicPlayMini"
                     class="music-disc w-8 h-8 rounded-full bg-gray-50 border border-gray-200 text-theme-orange flex items-center justify-center hover:bg-theme-orange hover:text-white hover:border-theme-orange active:scale-95 shadow-sm transition-all duration-300 cursor-pointer relative group"
@@ -1399,63 +1570,58 @@
                     <!-- Main Content Column (Greeting + Dashboards) -->
                     <div class="flex-1 min-w-0 flex flex-col gap-6 w-full" id="mainContentColumn">
                         <!-- Greeting Section -->
-                        <div class="w-full bg-gradient-to-r from-theme-black to-theme-green custom-radius p-4 sm:p-5 text-white shadow-lg relative overflow-hidden" id="homeGreetingSection">
+                        <div class="w-full bg-gradient-to-r from-theme-black to-[#0b4a37] custom-radius p-4 sm:p-5 text-white shadow-lg relative overflow-hidden" id="homeGreetingSection">
                             <div class="relative z-10">
-                                <h1 class="text-base sm:text-xl font-bold mb-1">สวัสดี, <span id="welcomeName">คุณ...</span> 👋
-                                </h1>
+                                <h2 class="text-base sm:text-xl font-bold mb-1">สวัสดี, <span id="welcomeName">คุณ...</span> 👋
+                                </h2>
                                 <p class="opacity-90 text-xs sm:text-sm">ยินดีต้อนรับสู่ระบบ THP Sales Team Reg.10</p>
                                 <!-- เมนูลัด: 2x2 บนจอแคบ / 4 ช่องบนจอกว้าง -->
                                 <div class="grid grid-cols-2 2xl:grid-cols-4 gap-2 sm:gap-3 mt-3 sm:mt-4 w-full">
                                     <button type="button" onclick="switchPage('form')" title="เพิ่มการเข้าพบ"
-                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
+                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
                                         <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                                             <i class="fas fa-user-plus text-sm text-white"></i>
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-[13px] sm:text-sm font-bold leading-tight truncate">เพิ่มการเข้าพบ</span>
-                                            <span class="block text-[10px] sm:text-[11px] text-white/70 leading-tight truncate mt-0.5">บันทึกข้อมูลลูกค้า</span>
+                                            <span class="block text-xs text-white/80 leading-snug line-clamp-2 mt-0.5">บันทึกข้อมูลลูกค้า</span>
                                         </span>
                                         <i class="fas fa-chevron-right text-[10px] text-white/40 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all hidden sm:block"></i>
                                     </button>
                                     <button type="button" onclick="switchPage('postnews')" title="สร้างภาพข่าว"
-                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
+                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
                                         <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                                             <i class="fas fa-newspaper text-sm text-white"></i>
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-[13px] sm:text-sm font-bold leading-tight truncate">สร้างภาพข่าว</span>
-                                            <span class="block text-[10px] sm:text-[11px] text-white/70 leading-tight truncate mt-0.5">ภาพประชาสัมพันธ์</span>
+                                            <span class="block text-xs text-white/80 leading-snug line-clamp-2 mt-0.5">ประชาสัมพันธ์</span>
                                         </span>
                                         <i class="fas fa-chevron-right text-[10px] text-white/40 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all hidden sm:block"></i>
                                     </button>
                                     <button type="button" onclick="switchPage('rateprice')" title="อัตราค่าบริการ"
-                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
+                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
                                         <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                                             <i class="fas fa-file-invoice-dollar text-sm text-white"></i>
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-[13px] sm:text-sm font-bold leading-tight truncate">อัตราค่าบริการ</span>
-                                            <span class="block text-[10px] sm:text-[11px] text-white/70 leading-tight truncate mt-0.5">ตรวจสอบราคา</span>
+                                            <span class="block text-xs text-white/80 leading-snug line-clamp-2 mt-0.5">ตรวจสอบราคา</span>
                                         </span>
                                         <i class="fas fa-chevron-right text-[10px] text-white/40 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all hidden sm:block"></i>
                                     </button>
                                     <button type="button" onclick="openVisitSummaryModal()" title="สรุปการเข้าพบ"
-                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
+                                        class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
                                         <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                                             <i class="fas fa-chart-bar text-sm text-white"></i>
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-[13px] sm:text-sm font-bold leading-tight truncate">สรุปการเข้าพบ</span>
-                                            <span class="block text-[10px] sm:text-[11px] text-white/70 leading-tight truncate mt-0.5">ภาพรวมรายเดือน</span>
+                                            <span class="block text-xs text-white/80 leading-snug line-clamp-2 mt-0.5">ภาพรวมรายเดือน</span>
                                         </span>
                                         <i class="fas fa-chevron-right text-[10px] text-white/40 group-hover:text-white/80 group-hover:translate-x-0.5 transition-all hidden sm:block"></i>
                                     </button>
                                 </div>
-                            </div>
-                            <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
-                                    <svg width="200" height="200" fill="white">
-                                        <circle cx="100" cy="100" r="100" />
-                                    </svg>
                             </div>
                         </div>
 
@@ -1475,7 +1641,7 @@
                                         <h3 class="text-theme-black text-lg font-bold">สถิติการเข้าพบลูกค้า</h3>
                                         <span id="dashboardSyncStatus" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-full transition-all"></span>
                                     </div>
-                                    <span class="text-[11px] text-theme-orange flex items-center gap-1 bg-orange-50 group-hover:bg-orange-100 px-2 py-1 rounded-full transition-colors shrink-0"><span class="hidden sm:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
+                                    <span class="text-[11px] text-theme-orange flex items-center gap-1 bg-orange-50 group-hover:bg-orange-100 px-2 py-1 rounded-full transition-colors shrink-0"><span class="hidden 2xl:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
                                 </div>
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
@@ -1516,7 +1682,7 @@
                                         </div>
                                         <h3 class="text-theme-black text-lg font-bold">สถิติรายได้</h3>
                                     </div>
-                                    <span class="text-[11px] text-green-600 flex items-center gap-1 bg-green-50 group-hover:bg-green-100 px-2 py-1 rounded-full transition-colors cursor-pointer shrink-0"><span class="hidden sm:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
+                                    <span class="text-[11px] text-green-600 flex items-center gap-1 bg-green-50 group-hover:bg-green-100 px-2 py-1 rounded-full transition-colors cursor-pointer shrink-0"><span class="hidden 2xl:inline">ดูรายละเอียด</span> <i class="fas fa-chevron-right text-[10px]"></i></span>
                                 </div>
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
@@ -1834,10 +2000,13 @@
         class="bg-white p-5 rounded-2xl shadow-md border border-gray-150/80 mb-6 w-full focus-within:shadow-lg focus-within:border-theme-orange/20 transition-all duration-300">
         <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 border-b border-gray-100 pb-3">
-            <div class="cursor-pointer group" onclick="document.getElementById('visitFiltersContainer').classList.toggle('hidden'); this.querySelector('.fa-chevron-up').classList.toggle('rotate-180')">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+            <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
+                onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
+                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
-                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i></h4>
+                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
+                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -2721,28 +2890,29 @@
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onclick="closeVisitSummaryModal()"></div>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden relative flex flex-col transform scale-95 transition-transform duration-300">
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <!-- มือถือ: ชื่ออยู่แถวบน ปุ่มอยู่แถวล่าง (เดิมบีบแถวเดียวจนชื่อแตกคำละบรรทัด) ปุ่มปิดลอยมุมขวาบน -->
+            <div class="relative px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 sm:gap-3 bg-gray-50/50">
+                <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 whitespace-nowrap pr-12 sm:pr-0">
                     <span class="bg-blue-500 text-white p-1.5 rounded-lg text-xs"><i class="fas fa-chart-bar"></i></span>
                     สรุปการเข้าพบลูกค้า
                 </h3>
 
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
-                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-[10px] sm:text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105 whitespace-nowrap" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
+                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm whitespace-nowrap">
                         <i class="fab fa-line"></i> ส่ง LINE OA
                     </button>
-                    <button type="button" onclick="downloadVisitSummary()" class="text-[10px] sm:text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex">
+                    <button type="button" onclick="downloadVisitSummary()" class="text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex whitespace-nowrap">
                         <i class="fas fa-download"></i> บันทึกรูปภาพ
                     </button>
-                    <button type="button" onclick="closeVisitSummaryModal()" class="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none">
+                    <button type="button" onclick="closeVisitSummaryModal()" aria-label="ปิดหน้าต่างสรุปการเข้าพบ" class="absolute top-2.5 right-3 sm:static text-gray-500 hover:text-red-500 hover:bg-red-50 w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
             </div>
             <!-- Body -->
-            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
+            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30">
                 <!-- แถบสรุปตัวเลข (แสดงบนจอเท่านั้น ไม่ติดไปกับรูปที่บันทึก/ส่ง LINE) -->
                 <div id="visitSummaryKpis" class="mb-5"></div>
                 <div id="visitSummaryContent" class="space-y-8">
@@ -2975,6 +3145,7 @@
         toggleHighlight('filterSubjectBtn', !allSubjChecked, true);
         toggleHighlight('filterSalesBtn', !allSalesChecked, true);
         toggleHighlight('filterCustomerGroupBtn', !allGrpChecked, true);
+        if (typeof window.thpUpdateFilterBadge === 'function') window.thpUpdateFilterBadge('visitFiltersContainer');
     }
 
     window.resetVisitFilters = function () {
@@ -8907,10 +9078,13 @@
         class="bg-white p-5 rounded-2xl shadow-md border border-gray-150/80 mb-6 w-full focus-within:shadow-lg focus-within:border-theme-orange/20 transition-all duration-300">
         <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 border-b border-gray-100 pb-3">
-            <div class="cursor-pointer group" onclick="document.getElementById('revenueFiltersContainer').classList.toggle('hidden'); this.querySelector('.fa-chevron-up').classList.toggle('rotate-180')">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+            <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="revenueFiltersContainer"
+                onclick="thpToggleFilterPanel(this, 'revenueFiltersContainer')"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'revenueFiltersContainer'); }">
+                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
-                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i></h4>
+                            class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
+                    <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">จำกัดขอบเขตและกรองรายงานยอดขายและรายได้ในมิติต่าง
                     ๆ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -9001,12 +9175,13 @@
                 <!-- ช่องเก็บค่าจริง (รูปแบบ YYYY-MM ค.ศ.) ที่โค้ดกรองใช้อยู่ — หน้าจอแสดงเป็นเดือนไทย/ปี พ.ศ. ผ่าน select ด้านล่าง -->
                 <input type="hidden" id="revFilterDateStart">
                 <input type="hidden" id="revFilterDateEnd">
-                <div class="flex items-center gap-1">
+                <!-- มือถือเรียง เริ่ม/ถึง เป็น 2 แถว ชื่อเดือนเต็มจะไม่ถูกตัด -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-1">
                     <div class="flex items-center gap-1 flex-1 min-w-0">
                         <select id="revFilterDateStartM" onchange="onRevThaiMonthChange('Start')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนเริ่มต้น"></select>
                         <select id="revFilterDateStartY" onchange="onRevThaiMonthChange('Start')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีเริ่มต้น (พ.ศ.)"></select>
                     </div>
-                    <span class="text-gray-400 text-xs font-light px-0.5">ถึง</span>
+                    <span class="text-gray-500 text-xs px-0.5">ถึง</span>
                     <div class="flex items-center gap-1 flex-1 min-w-0">
                         <select id="revFilterDateEndM" onchange="onRevThaiMonthChange('End')" class="flex-1 min-w-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="เดือนสิ้นสุด"></select>
                         <select id="revFilterDateEndY" onchange="onRevThaiMonthChange('End')" class="w-[72px] shrink-0 text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans cursor-pointer" title="ปีสิ้นสุด (พ.ศ.)"></select>
@@ -9647,6 +9822,7 @@
         const serviceCbs = Array.from(document.querySelectorAll('.service-checkbox'));
         const isServiceActive = serviceCbs.some(cb => (cb.value.toLowerCase().includes('e-parcel') ? cb.checked : !cb.checked));
         toggleHighlight('revFilterServiceBtn', isServiceActive, true);
+        if (typeof window.thpUpdateFilterBadge === 'function') window.thpUpdateFilterBadge('revenueFiltersContainer');
     }
 
     function clearRevenueFilters() {
@@ -24620,6 +24796,11 @@
     // 4. NAVIGATION & AUTH
     // ==========================================
     function switchPage(pageId) {
+        if (typeof window.toggleHeaderActions === 'function') window.toggleHeaderActions(false); // ปิดเมนู ⋯ บนมือถือเมื่อเปลี่ยนหน้า
+        // ทุกหน้าอยู่ใน <main> ที่เลื่อนร่วมกัน: เปลี่ยนไปหน้าอื่นให้เริ่มบนสุด (เดิมค้างตำแหน่งเลื่อนของหน้าก่อน)
+        var __thpMain = document.querySelector('main');
+        if (__thpMain && window.__thpLastPageId !== pageId) __thpMain.scrollTop = 0;
+        window.__thpLastPageId = pageId;
         try {
             if (!window.bigLotProducts || window.bigLotProducts.length === 0) {
                 const _cachedBL = typeof SafeStorage !== 'undefined' ? SafeStorage.getItem('thp_biglot_products') : null;

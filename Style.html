@@ -315,4 +315,115 @@
     .music-wave.playing .bar-3 {
         animation: waveAnim 1.2s ease-in-out infinite 0.4s;
     }
+
+    /* ===== มือถือ (<768px): คำสั่งของหน้าบนแถบบนย้ายเข้าเมนู ⋯ (toggleHeaderActions ใน Module_Core) ===== */
+    @media (max-width: 767.98px) {
+        #headerActions { display: none; }
+        #headerActions.is-open {
+            display: flex; position: absolute; top: 100%; left: 0; right: 0; z-index: 40;
+            flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px;
+            padding: 10px 12px 14px; background: #fff; border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 18px 24px -18px rgba(6, 46, 33, 0.35);
+            max-height: 72vh; overflow-y: auto;
+        }
+        #headerActions.is-open > :not(.hidden) {
+            width: 100%; min-height: 46px; justify-content: flex-start; gap: 10px;
+            font-size: 15px; padding: 10px 14px; border-radius: 12px; transform: none;
+        }
+        /* รายการในเมนูใช้สีกลางเหมือนกันทุกปุ่ม (ไอคอนสีส้มเข้ม) แทนปุ่มคนละสี */
+        #headerActions.is-open > button:not(.hidden),
+        #headerActions.is-open > a:not(.hidden) {
+            display: flex; align-items: center; text-align: left;
+            background: #fff; background-image: none; color: #1f2937;
+            border: 1px solid #e5e7eb; box-shadow: none; font-weight: 600;
+        }
+        #headerActions.is-open > button:not(.hidden):active,
+        #headerActions.is-open > a:not(.hidden):active { background: #fff7ed; }
+        #headerActions.is-open > button:not(.hidden) i,
+        #headerActions.is-open > a:not(.hidden) i { color: #c2410c; width: 20px; text-align: center; }
+        #headerActions.is-open #headerSyncInfo { background: #f9fafb; color: #374151; }
+        #headerActions.is-open #headerSyncInfo button { width: 40px; height: 40px; margin-left: auto; }
+        #headerActions.is-open #headerSyncInfo i { font-size: 15px; }
+    }
+
+    /* ===== ตารางที่เลื่อนข้างได้บนมือถือ: ขอบด้านที่ยังมีคอลัมน์ซ่อนอยู่จะจางลง (เบราว์เซอร์ที่รองรับ scroll timeline) ===== */
+    @keyframes thpTableEdgeFade {
+        0% { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+        2%, 98% { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 36px), transparent); }
+        100% { -webkit-mask-image: linear-gradient(to right, transparent, #000 28px); mask-image: linear-gradient(to right, transparent, #000 28px); }
+    }
+    @media (max-width: 767.98px) {
+        @supports (animation-timeline: scroll()) {
+            .overflow-x-auto:has(> table) {
+                animation: thpTableEdgeFade linear both;
+                animation-timeline: scroll(self inline);
+            }
+        }
+    }
+
+    /* =====================================================================
+       ขั้นที่ 2 ตัวอักษรและสี (impeccable typeset) — มีผลเฉพาะหน้าจอแอป:
+       main, เมนูด้านข้าง (#appSidebar) และหน้าต่างระดับ body ที่ id ลงท้าย "Modal"
+       ไม่รวม: กล่องชั่วคราวที่สร้างไว้จับภาพ/ทำ PDF (ต่อท้าย body) -> รูปที่ส่งออกเหมือนเดิม,
+               หน้าสร้างภาพข่าว (#page-postnews), ไอคอน <i>, วงกลมขนาดตายตัว (w-4/w-5/w-6 rounded-full)
+       ===================================================================== */
+
+    /* 1) ขนาดขั้นต่ำ 12px สำหรับตัวอักษร 8–11px */
+    :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[10.5px]"]):not([class*="sm:text-"]):not([class*="md:text-"]):not([class*="lg:text-"]):not([class*="xl:text-"]):not(i):not(:is(.w-4, .w-5, .w-6).rounded-full):not(#page-postnews *) {
+        font-size: 12px;
+    }
+    /* มือถือ (<640px) ขนาดตามจอ sm:/md: ยังไม่ทำงาน จึงยกทุกตัวที่เล็ก */
+    @media (max-width: 639.98px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[10.5px]"]):not(i):not(:is(.w-4, .w-5, .w-6).rounded-full):not(#page-postnews *) {
+            font-size: 12px;
+        }
+    }
+    @media (min-width: 640px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) :is([class~="sm:text-[9px]"], [class~="sm:text-[10px]"], [class~="sm:text-[11px]"]):not(i):not(#page-postnews *) { font-size: 12px; }
+    }
+    @media (min-width: 768px) {
+        :is(main, #appSidebar, body > [id$="Modal"]) [class~="md:text-[10px]"]:not(i):not(#page-postnews *) { font-size: 12px; }
+    }
+
+    /* 2) ตัวหนังสือเทาจาง #9ca3af (2.5:1 บนพื้นขาว) -> #6b7280 (≈4.8:1); คำแนะนำในช่องกรอกเช่นกัน (ไม่รวมเมนูด้านข้างที่เป็นพื้นเข้ม) */
+    :is(main, body > [id$="Modal"]) .text-gray-400:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #6b7280; }
+    :is(main, body > [id$="Modal"]) :is(input, textarea)::placeholder { color: #6b7280; opacity: 1; }
+
+    /* 3) ส้ม: ตัวหนังสือขาวบนพื้นส้ม และตัวหนังสือสีส้มบนพื้นสว่าง -> ส้มเข้ม #c2410c (ขาวบนพื้นนี้ 5.2:1) */
+    :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:not(#page-postnews *) { background-color: #c2410c; }
+    :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:hover:not(#page-postnews *) { background-color: #9a3412; }
+    :is(main, body > [id$="Modal"]) :is(.text-theme-orange, .text-orange-500, .text-orange-600):not(i):not(svg):not(:hover):not(#page-postnews *) { color: #c2410c; }
+
+    /* 4) ปุ่มแคปซูลบนแถบบน (จอ md ขึ้นไป): ตัวหนังสือสีอ่อนเกินไป -> เฉดเข้มขึ้นของสีเดิม */
+    @media (min-width: 768px) {
+        #headerActions .text-yellow-600:not(:hover) { color: #a16207; }
+        #headerActions .text-green-600:not(:hover) { color: #15803d; }
+        #headerActions .text-red-500:not(:hover) { color: #b91c1c; }
+        #headerActions .text-blue-500:not(:hover) { color: #1d4ed8; }
+    }
+
+    /* 5) มือถือ: ช่องกรอก 16px — Safari บน iPhone ซูมหน้าเข้าเองเมื่อแตะช่องที่เล็กกว่า 16px (หลังเปิดให้ซูมได้ในขั้นที่ 1) */
+    @media (max-width: 767.98px) {
+        :root input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+        :root select,
+        :root textarea { font-size: 16px; }
+        /* ปุ่มเลือกแบบเปิดรายการในแผงตัวกรอง ให้ขนาดเท่าช่องกรอก */
+        :is(main, body > [id$="Modal"]) .group-filter > button.w-full { font-size: 16px; }
+    }
+
+    /* 6) ป้ายภาษาไทย: ไม่ถ่างตัวอักษร (ตัวพิมพ์ใหญ่ไม่มีผลกับภาษาไทย แต่ tracking ทำให้สระ/วรรณยุกต์ห่าง) */
+    :is(main, body > [id$="Modal"]) .uppercase:is(.tracking-wide, .tracking-wider, .tracking-widest):not(#page-postnews *) { letter-spacing: 0.01em; }
+
+    /* 8) สีสถานะบนพื้นอ่อน: เขียว/แดงเข้มขึ้น 1 ระดับ (เขียว 600 บนพื้นเขียวอ่อน 3.2:1, แดง 600 บนชมพู 4.4:1) */
+    :is(main, body > [id$="Modal"]) .text-green-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #15803d; }
+    :is(main, body > [id$="Modal"]) .text-red-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #b91c1c; }
+
+    /* 9) เหรียญอันดับ 1–3: ตัวเลขขาวบนเหลือง/เทา/อำพันอ่านไม่ออก (1.5–3.2:1) -> พื้นอ่อน ตัวเลขเข้ม (ยังเป็นทอง/เงิน/ทองแดง) */
+    :is(main, body > [id$="Modal"]) :is(.bg-yellow-400, .from-yellow-300).text-white { background-image: none; background-color: #fde68a; color: #713f12; }
+    :is(main, body > [id$="Modal"]) :is(.bg-gray-400, .from-gray-300).text-white { background-image: none; background-color: #e5e7eb; color: #374151; }
+    :is(main, body > [id$="Modal"]) :is(.bg-amber-600, .from-amber-500).text-white { background-image: none; background-color: #fed7aa; color: #7c2d12; }
+
+    /* 7) ตัดบรรทัดหัวข้อให้สมดุล และย่อหน้าไม่ให้เหลือคำเดียวบรรทัดท้าย (เบราว์เซอร์ที่ไม่รองรับใช้แบบเดิม) */
+    :is(main, body > [id$="Modal"]) :is(h1, h2, h3, h4) { text-wrap: balance; }
+    :is(main, body > [id$="Modal"]) p { text-wrap: pretty; }
 </style>
