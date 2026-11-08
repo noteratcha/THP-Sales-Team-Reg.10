@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 
 <head>
   <base target="_top">
@@ -481,6 +481,10 @@
     :is(main, body > [id$="Modal"]) :is(.bg-gray-400, .from-gray-300).text-white { background-image: none; background-color: #e5e7eb; color: #374151; }
     :is(main, body > [id$="Modal"]) :is(.bg-amber-600, .from-amber-500).text-white { background-image: none; background-color: #fed7aa; color: #7c2d12; }
 
+    /* 10) ขั้นที่ 3: วงโฟกัสสำหรับคีย์บอร์ด (หลายปุ่มตั้ง focus:outline-none ไว้ จึงมองไม่เห็นว่าโฟกัสอยู่ตรงไหน) */
+    :root :is(button, a[href], [role="button"], [tabindex="0"]):focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    :root #appSidebar :is(button, a[href], [role="button"], [tabindex="0"]):focus-visible { outline-color: #fdba74; }
+
     /* 7) ตัดบรรทัดหัวข้อให้สมดุล และย่อหน้าไม่ให้เหลือคำเดียวบรรทัดท้าย (เบราว์เซอร์ที่ไม่รองรับใช้แบบเดิม) */
     :is(main, body > [id$="Modal"]) :is(h1, h2, h3, h4) { text-wrap: balance; }
     :is(main, body > [id$="Modal"]) p { text-wrap: pretty; }
@@ -821,6 +825,100 @@
         if (!window.matchMedia || !window.matchMedia('(max-width: 767.98px)').matches) return;
         ['visitFiltersContainer', 'revenueFiltersContainer'].forEach(function (id) { window.thpToggleFilterPanel(null, id, false); });
     });
+
+    // ==========================================
+    // ⌨️ คีย์บอร์ดและโปรแกรมอ่านหน้าจอ (ทั้งแอป)
+    // ==========================================
+    (function () {
+        // จำตำแหน่งโฟกัสล่าสุดนอกหน้าต่าง เพื่อคืนโฟกัสหลังปิดหน้าต่างด้วย Esc
+        var lastFocusOutsideModal = null;
+        document.addEventListener('focusin', function (e) {
+            if (e.target && e.target.closest && !e.target.closest('.fixed.inset-0')) lastFocusOutsideModal = e.target;
+        });
+
+        function isShown(el) {
+            var cs = window.getComputedStyle(el);
+            return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.05 && el.getClientRects().length > 0;
+        }
+
+        // Esc ปิดหน้าต่างบนสุดที่ทำเอง (SweetAlert จัดการ Esc เองอยู่แล้ว; หน้าจอโหลดไม่มีปุ่มปิดจึงไม่ถูกปิด)
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || e.defaultPrevented) return;
+            if (window.Swal && typeof Swal.isVisible === 'function' && Swal.isVisible()) return;
+            var modals = Array.prototype.filter.call(document.querySelectorAll('.fixed.inset-0'), function (m) {
+                return m.id !== 'thpGoVercelOverlay' && isShown(m);
+            });
+            if (!modals.length) return;
+            modals.sort(function (a, b) {
+                return (parseInt(window.getComputedStyle(a).zIndex, 10) || 0) - (parseInt(window.getComputedStyle(b).zIndex, 10) || 0);
+            });
+            var top = modals[modals.length - 1];
+            var icon = top.querySelector('button .fa-times, button .fa-xmark');
+            var closer = (icon && icon.closest('button')) ||
+                top.querySelector('button[aria-label^="ปิด"], button[onclick*="close" i]') ||
+                top.querySelector('[onclick*="close" i]');
+            if (!closer) return;
+            e.preventDefault();
+            closer.click();
+            setTimeout(function () {
+                if (lastFocusOutsideModal && document.contains(lastFocusOutsideModal)) {
+                    try { lastFocusOutsideModal.focus({ preventScroll: true }); } catch (err) { }
+                }
+            }, 60);
+        });
+
+        // ปุ่มที่มีแต่ไอคอน: ตั้งชื่อให้โปรแกรมอ่านหน้าจอ (ใช้ title ก่อน ไม่มีจึงดูจากไอคอน)
+        var ICON_NAMES = [
+            ['fa-times', 'ปิด'], ['fa-xmark', 'ปิด'], ['fa-bars', 'เปิดเมนู'], ['fa-sync-alt', 'รีเฟรช'], ['fa-sync', 'รีเฟรช'],
+            ['fa-redo', 'เริ่มใหม่'], ['fa-trash-alt', 'ลบ'], ['fa-trash', 'ลบ'], ['fa-edit', 'แก้ไข'], ['fa-pen', 'แก้ไข'],
+            ['fa-pencil-alt', 'แก้ไข'], ['fa-download', 'ดาวน์โหลด'], ['fa-music', 'เพลงพื้นหลัง'], ['fa-search', 'ค้นหา'],
+            ['fa-plus', 'เพิ่ม'], ['fa-minus', 'ลด'], ['fa-chevron-left', 'ก่อนหน้า'], ['fa-chevron-right', 'ถัดไป'],
+            ['fa-eye', 'แสดง'], ['fa-copy', 'คัดลอก'], ['fa-print', 'พิมพ์'], ['fa-newspaper', 'สร้างภาพข่าว'],
+            ['fa-step-backward', 'เพลงก่อนหน้า'], ['fa-step-forward', 'เพลงถัดไป'], ['fa-random', 'สุ่มเพลง'],
+            ['fa-play', 'เล่น'], ['fa-pause', 'หยุด'], ['fa-info-circle', 'ข้อมูล'], ['fa-ellipsis-h', 'คำสั่งเพิ่มเติม']
+        ];
+        function nameFor(btn) {
+            var t = btn.getAttribute('title');
+            if (t) return t;
+            var i = btn.querySelector('i[class*="fa-"]');
+            if (!i) return '';
+            for (var k = 0; k < ICON_NAMES.length; k++) if (i.classList.contains(ICON_NAMES[k][0])) return ICON_NAMES[k][1];
+            return '';
+        }
+        var NATIVE = 'button, a, input, select, textarea, label, option, summary';
+        function enhance() {
+            document.querySelectorAll('button:not([aria-label]), a[href]:not([aria-label])').forEach(function (b) {
+                if ((b.textContent || '').trim()) return; // มีข้อความอยู่แล้ว
+                var n = nameFor(b);
+                if (n) b.setAttribute('aria-label', n);
+            });
+            // ส่วนที่กดได้แต่ไม่ใช่ปุ่ม (การ์ด, ชื่อในตาราง ฯลฯ): ให้กด Tab ไปถึงได้
+            document.querySelectorAll('[onclick]:not([tabindex])').forEach(function (el) {
+                if (el.matches(NATIVE) || el.closest('#page-postnews')) return;
+                if (/(^|\s)inset-0(\s|$)/.test(el.className || '')) return; // ฉากหลังของหน้าต่าง ไม่ต้องรับโฟกัส
+                el.setAttribute('tabindex', '0');
+                // แถว/ช่องตารางคงบทบาทเดิมไว้ (ไม่เปลี่ยนเป็นปุ่ม จะได้ไม่ทำลายโครงตาราง)
+                if (!el.getAttribute('role') && !el.matches('tr, td, th')) el.setAttribute('role', 'button');
+            });
+        }
+        // Enter / Space บนส่วนที่กดได้ = คลิก
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var el = e.target;
+            if (!el || !el.matches || !el.matches('[onclick][tabindex="0"]') || el.matches(NATIVE)) return;
+            e.preventDefault();
+            el.click();
+        });
+        var pending = null;
+        function schedule() {
+            if (pending) return;
+            pending = setTimeout(function () { pending = null; enhance(); }, 400);
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            enhance();
+            if (window.MutationObserver) new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        });
+    })();
 </script>
 <script>
     // ==========================================
@@ -830,7 +928,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1108.2305';
+    var APP_VERSION = 'Ver. 2026.1108.2329';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2003,10 +2101,10 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
-                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
+                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -2646,7 +2744,126 @@
         const input = document.getElementById('lostReasonOther');
         if (show) { wrapper.classList.remove('hidden'); }
         else { wrapper.classList.add('hidden'); input.value = ''; }
-    }
+    };
+
+    // ==========================================
+    // 📝 ร่างฟอร์มเข้าพบ: เก็บในเครื่องทุกครั้งที่กรอก กันข้อมูลหายเมื่อ session หมด/รีโหลด/ปิดแท็บ
+    // ==========================================
+    // กู้คืนเมื่อเปิดหน้าฟอร์ม (switchPage('form') ใน Module_Core เรียก restoreVisitDraft) / ลบเมื่อบันทึกสำเร็จหรือกดล้างข้อมูล (resetForm)
+    ;(function () { // ขึ้นต้นด้วย ; กันถูกต่อกับคำสั่งก่อนหน้าที่ไม่มี ;
+        var TEXT_FIELDS = ['subject', 'entrepreneurName', 'entrepreneurPhone', 'productType', 'salesChannel', 'shippingVolume',
+            'currentCarrier', 'needs', 'problems', 'suggestions', 'postFamilyID', 'recommendedService', 'lostReason', 'lostReasonOther'];
+        var GROUP_FIELDS = ['customerGroup', 'postFamilyStatus', 'offerResult'];
+        var MAX_AGE = 7 * 24 * 3600 * 1000; // ร่างเก่ากว่า 7 วันทิ้ง
+        var saveTimer = null;
+
+        function draftKey() {
+            var u = (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.user) ? String(currentUserInfo.user) : 'anon';
+            return 'thp_visit_draft_' + u;
+        }
+        function collect() {
+            var d = { v: {}, g: {}, t: Date.now() };
+            TEXT_FIELDS.forEach(function (id) { var el = document.getElementById(id); if (el) d.v[id] = el.value || ''; });
+            GROUP_FIELDS.forEach(function (name) {
+                d.g[name] = Array.prototype.map.call(document.querySelectorAll('#mainForm input[name="' + name + '"]:checked'), function (x) { return x.value; });
+            });
+            return d;
+        }
+        function hasContent(d) {
+            var anyText = TEXT_FIELDS.some(function (id) {
+                var v = String(d.v[id] || '').trim();
+                return v && !(id === 'postFamilyID' && v === 'THP-');
+            });
+            var pf = (d.g.postFamilyStatus || [])[0];
+            return anyText || (d.g.customerGroup || []).length > 0 || (d.g.offerResult || []).length > 0 || (pf && pf !== 'ไม่เป็นสมาชิก');
+        }
+        // บันทึก/ลบร่างเฉพาะเมื่อมีการกรอกจริงตั้งแต่ครั้งล่าสุด (กันร่างที่รอกู้คืนถูกลบตอนสลับแท็บขณะฟอร์มยังว่าง)
+        var dirty = false;
+        function saveNow() {
+            if (!dirty) return;
+            dirty = false;
+            try {
+                var d = collect();
+                if (hasContent(d)) localStorage.setItem(draftKey(), JSON.stringify(d));
+                else localStorage.removeItem(draftKey());
+            } catch (e) { }
+        }
+        function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
+
+        function hideNotice() { var n = document.getElementById('visitDraftNotice'); if (n) n.remove(); }
+        function showNotice(ts) {
+            var form = document.getElementById('mainForm');
+            if (!form) return;
+            var n = document.getElementById('visitDraftNotice');
+            if (!n) {
+                n = document.createElement('div');
+                n.id = 'visitDraftNotice';
+                n.setAttribute('role', 'status');
+                n.className = 'mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-sm';
+                form.insertBefore(n, form.firstElementChild);
+            }
+            var when = '';
+            try { when = new Date(ts).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { }
+            n.innerHTML = '<i class="fas fa-history text-amber-700" aria-hidden="true"></i>'
+                + '<span class="flex-1 min-w-0">กู้คืนข้อมูลที่กรอกค้างไว้' + (when ? ' (บันทึกล่าสุด ' + when + ')' : '') + ' — รูปภาพต้องแนบใหม่</span>'
+                + '<button type="button" class="font-semibold underline underline-offset-2 hover:text-amber-700" onclick="resetForm()">เริ่มกรอกใหม่</button>';
+        }
+
+        window.clearVisitDraft = function () {
+            clearTimeout(saveTimer);
+            try { localStorage.removeItem(draftKey()); } catch (e) { }
+            hideNotice();
+        };
+
+        window.restoreVisitDraft = function () {
+            var raw = null;
+            try { raw = localStorage.getItem(draftKey()); } catch (e) { }
+            if (!raw) return;
+            var d = null;
+            try { d = JSON.parse(raw); } catch (e) { }
+            if (!d || !d.v || Date.now() - (d.t || 0) > MAX_AGE) { window.clearVisitDraft(); return; }
+            if (hasContent(collect())) return; // กำลังกรอกอยู่ ไม่ทับของใหม่
+
+            // หัวข้อก่อน (ตัวรับ change จะตั้งช่องบังคับตามหัวข้อ) แล้วจึงช่องอื่น
+            var subj = document.getElementById('subject');
+            if (subj && d.v.subject) { subj.value = d.v.subject; subj.dispatchEvent(new Event('change', { bubbles: true })); }
+            GROUP_FIELDS.forEach(function (name) {
+                var vals = d.g[name] || [];
+                document.querySelectorAll('#mainForm input[name="' + name + '"]').forEach(function (x) { x.checked = vals.indexOf(x.value) !== -1; });
+            });
+            if ((d.g.postFamilyStatus || [])[0] === 'เป็นสมาชิก' && typeof togglePostFamily === 'function') togglePostFamily(true);
+            var pending = [];
+            TEXT_FIELDS.forEach(function (id) {
+                if (id === 'subject') return;
+                var el = document.getElementById(id), v = d.v[id];
+                if (!el || v == null || v === '') return;
+                el.value = v;
+                if (el.value !== v) pending.push(id); // ตัวเลือกยังโหลดจากหลังบ้านไม่เสร็จ (เช่น บริการที่แนะนำ)
+            });
+            if (d.v.lostReason === 'อื่น ๆ' && typeof window.toggleLostReasonOther === 'function') window.toggleLostReasonOther(true);
+            var tries = 0;
+            (function retry() {
+                if (!pending.length || tries++ > 10) return;
+                pending = pending.filter(function (id) {
+                    var el = document.getElementById(id);
+                    if (!el) return false;
+                    el.value = d.v[id];
+                    return el.value !== d.v[id];
+                });
+                if (pending.length) setTimeout(retry, 700);
+            })();
+            showNotice(d.t);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('mainForm');
+            if (!form) return;
+            form.addEventListener('input', scheduleSave);
+            form.addEventListener('change', scheduleSave);
+            window.addEventListener('pagehide', saveNow);
+            document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') saveNow(); });
+        });
+    })();
 
     function resetForm() {
         const mainForm = document.getElementById('mainForm');
@@ -2663,6 +2880,7 @@
             trySetInput('salesName', currentUserInfo.team || (currentUserInfo.name + " (ทีมขาย)"));
         }
         if (window.updateFormValidationUI) window.updateFormValidationUI('subject');
+        if (typeof window.clearVisitDraft === 'function') window.clearVisitDraft(); // บันทึกสำเร็จ/กดล้างข้อมูล = ไม่ต้องเก็บร่าง
     }
 
     function togglePostFamily(show) {
@@ -9081,10 +9299,10 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="revenueFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'revenueFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'revenueFiltersContainer'); }">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
-                    <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
+                    <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">จำกัดขอบเขตและกรองรายงานยอดขายและรายได้ในมิติต่าง
                     ๆ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -24168,86 +24386,127 @@
     // ==========================================
     // 0. BUG TRACKER & GLOBAL ERROR HANDLER
     // ==========================================
+    // ผู้ใช้ทั่วไป: แถบแจ้งเตือนภาษาไทยเล็กๆ มุมบน ไม่บังจอ + ปุ่ม "รีเฟรชหน้า" (ไม่โชว์รายละเอียดทางเทคนิค)
+    // admin: มีปุ่ม "ดูรายละเอียด" เปิดรายละเอียดเต็ม (ข้อความ error, ไฟล์, บรรทัด, stack)
+    // รายงานผู้ดูแลทาง LINE ครั้งเดียวต่อเรื่องต่อรอบ (หลังบ้านกันซ้ำอีก 10 นาที)
+    // แนบภาพหน้าจอเฉพาะเมื่อ admin เป็นคนเจอ — ภาพของผู้ใช้ทั่วไปอาจมีชื่อ/เบอร์ลูกค้า จึงส่งเป็นข้อความอย่างเดียว
+    var __thpReportedErrors = {};
+    var __thpLastErrorToastAt = 0;
+    function thpIsIgnorableError(msg) {
+        var m = String(msg || '').trim();
+        // ResizeObserver loop = คำเตือนของเบราว์เซอร์ ไม่ใช่บั๊ก; "Script error." = error จากสคริปต์ภายนอกที่ไม่มีข้อมูลให้แก้
+        return /ResizeObserver loop/i.test(m) || /^Script error\.?$/i.test(m);
+    }
+    // currentUserInfo ประกาศด้วย let (ไม่อยู่บน window) — อ่านตรงๆ ใน try เผื่อ error เกิดก่อนตัวแปรถูกประกาศ
+    function thpCurrentUser() {
+        try { if (typeof currentUserInfo !== 'undefined' && currentUserInfo) return currentUserInfo; } catch (e) { }
+        return window.currentUserInfo || null;
+    }
+    function thpIsAdminUser() {
+        var u = thpCurrentUser();
+        return !!(u && String(u.user).toLowerCase() === 'admin');
+    }
+    function thpEscapeHtml(v) {
+        return String(v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+    }
+
     window.onerror = function (message, source, lineno, colno, error) {
-        // คำเตือนของเบราว์เซอร์ที่ไม่ใช่ข้อผิดพลาดจริง (ไม่กระทบการทำงาน) ไม่ต้องแจ้งผู้ใช้
-        if (/ResizeObserver loop/i.test(String(message || ''))) return true;
-        if (typeof Swal !== 'undefined') Swal.close();
+        if (thpIsIgnorableError(message)) return true;
         showDebugAlert(message, source, lineno, colno, error);
         return false;
     };
 
     window.onunhandledrejection = function (event) {
-        if (typeof Swal !== 'undefined') Swal.close();
-        showDebugAlert(
-            event.reason ? (event.reason.message || event.reason) : 'Unhandled Promise Rejection',
-            'Promise/Async Operation',
-            0,
-            0,
-            event.reason
-        );
+        var reason = event ? event.reason : null;
+        var msg = reason ? (reason.message || reason) : 'Unhandled Promise Rejection';
+        if (thpIsIgnorableError(msg)) return;
+        showDebugAlert(msg, 'Promise/Async Operation', 0, 0, reason);
     };
 
+    // รายละเอียดเต็มสำหรับ admin
+    function showDebugDetails(msg, shortUrl, line, errStack) {
+        if (typeof Swal === 'undefined') { alert('Bug: ' + msg + '\nFile: ' + shortUrl + '\nLine: ' + line); return; }
+        Swal.fire({
+            icon: 'warning',
+            title: 'รายละเอียดข้อผิดพลาด (สำหรับผู้ดูแล)',
+            html: `
+                <div class="text-left bg-red-50 p-4 rounded-lg border border-red-200 mt-2 overflow-hidden">
+                    <p class="text-sm font-bold text-red-800 mb-1">ข้อความ:</p>
+                    <p class="text-xs text-red-700 mb-3 font-mono break-words bg-white p-2 rounded border border-red-100">${thpEscapeHtml(msg)}</p>
+                    <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-700 bg-white p-2 rounded border border-red-100">
+                        <div><b class="text-gray-900">ไฟล์:</b><br>${thpEscapeHtml(shortUrl)}</div>
+                        <div><b class="text-gray-900">ตำแหน่ง:</b><br>บรรทัดที่ ${thpEscapeHtml(line)}</div>
+                    </div>
+                    <div class="bg-white p-2 rounded border border-red-100">
+                        <p class="text-xs font-bold text-gray-600 mb-1">Stack Trace:</p>
+                        <pre class="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">${thpEscapeHtml(errStack)}</pre>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'ปิดหน้าต่าง',
+            confirmButtonColor: '#062e21'
+        });
+    }
+
     function showDebugAlert(msg, url, line, col, err) {
-        const errStack = err && err.stack ? err.stack : 'ไม่มีข้อมูล Stack trace';
-        const shortUrl = url ? url.substring(url.lastIndexOf('/') + 1) : 'ไม่ทราบแหล่งที่มา';
+        var errStack = err && err.stack ? err.stack : 'ไม่มีข้อมูล Stack trace';
+        var shortUrl = url ? String(url).substring(String(url).lastIndexOf('/') + 1) : 'ไม่ทราบแหล่งที่มา';
+        var isAdmin = thpIsAdminUser();
 
         // พยายามดึงชื่อผู้ใช้ถ้ามี
         var userContext = "ไม่ทราบ/ไม่ได้ล็อกอิน";
         try {
-            if (window.currentUserInfo && window.currentUserInfo.user) {
-                userContext = window.currentUserInfo.name + " (" + window.currentUserInfo.user + ")";
-            }
+            var cu = thpCurrentUser();
+            if (cu && cu.user) userContext = cu.name + " (" + cu.user + ")";
         } catch (e) { }
-
         var browserInfo = navigator.userAgent;
 
-        if (typeof Swal !== 'undefined') {
+        // แจ้งผู้ใช้ด้วยแถบเล็กมุมบน (เว้น 8 วินาทีระหว่างแถบ กันเด้งรัวเมื่อ error ซ้ำๆ)
+        var now = Date.now();
+        if (typeof Swal !== 'undefined' && now - __thpLastErrorToastAt > 8000) {
+            __thpLastErrorToastAt = now;
             Swal.fire({
+                toast: true,
+                position: 'top-end',
                 icon: 'warning',
-                title: '⚠️ ระบบพบข้อผิดพลาด (Bug)',
-                html: `
-                    <div class="text-left bg-red-50 p-4 rounded-lg border border-red-200 mt-2 overflow-hidden shadow-inner">
-                        <p class="text-sm font-bold text-red-800 mb-1">รายละเอียดข้อผิดพลาด:</p>
-                        <p class="text-xs text-red-600 mb-3 font-mono break-words bg-white p-2 rounded border border-red-100">${msg}</p>
-                        <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-gray-700 bg-white p-2 rounded border border-red-100">
-                            <div><b class="text-gray-900">ไฟล์:</b><br>${shortUrl}</div>
-                            <div><b class="text-gray-900">ตำแหน่ง:</b><br>บรรทัดที่ ${line}</div>
-                        </div>
-                        <div class="bg-white p-2 rounded border border-red-100">
-                            <p class="text-[10px] font-bold text-gray-500 mb-1">Stack Trace:</p>
-                            <pre class="text-[10px] text-gray-600 whitespace-pre-wrap max-h-32 overflow-y-auto">${errStack}</pre>
-                        </div>
-                    </div>
-                `,
-                confirmButtonText: 'ปิดหน้าต่าง',
-                confirmButtonColor: '#062e21'
+                title: 'เกิดข้อผิดพลาดบางอย่าง',
+                html: '<div class="text-left text-sm text-gray-600">ถ้าหน้าจอทำงานไม่ถูกต้อง ลองรีเฟรชหน้า ระบบแจ้งผู้ดูแลให้แล้ว</div>',
+                showConfirmButton: true,
+                confirmButtonText: 'รีเฟรชหน้า',
+                confirmButtonColor: '#c2410c',
+                showDenyButton: isAdmin,
+                denyButtonText: 'ดูรายละเอียด',
+                denyButtonColor: '#374151',
+                showCloseButton: true,
+                timer: 10000,
+                timerProgressBar: true
+            }).then(function (r) {
+                if (r && r.isConfirmed) location.reload();
+                else if (r && r.isDenied) showDebugDetails(msg, shortUrl, line, errStack);
             });
-        } else {
-            alert(`Bug: ${msg}\nFile: ${shortUrl}\nLine: ${line}`);
+        } else if (typeof Swal === 'undefined') {
+            alert('เกิดข้อผิดพลาดบางอย่าง ถ้าหน้าจอทำงานไม่ถูกต้อง ลองรีเฟรชหน้า');
         }
 
-        // รอให้หน้าต่าง Alert โหลดเสร็จแล้วแคปหน้าจอส่งไปยัง LINE
-        setTimeout(function() {
-            if (typeof html2canvas !== 'undefined') {
-                // บีบอัดภาพเพื่อป้องกัน google.script.run payload too large
-                html2canvas(document.body, { scale: 1, useCORS: true, logging: false, backgroundColor: '#ffffff' }).then(function(canvas) {
-                    var base64Image = canvas.toDataURL('image/jpeg', 0.6); // ใช้ jpeg คุณภาพ 60%
-                    if (typeof google !== 'undefined' && google.script && google.script.run) {
-                        google.script.run.logFrontendErrorToLine(String(msg), String(shortUrl), Number(line), String(errStack), String(userContext), String(browserInfo), base64Image);
-                    }
-                }).catch(function(e) {
-                    // ถ้าแคปหน้าจอไม่สำเร็จ ให้ส่งแค่ข้อความ
-                    if (typeof google !== 'undefined' && google.script && google.script.run) {
-                        google.script.run.logFrontendErrorToLine(String(msg), String(shortUrl), Number(line), String(errStack), String(userContext), String(browserInfo), null);
-                    }
-                });
-            } else {
-                // ถ้าไม่มี html2canvas ให้ส่งแค่ข้อความ
-                if (typeof google !== 'undefined' && google.script && google.script.run) {
-                    google.script.run.logFrontendErrorToLine(String(msg), String(shortUrl), Number(line), String(errStack), String(userContext), String(browserInfo), null);
-                }
+        // รายงานผู้ดูแลครั้งเดียวต่อเรื่องในรอบการใช้งานนี้
+        var reportKey = String(msg) + '|' + String(line);
+        if (__thpReportedErrors[reportKey]) return;
+        __thpReportedErrors[reportKey] = true;
+        var send = function (img) {
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run.logFrontendErrorToLine(String(msg), String(shortUrl), Number(line), String(errStack), String(userContext), String(browserInfo), img || null);
             }
-        }, 800); // เพิ่มดีเลย์เป็น 800ms เผื่อแอนิเมชันของ Swal.fire
+        };
+        if (isAdmin && typeof html2canvas !== 'undefined') {
+            // admin: แนบภาพหน้าจอช่วยไล่ปัญหา (บีบอัดเป็น jpeg 60% กัน payload ใหญ่)
+            setTimeout(function () {
+                html2canvas(document.body, { scale: 1, useCORS: true, logging: false, backgroundColor: '#ffffff' })
+                    .then(function (canvas) { send(canvas.toDataURL('image/jpeg', 0.6)); })
+                    .catch(function () { send(null); });
+            }, 800);
+        } else {
+            send(null);
+        }
     }
 
     // ==========================================
@@ -24801,6 +25060,8 @@
         var __thpMain = document.querySelector('main');
         if (__thpMain && window.__thpLastPageId !== pageId) __thpMain.scrollTop = 0;
         window.__thpLastPageId = pageId;
+        // เปิดหน้าบันทึกการเข้าพบ: กู้คืนร่างที่กรอกค้างไว้ (ถ้ามี) — Module_Visit
+        if (pageId === 'form' && typeof window.restoreVisitDraft === 'function') setTimeout(window.restoreVisitDraft, 80);
         try {
             if (!window.bigLotProducts || window.bigLotProducts.length === 0) {
                 const _cachedBL = typeof SafeStorage !== 'undefined' ? SafeStorage.getItem('thp_biglot_products') : null;

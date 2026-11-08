@@ -423,6 +423,10 @@
     :is(main, body > [id$="Modal"]) :is(.bg-gray-400, .from-gray-300).text-white { background-image: none; background-color: #e5e7eb; color: #374151; }
     :is(main, body > [id$="Modal"]) :is(.bg-amber-600, .from-amber-500).text-white { background-image: none; background-color: #fed7aa; color: #7c2d12; }
 
+    /* 10) ขั้นที่ 3: วงโฟกัสสำหรับคีย์บอร์ด (หลายปุ่มตั้ง focus:outline-none ไว้ จึงมองไม่เห็นว่าโฟกัสอยู่ตรงไหน) */
+    :root :is(button, a[href], [role="button"], [tabindex="0"]):focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    :root #appSidebar :is(button, a[href], [role="button"], [tabindex="0"]):focus-visible { outline-color: #fdba74; }
+
     /* 7) ตัดบรรทัดหัวข้อให้สมดุล และย่อหน้าไม่ให้เหลือคำเดียวบรรทัดท้าย (เบราว์เซอร์ที่ไม่รองรับใช้แบบเดิม) */
     :is(main, body > [id$="Modal"]) :is(h1, h2, h3, h4) { text-wrap: balance; }
     :is(main, body > [id$="Modal"]) p { text-wrap: pretty; }

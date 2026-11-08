@@ -220,10 +220,10 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
-                <h4 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
-                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h4>
+                    <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
                 <p class="text-[10px] sm:text-xs text-gray-400 mt-0.5 group-hover:text-gray-500 transition-colors">
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
@@ -863,7 +863,126 @@
         const input = document.getElementById('lostReasonOther');
         if (show) { wrapper.classList.remove('hidden'); }
         else { wrapper.classList.add('hidden'); input.value = ''; }
-    }
+    };
+
+    // ==========================================
+    // 📝 ร่างฟอร์มเข้าพบ: เก็บในเครื่องทุกครั้งที่กรอก กันข้อมูลหายเมื่อ session หมด/รีโหลด/ปิดแท็บ
+    // ==========================================
+    // กู้คืนเมื่อเปิดหน้าฟอร์ม (switchPage('form') ใน Module_Core เรียก restoreVisitDraft) / ลบเมื่อบันทึกสำเร็จหรือกดล้างข้อมูล (resetForm)
+    ;(function () { // ขึ้นต้นด้วย ; กันถูกต่อกับคำสั่งก่อนหน้าที่ไม่มี ;
+        var TEXT_FIELDS = ['subject', 'entrepreneurName', 'entrepreneurPhone', 'productType', 'salesChannel', 'shippingVolume',
+            'currentCarrier', 'needs', 'problems', 'suggestions', 'postFamilyID', 'recommendedService', 'lostReason', 'lostReasonOther'];
+        var GROUP_FIELDS = ['customerGroup', 'postFamilyStatus', 'offerResult'];
+        var MAX_AGE = 7 * 24 * 3600 * 1000; // ร่างเก่ากว่า 7 วันทิ้ง
+        var saveTimer = null;
+
+        function draftKey() {
+            var u = (typeof currentUserInfo !== 'undefined' && currentUserInfo && currentUserInfo.user) ? String(currentUserInfo.user) : 'anon';
+            return 'thp_visit_draft_' + u;
+        }
+        function collect() {
+            var d = { v: {}, g: {}, t: Date.now() };
+            TEXT_FIELDS.forEach(function (id) { var el = document.getElementById(id); if (el) d.v[id] = el.value || ''; });
+            GROUP_FIELDS.forEach(function (name) {
+                d.g[name] = Array.prototype.map.call(document.querySelectorAll('#mainForm input[name="' + name + '"]:checked'), function (x) { return x.value; });
+            });
+            return d;
+        }
+        function hasContent(d) {
+            var anyText = TEXT_FIELDS.some(function (id) {
+                var v = String(d.v[id] || '').trim();
+                return v && !(id === 'postFamilyID' && v === 'THP-');
+            });
+            var pf = (d.g.postFamilyStatus || [])[0];
+            return anyText || (d.g.customerGroup || []).length > 0 || (d.g.offerResult || []).length > 0 || (pf && pf !== 'ไม่เป็นสมาชิก');
+        }
+        // บันทึก/ลบร่างเฉพาะเมื่อมีการกรอกจริงตั้งแต่ครั้งล่าสุด (กันร่างที่รอกู้คืนถูกลบตอนสลับแท็บขณะฟอร์มยังว่าง)
+        var dirty = false;
+        function saveNow() {
+            if (!dirty) return;
+            dirty = false;
+            try {
+                var d = collect();
+                if (hasContent(d)) localStorage.setItem(draftKey(), JSON.stringify(d));
+                else localStorage.removeItem(draftKey());
+            } catch (e) { }
+        }
+        function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
+
+        function hideNotice() { var n = document.getElementById('visitDraftNotice'); if (n) n.remove(); }
+        function showNotice(ts) {
+            var form = document.getElementById('mainForm');
+            if (!form) return;
+            var n = document.getElementById('visitDraftNotice');
+            if (!n) {
+                n = document.createElement('div');
+                n.id = 'visitDraftNotice';
+                n.setAttribute('role', 'status');
+                n.className = 'mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-4 py-3 text-sm';
+                form.insertBefore(n, form.firstElementChild);
+            }
+            var when = '';
+            try { when = new Date(ts).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { }
+            n.innerHTML = '<i class="fas fa-history text-amber-700" aria-hidden="true"></i>'
+                + '<span class="flex-1 min-w-0">กู้คืนข้อมูลที่กรอกค้างไว้' + (when ? ' (บันทึกล่าสุด ' + when + ')' : '') + ' — รูปภาพต้องแนบใหม่</span>'
+                + '<button type="button" class="font-semibold underline underline-offset-2 hover:text-amber-700" onclick="resetForm()">เริ่มกรอกใหม่</button>';
+        }
+
+        window.clearVisitDraft = function () {
+            clearTimeout(saveTimer);
+            try { localStorage.removeItem(draftKey()); } catch (e) { }
+            hideNotice();
+        };
+
+        window.restoreVisitDraft = function () {
+            var raw = null;
+            try { raw = localStorage.getItem(draftKey()); } catch (e) { }
+            if (!raw) return;
+            var d = null;
+            try { d = JSON.parse(raw); } catch (e) { }
+            if (!d || !d.v || Date.now() - (d.t || 0) > MAX_AGE) { window.clearVisitDraft(); return; }
+            if (hasContent(collect())) return; // กำลังกรอกอยู่ ไม่ทับของใหม่
+
+            // หัวข้อก่อน (ตัวรับ change จะตั้งช่องบังคับตามหัวข้อ) แล้วจึงช่องอื่น
+            var subj = document.getElementById('subject');
+            if (subj && d.v.subject) { subj.value = d.v.subject; subj.dispatchEvent(new Event('change', { bubbles: true })); }
+            GROUP_FIELDS.forEach(function (name) {
+                var vals = d.g[name] || [];
+                document.querySelectorAll('#mainForm input[name="' + name + '"]').forEach(function (x) { x.checked = vals.indexOf(x.value) !== -1; });
+            });
+            if ((d.g.postFamilyStatus || [])[0] === 'เป็นสมาชิก' && typeof togglePostFamily === 'function') togglePostFamily(true);
+            var pending = [];
+            TEXT_FIELDS.forEach(function (id) {
+                if (id === 'subject') return;
+                var el = document.getElementById(id), v = d.v[id];
+                if (!el || v == null || v === '') return;
+                el.value = v;
+                if (el.value !== v) pending.push(id); // ตัวเลือกยังโหลดจากหลังบ้านไม่เสร็จ (เช่น บริการที่แนะนำ)
+            });
+            if (d.v.lostReason === 'อื่น ๆ' && typeof window.toggleLostReasonOther === 'function') window.toggleLostReasonOther(true);
+            var tries = 0;
+            (function retry() {
+                if (!pending.length || tries++ > 10) return;
+                pending = pending.filter(function (id) {
+                    var el = document.getElementById(id);
+                    if (!el) return false;
+                    el.value = d.v[id];
+                    return el.value !== d.v[id];
+                });
+                if (pending.length) setTimeout(retry, 700);
+            })();
+            showNotice(d.t);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('mainForm');
+            if (!form) return;
+            form.addEventListener('input', scheduleSave);
+            form.addEventListener('change', scheduleSave);
+            window.addEventListener('pagehide', saveNow);
+            document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') saveNow(); });
+        });
+    })();
 
     function resetForm() {
         const mainForm = document.getElementById('mainForm');
@@ -880,6 +999,7 @@
             trySetInput('salesName', currentUserInfo.team || (currentUserInfo.name + " (ทีมขาย)"));
         }
         if (window.updateFormValidationUI) window.updateFormValidationUI('subject');
+        if (typeof window.clearVisitDraft === 'function') window.clearVisitDraft(); // บันทึกสำเร็จ/กดล้างข้อมูล = ไม่ต้องเก็บร่าง
     }
 
     function togglePostFamily(show) {
