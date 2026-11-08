@@ -1,16 +1,16 @@
 <!-- PAGE: EVALUATION -->
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-indigo-500 max-w-4xl mx-auto mt-4 mb-8">
-    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-white">
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 max-w-4xl mx-auto mt-4 mb-8">
+    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
         <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div
-                class="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
+                class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
                 <i class="fas fa-star-half-alt text-xl"></i>
             </div>
             ประเมินการวัดผล
         </h3>
-        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-indigo-200 ml-5 pl-3">
+        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-orange-200 ml-5 pl-3">
             กรุณาให้คะแนนความพึงพอใจในแต่ละหัวข้อคำถามด้านล่าง<br>
-            <span class="text-indigo-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
+            <span class="text-orange-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
         </p>
     </div>
 
@@ -19,15 +19,15 @@
         <div class="mb-6 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3 sm:gap-2">
                 <label class="form-label text-sm font-bold text-gray-700 m-0 flex items-center"><i
-                        class="fas fa-list-ul text-indigo-500 mr-2"></i>เลือกหัวข้อการประเมิน <span
+                        class="fas fa-list-ul text-orange-500 mr-2"></i>เลือกหัวข้อการประเมิน <span
                         class="text-red-500 ml-1">*</span></label>
                 <button type="button" id="btnViewEvalSummary" onclick="openEvalSummaryModal()"
-                    class="hidden text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white border border-indigo-200 px-3 py-1.5 rounded-lg transition-all font-bold shadow-sm items-center gap-1.5">
+                    class="hidden text-xs bg-orange-50 text-orange-600 hover:bg-orange-700 hover:text-white border border-orange-200 px-3 py-1.5 rounded-lg transition-all font-bold shadow-sm items-center gap-1.5">
                     <i class="fas fa-chart-pie"></i> ดูสรุปคะแนน
                 </button>
             </div>
             <select id="evalTopicSelect"
-                class="w-full p-3 sm:p-4 border border-gray-300 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition font-sans text-sm bg-gray-50 cursor-pointer shadow-inner"
+                class="w-full p-3 sm:p-4 border border-gray-300 rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition font-sans text-sm bg-gray-50 cursor-pointer shadow-inner"
                 onchange="onEvalTopicChange()">
                 <option value="" disabled selected>กำลังโหลดข้อมูล...</option>
             </select>
@@ -36,7 +36,7 @@
         <!-- สถานะกำลังโหลด -->
         <div id="evalLoader"
             class="hidden text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <i class="fas fa-circle-notch fa-spin text-indigo-500 text-5xl mb-4"></i>
+            <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
             <p class="font-bold text-lg text-gray-600">กำลังโหลดข้อมูล...</p>
         </div>
 
@@ -48,7 +48,7 @@
 
             <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end">
                 <button type="submit" id="btnSubmitEval"
-                    class="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
+                    class="w-full sm:w-auto px-8 py-3.5 bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-700 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
                     <i class="fas fa-paper-plane"></i> บันทึกผลการประเมิน
                 </button>
             </div>
@@ -122,7 +122,7 @@
                 if (currentEvalQuestions.length === 0) {
                     container.innerHTML = `
                         <div class="text-center text-gray-500 py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                            <i class="fas fa-clipboard-check text-6xl mb-4 opacity-20 text-indigo-500"></i>
+                            <i class="fas fa-clipboard-check text-6xl mb-4 opacity-20 text-orange-500"></i>
                             <p class="font-bold text-xl text-gray-700">ไม่มีคำถามในการประเมินนี้</p>
                         </div>`;
                     form.classList.remove('hidden');
@@ -150,9 +150,9 @@
 
         currentEvalQuestions.forEach((q, i) => {
             html += `
-                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-indigo-300 transition-colors group">
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-orange-300 transition-colors group">
                     <p class="font-bold text-gray-800 mb-5 flex items-start gap-3 text-sm sm:text-base">
-                        <span class="bg-indigo-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5">${i + 1}</span>
+                        <span class="bg-orange-100 text-orange-700 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5">${i + 1}</span>
                         <span class="leading-relaxed pt-0.5">${q.text} <span class="text-red-500">*</span></span>
                     </p>
                     <div class="w-full overflow-x-auto custom-scrollbar pb-3 pt-1">
@@ -300,15 +300,15 @@
                 #evalSummaryContent::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             </style>
             
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
                 <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
                     <div class="flex items-center gap-3">
-                        <div class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+                        <div class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-100">
                             <i class="fas fa-chart-pie text-lg"></i>
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
-                            <p id="evalSummaryTopicName" class="text-[11px] text-indigo-600 font-bold mt-0.5 line-clamp-1">-</p>
+                            <p id="evalSummaryTopicName" class="text-[11px] text-orange-600 font-bold mt-0.5 line-clamp-1">-</p>
                         </div>
                     </div>
                     <button type="button" onclick="closeEvalSummaryModal()" class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
@@ -318,7 +318,7 @@
                 
                 <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
                     <!-- หัวข้อสรุปภาพรวม -->
-                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-indigo-50/30 gap-4">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-orange-50/30 gap-4">
                         <div class="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
                             <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 shadow-inner">
                                 <i class="fas fa-tachometer-alt text-lg"></i>
@@ -328,7 +328,7 @@
                         <div class="flex items-center gap-6 self-center sm:self-auto bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                             <div class="text-center">
                                 <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">ผู้ประเมินทั้งหมด</p>
-                                <span id="evalSummaryTotalCount" class="text-xl sm:text-2xl font-black text-indigo-600 drop-shadow-sm">-</span>
+                                <span id="evalSummaryTotalCount" class="text-xl sm:text-2xl font-black text-orange-600 drop-shadow-sm">-</span>
                                 <span class="text-xs text-gray-400 font-bold ml-1">คน</span>
                             </div>
                             <div class="w-px h-10 bg-gray-200"></div>
@@ -349,7 +349,7 @@
 
         document.body.appendChild(modal);
 
-        document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-16"><i class="fas fa-circle-notch fa-spin text-indigo-500 text-4xl mb-4"></i><p class="text-gray-500 font-bold mt-3">กำลังประมวลผลสรุปคะแนน...</p><p class="text-xs text-gray-400 mt-1">ระบบกำลังคำนวณข้อมูลจากฐานข้อมูล</p></div>';
+        document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-16"><i class="fas fa-circle-notch fa-spin text-orange-500 text-4xl mb-4"></i><p class="text-gray-500 font-bold mt-3">กำลังประมวลผลสรุปคะแนน...</p><p class="text-xs text-gray-400 mt-1">ระบบกำลังคำนวณข้อมูลจากฐานข้อมูล</p></div>';
         document.getElementById('evalSummaryTopicName').innerText = sheetNameTarget;
         document.getElementById('evalSummaryTotalCount').innerText = '-';
         document.getElementById('evalSummaryTotalAvg').innerText = '-';
@@ -418,10 +418,10 @@
 
                 // นำส่วนแสดงจำนวนคนประเมินออก โชว์เฉพาะคะแนนเฉลี่ย
                 html += `
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-orange-200 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
                         <div class="flex items-start gap-3 flex-1 min-w-0 pr-2">
-                            <span class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-inner border border-indigo-100">${index + 1}</span>
-                            <span class="text-sm text-gray-700 font-medium leading-snug pt-1 group-hover:text-indigo-700 transition-colors">${item.question}</span>
+                            <span class="w-7 h-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-inner border border-orange-100">${index + 1}</span>
+                            <span class="text-sm text-gray-700 font-medium leading-snug pt-1 group-hover:text-orange-700 transition-colors">${item.question}</span>
                         </div>
                         <div class="flex items-center shrink-0 self-end sm:self-auto bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
                             <div class="text-center min-w-[70px]">

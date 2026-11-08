@@ -451,6 +451,9 @@
     :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:not(#page-postnews *) { background-color: #c2410c; }
     :is(main, body > [id$="Modal"]) :is(.bg-theme-orange, .bg-orange-500, .bg-orange-600).text-white:hover:not(#page-postnews *) { background-color: #9a3412; }
     :is(main, body > [id$="Modal"]) :is(.text-theme-orange, .text-orange-500, .text-orange-600):not(i):not(svg):not(:hover):not(#page-postnews *) { color: #c2410c; }
+    /* ขั้นที่ 4: ปุ่มที่กลายเป็นพื้นส้มตอนชี้เมาส์ (ตัวหนังสือขาวบน #ea580c 3.6:1, บน #e27d3d 2.9:1) -> ส้มเข้มเดียวกัน รวมปุ่มเข้าสู่ระบบ */
+    /*    (ไม่รวมปุ่มที่พื้นส้มอยู่แล้ว — กฎข้างบนให้เข้มขึ้นเป็น #9a3412 ตอนชี้เมาส์) */
+    :is(main, body > [id$="Modal"], #loginSection) :is([class~="hover:bg-orange-500"], [class~="hover:bg-orange-600"], [class~="hover:bg-theme-orange"]):not(.bg-theme-orange, .bg-orange-500, .bg-orange-600):hover:not(#page-postnews *) { background-color: #c2410c; }
 
     /* 4) ปุ่มแคปซูลบนแถบบน (จอ md ขึ้นไป): ตัวหนังสือสีอ่อนเกินไป -> เฉดเข้มขึ้นของสีเดิม */
     @media (min-width: 768px) {
@@ -472,9 +475,10 @@
     /* 6) ป้ายภาษาไทย: ไม่ถ่างตัวอักษร (ตัวพิมพ์ใหญ่ไม่มีผลกับภาษาไทย แต่ tracking ทำให้สระ/วรรณยุกต์ห่าง) */
     :is(main, body > [id$="Modal"]) .uppercase:is(.tracking-wide, .tracking-wider, .tracking-widest):not(#page-postnews *) { letter-spacing: 0.01em; }
 
-    /* 8) สีสถานะบนพื้นอ่อน: เขียว/แดงเข้มขึ้น 1 ระดับ (เขียว 600 บนพื้นเขียวอ่อน 3.2:1, แดง 600 บนชมพู 4.4:1) */
-    :is(main, body > [id$="Modal"]) .text-green-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #15803d; }
-    :is(main, body > [id$="Modal"]) .text-red-600:not(i):not(svg):not(:hover):not(#page-postnews *) { color: #b91c1c; }
+    /* 8) สีสถานะ: เขียว/แดงเข้มขึ้น (เขียว 600 บนพื้นเขียวอ่อน 3.2:1, แดง 600 บนชมพู 4.4:1;
+          ขั้นที่ 4 เพิ่มเฉด 500 เช่น "↑ New" ในตารางลูกค้า เขียว 500 บนขาว 2.3:1, แดง 500 3.8:1) */
+    :is(main, body > [id$="Modal"]) :is(.text-green-500, .text-green-600):not(i):not(svg):not(:hover):not(#page-postnews *) { color: #15803d; }
+    :is(main, body > [id$="Modal"]) :is(.text-red-500, .text-red-600):not(i):not(svg):not(:hover):not(#page-postnews *) { color: #b91c1c; }
 
     /* 9) เหรียญอันดับ 1–3: ตัวเลขขาวบนเหลือง/เทา/อำพันอ่านไม่ออก (1.5–3.2:1) -> พื้นอ่อน ตัวเลขเข้ม (ยังเป็นทอง/เงิน/ทองแดง) */
     :is(main, body > [id$="Modal"]) :is(.bg-yellow-400, .from-yellow-300).text-white { background-image: none; background-color: #fde68a; color: #713f12; }
@@ -488,6 +492,31 @@
     /* 7) ตัดบรรทัดหัวข้อให้สมดุล และย่อหน้าไม่ให้เหลือคำเดียวบรรทัดท้าย (เบราว์เซอร์ที่ไม่รองรับใช้แบบเดิม) */
     :is(main, body > [id$="Modal"]) :is(h1, h2, h3, h4) { text-wrap: balance; }
     :is(main, body > [id$="Modal"]) p { text-wrap: pretty; }
+
+    /* =====================================================================
+       ขั้นที่ 4 เก็บงานละเอียด (impeccable polish)
+       ===================================================================== */
+
+    /* 11) เครื่องที่ตั้ง "ลดการเคลื่อนไหว": หยุดภาพเคลื่อนไหวและการเปลี่ยนแบบค่อยๆ (ตัวโหลดยังแสดงอยู่แต่ไม่ขยับ) */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+        /* ขอบจางของตาราง (ข้างบน) ผูกกับตำแหน่งเลื่อน ไม่ใช่ภาพเคลื่อนไหว จึงคงไว้ */
+        .overflow-x-auto:has(> table) { animation-duration: auto !important; }
+    }
+
+    /* 12) ส่วนที่เบราว์เซอร์วาดเอง ใช้สีของแอป: แถบเลือกข้อความ และเคอร์เซอร์ในช่องกรอก */
+    ::selection { background-color: #fed7aa; color: #062e21; }
+    :root :is(input, textarea) { caret-color: #c2410c; }
+
+    /* 13) หน้าหลักบนจอคอม: ไม่มีสินค้าแนะนำ BigLot ให้ซ่อนคอลัมน์ขวา (เดิมเว้นที่ว่าง ~320px) เนื้อหาหลักจึงกว้างเต็ม */
+    @media (min-width: 1024px) {
+        #rightSidebarColumn:not(:has(> :not(.hidden))) { display: none !important; }
+    }
 </style>
 
   <!-- Vercel Google Apps Script Adapter -->
@@ -928,7 +957,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.0620';
+    var APP_VERSION = 'Ver. 2026.1109.0657';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -991,15 +1020,16 @@
         </div>
         <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">User</label>
-                <input type="text" name="username" class="form-input" required placeholder="กรอกรหัสไปรษณีย์"
+                <label for="loginUsername" class="block text-gray-700 text-sm font-bold mb-2">ชื่อผู้ใช้</label>
+                <input type="text" name="username" id="loginUsername" class="form-input" required placeholder="กรอกรหัสไปรษณีย์"
+                    autocomplete="username" autocapitalize="none" spellcheck="false"
                     oninput="this.value = this.value.toLowerCase()">
             </div>
             <div class="mb-6">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                <label for="loginPassword" class="block text-gray-700 text-sm font-bold mb-2">รหัสผ่าน</label>
                 <div class="relative">
                     <input type="password" name="password" id="loginPassword" class="form-input pr-10" required
-                        placeholder="กรอกรหัสผ่าน">
+                        placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
                     <button type="button" onclick="togglePasswordVisibility()"
                         class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-theme-orange focus:outline-none">
                         <i id="eyeIcon" class="fas fa-eye"></i>
@@ -1011,8 +1041,8 @@
         </form>
 
         <div class="mt-8 pt-5 border-t border-dashed border-gray-300 text-center">
-            <p class="text-[10px] text-gray-400 font-light mb-1">พัฒนาโดย</p>
-            <p class="text-sm font-semibold text-theme-black">ส่วนทีมขายและดูแลลูกค้า สำนักงานไปรษณีย์เขต 10</p>
+            <p class="text-xs text-gray-600 mb-1">พัฒนาโดย</p>
+            <p class="text-sm font-semibold text-theme-black">ส่วนทีมขายและดูแลลูกค้า <span class="whitespace-nowrap">สำนักงานไปรษณีย์เขต 10</span></p>
             <p class="text-sm font-semibold text-theme-black mt-1 font-mono app-version-text"></p>
         </div>
     </div>
@@ -1496,7 +1526,7 @@
                 <button onclick="toggleSidebar()"
                     class="lg:hidden mr-2.5 sm:mr-4 text-gray-500 hover:text-theme-orange transition-colors shrink-0"><i
                         class="fas fa-bars text-[1.3rem] sm:text-2xl"></i></button>
-                <h1 class="text-base sm:text-lg lg:text-xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
+                <h1 class="text-lg lg:text-xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
                     <span class="w-1.5 sm:w-2 h-6 sm:h-8 bg-theme-orange rounded hidden sm:block mr-2 sm:mr-3 shrink-0"></span>
                     <span id="pageTitle" class="truncate min-w-0">หน้าหลัก</span>
                 </h1>
@@ -1527,7 +1557,7 @@
 
                 <div id="headerExtractA1A14Container" class="hidden flex-col items-center justify-center shrink-0">
                     <button type="button" id="headerExtractA1A14Btn" onclick="triggerExtractA1A14()"
-                        class="text-[10px] sm:text-xs bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 flex items-center gap-1 shadow-sm"><i
+                        class="text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 flex items-center gap-1 shadow-sm"><i
                             class="fas fa-file-export"></i> ดึงรายชื่อ A1-A14</button>
                     <span id="headerExtractA1A14Date"
                         class="text-[8px] sm:text-[9px] text-gray-400 mt-1 leading-none tracking-wide">อัปเดต: กำลังตรวจสอบ...</span>
@@ -1537,7 +1567,7 @@
                     class="hidden text-[10px] sm:text-xs bg-[#c2410c] hover:bg-[#9a3412] text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-semibold transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-robot"></i> วิเคราะห์ด้วย AI</button>
                 <button type="button" id="headerRevenueReportBtn" onclick="openRevenueChartModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-purple-600 border border-purple-200 hover:bg-purple-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                    class="hidden text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-chart-pie"></i> กราฟสรุปรายได้</button>
                 <button type="button" id="headerTopCustomersBtn" onclick="openTopCustomersChartModal()"
                     class="hidden text-[10px] sm:text-xs bg-white text-yellow-600 border border-yellow-200 hover:bg-yellow-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
@@ -1710,7 +1740,7 @@
                                     </button>
                                     <button type="button" onclick="openVisitSummaryModal()" title="สรุปการเข้าพบ"
                                         class="group flex items-center gap-3 text-left bg-white/10 hover:bg-white/20 border border-white/15 hover:border-white/40 rounded-2xl p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 min-w-0">
-                                        <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                                        <span class="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                                             <i class="fas fa-chart-bar text-sm text-white"></i>
                                         </span>
                                         <span class="min-w-0 flex-1">
@@ -1750,7 +1780,7 @@
                                         </div>
                                         <div id="homeSummaryCountContainer" class="flex flex-col items-center justify-center mt-2">
                                             <div class="text-6xl font-black leading-none drop-shadow-sm flex items-baseline gap-2 pb-1">
-                                                <span id="homeSummaryCount" class="text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-orange-600">0</span> 
+                                                <span id="homeSummaryCount" class="text-orange-600">0</span> 
                                                 <span class="text-xl font-bold text-gray-400">ครั้ง</span>
                                             </div>
                                         </div>
@@ -1823,9 +1853,9 @@
                     <div class="flex flex-col items-center justify-center gap-2 mb-4 relative z-10 w-full text-center">
                         <h2 class="text-lg font-black flex items-center justify-center gap-2">
                             <span class="inline-flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-xl p-1.5 w-8 h-8 shadow-sm border border-amber-500/20 shrink-0">
-                                <i class="fas fa-star text-sm animate-pulse text-amber-500"></i>
+                                <i class="fas fa-star text-sm text-amber-500"></i>
                             </span>
-                            <span class="bg-gradient-to-r from-orange-500 to-teal-600 bg-clip-text text-transparent">สินค้าแนะนำ Big Lot</span>
+                            <span class="text-theme-black">สินค้าแนะนำ Big Lot</span>
                         </h2>
                     </div>
                     <!-- Swiper Carousel Container -->
@@ -2262,7 +2292,7 @@
     </div>
 
     <div
-        class="bg-white p-6 custom-radius shadow-md border-l-4 border-theme-orange mb-6 w-full hover:shadow-lg transition-shadow duration-300">
+        class="bg-white p-6 custom-radius shadow-md mb-6 w-full hover:shadow-lg transition-shadow duration-300">
         <h3 class="text-lg font-bold text-theme-black mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
             <span class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                     class="fas fa-chart-column"></i></span> กราฟแสดงข้อมูลการเข้าพบลูกค้าแต่ละเดือน
@@ -2270,7 +2300,7 @@
         <div class="relative h-64 w-full"><canvas id="monthlyVisitChart"></canvas></div>
     </div>
 
-    <div class="bg-white custom-radius shadow-md border-l-4 border-theme-orange w-full">
+    <div class="bg-white custom-radius shadow-md w-full">
         <div class="p-6">
             <div
                 class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 border-b border-gray-100 pb-3">
@@ -3117,7 +3147,7 @@
 
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                     <div id="lineQuotaBadge" onclick="showLineQuotaDetailModal()" class="hidden text-[10px] px-2.5 py-1 rounded-full font-medium items-center gap-1.5 cursor-pointer shadow-sm transition transform hover:scale-105 whitespace-nowrap" title="คลิกเพื่อดูรายละเอียดโควตา LINE"></div>
-                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-xs bg-[#00B900] text-white hover:bg-green-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm whitespace-nowrap">
+                    <button type="button" id="btnSendLineOA" onclick="sendVisitSummaryToLine()" class="hidden text-xs bg-[#15803d] text-white hover:bg-[#166534] px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm whitespace-nowrap">
                         <i class="fab fa-line"></i> ส่ง LINE OA
                     </button>
                     <button type="button" onclick="downloadVisitSummary()" class="text-xs bg-theme-orange text-white hover:bg-orange-600 px-3 py-2 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm flex whitespace-nowrap">
@@ -6427,7 +6457,7 @@
         const botCount = (info.tokens && info.tokens.length) || 1;
 
         if (info.allFull) {
-            badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-700 border border-red-300 items-center gap-1.5 cursor-pointer shadow-sm animate-pulse hover:bg-red-200 transition";
+            badge.className = "flex text-[10px] px-2.5 py-1 rounded-full font-semibold bg-red-100 text-red-700 border border-red-300 items-center gap-1.5 cursor-pointer shadow-sm hover:bg-red-200 transition";
             badge.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500"></i> โควตารวมเต็ม (0/${totalLimit})`;
             badge.title = `โควตาส่งข้อความฟรี LINE OA เต็มแล้วทุกบัญชี (${botCount} บอท) (คลิกดูรายละเอียด)`;
         } else if (info.activeTokenIndex > 0) {
@@ -9410,16 +9440,16 @@
     </div>
 
     <div id="topCustomersSection"
-        class="bg-white custom-radius shadow-md border-l-4 border-theme-orange w-full mb-6 hidden hover:shadow-lg transition-shadow duration-300">
+        class="bg-white custom-radius shadow-md w-full mb-6 hidden hover:shadow-lg transition-shadow duration-300">
         <div class="p-6">
             <div
                 class="flex flex-col md:flex-row justify-between items-center mb-4 border-b border-gray-100 pb-3 gap-3">
-                <h4
+                <h3
                     class="text-lg font-bold text-theme-black flex items-center gap-2 w-full md:w-auto border-b md:border-b-0 pb-2 md:pb-0">
                     <span class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-trophy text-yellow-400"></i></span><span
                         class="text-theme-black">ลูกค้าที่มีรายได้สูงสุด</span>
-                </h4>
+                </h3>
                 <div class="flex items-center gap-3 self-end md:self-auto">
                     <select id="topCustomersSortSelect" onchange="sortAndRenderTopCustomers()"
                         class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 outline-none focus:border-theme-orange cursor-pointer bg-gray-50 shadow-sm font-sans">
@@ -9452,7 +9482,7 @@
     </div>
 
     <div
-        class="bg-white custom-radius shadow-md border-l-4 border-theme-orange w-full hover:shadow-lg transition-shadow duration-300">
+        class="bg-white custom-radius shadow-md w-full hover:shadow-lg transition-shadow duration-300">
         <div class="p-6">
             <div
                 class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 border-b border-gray-100 pb-3">
@@ -16777,10 +16807,10 @@
     }
 </style>
 
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-purple-50 max-w-5xl mx-auto mb-6">
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-50 max-w-5xl mx-auto mb-6">
     <div class="p-8">
         <h3 class="text-xl font-bold text-theme-black mb-6 border-b pb-4 flex items-center gap-3">
-            <i class="fas fa-cog text-purple-500"></i>
+            <i class="fas fa-cog text-orange-500"></i>
             การตั้งค่าระบบ
         </h3>
 
@@ -16799,10 +16829,10 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <a href="https://drive.google.com/drive/folders/1kKobnpRB9DfEn1mlPRtr3NpHLaY6Ytnf" target="_blank"
-                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all group no-underline">
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-orange-400 hover:shadow-md transition-all group no-underline">
                         <div class="flex items-center gap-3 mb-2">
                             <div
-                                class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
                                 <i class="fas fa-folder-open"></i>
                             </div>
                             <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลของระบบ</h5>
@@ -16810,7 +16840,7 @@
                         <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
                             <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
                             <i
-                                class="fas fa-external-link-alt text-[10px] text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                class="fas fa-external-link-alt text-[10px] text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                     </a>
 
@@ -16893,14 +16923,14 @@
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="mb-5">
                     <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-music text-purple-500"></i>
+                        <i class="fas fa-music text-orange-500"></i>
                         จัดการเพลงพื้นหลัง (Background Music)
                     </h4>
                     <p class="text-xs text-gray-500 mt-1">เพิ่มข้อมูลใหม่, แก้ไขข้อความ หรือลบรายการเพลงพื้นหลังระบบ (รองรับลิงก์ YouTube)</p>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button type="button" onclick="window.openMusicManagerModal()"
-                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        class="bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
                         <i class="fas fa-music"></i> เปิดหน้าต่างจัดการเพลง
                     </button>
                     <div class="flex items-center gap-2 text-[10px] text-gray-400 px-2 italic">
@@ -16969,7 +16999,7 @@
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="mb-5">
                     <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-code text-indigo-500"></i>
+                        <i class="fas fa-code text-orange-500"></i>
                         คู่มือการเรียกใช้งาน API สำหรับดึงข้อมูลผู้ใช้
                     </h4>
                     <p class="text-xs text-gray-500 mt-1">ระบบอนุญาตให้นักพัฒนาเรียกใช้ข้อมูลโปรไฟล์ผู้ใช้งานผ่าน URL
@@ -17169,13 +17199,13 @@
 <div id="musicManagerModal"
     class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[150] px-4 backdrop-blur-md transition-opacity duration-300">
     <div
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-purple-500">
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
         <!-- Modal Header -->
         <div
             class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
             <div class="flex items-center gap-3">
                 <div
-                    class="bg-purple-50 text-purple-600 w-10 h-10 rounded-full flex items-center justify-center border border-purple-100 shadow-inner">
+                    class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center border border-orange-100 shadow-inner">
                     <i class="fas fa-music text-lg"></i>
                 </div>
                 <div>
@@ -17197,11 +17227,11 @@
                     <div class="relative flex-1">
                         <i class="fab fa-youtube absolute left-3 top-1/2 -translate-y-1/2 text-red-500"></i>
                         <input type="text" id="newMusicUrlInput" placeholder="วางลิงก์ YouTube (เช่น https://www.youtube.com/watch?v=6xzuBUDsixo)..."
-                            class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-sm font-sans bg-white shadow-sm"
+                            class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all text-sm font-sans bg-white shadow-sm"
                             onkeypress="if(event.key==='Enter') addNewMusic()">
                     </div>
                     <button onclick="addNewMusic()"
-                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        class="bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
                         <i class="fas fa-plus"></i> เพิ่มเพลง
                     </button>
                 </div>
@@ -17214,11 +17244,11 @@
                     class="bg-gray-100/50 px-4 py-2 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">รายการเพลงปัจจุบัน</span>
                     <span id="musicCountBadge"
-                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-purple-600 border border-purple-100">0 รายการ</span>
+                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-orange-600 border border-orange-100">0 รายการ</span>
                 </div>
                 <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="musicManagerList">
                     <div class="text-center text-gray-400 py-12">
-                        <i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i>
+                        <i class="fas fa-circle-notch fa-spin text-orange-500 mb-3 text-3xl"></i>
                         <br>กำลังโหลดข้อมูล...
                     </div>
                 </div>
@@ -17521,7 +17551,7 @@
     window.loadMusicManagerList = function () {
         var list = document.getElementById('musicManagerList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
+        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-orange-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
         google.script.run.withSuccessHandler(function (res) {
             if (res.status === 'success') {
                 window.currentMusicList = res.data || [];
@@ -17551,9 +17581,9 @@
             div.className = "flex items-center justify-between p-4 bg-white hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-all group";
             div.innerHTML = 
                 '<div class="flex items-center gap-4 flex-1 min-w-0 pr-4">' +
-                    '<span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-purple-100">' + (index + 1) + '</span>' +
+                    '<span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-orange-100">' + (index + 1) + '</span>' +
                     '<div class="flex flex-col min-w-0">' +
-                        '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-purple-600 transition-colors">' + item.title + '</span>' +
+                        '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-orange-600 transition-colors">' + item.title + '</span>' +
                         '<a href="https://youtube.com/watch?v=' + item.id + '" target="_blank" class="text-[10px] text-gray-400 hover:text-blue-500 truncate"><i class="fab fa-youtube text-red-500"></i> ' + item.id + '</a>' +
                     '</div>' +
                 '</div>' +
@@ -17718,7 +17748,7 @@
             }
 
             const borderClass = isUse ? 'ring-4 ring-green-500 border-green-500 shadow-xl' : 'border border-gray-200';
-            const badgeHtml = isUse ? '<div class="absolute top-3 left-3 bg-green-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg z-20 animate-bounce"><i class="fas fa-check-circle mr-1"></i> ใช้งานอยู่</div>' : '';
+            const badgeHtml = isUse ? '<div class="absolute top-3 left-3 bg-green-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg z-20"><i class="fas fa-check-circle mr-1"></i> ใช้งานอยู่</div>' : '';
 
             const div = document.createElement('div');
             // เพิ่ม flex flex-col เพื่อจัดระเบียบภายในการ์ด
@@ -17947,18 +17977,18 @@
             <!-- 💡 PAGE: EVALUATION (หน้าประเมินการวัดผล) -->
             <div id="page-evaluation" class="hidden animate-fade-in w-full pb-10">
                 <!-- PAGE: EVALUATION -->
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-indigo-500 max-w-4xl mx-auto mt-4 mb-8">
-    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-white">
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 max-w-4xl mx-auto mt-4 mb-8">
+    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
         <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div
-                class="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
+                class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
                 <i class="fas fa-star-half-alt text-xl"></i>
             </div>
             ประเมินการวัดผล
         </h3>
-        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-indigo-200 ml-5 pl-3">
+        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-orange-200 ml-5 pl-3">
             กรุณาให้คะแนนความพึงพอใจในแต่ละหัวข้อคำถามด้านล่าง<br>
-            <span class="text-indigo-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
+            <span class="text-orange-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
         </p>
     </div>
 
@@ -17967,15 +17997,15 @@
         <div class="mb-6 bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3 sm:gap-2">
                 <label class="form-label text-sm font-bold text-gray-700 m-0 flex items-center"><i
-                        class="fas fa-list-ul text-indigo-500 mr-2"></i>เลือกหัวข้อการประเมิน <span
+                        class="fas fa-list-ul text-orange-500 mr-2"></i>เลือกหัวข้อการประเมิน <span
                         class="text-red-500 ml-1">*</span></label>
                 <button type="button" id="btnViewEvalSummary" onclick="openEvalSummaryModal()"
-                    class="hidden text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white border border-indigo-200 px-3 py-1.5 rounded-lg transition-all font-bold shadow-sm items-center gap-1.5">
+                    class="hidden text-xs bg-orange-50 text-orange-600 hover:bg-orange-700 hover:text-white border border-orange-200 px-3 py-1.5 rounded-lg transition-all font-bold shadow-sm items-center gap-1.5">
                     <i class="fas fa-chart-pie"></i> ดูสรุปคะแนน
                 </button>
             </div>
             <select id="evalTopicSelect"
-                class="w-full p-3 sm:p-4 border border-gray-300 rounded-xl outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition font-sans text-sm bg-gray-50 cursor-pointer shadow-inner"
+                class="w-full p-3 sm:p-4 border border-gray-300 rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition font-sans text-sm bg-gray-50 cursor-pointer shadow-inner"
                 onchange="onEvalTopicChange()">
                 <option value="" disabled selected>กำลังโหลดข้อมูล...</option>
             </select>
@@ -17984,7 +18014,7 @@
         <!-- สถานะกำลังโหลด -->
         <div id="evalLoader"
             class="hidden text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <i class="fas fa-circle-notch fa-spin text-indigo-500 text-5xl mb-4"></i>
+            <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
             <p class="font-bold text-lg text-gray-600">กำลังโหลดข้อมูล...</p>
         </div>
 
@@ -17996,7 +18026,7 @@
 
             <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end">
                 <button type="submit" id="btnSubmitEval"
-                    class="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
+                    class="w-full sm:w-auto px-8 py-3.5 bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/30 hover:bg-orange-700 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm">
                     <i class="fas fa-paper-plane"></i> บันทึกผลการประเมิน
                 </button>
             </div>
@@ -18070,7 +18100,7 @@
                 if (currentEvalQuestions.length === 0) {
                     container.innerHTML = `
                         <div class="text-center text-gray-500 py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                            <i class="fas fa-clipboard-check text-6xl mb-4 opacity-20 text-indigo-500"></i>
+                            <i class="fas fa-clipboard-check text-6xl mb-4 opacity-20 text-orange-500"></i>
                             <p class="font-bold text-xl text-gray-700">ไม่มีคำถามในการประเมินนี้</p>
                         </div>`;
                     form.classList.remove('hidden');
@@ -18098,9 +18128,9 @@
 
         currentEvalQuestions.forEach((q, i) => {
             html += `
-                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-indigo-300 transition-colors group">
+                <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-orange-300 transition-colors group">
                     <p class="font-bold text-gray-800 mb-5 flex items-start gap-3 text-sm sm:text-base">
-                        <span class="bg-indigo-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5">${i + 1}</span>
+                        <span class="bg-orange-100 text-orange-700 w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-sm mt-0.5">${i + 1}</span>
                         <span class="leading-relaxed pt-0.5">${q.text} <span class="text-red-500">*</span></span>
                     </p>
                     <div class="w-full overflow-x-auto custom-scrollbar pb-3 pt-1">
@@ -18248,15 +18278,15 @@
                 #evalSummaryContent::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
             </style>
             
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
                 <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
                     <div class="flex items-center gap-3">
-                        <div class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+                        <div class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-100">
                             <i class="fas fa-chart-pie text-lg"></i>
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
-                            <p id="evalSummaryTopicName" class="text-[11px] text-indigo-600 font-bold mt-0.5 line-clamp-1">-</p>
+                            <p id="evalSummaryTopicName" class="text-[11px] text-orange-600 font-bold mt-0.5 line-clamp-1">-</p>
                         </div>
                     </div>
                     <button type="button" onclick="closeEvalSummaryModal()" class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
@@ -18266,7 +18296,7 @@
                 
                 <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
                     <!-- หัวข้อสรุปภาพรวม -->
-                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-indigo-50/30 gap-4">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col sm:flex-row justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-orange-50/30 gap-4">
                         <div class="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
                             <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 shadow-inner">
                                 <i class="fas fa-tachometer-alt text-lg"></i>
@@ -18276,7 +18306,7 @@
                         <div class="flex items-center gap-6 self-center sm:self-auto bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                             <div class="text-center">
                                 <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">ผู้ประเมินทั้งหมด</p>
-                                <span id="evalSummaryTotalCount" class="text-xl sm:text-2xl font-black text-indigo-600 drop-shadow-sm">-</span>
+                                <span id="evalSummaryTotalCount" class="text-xl sm:text-2xl font-black text-orange-600 drop-shadow-sm">-</span>
                                 <span class="text-xs text-gray-400 font-bold ml-1">คน</span>
                             </div>
                             <div class="w-px h-10 bg-gray-200"></div>
@@ -18297,7 +18327,7 @@
 
         document.body.appendChild(modal);
 
-        document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-16"><i class="fas fa-circle-notch fa-spin text-indigo-500 text-4xl mb-4"></i><p class="text-gray-500 font-bold mt-3">กำลังประมวลผลสรุปคะแนน...</p><p class="text-xs text-gray-400 mt-1">ระบบกำลังคำนวณข้อมูลจากฐานข้อมูล</p></div>';
+        document.getElementById('evalSummaryContent').innerHTML = '<div class="text-center py-16"><i class="fas fa-circle-notch fa-spin text-orange-500 text-4xl mb-4"></i><p class="text-gray-500 font-bold mt-3">กำลังประมวลผลสรุปคะแนน...</p><p class="text-xs text-gray-400 mt-1">ระบบกำลังคำนวณข้อมูลจากฐานข้อมูล</p></div>';
         document.getElementById('evalSummaryTopicName').innerText = sheetNameTarget;
         document.getElementById('evalSummaryTotalCount').innerText = '-';
         document.getElementById('evalSummaryTotalAvg').innerText = '-';
@@ -18366,10 +18396,10 @@
 
                 // นำส่วนแสดงจำนวนคนประเมินออก โชว์เฉพาะคะแนนเฉลี่ย
                 html += `
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-orange-200 transition-colors flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
                         <div class="flex items-start gap-3 flex-1 min-w-0 pr-2">
-                            <span class="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-inner border border-indigo-100">${index + 1}</span>
-                            <span class="text-sm text-gray-700 font-medium leading-snug pt-1 group-hover:text-indigo-700 transition-colors">${item.question}</span>
+                            <span class="w-7 h-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-inner border border-orange-100">${index + 1}</span>
+                            <span class="text-sm text-gray-700 font-medium leading-snug pt-1 group-hover:text-orange-700 transition-colors">${item.question}</span>
                         </div>
                         <div class="flex items-center shrink-0 self-end sm:self-auto bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
                             <div class="text-center min-w-[70px]">
@@ -19696,7 +19726,7 @@
                 <div class="mb-5 mt-2">
                     <div class="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-50 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner border border-orange-100 relative">
                         <i class="fas fa-shopping-bag text-2xl text-orange-500 relative z-10"></i>
-                        <div class="absolute inset-0 bg-orange-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                        <div class="absolute inset-0 bg-orange-400 rounded-full blur-xl opacity-20"></div>
                     </div>
                     <h2 class="text-xl font-black text-gray-800">ตรวจสอบรายการสั่งซื้อ</h2>
                     <p class="text-xs text-gray-500 mt-1">กรุณาตรวจสอบรายการสินค้าให้ถูกต้องก่อนยืนยัน</p>
@@ -23715,19 +23745,19 @@
   }
   .manual-tip {
     background: #eff6ff;
-    border-left: 4px solid #3b82f6;
+    border: 1px solid #bfdbfe;
     color: #1e40af;
     padding: 12px 16px;
-    border-radius: 0 10px 10px 0;
+    border-radius: 10px;
     font-size: 12px;
     margin: 12px 0;
   }
   .manual-important {
     background: #fffbeb;
-    border-left: 4px solid #f59e0b;
+    border: 1px solid #fde68a;
     color: #92400e;
     padding: 12px 16px;
-    border-radius: 0 10px 10px 0;
+    border-radius: 10px;
     font-size: 12px;
     margin: 12px 0;
   }
@@ -23790,7 +23820,7 @@
 
     <!-- Quick Count / Status -->
     <div class="text-[11px] text-gray-500 font-medium self-end sm:self-auto flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
       <span>คู่มือฉบับสมบูรณ์ (11 หมวดหมู่)</span>
     </div>
   </div>
@@ -24467,7 +24497,8 @@
             __thpLastErrorToastAt = now;
             Swal.fire({
                 toast: true,
-                position: 'top-end',
+                // มือถือ: แสดงด้านล่าง ไม่บังชื่อหน้าและปุ่มด้านบนระหว่างที่แถบค้างอยู่ 10 วินาที
+                position: (window.matchMedia && window.matchMedia('(max-width: 639.98px)').matches) ? 'bottom' : 'top-end',
                 icon: 'warning',
                 title: 'เกิดข้อผิดพลาดบางอย่าง',
                 html: '<div class="text-left text-sm text-gray-600">ถ้าหน้าจอทำงานไม่ถูกต้อง ลองรีเฟรชหน้า ระบบแจ้งผู้ดูแลให้แล้ว</div>',
@@ -30357,7 +30388,7 @@
                             pkChartBtn.id = 'headerPKChartBtn';
                             pkChartBtn.type = 'button';
                             pkChartBtn.onclick = window.openPKChartModal;
-                            pkChartBtn.className = 'hidden text-xs bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0';
+                            pkChartBtn.className = 'hidden text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0';
                             pkChartBtn.innerHTML = '<i class="fas fa-chart-pie"></i> กราฟข้อมูล';
                             headerBtnContainer.appendChild(pkChartBtn);
                         }
@@ -32386,17 +32417,17 @@
     <div id="evalSummaryModal"
         class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[160] px-4 backdrop-blur-md transition-opacity duration-300">
         <div
-            class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-indigo-500">
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
             <div
                 class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
                 <div class="flex items-center gap-3">
                     <div
-                        class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+                        class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-100">
                         <i class="fas fa-chart-pie text-lg"></i>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
-                        <p id="evalSummaryTopicName" class="text-[11px] text-indigo-600 font-bold mt-0.5 line-clamp-1">-
+                        <p id="evalSummaryTopicName" class="text-[11px] text-orange-600 font-bold mt-0.5 line-clamp-1">-
                         </p>
                     </div>
                 </div>
@@ -32408,14 +32439,14 @@
 
             <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
                 <div
-                    class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-indigo-50/30">
+                    class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-orange-50/30">
                     <div class="flex items-center gap-3">
                         <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-400">
                             <i class="fas fa-users text-lg"></i>
                         </div>
                         <span class="text-sm font-bold text-gray-700">จำนวนผู้ประเมินทั้งหมด</span>
                     </div>
-                    <span id="evalSummaryTotalCount" class="text-2xl font-black text-indigo-600 drop-shadow-sm">-
+                    <span id="evalSummaryTotalCount" class="text-2xl font-black text-orange-600 drop-shadow-sm">-
                         คน</span>
                 </div>
 

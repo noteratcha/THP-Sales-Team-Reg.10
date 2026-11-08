@@ -25,10 +25,10 @@
     }
 </style>
 
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-purple-50 max-w-5xl mx-auto mb-6">
+<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-50 max-w-5xl mx-auto mb-6">
     <div class="p-8">
         <h3 class="text-xl font-bold text-theme-black mb-6 border-b pb-4 flex items-center gap-3">
-            <i class="fas fa-cog text-purple-500"></i>
+            <i class="fas fa-cog text-orange-500"></i>
             การตั้งค่าระบบ
         </h3>
 
@@ -47,10 +47,10 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <a href="https://drive.google.com/drive/folders/1kKobnpRB9DfEn1mlPRtr3NpHLaY6Ytnf" target="_blank"
-                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all group no-underline">
+                        class="flex flex-col bg-white p-4 rounded-xl border border-gray-200 hover:border-orange-400 hover:shadow-md transition-all group no-underline">
                         <div class="flex items-center gap-3 mb-2">
                             <div
-                                class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform">
                                 <i class="fas fa-folder-open"></i>
                             </div>
                             <h5 class="font-bold text-sm text-gray-700">ฐานข้อมูลของระบบ</h5>
@@ -58,7 +58,7 @@
                         <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
                             <span class="text-[10px] text-gray-400">คลิกเพื่อเปิดดูข้อมูล</span>
                             <i
-                                class="fas fa-external-link-alt text-[10px] text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                class="fas fa-external-link-alt text-[10px] text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                         </div>
                     </a>
 
@@ -141,14 +141,14 @@
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="mb-5">
                     <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-music text-purple-500"></i>
+                        <i class="fas fa-music text-orange-500"></i>
                         จัดการเพลงพื้นหลัง (Background Music)
                     </h4>
                     <p class="text-xs text-gray-500 mt-1">เพิ่มข้อมูลใหม่, แก้ไขข้อความ หรือลบรายการเพลงพื้นหลังระบบ (รองรับลิงก์ YouTube)</p>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button type="button" onclick="window.openMusicManagerModal()"
-                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
+                        class="bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0 text-sm">
                         <i class="fas fa-music"></i> เปิดหน้าต่างจัดการเพลง
                     </button>
                     <div class="flex items-center gap-2 text-[10px] text-gray-400 px-2 italic">
@@ -217,7 +217,7 @@
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="mb-5">
                     <h4 class="font-bold text-base text-gray-800 flex items-center gap-2">
-                        <i class="fas fa-code text-indigo-500"></i>
+                        <i class="fas fa-code text-orange-500"></i>
                         คู่มือการเรียกใช้งาน API สำหรับดึงข้อมูลผู้ใช้
                     </h4>
                     <p class="text-xs text-gray-500 mt-1">ระบบอนุญาตให้นักพัฒนาเรียกใช้ข้อมูลโปรไฟล์ผู้ใช้งานผ่าน URL
@@ -417,13 +417,13 @@
 <div id="musicManagerModal"
     class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[150] px-4 backdrop-blur-md transition-opacity duration-300">
     <div
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-purple-500">
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
         <!-- Modal Header -->
         <div
             class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white z-10 shrink-0 shadow-sm">
             <div class="flex items-center gap-3">
                 <div
-                    class="bg-purple-50 text-purple-600 w-10 h-10 rounded-full flex items-center justify-center border border-purple-100 shadow-inner">
+                    class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center border border-orange-100 shadow-inner">
                     <i class="fas fa-music text-lg"></i>
                 </div>
                 <div>
@@ -445,11 +445,11 @@
                     <div class="relative flex-1">
                         <i class="fab fa-youtube absolute left-3 top-1/2 -translate-y-1/2 text-red-500"></i>
                         <input type="text" id="newMusicUrlInput" placeholder="วางลิงก์ YouTube (เช่น https://www.youtube.com/watch?v=6xzuBUDsixo)..."
-                            class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition-all text-sm font-sans bg-white shadow-sm"
+                            class="w-full p-3 pl-10 border border-gray-300 rounded-xl outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all text-sm font-sans bg-white shadow-sm"
                             onkeypress="if(event.key==='Enter') addNewMusic()">
                     </div>
                     <button onclick="addNewMusic()"
-                        class="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-600/20 hover:bg-purple-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        class="bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-orange-600/20 hover:bg-orange-700 hover:-translate-y-0.5 transition-all transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
                         <i class="fas fa-plus"></i> เพิ่มเพลง
                     </button>
                 </div>
@@ -462,11 +462,11 @@
                     class="bg-gray-100/50 px-4 py-2 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">รายการเพลงปัจจุบัน</span>
                     <span id="musicCountBadge"
-                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-purple-600 border border-purple-100">0 รายการ</span>
+                        class="bg-white px-2 py-0.5 rounded text-[10px] font-bold text-orange-600 border border-orange-100">0 รายการ</span>
                 </div>
                 <div class="overflow-y-auto custom-scrollbar flex-1 p-2" id="musicManagerList">
                     <div class="text-center text-gray-400 py-12">
-                        <i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i>
+                        <i class="fas fa-circle-notch fa-spin text-orange-500 mb-3 text-3xl"></i>
                         <br>กำลังโหลดข้อมูล...
                     </div>
                 </div>
@@ -769,7 +769,7 @@
     window.loadMusicManagerList = function () {
         var list = document.getElementById('musicManagerList');
         if (!list) return;
-        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-purple-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
+        list.innerHTML = '<div class="text-center text-gray-400 py-12"><i class="fas fa-circle-notch fa-spin text-orange-500 mb-3 text-3xl"></i><br>กำลังโหลดข้อมูล...</div>';
         google.script.run.withSuccessHandler(function (res) {
             if (res.status === 'success') {
                 window.currentMusicList = res.data || [];
@@ -799,9 +799,9 @@
             div.className = "flex items-center justify-between p-4 bg-white hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-all group";
             div.innerHTML = 
                 '<div class="flex items-center gap-4 flex-1 min-w-0 pr-4">' +
-                    '<span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-purple-100">' + (index + 1) + '</span>' +
+                    '<span class="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-inner border border-orange-100">' + (index + 1) + '</span>' +
                     '<div class="flex flex-col min-w-0">' +
-                        '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-purple-600 transition-colors">' + item.title + '</span>' +
+                        '<span class="font-semibold text-gray-700 text-sm truncate group-hover:text-orange-600 transition-colors">' + item.title + '</span>' +
                         '<a href="https://youtube.com/watch?v=' + item.id + '" target="_blank" class="text-[10px] text-gray-400 hover:text-blue-500 truncate"><i class="fab fa-youtube text-red-500"></i> ' + item.id + '</a>' +
                     '</div>' +
                 '</div>' +
@@ -966,7 +966,7 @@
             }
 
             const borderClass = isUse ? 'ring-4 ring-green-500 border-green-500 shadow-xl' : 'border border-gray-200';
-            const badgeHtml = isUse ? '<div class="absolute top-3 left-3 bg-green-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg z-20 animate-bounce"><i class="fas fa-check-circle mr-1"></i> ใช้งานอยู่</div>' : '';
+            const badgeHtml = isUse ? '<div class="absolute top-3 left-3 bg-green-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg z-20"><i class="fas fa-check-circle mr-1"></i> ใช้งานอยู่</div>' : '';
 
             const div = document.createElement('div');
             // เพิ่ม flex flex-col เพื่อจัดระเบียบภายในการ์ด
