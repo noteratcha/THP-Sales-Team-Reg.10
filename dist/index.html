@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1620';
+    var APP_VERSION = 'Ver. 2026.1109.1627';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17239,27 +17239,35 @@
             // แบ่งเป้ากลุ่ม (ใช้ทั้งในประเทศและระหว่างประเทศ):
             //  1) แบ่งตามสัดส่วนค่าเฉลี่ย  2) ที่ทำการที่ได้น้อยกว่าขั้นต่ำ (รวมที่ไม่มีรายได้) → ตั้งเป็นขั้นต่ำ แล้วแบ่งงบที่เหลือใหม่ วนจนนิ่ง
             //  3) ที่ไม่ใช้ขั้นต่ำปัดลงตามหลัก (round) แล้วเกลี่ยหน่วยที่ขาดให้เศษมากสุด (largest remainder) → ผลรวมเท่าเป้าพอดี
-            var allocate = function (k, total, floor, round) {
-                var res = { tooHigh: false, count: 0 };
-                list.forEach(function (o) { o[k].atFloor = false; });
+            // ขั้นต่ำรายที่ทำการ = max(ขั้นต่ำกลาง, เป้าปีก่อนปัดขึ้นตามหลัก) — ผู้ใช้กำหนด 2026-11-09: เป้า 2570 ต้องไม่ต่ำกว่าเป้า 2569
+            var allocate = function (k, total, floor, round, prevMap) {
+                var res = { tooHigh: false, count: 0, prevCount: 0 };
+                list.forEach(function (o) {
+                    o[k].atFloor = false; o[k].atPrev = false;
+                    var p = prevMap && prevMap[o.zip] ? Math.ceil(prevMap[o.zip] / round) * round : 0;
+                    o[k].prev = prevMap ? (prevMap[o.zip] || 0) : null;
+                    o[k].fl = Math.max(floor, p); o[k].flPrev = p > floor;
+                });
                 if (!list.length) return res;
-                if (floor > 0 && floor * list.length >= total) {
+                var flSum = list.reduce(function (a, o) { return a + o[k].fl; }, 0);
+                if (flSum > 0 && flSum >= total) {
                     res.tooHigh = true;
-                    list.forEach(function (o) { o[k].target = total / list.length; o[k].atFloor = true; });
+                    list.forEach(function (o) { o[k].target = o[k].fl || 0; o[k].atFloor = true; o[k].atPrev = o[k].flPrev; });
                     res.count = list.length;
+                    res.prevCount = list.filter(function (o) { return o[k].atPrev; }).length;
                     return res;
                 }
                 var pool = list.slice();
                 for (var guard = 0; guard <= list.length; guard++) {
-                    var budget = total - (list.length - pool.length) * floor;
+                    var budget = total - list.reduce(function (a, o) { return a + (o[k].atFloor ? o[k].fl : 0); }, 0);
                     var base = pool.reduce(function (acc, o) { return acc + o[k].avg; }, 0);
                     var below = [];
                     pool.forEach(function (o) {
                         o[k].target = base > 0 ? budget * o[k].avg / base : budget / pool.length;
-                        if (floor > 0 && o[k].target < floor) below.push(o);
+                        if (o[k].fl > 0 && o[k].target < o[k].fl) below.push(o);
                     });
                     if (!below.length) break;
-                    below.forEach(function (o) { o[k].target = floor; o[k].atFloor = true; });
+                    below.forEach(function (o) { o[k].target = o[k].fl; o[k].atFloor = true; o[k].atPrev = o[k].flPrev; });
                     pool = pool.filter(function (o) { return !o[k].atFloor; });
                     if (!pool.length) break;
                 }
@@ -17269,13 +17277,14 @@
                 var diff = units - parts.reduce(function (acc, p) { return acc + p.base; }, 0);
                 parts.slice().sort(function (x, y) { return y.frac - x.frac; }).forEach(function (p, i) { if (i < diff) p.base += 1; });
                 parts.forEach(function (p) { p.o[k].target = p.base * round; });
-                res.count = list.filter(function (o) { return o[k].atFloor; }).length;
+                res.count = list.filter(function (o) { return o[k].atFloor && !o[k].atPrev; }).length;
+                res.prevCount = list.filter(function (o) { return o[k].atPrev; }).length;
                 return res;
             };
             var domFloor = (opts.domFloor === undefined || opts.domFloor === null) ? TP_DOM_MIN_TARGET : Math.max(0, opts.domFloor);
             var floor = (opts.intlFloor === undefined || opts.intlFloor === null) ? TP_INTL_ZERO_TARGET : Math.max(0, opts.intlFloor);
-            var domRes = allocate('dom', targetDom, domFloor, TP_DOM_ROUND);
-            var intlRes = allocate('intl', targetIntl, floor, TP_INTL_ROUND);
+            var domRes = allocate('dom', targetDom, domFloor, TP_DOM_ROUND, opts.prevDom);
+            var intlRes = allocate('intl', targetIntl, floor, TP_INTL_ROUND, opts.prevIntl);
             var floorTooHigh = intlRes.tooHigh;
             list.forEach(function (o) { o.intlAtFloor = o.intl.atFloor; });
             list.forEach(function (o) { o.target = o.dom.target + o.intl.target; });
@@ -17284,6 +17293,7 @@
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
                 pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh, floorCount: intlRes.count,
                 domFloor: domFloor, domFloorCount: domRes.count, domFloorTooHigh: domRes.tooHigh,
+                domPrevCount: domRes.prevCount, intlPrevCount: intlRes.prevCount,
                 offices: list
             };
         };
@@ -17333,6 +17343,12 @@
         var prevTargetLabel = function (grp, year) {
             var t = state.intlTargets;
             return 'เป้า ' + be(year) + (grp === 'intl' && t && t.fromMonth > 1 ? ' (' + TH_SHORT[t.fromMonth] + '–' + TH_SHORT[t.toMonth] + ')' : '');
+        };
+        var prevMapOf = function (grp, year) {
+            if (!hasPrevTarget(grp, year)) return null;
+            if (grp === 'intl') return state.intlTargets.byZip;
+            prevTargetOf('dom', year, '');
+            return state.domTargetCache.byZip;
         };
         var hasPrevTarget = function (grp, year) { return prevTargetOf(grp, year, '') !== null; };
         var sumCol = function (list, col) { return list.reduce(function (a, o) { return a + (col.get(o) || 0); }, 0); };
@@ -17386,7 +17402,8 @@
                 intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
                 domFloor: parseNum(document.getElementById('tpDomFloor').value),
                 intlOverride: state.intlFile ? state.intlFile.years : null,
-                teamMap: buildTeamMap(window.__tpTargets)
+                teamMap: buildTeamMap(window.__tpTargets),
+                prevDom: prevMapOf('dom', to), prevIntl: prevMapOf('intl', to)
             });
             var teams = Array.from(new Set(state.result.offices.map(function (o) { return o.team; }).filter(Boolean)));
             if (typeof window.sortRevenueTeams === 'function') teams.sort(window.sortRevenueTeams); else teams.sort();
@@ -17486,7 +17503,8 @@
             }).join('');
             var domFloorNote = r.domFloorTooHigh ? ' · ⚠ ขั้นต่ำในประเทศ × จำนวนที่ทำการเกินเป้า จึงแบ่งเท่ากันทุกที่ทำการ'
                 : (r.domFloorCount ? ' · เป้าในประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
-            document.getElementById('tpNote').textContent = domFloorNote.replace(/^ · /, '') + (domFloorNote ? ' · ' : '') +
+            var prevNote = (r.domPrevCount || r.intlPrevCount) ? 'เป้า ' + be(to + 1) + ' ไม่ต่ำกว่าเป้า ' + be(to) + ': ปรับขึ้นในประเทศ ' + (r.domPrevCount || 0) + ' แห่ง, ระหว่างประเทศ ' + (r.intlPrevCount || 0) + ' แห่ง' + ((r.domFloorTooHigh || r.floorTooHigh) ? ' (⚠ รวมเป้าขั้นต่ำเกินเป้ารวม)' : '') + ' · ' : '';
+            document.getElementById('tpNote').textContent = prevNote + domFloorNote.replace(/^ · /, '') + (domFloorNote ? ' · ' : '') +
                 'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักหมื่น · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่บันทึกในระบบ' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
                     : (r.floorCount ? ' · เป้าระหว่างประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.floorCount + ' แห่ง ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
@@ -17515,6 +17533,9 @@
                     '<td class="py-2.5 px-3 text-left">' + esc(o.name) + badge + '</td>' +
                     '<td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
                     cols.map(function (c) {
+                        if (c.key === 'target' && o[grp].atPrev) {
+                            return '<td class="py-2.5 px-3 text-right" title="สัดส่วนได้ต่ำกว่าเป้าปีก่อน ปรับให้ไม่ต่ำกว่าเป้าปีก่อน"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">= เป้าปีก่อน</span>' + fmt(c.get(o)) + '</td>';
+                        }
                         if (c.key === 'target' && o[grp].atFloor) {
                             return '<td class="py-2.5 px-3 text-right" title="เป้าต่ำกว่าขั้นต่ำ ปรับเป็นขั้นต่ำ"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">ขั้นต่ำ</span>' + fmt(c.get(o)) + '</td>';
                         }
