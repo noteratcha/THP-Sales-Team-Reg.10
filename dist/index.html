@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1433';
+    var APP_VERSION = 'Ver. 2026.1109.1452';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17070,12 +17070,12 @@
                 <label class="thp-btn-secondary cursor-pointer"><i class="fas fa-file-csv"></i> เลือกไฟล์ (หลายไฟล์ได้)
                     <input id="tpIntlFiles" type="file" accept=".csv" multiple class="hidden" onchange="handleTargetPlanIntlFiles(this)">
                 </label>
-                <button type="button" id="tpIntlFileClear" class="thp-btn-secondary hidden" onclick="clearTargetPlanIntlFiles()"><i class="fas fa-times"></i> เลิกใช้ไฟล์</button>
+                <button type="button" id="tpIntlFileClear" class="thp-btn-secondary hidden" onclick="clearTargetPlanIntlFiles()"><i class="fas fa-times"></i> เลิกใช้ไฟล์ (ใช้ข้อมูลในชีต)</button>
             </div>
         </div>
 
         <!-- สรุปรวม -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="tpSummary"></div>
+        <div class="flex flex-col gap-4" id="tpSummary"></div>
         <p class="text-xs text-gray-500 -mt-3" id="tpNote"></p>
 
         <!-- ตัวกรอง -->
@@ -17389,20 +17389,24 @@
 
             // การ์ด: รายได้แต่ละปี (รวมทั้ง 2 กลุ่ม) + ค่าเฉลี่ย + % แต่ละกลุ่ม
             var tot = function (fn) { return all.reduce(function (a, o) { return a + (fn(o) || 0); }, 0); };
-            var cards = r.years.map(function (y) {
-                if (y === to && r.partial) {
-                    var act = tot(function (o) { return (o.dom.act || 0) + (o.intl.act || 0); });
-                    var full = tot(function (o) { return (o.dom.full || 0) + (o.intl.full || 0); });
-                    return ['รายได้ปี ' + be(y) + ' (รวมประมาณการ)', fmt(full), 'จริง ม.ค.–' + TH_SHORT[r.actualMonths] + ' ' + fmt(act) + ' + ประมาณ ' + fmt(full - act), 'text-gray-900'];
-                }
-                return ['รายได้ปี ' + be(y), fmt(tot(function (o) { return (o.dom.y[y] || 0) + (o.intl.y[y] || 0); })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'];
-            });
-            var avgDom = tot(function (o) { return o.dom.avg; }), avgIntl = tot(function (o) { return o.intl.avg; });
-            cards.push(['ค่าเฉลี่ยรายได้ ' + r.years.length + ' ปี (รวมทุกที่ทำการ)', fmt(avgDom + avgIntl), 'ในประเทศ ' + fmt(avgDom) + ' · ระหว่างประเทศ ' + fmt(avgIntl), 'text-gray-900']);
-            cards.push(['เพิ่มจากค่าเฉลี่ย (บริการในประเทศ)', pctStr(r.pDom), 'เป้า ' + fmt(tot(function (o) { return o.dom.target; })) + ' บาท', 'text-orange-700']);
-            cards.push(['เพิ่มจากค่าเฉลี่ย (บริการระหว่างประเทศ)', pctStr(r.pIntl), 'เป้า ' + fmt(tot(function (o) { return o.intl.target; })) + ' บาท', 'text-orange-700']);
-            document.getElementById('tpSummary').innerHTML = cards.map(function (c) {
-                return '<div class="rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 mb-1">' + c[0] + '</div><div class="text-2xl font-bold ' + c[3] + '">' + c[1] + '</div><div class="text-xs text-gray-500 mt-1">' + c[2] + '</div></div>';
+            // การ์ดแยกกลุ่ม: รายได้แต่ละปี + ค่าเฉลี่ย + % เพิ่ม/เป้า ของกลุ่มนั้น
+            var card = function (c) {
+                return '<div class="rounded-xl border border-gray-200 bg-white p-4"><div class="text-xs text-gray-500 mb-1">' + c[0] + '</div><div class="text-2xl font-bold ' + c[3] + '">' + c[1] + '</div><div class="text-xs text-gray-500 mt-1">' + c[2] + '</div></div>';
+            };
+            document.getElementById('tpSummary').innerHTML = GROUPS.map(function (g) {
+                var k = g[0];
+                var cards = r.years.map(function (y) {
+                    if (y === to && r.partial) {
+                        var act = tot(function (o) { return o[k].act; }), full = tot(function (o) { return o[k].full; });
+                        return ['รายได้ปี ' + be(y) + ' (รวมประมาณการ)', fmt(full), 'จริง ม.ค.–' + TH_SHORT[r.actualMonths] + ' ' + fmt(act) + ' + ประมาณ ' + fmt(full - act), 'text-gray-900'];
+                    }
+                    return ['รายได้ปี ' + be(y), fmt(tot(function (o) { return o[k].y[y]; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'];
+                });
+                cards.push(['ค่าเฉลี่ยรายได้ ' + r.years.length + ' ปี', fmt(tot(function (o) { return o[k].avg; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900']);
+                cards.push(['เป้าปี ' + be(to + 1) + ' (' + pctStr(k === 'dom' ? r.pDom : r.pIntl) + ' จากค่าเฉลี่ย)', fmt(tot(function (o) { return o[k].target; })), 'บาท', 'text-orange-700']);
+                return '<div class="rounded-xl border ' + (k === 'dom' ? 'border-orange-100 bg-orange-50/30' : 'border-blue-100 bg-blue-50/30') + ' p-3">' +
+                    '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
+                    '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
             }).join('');
             document.getElementById('tpNote').textContent =
                 'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักพัน · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่เลือก' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
@@ -17479,8 +17483,6 @@
             else if (typeof window.ensureXLSX === 'function') window.ensureXLSX().then(go).catch(function () { Swal.fire('ข้อผิดพลาด', 'โหลดไลบรารี Excel ไม่สำเร็จ', 'error'); });
         };
 
-        // ===== ข้อมูลระหว่างประเทศจากไฟล์ CSV (ส่งออกจาก Tableau: เขตพื้นที่, ชื่อ ปณ., กลุ่มบริการทั้งหมด, ..., เดือนของ ปี, ชื่อการวัดผล, ค่าการวัดผล) =====
-        // อ่านในเบราว์เซอร์อย่างเดียว เก็บเฉพาะยอดรวมรายที่ทำการ/รายเดือน (ไม่เก็บคอลัมน์ข้อมูลส่วนบุคคล เช่น เลขบัตรประชาชน)
         var TP_INTL_FILE_KEY = 'thp_tp_intl_file';
         var parseCsvLine = function (l) {
             var out = [], cur = '', q = false;
@@ -17535,7 +17537,7 @@
                 clr.classList.add('hidden');
                 return;
             }
-            st.textContent = 'ใช้ข้อมูลระหว่างประเทศจากไฟล์: ' + state.intlFile.files.map(function (x) {
+            st.textContent = 'ใช้ข้อมูลระหว่างประเทศจากไฟล์ที่เลือก: ' + state.intlFile.files.map(function (x) {
                 return x.name + ' (ปี ' + be(x.year) + ' · ' + fmt(x.total) + ' บาท)';
             }).join(', ') + ' · ปีที่ไม่มีไฟล์ถือว่าไม่มีข้อมูลระหว่างประเทศ';
             clr.classList.remove('hidden');
