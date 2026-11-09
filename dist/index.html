@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1726';
+    var APP_VERSION = 'Ver. 2026.1109.1732';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17309,6 +17309,16 @@
                 });
                 res.count = list.filter(function (o) { return o.dom.atFloor; }).length;
                 res.pct = p; res.maxPct = maxP; res.sum = sumAt(p);
+                // ยอดรวมยังไม่ถึงเป้ารวม → ส่วนที่ขาดเพิ่มให้ที่ทำการที่มีรายได้ในประเทศปีล่าสุดมากที่สุด (ผู้ใช้กำหนด 2026-11-09)
+                list.forEach(function (o) { o.dom.topUp = 0; });
+                var gap = total - res.sum;
+                if (gap > 0 && list.length) {
+                    var revOf = function (o) { return (o.dom.full !== undefined && o.dom.full !== null) ? o.dom.full : (o.dom.y[to] || 0); };
+                    var top = list.reduce(function (a, o) { return revOf(o) > revOf(a) ? o : a; }, list[0]);
+                    top.dom.target += gap; top.dom.topUp = gap; top.dom.atFloor = false;
+                    res.topUp = gap; res.topName = top.name; res.sum += gap;
+                    res.count = list.filter(function (o) { return o.dom.atFloor; }).length;
+                }
                 return res;
             };
             var domRes = domPctAllocate(targetDom, domFloor, TP_DOM_ROUND, opts.domPct);
@@ -17332,6 +17342,7 @@
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
                 pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh, floorCount: intlRes.count,
                 domFloor: domFloor, domFloorCount: domRes.count, domFloorTooHigh: domRes.tooHigh,
+                domTopUp: domRes.topUp || 0, domTopName: domRes.topName || '',
                 domPctAuto: domRes.auto, domPctCapped: domRes.capped, domMaxPct: domRes.maxPct, domSum: domRes.sum,
                 domPrevCount: domRes.prevCount, intlPrevCount: intlRes.prevCount, domSame: !!domRes.same, intlSame: !!intlRes.same,
                 offices: list
@@ -17543,6 +17554,7 @@
                     '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
             }).join('');
             var domFloorNote = ' · ในประเทศ: เป้า = ค่าเฉลี่ย × ' + pctStr(r.pDom) + ' ทุกที่ทำการ รวม ' + fmt(r.domSum) + ' บาท (ไม่เกินเป้ารวม · เพิ่มได้สูงสุด ' + pctStr(r.domMaxPct) + ')' +
+                (r.domTopUp ? ' · ส่วนที่ยังขาด ' + fmt(r.domTopUp) + ' บาท เพิ่มให้ ' + r.domTopName + ' (รายได้ในประเทศปี ' + be(to) + ' สูงสุด)' : '') +
                 (r.domPctCapped ? ' ⚠ % ที่กรอกทำให้เกินเป้ารวม จึงใช้ % สูงสุดแทน' : '') +
                 (r.domFloorTooHigh ? ' · ⚠ แม้ลด % ต่ำสุดก็ยังเกินเป้ารวม' : '') +
                 (r.domFloorCount ? ' · ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
@@ -17588,6 +17600,9 @@
                     '<td class="py-2.5 px-3 text-left">' + esc(o.name) + badge + '</td>' +
                     '<td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
                     cols.map(function (c) {
+                        if (c.key === 'target' && o[grp].topUp) {
+                            return '<td class="py-2.5 px-3 text-right" title="ยอดรวมยังไม่ถึงเป้ารวม ส่วนที่ขาดเพิ่มให้ที่ทำการที่มีรายได้ปีล่าสุดสูงสุด"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">+' + fmt(o[grp].topUp) + '</span>' + fmt(c.get(o)) + '</td>';
+                        }
                         if (c.key === 'target' && o[grp].atPrev) {
                             return '<td class="py-2.5 px-3 text-right" title="สัดส่วนได้ต่ำกว่าเป้าปีก่อน ปรับให้ไม่ต่ำกว่าเป้าปีก่อน"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">= เป้าปีก่อน</span>' + fmt(c.get(o)) + '</td>';
                         }
