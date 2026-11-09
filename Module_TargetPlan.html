@@ -122,6 +122,8 @@
         var TH_MONTHS = { "มกราคม": 1, "กุมภาพันธ์": 2, "มีนาคม": 3, "เมษายน": 4, "พฤษภาคม": 5, "มิถุนายน": 6, "กรกฎาคม": 7, "สิงหาคม": 8, "กันยายน": 9, "ตุลาคม": 10, "พฤศจิกายน": 11, "ธันวาคม": 12 };
         var TH_SHORT = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         // ที่ทำการที่ไม่นำมาคำนวณ (ผู้ใช้กำหนด 2026-11-09): คปณ.ลานทอง/ทุ่งสว่าง พีทีที สเตชั่น, ปณอ.กันทรลักษ์ 107/108
+        // ไม่นำรหัสที่ขึ้นต้นด้วย 0 มาคำนวณ (เคาน์เตอร์/ไปรษณีย์รถยนต์/คปณ./ปณอ. ไม่ใช่ที่ทำการ 33xxx–49xxx) ผู้ใช้กำหนด 2026-11-09
+        var isExcludedZip = function (zip) { return /^0/.test(zip) || TP_EXCLUDED_ZIPS.indexOf(zip) !== -1; };
         var TP_EXCLUDED_ZIPS = ['00243', '00425', '08076', '08077'];
         // ค่าตั้งต้นเป้าระหว่างประเทศของที่ทำการที่ไม่มีรายได้ (ผู้ใช้กำหนด 2026-11-09: 60,000 บาท/ปี แก้ได้ที่ช่อง #tpIntlFloor)
         var TP_INTL_ZERO_TARGET = 60000;
@@ -162,7 +164,7 @@
                 var name = String(r[0] || '').trim();
                 var zipMatch = name.match(/^\d{5}/);
                 var zip = zipMatch ? zipMatch[0] : name.substring(0, 5);
-                if (!zip || TP_EXCLUDED_ZIPS.indexOf(zip) !== -1) return;
+                if (!zip || isExcludedZip(zip)) return;
                 var grp = /^\s*3\.|ระหว่างประเทศ/.test(String(r[4] || '')) ? 'intl' : 'dom';
                 if (grp === 'intl' && opts.intlOverride) return; // มีไฟล์ระหว่างประเทศ → ไม่ใช้กลุ่มนี้จากชีต
                 var o = offices[zip] || (offices[zip] = { zip: zip, name: name, sums: { dom: {}, intl: {} }, has: {} });
@@ -179,7 +181,7 @@
                     if (y < from || y > to) return;
                     var byZip = opts.intlOverride[ys];
                     Object.keys(byZip).forEach(function (zip) {
-                        if (TP_EXCLUDED_ZIPS.indexOf(zip) !== -1) return;
+                        if (isExcludedZip(zip)) return;
                         var rec = byZip[zip];
                         Object.keys(rec.m).forEach(function (ms) {
                             var m = parseInt(ms, 10);
