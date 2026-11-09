@@ -615,6 +615,7 @@
                     cards.push([prevTargetLabel(k, to).replace('เป้า ', 'เป้าปี ') + ' (ที่ตั้งไว้)', fmt(pt), 'รวมที่ทำการในตาราง (บาท)', 'text-blue-700']);
                 }
                 cards.push(['เป้าปี ' + be(to + 1) + ' (' + pctStr(k === 'dom' ? r.pDom : r.pIntl) + ' จากค่าเฉลี่ย)', fmt(tot(function (o) { return o[k].target; })), 'บาท', 'text-orange-700']);
+                if (k === 'dom' && r.domTopUp) cards.push(['ส่วนที่ขาด เพิ่มให้ ' + r.domTopName, '+' + fmt(r.domTopUp), 'รายได้ในประเทศปี ' + be(to) + ' สูงสุด (บาท)', 'text-orange-700']);
                 return '<div class="rounded-xl border ' + (k === 'dom' ? 'border-orange-100 bg-orange-50/30' : 'border-blue-100 bg-blue-50/30') + ' p-3">' +
                     '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
                     '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
@@ -701,7 +702,7 @@
                     '<td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
                     cols.map(function (c) {
                         if (c.key === 'target' && o[grp].topUp) {
-                            return '<td class="py-2.5 px-3 text-right" title="ยอดรวมยังไม่ถึงเป้ารวม ส่วนที่ขาดเพิ่มให้ที่ทำการที่มีรายได้ปีล่าสุดสูงสุด"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200">+' + fmt(o[grp].topUp) + '</span>' + fmt(c.get(o)) + '</td>';
+                            return '<td class="py-2.5 px-3 text-right" title="ยอดรวมยังไม่ถึงเป้ารวม ส่วนที่ขาดเพิ่มให้ที่ทำการที่มีรายได้ปีล่าสุดสูงสุด"><div class="font-bold text-orange-700">' + fmt(c.get(o)) + '</div><div class="text-[11px] text-gray-500">' + fmt(c.get(o) - o[grp].topUp) + ' <span class="text-orange-700 font-semibold">+ เพิ่ม ' + fmt(o[grp].topUp) + '</span></div></td>';
                         }
                         if (c.key === 'target' && o[grp].atPrev) {
                             return '<td class="py-2.5 px-3 text-right" title="สัดส่วนได้ต่ำกว่าเป้าปีก่อน ปรับให้ไม่ต่ำกว่าเป้าปีก่อน"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">= เป้าปีก่อน</span>' + fmt(c.get(o)) + '</td>';
