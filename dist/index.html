@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1635';
+    var APP_VERSION = 'Ver. 2026.1109.1725';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17017,7 +17017,7 @@
 
     <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-6">
         <!-- ตั้งค่าเป้าหมายปีถัดไป -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการในประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
                 <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()"
@@ -17026,6 +17026,11 @@
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าในประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
                 <input id="tpDomFloor" type="text" inputmode="numeric" value="300,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าในประเทศต่ำกว่าค่านี้ ปรับเป็นค่านี้ ส่วนที่เหลือแบ่งตามสัดส่วน"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
+            </label>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-sm font-semibold text-gray-700">ในประเทศ: เพิ่มจากค่าเฉลี่ย (%) ทุกที่ทำการ</span>
+                <input id="tpDomPct" type="text" inputmode="decimal" value="" placeholder="ว่าง = สูงสุดที่ไม่เกินเป้า" onchange="onTargetPlanInput()" title="เป้ารายที่ทำการ = ค่าเฉลี่ย 3 ปี × (1 + %) ผลรวมต้องไม่เกินเป้าหมายบริการในประเทศ ถ้าเกินจะใช้ % สูงสุดที่ทำได้"
                     class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
             </label>
             <label class="flex flex-col gap-1.5">
@@ -17283,7 +17288,31 @@
             };
             var domFloor = (opts.domFloor === undefined || opts.domFloor === null) ? TP_DOM_MIN_TARGET : Math.max(0, opts.domFloor);
             var floor = (opts.intlFloor === undefined || opts.intlFloor === null) ? TP_INTL_ZERO_TARGET : Math.max(0, opts.intlFloor);
-            var domRes = allocate('dom', targetDom, domFloor, TP_DOM_ROUND, opts.prevDom);
+            // ในประเทศ (ผู้ใช้กำหนด 2026-11-09): เป้ารายที่ทำการ = ค่าเฉลี่ย × (1 + %เพิ่ม) เท่ากันทุกที่ทำการ ปัดหลักหมื่น
+            // ไม่ต่ำกว่าขั้นต่ำ (#tpDomFloor) และผลรวมต้องไม่เกินเป้ารวม (#tpTargetDom) — % ว่าง = ใช้ % สูงสุดที่ไม่เกินเป้ารวม
+            var domPctAllocate = function (total, floor, round, pctIn) {
+                var res = { tooHigh: false, count: 0, prevCount: 0, capped: false, auto: false };
+                var sumAt = function (p) { return list.reduce(function (a, o) { return a + Math.max(floor, Math.round(o.dom.avg * (1 + p) / round) * round); }, 0); };
+                // % สูงสุด (ทีละ 0.01%) ที่ผลรวมไม่เกินเป้ารวม
+                var lo = -100, hi = 10000; // หน่วย 0.01%
+                if (sumAt(lo / 10000) > total) { res.tooHigh = true; hi = lo; }
+                else { while (hi - lo > 1) { var mid = Math.floor((lo + hi) / 2); if (sumAt(mid / 10000) <= total) lo = mid; else hi = mid; } if (sumAt(hi / 10000) <= total) lo = hi; }
+                var maxP = lo / 10000;
+                var p;
+                if (pctIn === null || pctIn === undefined || isNaN(pctIn)) { p = maxP; res.auto = true; }
+                else { p = pctIn / 100; if (p > maxP) { p = maxP; res.capped = true; } }
+                list.forEach(function (o) {
+                    var t = Math.round(o.dom.avg * (1 + p) / round) * round;
+                    o.dom.atPrev = false; o.dom.atFloor = t < floor;
+                    o.dom.prev = opts.prevDom ? (opts.prevDom[o.zip] || 0) : null;
+                    o.dom.target = Math.max(floor, t);
+                });
+                res.count = list.filter(function (o) { return o.dom.atFloor; }).length;
+                res.pct = p; res.maxPct = maxP; res.sum = sumAt(p);
+                return res;
+            };
+            var domRes = domPctAllocate(targetDom, domFloor, TP_DOM_ROUND, opts.domPct);
+            pDom = domRes.pct;
             var intlRes = allocate('intl', targetIntl, floor, TP_INTL_ROUND, opts.prevIntl);
             // เป้ารวมเท่ากับเป้าปีก่อนรวม → ใช้เป้าปีก่อนรายที่ทำการตรง ๆ (ผู้ใช้กำหนด 2026-11-09: ระหว่างประเทศเป้าเท่าเดิม = เป้า 2569)
             var sameAsPrev = function (k, total, prevMap, res) {
@@ -17294,7 +17323,6 @@
                 res.tooHigh = false; res.count = 0; res.prevCount = list.length; res.same = true;
                 return true;
             };
-            sameAsPrev('dom', targetDom, opts.prevDom, domRes);
             sameAsPrev('intl', targetIntl, opts.prevIntl, intlRes);
             var floorTooHigh = intlRes.tooHigh;
             list.forEach(function (o) { o.intlAtFloor = o.intl.atFloor; });
@@ -17304,6 +17332,7 @@
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
                 pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh, floorCount: intlRes.count,
                 domFloor: domFloor, domFloorCount: domRes.count, domFloorTooHigh: domRes.tooHigh,
+                domPctAuto: domRes.auto, domPctCapped: domRes.capped, domMaxPct: domRes.maxPct, domSum: domRes.sum,
                 domPrevCount: domRes.prevCount, intlPrevCount: intlRes.prevCount, domSame: !!domRes.same, intlSame: !!intlRes.same,
                 offices: list
             };
@@ -17412,6 +17441,7 @@
                 targetIntl: parseNum(document.getElementById('tpTargetIntl').value),
                 intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
                 domFloor: parseNum(document.getElementById('tpDomFloor').value),
+                domPct: (function () { var v = String(document.getElementById('tpDomPct').value || '').replace(/[^0-9.\-]/g, ''); return v === '' ? null : parseFloat(v); })(),
                 intlOverride: state.intlFile ? state.intlFile.years : null,
                 teamMap: buildTeamMap(window.__tpTargets),
                 prevDom: prevMapOf('dom', to), prevIntl: prevMapOf('intl', to)
@@ -17512,8 +17542,10 @@
                     '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
                     '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
             }).join('');
-            var domFloorNote = r.domFloorTooHigh ? ' · ⚠ ขั้นต่ำในประเทศ × จำนวนที่ทำการเกินเป้า จึงแบ่งเท่ากันทุกที่ทำการ'
-                : (r.domFloorCount ? ' · เป้าในประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
+            var domFloorNote = ' · ในประเทศ: เป้า = ค่าเฉลี่ย × ' + pctStr(r.pDom) + ' ทุกที่ทำการ รวม ' + fmt(r.domSum) + ' บาท (ไม่เกินเป้ารวม · เพิ่มได้สูงสุด ' + pctStr(r.domMaxPct) + ')' +
+                (r.domPctCapped ? ' ⚠ % ที่กรอกทำให้เกินเป้ารวม จึงใช้ % สูงสุดแทน' : '') +
+                (r.domFloorTooHigh ? ' · ⚠ แม้ลด % ต่ำสุดก็ยังเกินเป้ารวม' : '') +
+                (r.domFloorCount ? ' · ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
             var prevNote = (r.intlSame ? 'ระหว่างประเทศ: เป้ารวมเท่าปี ' + be(to) + ' จึงใช้เป้า ' + be(to) + ' รายที่ทำการ · ' : '') + (r.domSame ? 'ในประเทศ: เป้ารวมเท่าปี ' + be(to) + ' จึงใช้เป้า ' + be(to) + ' รายที่ทำการ · ' : '') + (!r.intlSame && !r.domSame && (r.domPrevCount || r.intlPrevCount) ? 'เป้า ' + be(to + 1) + ' ไม่ต่ำกว่าเป้า ' + be(to) + ': ปรับขึ้นในประเทศ ' + (r.domPrevCount || 0) + ' แห่ง, ระหว่างประเทศ ' + (r.intlPrevCount || 0) + ' แห่ง' + ((r.domFloorTooHigh || r.floorTooHigh) ? ' (⚠ รวมเป้าขั้นต่ำเกินเป้ารวม)' : '') + ' · ' : '');
             document.getElementById('tpNote').textContent = prevNote + domFloorNote.replace(/^ · /, '') + (domFloorNote ? ' · ' : '') +
                 'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักหมื่น · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่บันทึกในระบบ' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
