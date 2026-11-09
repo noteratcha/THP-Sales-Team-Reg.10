@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1153';
+    var APP_VERSION = 'Ver. 2026.1109.1203';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17059,6 +17059,8 @@
         var TH_MONTHS = { "มกราคม": 1, "กุมภาพันธ์": 2, "มีนาคม": 3, "เมษายน": 4, "พฤษภาคม": 5, "มิถุนายน": 6, "กรกฎาคม": 7, "สิงหาคม": 8, "กันยายน": 9, "ตุลาคม": 10, "พฤศจิกายน": 11, "ธันวาคม": 12 };
         var TH_SHORT = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         var SUM_KEYS = ['y1', 'y2', 'curActual', 'curEst', 'curFull', 'avgDom', 'avgIntl', 'avg', 'targetDom', 'targetIntl', 'target'];
+        // ที่ทำการที่ไม่นำมาคำนวณ (ผู้ใช้กำหนด 2026-11-09): คปณ.ลานทอง/ทุ่งสว่าง พีทีที สเตชั่น, ปณอ.กันทรลักษ์ 107/108
+        var TP_EXCLUDED_ZIPS = ['00243', '00425', '08076', '08077'];
         var state = { result: null, sortKey: 'zip', sortDir: 1, loading: false };
 
         var fmt = function (n) { return Math.round(n || 0).toLocaleString('th-TH'); };
@@ -17092,7 +17094,7 @@
                 var name = String(r[0] || '').trim();
                 var zipMatch = name.match(/^\d{5}/);
                 var zip = zipMatch ? zipMatch[0] : name.substring(0, 5);
-                if (!zip) return;
+                if (!zip || TP_EXCLUDED_ZIPS.indexOf(zip) !== -1) return;
                 var grp = /^\s*3\.|ระหว่างประเทศ/.test(String(r[4] || '')) ? 'intl' : 'dom';
                 var o = offices[zip] || (offices[zip] = { zip: zip, name: name, sums: { dom: {}, intl: {} } });
                 if (y === curY) o.name = name;
@@ -17216,7 +17218,12 @@
             var y = r.years, lm = r.lastMonth;
             Array.prototype.forEach.call(document.querySelectorAll('.tpNextYearText'), function (el) { el.textContent = be(y[2] + 1); });
 
+            var estPart = lm && lm < 12 ? 'จริง ม.ค.–' + TH_SHORT[lm] + ' ' + fmt(r.totals.curActual) + ' + ประมาณ ' + fmt(r.totals.curEst) : 'ทั้งปี';
             document.getElementById('tpSummary').innerHTML = [
+                // รายได้รวมทุกที่ทำการแต่ละปี
+                ['รายได้ปี ' + be(y[0]), fmt(r.totals.y1), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'],
+                ['รายได้ปี ' + be(y[1]), fmt(r.totals.y2), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'],
+                ['รายได้ปี ' + be(y[2]) + ' (รวมประมาณการ)', fmt(r.totals.curFull), estPart, 'text-gray-900'],
                 ['ค่าเฉลี่ยรายได้ 3 ปี (รวมทุกที่ทำการ)', fmt(r.totals.avg), 'ในประเทศ ' + fmt(r.totals.avgDom) + ' · ระหว่างประเทศ ' + fmt(r.totals.avgIntl), 'text-gray-900'],
                 ['เพิ่มจากค่าเฉลี่ย (บริการในประเทศ)', pctStr(r.pDom), 'เป้า ' + fmt(r.totals.targetDom) + ' บาท', 'text-orange-700'],
                 ['เพิ่มจากค่าเฉลี่ย (บริการระหว่างประเทศ)', pctStr(r.pIntl), 'เป้า ' + fmt(r.totals.targetIntl) + ' บาท', 'text-orange-700']
@@ -17306,7 +17313,7 @@
                 document.getElementById('tpHead').innerHTML = '';
                 document.getElementById('tpFoot').innerHTML = '';
                 if (typeof window.thpSkeletonRows === 'function') window.thpSkeletonRows(document.getElementById('tpBody'), 12, 10);
-                if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(document.getElementById('tpSummary'), 3, 'card');
+                if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(document.getElementById('tpSummary'), 6, 'card');
             }
             if (state.loading) return;
             state.loading = true;
