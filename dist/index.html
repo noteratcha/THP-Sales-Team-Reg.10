@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1935';
+    var APP_VERSION = 'Ver. 2026.1109.1937';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17920,7 +17920,9 @@
         window.toggleTargetPlanSummary = function (kind, idx) {
             var g = summaryGroups(state.result, kind)[idx]; if (!g) return;
             var key = g.key, ex = state.sumOpen || (state.sumOpen = {});
-            ex[kind + '|' + key] = !ex[kind + '|' + key];
+            var willOpen = !ex[kind + '|' + key];
+            Object.keys(ex).forEach(function (k2) { if (k2.indexOf(kind + '|') === 0) delete ex[k2]; }); // เปิดได้ทีละกลุ่ม (ผู้ใช้ขอ)
+            if (willOpen) ex[kind + '|' + key] = true;
             renderSummaryTable(state.result, kind);
         };
         var renderSummaryTable = function (r, kind) {
@@ -17942,7 +17944,7 @@
                     '<td class="py-2.5 px-3 text-left font-semibold text-gray-800"><i class="fas fa-chevron-' + (open ? 'down' : 'right') + ' text-xs text-gray-400 mr-2 w-3"></i>' + esc(g.label) + tag + '</td>' +
                     cols.map(function (c) { return td(c, g); }).join('') + '</tr>';
                 if (open) {
-                    html += g.offices.slice().sort(function (a, b) { return (b.dom.target + b.intl.target) - (a.dom.target + a.intl.target); }).map(function (o, j) {
+                    html += g.offices.slice().sort(function (a, b) { return a.zip.localeCompare(b.zip); }) /* เรียงรหัสไปรษณีย์น้อยไปมาก (ผู้ใช้ขอ) */.map(function (o, j) {
                         var og = officeAsGroup(r, o);
                         var sub = kind === 'Prov' && o.team ? ' <span class="text-xs text-gray-400">' + esc(o.team) + '</span>' : '';
                         return '<tr class="border-b border-gray-100 bg-white text-gray-700"><td class="py-2 px-3 text-center text-xs text-gray-400">' + (i + 1) + '.' + (j + 1) + '</td>' +
