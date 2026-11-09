@@ -164,11 +164,13 @@
         <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="mon" id="tpPanel-mon" aria-labelledby="tpTab-mon">
             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
                 <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleMon">เป้ารายเดือน</h4>
-                <select id="tpMonGroup" onchange="renderTargetPlanTable()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-60 outline-none focus:border-orange-500">
-                    <option value="dom">บริการในประเทศ</option>
-                    <option value="intl">บริการระหว่างประเทศ</option>
-                    <option value="all">รวมทั้ง 2 บริการ</option>
-                </select>
+                <!-- ปุ่มสลับบริการ (เดิมเป็นช่องเลือก ผู้ใช้มองไม่เห็นว่ามีระหว่างประเทศ) — ค่าอยู่ใน #tpMonGroup -->
+                <input type="hidden" id="tpMonGroup" value="dom">
+                <div class="tp-seg" role="radiogroup" aria-label="บริการของเป้ารายเดือน">
+                    <button type="button" role="radio" data-mon="dom" aria-checked="true" onclick="setTargetPlanMonGroup('dom')">ในประเทศ</button>
+                    <button type="button" role="radio" data-mon="intl" aria-checked="false" onclick="setTargetPlanMonGroup('intl')">ระหว่างประเทศ</button>
+                    <button type="button" role="radio" data-mon="all" aria-checked="false" onclick="setTargetPlanMonGroup('all')">รวม 2 บริการ</button>
+                </div>
             </div>
             <p class="text-xs text-gray-500" id="tpMonNote"></p>
             <div class="table-container overflow-x-auto w-full" id="tpWrapMon">
@@ -211,6 +213,11 @@
     #page-target-plan .tp-kpi-sub { font-size: 0.75rem; color: #6b7280; line-height: 1.5; }
     #page-target-plan .tp-kpi.is-total { background: #fff7ed; border-color: #fed7aa; }
     #page-target-plan .tp-kpi.is-total .tp-kpi-value { color: #c2410c; }
+    #page-target-plan .tp-seg { display: inline-flex; border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; background: #fff; align-self: flex-start; }
+    #page-target-plan .tp-seg > button { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; color: #4b5563; min-height: 40px; border-left: 1px solid #e5e7eb; white-space: nowrap; }
+    #page-target-plan .tp-seg > button:first-child { border-left: 0; }
+    #page-target-plan .tp-seg > button[aria-checked="true"] { background: #c2410c; color: #fff; }
+    #page-target-plan .tp-seg > button:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
     #page-target-plan table td, #page-target-plan table th { font-variant-numeric: tabular-nums; }
 </style>
 
@@ -227,6 +234,7 @@
         // เป้าในประเทศปัดเป็นหลักหมื่น (หลักหน่วย สิบ ร้อย พัน = 0) ผู้ใช้กำหนด 2026-11-09
         var TP_DOM_ROUND = 10000;
         var TP_MONTH_ROUND = 1000; // เป้ารายเดือนปัดเป็นหลักพัน
+        var TP_INTL_MONTH_MIN = 1000; // เป้ารายเดือนระหว่างประเทศขั้นต่ำ (ผู้ใช้กำหนด 2026-11-09)
         var TP_DOM_MONTH_MIN_PCT = 0.04; // เป้ารายเดือนในประเทศขั้นต่ำ = 4% ของเป้าทั้งปี
         // ค่าตั้งต้นเป้าในประเทศขั้นต่ำต่อที่ทำการ (ผู้ใช้กำหนด 2026-11-09: 300,000 บาท/ปี แก้ได้ที่ช่อง #tpDomFloor)
         var TP_DOM_MIN_TARGET = 300000;
@@ -461,7 +469,7 @@
                 GROUPS.forEach(function (g) {
                     var d = o[g[0]], w = monthWeights(d), mt = [0], best = 1, i;
                     // เป้ารายเดือนในประเทศขั้นต่ำ = 4% ของเป้าทั้งปี (ผู้ใช้กำหนด 2026-11-09 แทนขั้นต่ำ 10,000 บาท): เดือนที่ต่ำกว่าตั้งเป็นขั้นต่ำ ที่เหลือแบ่งเดือนอื่นตามสัดส่วนเดิม วนจนนิ่ง
-                    var T = d.target || 0, mf = g[0] === 'dom' ? Math.ceil(T * TP_DOM_MONTH_MIN_PCT / TP_MONTH_ROUND) * TP_MONTH_ROUND : 0, fixed = {}, amt = [0];
+                    var T = d.target || 0, mf = g[0] === 'dom' ? Math.ceil(T * TP_DOM_MONTH_MIN_PCT / TP_MONTH_ROUND) * TP_MONTH_ROUND : TP_INTL_MONTH_MIN, fixed = {}, amt = [0];
                     if (mf > 0 && T <= mf * 12) { for (i = 1; i <= 12; i++) { w[i] = 1 / 12; fixed[i] = true; } }
                     for (var it = 0; it < 13; it++) {
                         var rest = T, ws = 0, low = false;
@@ -653,6 +661,11 @@
             var tD = r.offices.reduce(function (a, o) { return a + o.dom.target; }, 0), tI = r.offices.reduce(function (a, o) { return a + o.intl.target; }, 0);
             r.pDom = avgD > 0 ? tD / avgD - 1 : 0; r.pIntl = avgI > 0 ? tI / avgI - 1 : 0;
             r.domTopUp = 0; r.floorCount = 0; r.domFloorCount = 0; r.savedLoaded = true;
+        };
+        window.setTargetPlanMonGroup = function (g) {
+            document.getElementById('tpMonGroup').value = g;
+            Array.prototype.forEach.call(document.querySelectorAll('#page-target-plan .tp-seg > button'), function (b) { b.setAttribute('aria-checked', b.getAttribute('data-mon') === g ? 'true' : 'false'); });
+            renderTargetPlanTable();
         };
         window.useTargetPlanSaved = function (on) { state.useSaved = !!on; recompute(); };
         var renderSavedBar = function (r) {
@@ -963,7 +976,7 @@
             document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
             document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
                 (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้ค่าประมาณเดียวกับคอลัมน์ "ประมาณ" (ค่าเฉลี่ยรายเดือนของรายได้จริงปีนี้)' : '') +
-                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + (g !== 'intl' ? ' · เป้าในประเทศแต่ละเดือนไม่ต่ำกว่า 4% ของเป้าทั้งปีของที่ทำการนั้น (ปัดขึ้นหลักพัน)' : '') + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · เป้ารายเดือนปัดเป็นหลักพัน · รวม 12 เดือน = เป้าทั้งปีพอดี';
+                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + (g !== 'intl' ? ' · เป้าในประเทศแต่ละเดือนไม่ต่ำกว่า 4% ของเป้าทั้งปีของที่ทำการนั้น (ปัดขึ้นหลักพัน)' : '') + (g !== 'dom' ? ' · เป้าระหว่างประเทศแต่ละเดือนไม่ต่ำกว่า 1,000 บาท' : '') + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · เป้ารายเดือนปัดเป็นหลักพัน · รวม 12 เดือน = เป้าทั้งปีพอดี';
             var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
             for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
             document.getElementById('tpHeadMon').innerHTML = head + '<th class="py-3 px-3 text-right font-semibold">รวมทั้งปี</th></tr>';
