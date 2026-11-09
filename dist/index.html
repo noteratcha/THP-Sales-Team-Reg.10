@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1732';
+    var APP_VERSION = 'Ver. 2026.1109.1740';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17127,6 +17127,30 @@
                 </table>
             </div>
         </div>
+
+        <!-- ตารางเป้ารายเดือน -->
+        <div class="flex flex-col gap-2">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+                <button type="button" onclick="toggleTargetPlanTable('Mon')" aria-expanded="true" aria-controls="tpWrapMon" id="tpToggleMon"
+                    class="flex items-center gap-2 text-left rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
+                    <i id="tpChevMon" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
+                    <h4 class="text-lg font-bold text-gray-800" id="tpTitleMon">เป้ารายเดือน</h4>
+                </button>
+                <select id="tpMonGroup" onchange="renderTargetPlanTable()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-60 outline-none focus:border-orange-500">
+                    <option value="dom">บริการในประเทศ</option>
+                    <option value="intl">บริการระหว่างประเทศ</option>
+                    <option value="all">รวมทั้ง 2 บริการ</option>
+                </select>
+            </div>
+            <p class="text-xs text-gray-500" id="tpMonNote"></p>
+            <div class="table-container overflow-x-auto w-full" id="tpWrapMon">
+                <table class="min-w-full whitespace-nowrap text-sm">
+                    <thead class="bg-theme-black text-white" id="tpHeadMon"></thead>
+                    <tbody id="tpBodyMon"></tbody>
+                    <tfoot id="tpFootMon" class="bg-orange-50 font-bold text-gray-800"></tfoot>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -17170,6 +17194,13 @@
             var teamMap = opts.teamMap || {};
             var offices = {};
             var lastSeen = 0; // เดือนล่าสุดที่มีข้อมูลจริงของปีล่าสุด (ไม่เกิน cutoff)
+            // รายได้รายเดือน (เก็บเฉพาะปีล่าสุดและปีก่อนหน้า ใช้กระจายเป้ารายเดือน)
+            var addMon = function (o, grp, y, m, rev) {
+                if (y !== to && y !== to - 1) return;
+                var mo = o.mon || (o.mon = { dom: {}, intl: {} });
+                var a = mo[grp][y] || (mo[grp][y] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                a[m] += rev;
+            };
 
             (rows || []).forEach(function (r) {
                 var y = parseInt(r[6], 10);
@@ -17187,6 +17218,7 @@
                 var o = offices[zip] || (offices[zip] = { zip: zip, name: name, sums: { dom: {}, intl: {} }, has: {} });
                 if (y === to) o.name = name;
                 o.sums[grp][y] = (o.sums[grp][y] || 0) + rev;
+                addMon(o, grp, y, m, rev);
                 o.has[y] = true;
                 if (y === to && rev !== 0 && m > lastSeen) lastSeen = m;
             });
@@ -17206,6 +17238,7 @@
                             var rev = rec.m[ms] || 0;
                             var o = offices[zip] || (offices[zip] = { zip: zip, name: rec.name, sums: { dom: {}, intl: {} }, has: {} });
                             o.sums.intl[y] = (o.sums.intl[y] || 0) + rev;
+                            addMon(o, 'intl', y, m, rev);
                             o.has[y] = true;
                             if (y === to && rev !== 0 && m > lastSeen) lastSeen = m;
                         });
@@ -17230,6 +17263,7 @@
                     d.est = d.full === null ? null : d.full - d.act;
                     var vals = yearsHave.map(function (y) { return y === to ? fullOf(o.sums[k][y] || 0) : (o.sums[k][y] || 0); });
                     d.avg = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : 0;
+                    d.mon = o.mon ? o.mon[k] : {};
                     row[k] = d;
                 });
                 return row;
@@ -17337,6 +17371,33 @@
             var floorTooHigh = intlRes.tooHigh;
             list.forEach(function (o) { o.intlAtFloor = o.intl.atFloor; });
             list.forEach(function (o) { o.target = o.dom.target + o.intl.target; });
+
+            // กระจายเป้ารายเดือน (ผู้ใช้กำหนด 2026-11-09): สัดส่วนตามรายได้แต่ละเดือนของปีล่าสุดของที่ทำการนั้น
+            //  เดือนที่ยังไม่มีข้อมูลจริง → รายได้เดือนเดียวกันปีก่อน × อัตราเติบโต (ปีนี้/ปีก่อน ช่วงเดือนเดียวกัน); ไม่มีปีก่อน → ค่าเฉลี่ยรายเดือนปีนี้
+            //  ไม่มีรายได้เลย → เท่ากัน 12 เดือน; ปัดเป็นบาท เศษใส่เดือนที่สัดส่วนสูงสุด → รวม 12 เดือน = เป้าทั้งปีพอดี
+            var am = actualMonths || (partial ? 0 : 12);
+            var monthWeights = function (d) {
+                var cur = d.mon[to] || null, prev = d.mon[to - 1] || null;
+                var w = [0], i, curSum = 0, prevSame = 0;
+                for (i = 1; i <= am; i++) { curSum += cur ? cur[i] : 0; prevSame += prev ? prev[i] : 0; }
+                var growth = prevSame > 0 ? curSum / prevSame : 1;
+                var curAvg = am ? curSum / am : 0;
+                for (i = 1; i <= 12; i++) {
+                    var v = i <= am ? (cur ? cur[i] : 0) : (prev && prevSame > 0 ? prev[i] * growth : curAvg);
+                    w.push(Math.max(0, v));
+                }
+                var s = w.reduce(function (a, b) { return a + b; }, 0);
+                for (i = 1; i <= 12; i++) w[i] = s > 0 ? w[i] / s : 1 / 12;
+                return w;
+            };
+            list.forEach(function (o) {
+                GROUPS.forEach(function (g) {
+                    var d = o[g[0]], w = monthWeights(d), mt = [0], best = 1, i;
+                    for (i = 1; i <= 12; i++) { mt.push(Math.round((d.target || 0) * w[i])); if (w[i] > w[best]) best = i; }
+                    mt[best] += (d.target || 0) - mt.reduce(function (a, b) { return a + b; }, 0);
+                    d.monthTarget = mt; d.monthShare = w;
+                });
+            });
 
             return {
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
@@ -17492,7 +17553,7 @@
             try { localStorage.setItem(TP_COLLAPSE_KEY, JSON.stringify(st)); } catch (e) {}
             applyTableCollapse(k, st[k]);
         };
-        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
+        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl', 'Mon'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
 
         window.sortTargetPlan = function (key, grp) {
             if (state.sortKey === key && state.sortGroup === grp) state.sortDir = -state.sortDir;
@@ -17566,6 +17627,7 @@
 
             renderGroupTable(r, 'dom', 'tpHeadDom', 'tpBody', 'tpFootDom');
             renderGroupTable(r, 'intl', 'tpHeadIntl', 'tpBodyIntl', 'tpFootIntl');
+            renderMonthTable(r);
             document.getElementById('tpTitleDom').textContent = 'บริการในประเทศ · เป้า ' + fmt(tot(function (o) { return o.dom.target; })) + ' บาท (' + pctStr(r.pDom) + ' จากค่าเฉลี่ย)';
             document.getElementById('tpTitleIntl').textContent = 'บริการระหว่างประเทศ · เป้า ' + fmt(tot(function (o) { return o.intl.target; })) + ' บาท (' + pctStr(r.pIntl) + ' จากค่าเฉลี่ย)';
         };
@@ -17578,6 +17640,39 @@
             try { localStorage.setItem(TP_PARTS_KEY, partsOpen() ? '0' : '1'); } catch (e) {}
             renderTargetPlanTable();
         };
+        // ===== เป้ารายเดือน =====
+        var monthTargetOf = function (o, g) {
+            if (g !== 'all') return o[g].monthTarget || [];
+            var a = o.dom.monthTarget || [], b = o.intl.monthTarget || [], out = [0];
+            for (var i = 1; i <= 12; i++) out.push((a[i] || 0) + (b[i] || 0));
+            return out;
+        };
+        var renderMonthTable = function (r) {
+            var g = document.getElementById('tpMonGroup').value || 'dom';
+            var gname = { dom: 'บริการในประเทศ', intl: 'บริการระหว่างประเทศ', all: 'รวมทั้ง 2 บริการ' }[g];
+            var list = filteredOffices(g === 'all' ? 'dom' : g);
+            var ny = be(r.yearTo + 1);
+            document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
+            document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
+                (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้รูปแบบเดือนเดียวกันของปี ' + be(r.yearTo - 1) + ' ปรับตามการเติบโตของปีนี้' : '') +
+                ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
+            var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
+            for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
+            document.getElementById('tpHeadMon').innerHTML = head + '<th class="py-3 px-3 text-right font-semibold">รวมทั้งปี</th></tr>';
+            var tot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            document.getElementById('tpBodyMon').innerHTML = list.length ? list.map(function (o, i) {
+                var mt = monthTargetOf(o, g), sum = 0, cells = '';
+                for (var m = 1; m <= 12; m++) { var v = mt[m] || 0; sum += v; tot[m] += v; cells += '<td class="py-2.5 px-3 text-right">' + fmt(v) + '</td>'; }
+                return '<tr class="border-b border-gray-100 ' + (i % 2 ? 'bg-gray-50/60' : '') + '"><td class="py-2.5 px-3 text-center text-gray-500">' + (i + 1) + '</td>' +
+                    '<td class="py-2.5 px-3 text-left">' + esc(o.name) + '</td><td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
+                    cells + '<td class="py-2.5 px-3 text-right font-bold text-orange-700">' + fmt(sum) + '</td></tr>';
+            }).join('') : '<tr><td colspan="16" class="py-8 text-center text-gray-400">ไม่พบที่ทำการตามเงื่อนไข</td></tr>';
+            var foot = '<tr><td class="py-3 px-3"></td><td class="py-3 px-3 text-left" colspan="2">รวม ' + list.length + ' ที่ทำการ</td>';
+            var all = 0;
+            for (var k = 1; k <= 12; k++) { all += tot[k]; foot += '<td class="py-3 px-3 text-right">' + fmt(tot[k]) + '</td>'; }
+            document.getElementById('tpFootMon').innerHTML = foot + '<td class="py-3 px-3 text-right text-orange-700">' + fmt(all) + '</td></tr>';
+        };
+
         var renderGroupTable = function (r, grp, headId, bodyId, footId) {
             var open = partsOpen();
             var cols = colDefs(r, grp).filter(function (c) { return open || !c.part; });
@@ -17645,6 +17740,20 @@
                         }
                     }
                     XLSX.utils.book_append_sheet(wb, ws, g[1]);
+                });
+                // แผ่นเป้ารายเดือน (ในประเทศ / ระหว่างประเทศ / รวม)
+                [['dom', 'เป้ารายเดือน ในประเทศ'], ['intl', 'เป้ารายเดือน ระหว่างประเทศ'], ['all', 'เป้ารายเดือน รวม']].forEach(function (mg) {
+                    var lst = filteredOffices(mg[0] === 'all' ? 'dom' : mg[0]);
+                    var hd = ['ลำดับ', 'ที่ทำการ', 'ทีม'].concat(TH_SHORT.slice(1)).concat(['รวมทั้งปี']);
+                    var aoa = [[mg[1] + ' ปี ' + be(r.yearTo + 1) + ' (ตามสัดส่วนรายได้รายเดือนปี ' + be(r.yearTo) + ')'], hd];
+                    var tt = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                    lst.forEach(function (o, i) { var mt = monthTargetOf(o, mg[0]), row = [i + 1, o.name, o.team || ''], sm = 0; for (var m = 1; m <= 12; m++) { row.push(mt[m] || 0); sm += mt[m] || 0; tt[m] += mt[m] || 0; } row.push(sm); aoa.push(row); });
+                    aoa.push(['', 'รวมทั้งหมด', ''].concat(tt.slice(1)).concat([tt.reduce(function (a, b) { return a + b; }, 0)]));
+                    var ws = XLSX.utils.aoa_to_sheet(aoa);
+                    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: hd.length - 1 } }];
+                    ws['!cols'] = [{ wch: 7 }, { wch: 32 }, { wch: 20 }].concat(hd.slice(3).map(function () { return { wch: 13 }; }));
+                    for (var R = 2; R < aoa.length; R++) for (var C = 3; C < hd.length; C++) { var ref = XLSX.utils.encode_cell({ r: R, c: C }); if (ws[ref]) ws[ref].z = '#,##0'; }
+                    XLSX.utils.book_append_sheet(wb, ws, mg[1].slice(0, 31));
                 });
                 XLSX.writeFile(wb, 'Target_Plan_' + be(r.yearTo + 1) + '.xlsx');
             };
