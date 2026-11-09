@@ -5323,10 +5323,12 @@ function saveTargetPlanIntlData_(payload, actor) {
 
 // ==========================================
 // 🎯 บันทึกเป้าปีถัดไปจากหน้าวางแผนเป้าหมาย ลงชีต "เป้าหมายรายได้" (ไฟล์ TARGET_SS_ID) — admin เท่านั้น (ผู้ใช้กำหนด 2026-11-09)
-// คอลัมน์: A ปี | B เดือน | C รหัสไปรษณีย์ | D ที่ทำการ | E เป้าหมาย (ในประเทศ) | F ค่าใช้จ่ายทีมขาย (คงค่าเดิม) | G เป้าหมายระหว่างประเทศ (เพิ่มใหม่)
-// ปี/เดือนเขียนตามรูปแบบแถวเดิมในชีต (พ.ศ./ค.ศ., ชื่อเดือนเต็ม/ย่อ/ตัวเลข); แถว ปี-เดือน-รหัส ที่มีอยู่แล้วแก้ E,G ในที่ ไม่มีก็เพิ่มต่อท้าย
-// payload = { year: ปี ค.ศ., offices: [{ zip, name, dom: [12 เดือน], intl: [12 เดือน] }] }
-var TARGET_INTL_COL_HEADER = 'เป้าหมายระหว่างประเทศ';
+// คอลัมน์: A ปี | B เดือน | C รหัสไปรษณีย์ | D ที่ทำการ (ชื่อ ไม่มีรหัส) | E เป้าหมาย (รวมในประเทศ + ระหว่างประเทศ) | F ค่าใช้จ่ายทีมขาย (คงค่าเดิม)
+//          | G ทีม | H จังหวัด (34010 = ศป.อุบลราชธานี, 47010 = ศป.สกลนคร) | I เป้าในประเทศ | J เป้าระหว่างประเทศ
+// ปี/เดือนเขียนตามรูปแบบแถวเดิมในชีต (พ.ศ./ค.ศ., ชื่อเดือนเต็ม/ย่อ/ตัวเลข); แถว ปี-เดือน-รหัส ที่มีอยู่แล้วแก้ในที่ (ไม่แตะ F) ไม่มีก็เพิ่มต่อท้าย
+// payload = { year: ปี ค.ศ., offices: [{ zip, name, team, province, dom: [12 เดือน], intl: [12 เดือน] }] }
+var TARGET_DOM_COL_HEADER = 'เป้าในประเทศ';
+var TARGET_INTL_COL_HEADER = 'เป้าระหว่างประเทศ';
 function saveNextYearTargets_(payload, actor) {
   try {
     if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
@@ -5343,13 +5345,13 @@ function saveNextYearTargets_(payload, actor) {
       if (SHORT.indexOf(t) >= 0) return SHORT.indexOf(t) + 1;
       return (n >= 1 && n <= 12 && String(n) === t) ? n : 0;
     };
+    var cleanName = function (zip, name) { return String(name || zip).replace(/^\s*\d{5}\s*-\s*/, '').trim().substring(0, 200) || zip; };
     var lock = LockService.getScriptLock();
     lock.waitLock(20000);
     try {
       var sheet = SpreadsheetApp.openById(TARGET_SS_ID).getSheetByName('เป้าหมายรายได้');
       if (!sheet) return { status: 'error', message: 'ไม่พบชีต เป้าหมายรายได้' };
       var data = sheet.getDataRange().getValues();
-      // รูปแบบปี/เดือนตามแถวเดิม
       var useBE = false, mFmt = 'full';
       for (var i = 1; i < data.length; i++) {
         var y0 = parseInt(data[i][0], 10);
@@ -5361,9 +5363,13 @@ function saveNextYearTargets_(payload, actor) {
       }
       var yearVal = useBE ? year + 543 : year;
       var monthVal = function (m) { return mFmt === 'num' ? m : (mFmt === 'short' ? SHORT[m - 1] : FULL[m - 1]); };
-      var width = Math.max(7, data[0].length);
+      var width = Math.max(10, data[0].length);
       data = data.map(function (r) { while (r.length < width) r.push(''); return r; });
-      if (!String(data[0][6] || '').trim()) data[0][6] = TARGET_INTL_COL_HEADER;
+      var head = data[0].slice();
+      if (!String(head[6] || '').trim()) head[6] = 'ทีม';
+      if (!String(head[7] || '').trim()) head[7] = 'จังหวัด';
+      if (!String(head[8] || '').trim()) head[8] = TARGET_DOM_COL_HEADER;
+      if (!String(head[9] || '').trim()) head[9] = TARGET_INTL_COL_HEADER;
       var idx = {};
       for (var j = 1; j < data.length; j++) {
         var yy = parseInt(data[j][0], 10);
@@ -5373,29 +5379,32 @@ function saveNextYearTargets_(payload, actor) {
         if (!mm) continue;
         idx[mm + '|' + String(data[j][2]).replace(/^'/, '').trim()] = j;
       }
-      var appended = [], updated = 0, total = { dom: 0, intl: 0 };
+      var appended = [], updated = 0, total = { dom: 0, intl: 0 }, hit = [];
       offices.forEach(function (o) {
         var zip = String(o.zip || '').trim();
         if (!/^\d{5}$/.test(zip)) return;
+        var name = cleanName(zip, o.name), team = String(o.team || '').substring(0, 100), prov = String(o.province || '').substring(0, 100);
         for (var m = 1; m <= 12; m++) {
           var d = Math.round(Number((o.dom || [])[m - 1]) || 0), t = Math.round(Number((o.intl || [])[m - 1]) || 0);
           total.dom += d; total.intl += t;
           var at = idx[m + '|' + zip];
-          if (at !== undefined) { data[at][4] = d; data[at][6] = t; updated++; }
-          else {
-            var row = [yearVal, monthVal(m), zip, String(o.name || zip).substring(0, 200), d, '', t];
+          if (at !== undefined) {
+            var r = data[at];
+            r[3] = name; r[4] = d + t; r[6] = team; r[7] = prov; r[8] = d; r[9] = t;
+            updated++; hit.push(at);
+          } else {
+            var row = [yearVal, monthVal(m), zip, name, d + t, '', team, prov, d, t];
             while (row.length < width) row.push('');
             appended.push(row);
           }
         }
       });
-      // เขียนเฉพาะหัวคอลัมน์ G และคอลัมน์ E, G ช่วงแถวที่แก้ (แถวปีอื่นไม่ถูกเขียนทับ)
-      sheet.getRange(1, 7).setValue(data[0][6]);
-      var rowsHit = Object.keys(idx).map(function (k) { return idx[k]; });
-      if (updated && rowsHit.length) {
-        var r0 = Math.min.apply(null, rowsHit), r1 = Math.max.apply(null, rowsHit), span = data.slice(r0, r1 + 1);
-        sheet.getRange(r0 + 1, 5, span.length, 1).setValues(span.map(function (r) { return [r[4]]; }));
-        sheet.getRange(r0 + 1, 7, span.length, 1).setValues(span.map(function (r) { return [r[6]]; }));
+      sheet.getRange(1, 7, 1, 4).setValues([head.slice(6, 10)]);
+      if (hit.length) {
+        // เขียนเฉพาะช่วงแถวปีนี้ที่แก้: D–E และ G–J (ไม่แตะ A–C, F)
+        var r0 = Math.min.apply(null, hit), r1 = Math.max.apply(null, hit), span = data.slice(r0, r1 + 1);
+        sheet.getRange(r0 + 1, 4, span.length, 2).setValues(span.map(function (r) { return [r[3], r[4]]; }));
+        sheet.getRange(r0 + 1, 7, span.length, 4).setValues(span.map(function (r) { return [r[6], r[7], r[8], r[9]]; }));
       }
       if (appended.length) sheet.getRange(data.length + 1, 1, appended.length, width).setValues(appended);
       return { status: 'success', year: year, updated: updated, appended: appended.length, totalDom: total.dom, totalIntl: total.intl };

@@ -520,18 +520,24 @@
             var key = grp + '|' + year, c = state.sheetTargetCache || (state.sheetTargetCache = {});
             if (c.src !== window.__tpTargets) { c = state.sheetTargetCache = { src: window.__tpTargets }; }
             if (c[key]) return c[key];
-            var m = { byZip: {}, any: false }, col = grp === 'dom' ? 4 : 6;
+            var m = { byZip: {}, any: false };
             (window.__tpTargets || []).forEach(function (r, i) {
                 if (i === 0 || !r) return;
                 var y = parseInt(r[0], 10); if (y > 2500) y -= 543;
                 if (y !== year) return;
-                var raw = r[col];
+                var raw = targetCellOf(r, grp);
                 if (raw === '' || raw === null || raw === undefined) return;
                 var z = String(r[2] || '').replace(/^'/, '').trim();
                 m.byZip[z] = (m.byZip[z] || 0) + (parseFloat(String(raw).replace(/,/g, '')) || 0); m.any = true;
             });
             c[key] = m;
             return m;
+        };
+        // แถวเป้าหมาย: E = รวม (หรือในประเทศ ถ้าเป็นแถวแบบเดิมที่ไม่มี I/J), I (r[8]) = ในประเทศ, J (r[9]) = ระหว่างประเทศ
+        var hasSplit = function (r) { return r && ((r[8] !== '' && r[8] !== null && r[8] !== undefined) || (r[9] !== '' && r[9] !== null && r[9] !== undefined)); };
+        var targetCellOf = function (r, grp) {
+            if (hasSplit(r)) return grp === 'dom' ? r[8] : r[9];
+            return grp === 'dom' ? r[4] : '';
         };
         var savedTargetOf = function (grp, year, zip) { var m = sheetTargetMap(grp, year); return m.any ? (m.byZip[zip] || 0) : null; };
         var prevTargetOf = function (grp, year, zip) {
@@ -545,7 +551,7 @@
                         var y = parseInt(r[0], 10); if (y > 2500) y -= 543;
                         if (y !== year) return;
                         var z = String(r[2] || '').trim();
-                        m.byZip[z] = (m.byZip[z] || 0) + (parseFloat(String(r[4]).replace(/,/g, '')) || 0); m.any = true;
+                        m.byZip[z] = (m.byZip[z] || 0) + (parseFloat(String(targetCellOf(r, 'dom') || 0).replace(/,/g, '')) || 0); m.any = true;
                     });
                     state.domTargetCache = m;
                 }
@@ -573,7 +579,7 @@
             (targets || []).forEach(function (r, i) {
                 if (i === 0 || !r) return;
                 var zip = String(r[2] || '').trim(), team = String(r[6] || '').trim();
-                if (zip && team) map[zip] = team;
+                if (zip && team && !/^[\d.,\s]+$/.test(team)) map[zip] = team; // ข้ามค่าตัวเลข (แถวปี 2570 ที่เคยบันทึกเป้าระหว่างประเทศไว้ในคอลัมน์ G)
             });
             return map;
         };
@@ -795,6 +801,9 @@
         // จังหวัดจากรหัสไปรษณีย์ 2 หลักแรก; 34010 และ 47010 แยกเป็นแถวของตัวเอง (ไม่รวมในจังหวัด)
         var TP_PROVINCES = { '30': 'นครราชสีมา', '31': 'บุรีรัมย์', '32': 'สุรินทร์', '33': 'ศรีสะเกษ', '34': 'อุบลราชธานี', '35': 'ยโสธร', '36': 'ชัยภูมิ', '37': 'อำนาจเจริญ', '38': 'บึงกาฬ', '39': 'หนองบัวลำภู', '40': 'ขอนแก่น', '41': 'อุดรธานี', '42': 'เลย', '43': 'หนองคาย', '44': 'มหาสารคาม', '45': 'ร้อยเอ็ด', '46': 'กาฬสินธุ์', '47': 'สกลนคร', '48': 'นครพนม', '49': 'มุกดาหาร' };
         var TP_PROV_SEPARATE = ['34010', '47010'];
+        var TP_PROV_SEPARATE_NAME = { '34010': 'ศป.อุบลราชธานี', '47010': 'ศป.สกลนคร' };
+        // ชื่อจังหวัดสำหรับคอลัมน์ H ของชีต (34010/47010 = ชื่อศูนย์)
+        var provinceOf = function (o) { return TP_PROV_SEPARATE_NAME[o.zip] || TP_PROVINCES[o.zip.slice(0, 2)] || ''; };
         var summaryGroups = function (r, kind) {
             var map = {}, order = [];
             r.offices.forEach(function (o) {
@@ -953,14 +962,14 @@
             if (!r) { Swal.fire('ยังไม่มีข้อมูล', 'กรุณารอให้ข้อมูลโหลดเสร็จก่อน', 'info'); return; }
             var ny = r.yearTo + 1;
             var offices = r.offices.map(function (o) {
-                return { zip: o.zip, name: o.name, dom: (o.dom.monthTarget || []).slice(1, 13), intl: (o.intl.monthTarget || []).slice(1, 13) };
+                return { zip: o.zip, name: o.name, team: o.team || '', province: provinceOf(o), dom: (o.dom.monthTarget || []).slice(1, 13), intl: (o.intl.monthTarget || []).slice(1, 13) };
             });
             var sum = function (k) { return r.offices.reduce(function (a, o) { return a + (o[k].target || 0); }, 0); };
             var had = savedTargetOf('dom', ny, '') !== null;
             Swal.fire({
                 title: 'บันทึกเป้าปี ' + be(ny) + '?',
                 html: 'ที่ทำการ ' + offices.length + ' แห่ง × 12 เดือน<br>ในประเทศ <b>' + fmt(sum('dom')) + '</b> บาท · ระหว่างประเทศ <b>' + fmt(sum('intl')) + '</b> บาท' +
-                    '<br><br><span style="font-size:13px;color:#6b7280">บันทึกลงชีต "เป้าหมายรายได้" (ในประเทศ = คอลัมน์เป้าหมาย, ระหว่างประเทศ = คอลัมน์ G)' +
+                    '<br><br><span style="font-size:13px;color:#6b7280">บันทึกลงชีต "เป้าหมายรายได้": E เป้าหมาย (รวม), G ทีม, H จังหวัด, I เป้าในประเทศ, J เป้าระหว่างประเทศ' +
                     (had ? ' — <b>มีเป้าปี ' + be(ny) + ' อยู่แล้ว จะถูกแทนที่</b>' : '') + ' หน้าอื่นที่ใช้เป้าหมาย (เช่น สรุปการใช้บริการ) จะเห็นเป้าปีนี้ด้วย</span>',
                 icon: 'question', showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก'
             }).then(function (ans) {
