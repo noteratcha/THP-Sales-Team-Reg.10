@@ -388,7 +388,9 @@
                 var growth = prevSame > 0 ? curSum / prevSame : 1;
                 var curAvg = am ? curSum / am : 0;
                 for (i = 1; i <= 12; i++) {
-                    var v = i <= am ? (cur ? cur[i] : 0) : (prev && prevSame > 0 ? prev[i] * growth : curAvg);
+                    // เดือนที่ยังไม่มีข้อมูล: ปีก่อนเดือนนั้นมีรายได้ → ใช้ปีก่อน × อัตราเติบโต; ปีก่อนเป็น 0/ไม่มีข้อมูล → ค่าเฉลี่ยรายเดือนปีนี้ (ไม่ให้เป้าเป็น 0)
+                    var pv = prev && prevSame > 0 && growth > 0 ? prev[i] * growth : 0;
+                    var v = i <= am ? (cur ? cur[i] : 0) : (pv > 0 ? pv : curAvg);
                     w.push(Math.max(0, v));
                 }
                 var s = w.reduce(function (a, b) { return a + b; }, 0);
