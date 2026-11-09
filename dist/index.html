@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1524';
+    var APP_VERSION = 'Ver. 2026.1109.1611';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17017,10 +17017,15 @@
 
     <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-6">
         <!-- ตั้งค่าเป้าหมายปีถัดไป -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการในประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
                 <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
+            </label>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-sm font-semibold text-gray-700">เป้าในประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
+                <input id="tpDomFloor" type="text" inputmode="numeric" value="300,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าในประเทศต่ำกว่าค่านี้ ปรับเป็นค่านี้ ส่วนที่เหลือแบ่งตามสัดส่วน"
                     class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
             </label>
             <label class="flex flex-col gap-1.5">
@@ -17088,8 +17093,12 @@
 
         <!-- ตารางบริการในประเทศ -->
         <div class="flex flex-col gap-2">
-            <h4 class="text-lg font-bold text-gray-800" id="tpTitleDom">บริการในประเทศ</h4>
-            <div class="table-container overflow-x-auto w-full">
+            <button type="button" onclick="toggleTargetPlanTable('Dom')" aria-expanded="true" aria-controls="tpWrapDom" id="tpToggleDom"
+                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
+                <i id="tpChevDom" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
+                <h4 class="text-lg font-bold text-gray-800" id="tpTitleDom">บริการในประเทศ</h4>
+            </button>
+            <div class="table-container overflow-x-auto w-full" id="tpWrapDom">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadDom"></thead>
                     <tbody id="tpBody"></tbody>
@@ -17100,8 +17109,12 @@
 
         <!-- ตารางบริการระหว่างประเทศ -->
         <div class="flex flex-col gap-2">
-            <h4 class="text-lg font-bold text-gray-800" id="tpTitleIntl">บริการระหว่างประเทศ</h4>
-            <div class="table-container overflow-x-auto w-full">
+            <button type="button" onclick="toggleTargetPlanTable('Intl')" aria-expanded="true" aria-controls="tpWrapIntl" id="tpToggleIntl"
+                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
+                <i id="tpChevIntl" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
+                <h4 class="text-lg font-bold text-gray-800" id="tpTitleIntl">บริการระหว่างประเทศ</h4>
+            </button>
+            <div class="table-container overflow-x-auto w-full" id="tpWrapIntl">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadIntl"></thead>
                     <tbody id="tpBodyIntl"></tbody>
@@ -17124,6 +17137,8 @@
         var TP_INTL_ZERO_TARGET = 60000;
         // เป้าในประเทศปัดเป็นหลักหมื่น (หลักหน่วย สิบ ร้อย พัน = 0) ผู้ใช้กำหนด 2026-11-09
         var TP_DOM_ROUND = 10000;
+        // ค่าตั้งต้นเป้าในประเทศขั้นต่ำต่อที่ทำการ (ผู้ใช้กำหนด 2026-11-09: 300,000 บาท/ปี แก้ได้ที่ช่อง #tpDomFloor)
+        var TP_DOM_MIN_TARGET = 300000;
         // เป้าระหว่างประเทศปัดเป็นหลักพัน (หลักหน่วย สิบ ร้อย = 0)
         var TP_INTL_ROUND = 1000;
         var GROUPS = [['dom', 'ในประเทศ'], ['intl', 'ระหว่างประเทศ']];
@@ -17221,57 +17236,54 @@
             var pDom = avgDomTotal > 0 ? targetDom / avgDomTotal - 1 : 0;
             var pIntl = avgIntlTotal > 0 ? targetIntl / avgIntlTotal - 1 : 0;
 
-            // ในประเทศ: ปัดลงเป็นหลักพัน แล้วเกลี่ยหน่วยพันที่ขาดให้ที่ทำการที่เศษมากที่สุด (largest remainder) → ผลรวมตรงเป้า
-            var unitsTotal = Math.round(targetDom / TP_DOM_ROUND);
-            var parts = list.map(function (o) {
-                var u = (avgDomTotal > 0 ? o.dom.avg * (1 + pDom) : 0) / TP_DOM_ROUND;
-                return { o: o, base: Math.floor(u), frac: u - Math.floor(u) };
-            });
-            var diff = unitsTotal - parts.reduce(function (a, p) { return a + p.base; }, 0);
-            parts.slice().sort(function (a, b) { return b.frac - a.frac; }).forEach(function (p, i) { if (i < diff) p.base += 1; });
-            parts.forEach(function (p) { p.o.dom.target = p.base * TP_DOM_ROUND; });
-
-            // ระหว่างประเทศ: แบ่งเป้าตามสัดส่วนค่าเฉลี่ย ที่ทำการที่ได้น้อยกว่าขั้นต่ำ (รวมที่ไม่มีรายได้) → ตั้งเป็นขั้นต่ำ
-            // แล้วแบ่งงบที่เหลือให้ที่ทำการอื่นตามสัดส่วนใหม่ วนจนไม่มีใครต่ำกว่าขั้นต่ำ (ผลรวมเท่าเป้าพอดี)
-            var floor = (opts.intlFloor === undefined || opts.intlFloor === null) ? TP_INTL_ZERO_TARGET : Math.max(0, opts.intlFloor);
-            var floorTooHigh = false;
-            list.forEach(function (o) { o.intlAtFloor = false; });
-            if (list.length && floor * list.length >= targetIntl) {
-                floorTooHigh = floor > 0;
-                list.forEach(function (o) { o.intl.target = targetIntl / list.length; o.intlAtFloor = floor > 0; });
-            } else {
+            // แบ่งเป้ากลุ่ม (ใช้ทั้งในประเทศและระหว่างประเทศ):
+            //  1) แบ่งตามสัดส่วนค่าเฉลี่ย  2) ที่ทำการที่ได้น้อยกว่าขั้นต่ำ (รวมที่ไม่มีรายได้) → ตั้งเป็นขั้นต่ำ แล้วแบ่งงบที่เหลือใหม่ วนจนนิ่ง
+            //  3) ที่ไม่ใช้ขั้นต่ำปัดลงตามหลัก (round) แล้วเกลี่ยหน่วยที่ขาดให้เศษมากสุด (largest remainder) → ผลรวมเท่าเป้าพอดี
+            var allocate = function (k, total, floor, round) {
+                var res = { tooHigh: false, count: 0 };
+                list.forEach(function (o) { o[k].atFloor = false; });
+                if (!list.length) return res;
+                if (floor > 0 && floor * list.length >= total) {
+                    res.tooHigh = true;
+                    list.forEach(function (o) { o[k].target = total / list.length; o[k].atFloor = true; });
+                    res.count = list.length;
+                    return res;
+                }
                 var pool = list.slice();
                 for (var guard = 0; guard <= list.length; guard++) {
-                    var budget = targetIntl - (list.length - pool.length) * floor;
-                    var base = pool.reduce(function (acc, o) { return acc + o.intl.avg; }, 0);
+                    var budget = total - (list.length - pool.length) * floor;
+                    var base = pool.reduce(function (acc, o) { return acc + o[k].avg; }, 0);
                     var below = [];
                     pool.forEach(function (o) {
-                        o.intl.target = base > 0 ? budget * o.intl.avg / base : budget / pool.length;
-                        if (o.intl.target < floor) below.push(o);
+                        o[k].target = base > 0 ? budget * o[k].avg / base : budget / pool.length;
+                        if (floor > 0 && o[k].target < floor) below.push(o);
                     });
                     if (!below.length) break;
-                    below.forEach(function (o) { o.intl.target = floor; o.intlAtFloor = true; });
-                    pool = pool.filter(function (o) { return !o.intlAtFloor; });
+                    below.forEach(function (o) { o[k].target = floor; o[k].atFloor = true; });
+                    pool = pool.filter(function (o) { return !o[k].atFloor; });
                     if (!pool.length) break;
                 }
-            }
-            // ระหว่างประเทศปัดเป็นหลักพัน (หลักหน่วย สิบ ร้อย = 0) ผู้ใช้กำหนด 2026-11-09: ที่ทำการที่ใช้ขั้นต่ำคงค่าเดิม
-            // ที่เหลือปัดลงแล้วเกลี่ยหน่วยพันที่ขาดให้เศษมากสุด (largest remainder) → ผลรวมยังเท่าเป้า
-            if (!floorTooHigh) {
-                var rest = list.filter(function (o) { return !o.intlAtFloor; });
-                var floorSum = list.reduce(function (acc, o) { return acc + (o.intlAtFloor ? o.intl.target : 0); }, 0);
-                var iUnits = Math.round((targetIntl - floorSum) / TP_INTL_ROUND);
-                var iparts = rest.map(function (o) { var u = o.intl.target / TP_INTL_ROUND; return { o: o, base: Math.floor(u), frac: u - Math.floor(u) }; });
-                var idiff = iUnits - iparts.reduce(function (acc, p) { return acc + p.base; }, 0);
-                iparts.slice().sort(function (x, y) { return y.frac - x.frac; }).forEach(function (p, i) { if (i < idiff) p.base += 1; });
-                iparts.forEach(function (p) { p.o.intl.target = p.base * TP_INTL_ROUND; });
-            }
+                var floorSum = list.reduce(function (acc, o) { return acc + (o[k].atFloor ? o[k].target : 0); }, 0);
+                var units = Math.round((total - floorSum) / round);
+                var parts = pool.map(function (o) { var u = o[k].target / round; return { o: o, base: Math.floor(u), frac: u - Math.floor(u) }; });
+                var diff = units - parts.reduce(function (acc, p) { return acc + p.base; }, 0);
+                parts.slice().sort(function (x, y) { return y.frac - x.frac; }).forEach(function (p, i) { if (i < diff) p.base += 1; });
+                parts.forEach(function (p) { p.o[k].target = p.base * round; });
+                res.count = list.filter(function (o) { return o[k].atFloor; }).length;
+                return res;
+            };
+            var domFloor = (opts.domFloor === undefined || opts.domFloor === null) ? TP_DOM_MIN_TARGET : Math.max(0, opts.domFloor);
+            var floor = (opts.intlFloor === undefined || opts.intlFloor === null) ? TP_INTL_ZERO_TARGET : Math.max(0, opts.intlFloor);
+            var domRes = allocate('dom', targetDom, domFloor, TP_DOM_ROUND);
+            var intlRes = allocate('intl', targetIntl, floor, TP_INTL_ROUND);
+            var floorTooHigh = intlRes.tooHigh;
+            list.forEach(function (o) { o.intlAtFloor = o.intl.atFloor; });
             list.forEach(function (o) { o.target = o.dom.target + o.intl.target; });
 
             return {
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
-                pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh,
-                floorCount: list.filter(function (o) { return o.intlAtFloor; }).length,
+                pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh, floorCount: intlRes.count,
+                domFloor: domFloor, domFloorCount: domRes.count, domFloorTooHigh: domRes.tooHigh,
                 offices: list
             };
         };
@@ -17345,6 +17357,7 @@
                 targetDom: parseNum(document.getElementById('tpTargetDom').value),
                 targetIntl: parseNum(document.getElementById('tpTargetIntl').value),
                 intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
+                domFloor: parseNum(document.getElementById('tpDomFloor').value),
                 intlOverride: state.intlFile ? state.intlFile.years : null,
                 teamMap: buildTeamMap(window.__tpTargets)
             });
@@ -17358,7 +17371,7 @@
         };
 
         window.onTargetPlanInput = function () {
-            ['tpTargetDom', 'tpTargetIntl', 'tpIntlFloor'].forEach(function (id) {
+            ['tpTargetDom', 'tpTargetIntl', 'tpIntlFloor', 'tpDomFloor'].forEach(function (id) {
                 var el = document.getElementById(id);
                 el.value = parseNum(el.value).toLocaleString('th-TH');
             });
@@ -17366,6 +17379,24 @@
                 (parseNum(document.getElementById('tpTargetDom').value) + parseNum(document.getElementById('tpTargetIntl').value)).toLocaleString('th-TH');
             recompute();
         };
+
+        // ย่อ/ขยายตารางแต่ละกลุ่ม (จำไว้ในเบราว์เซอร์นี้)
+        var TP_COLLAPSE_KEY = 'thp_tp_collapsed';
+        var applyTableCollapse = function (k, collapsed) {
+            var wrap = document.getElementById('tpWrap' + k), chev = document.getElementById('tpChev' + k), btn = document.getElementById('tpToggle' + k);
+            if (!wrap) return;
+            wrap.classList.toggle('hidden', collapsed);
+            if (chev) chev.style.transform = collapsed ? 'rotate(-90deg)' : '';
+            if (btn) btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        };
+        var readCollapsed = function () { try { return JSON.parse(localStorage.getItem(TP_COLLAPSE_KEY) || '{}') || {}; } catch (e) { return {}; } };
+        window.toggleTargetPlanTable = function (k) {
+            var st = readCollapsed();
+            st[k] = !st[k];
+            try { localStorage.setItem(TP_COLLAPSE_KEY, JSON.stringify(st)); } catch (e) {}
+            applyTableCollapse(k, st[k]);
+        };
+        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
 
         window.sortTargetPlan = function (key, grp) {
             if (state.sortKey === key && state.sortGroup === grp) state.sortDir = -state.sortDir;
@@ -17422,7 +17453,9 @@
                     '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
                     '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
             }).join('');
-            document.getElementById('tpNote').textContent =
+            var domFloorNote = r.domFloorTooHigh ? ' · ⚠ ขั้นต่ำในประเทศ × จำนวนที่ทำการเกินเป้า จึงแบ่งเท่ากันทุกที่ทำการ'
+                : (r.domFloorCount ? ' · เป้าในประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
+            document.getElementById('tpNote').textContent = domFloorNote.replace(/^ · /, '') + (domFloorNote ? ' · ' : '') +
                 'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักหมื่น · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่บันทึกในระบบ' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
                     : (r.floorCount ? ' · เป้าระหว่างประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.floorCount + ' แห่ง ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
@@ -17451,7 +17484,7 @@
                     '<td class="py-2.5 px-3 text-left">' + esc(o.name) + badge + '</td>' +
                     '<td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
                     cols.map(function (c) {
-                        if (grp === 'intl' && c.key === 'target' && o.intlAtFloor) {
+                        if (c.key === 'target' && o[grp].atFloor) {
                             return '<td class="py-2.5 px-3 text-right" title="เป้าต่ำกว่าขั้นต่ำ ปรับเป็นขั้นต่ำ"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">ขั้นต่ำ</span>' + fmt(c.get(o)) + '</td>';
                         }
                         return cell(c.get(o), c.cls);
