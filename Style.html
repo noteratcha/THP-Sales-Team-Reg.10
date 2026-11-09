@@ -135,10 +135,10 @@
         border-style: solid !important;
     }
 
+    /* กรอบตาราง: ไม่มีเงา/ขอบของตัวเอง (อยู่ในการ์ดอยู่แล้ว ใส่ซ้ำ = การ์ดซ้อนการ์ด) มุมโค้งไว้ตัดหัวตารางสีเข้มให้มน */
     .table-container {
         overflow-x: auto;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     table {
@@ -458,5 +458,51 @@
     /* 13) หน้าหลักบนจอคอม: ไม่มีสินค้าแนะนำ BigLot ให้ซ่อนคอลัมน์ขวา (เดิมเว้นที่ว่าง ~320px) เนื้อหาหลักจึงกว้างเต็ม */
     @media (min-width: 1024px) {
         #rightSidebarColumn:not(:has(> :not(.hidden))) { display: none !important; }
+    }
+
+    /* =====================================================================
+       รอบ P2 ความสม่ำเสมอ — รูปแบบกลางที่ใช้ซ้ำทุกหน้า (อ้างอิงใน SHARED_NOTES "ความจำถาวร")
+       ===================================================================== */
+
+    /* 14) แถวคำอธิบายบนสุดของการ์ดหลักแต่ละหน้า: ชื่อหน้าอยู่ที่แถบบนที่เดียว ห้ามใส่หัวข้อซ้ำชื่อหน้าในการ์ด */
+    .thp-page-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #f3f4f6; }
+    @media (min-width: 768px) { .thp-page-intro { flex-direction: row; align-items: center; justify-content: space-between; padding: 18px 32px; } }
+    .thp-page-intro-text { font-size: 14px; line-height: 1.6; color: #4b5563; }
+
+    /* 15) ปุ่มคำสั่งรอง (รีเฟรชข้อมูล, พิมพ์, กลับหน้าหลัก ฯลฯ) หน้าตาเดียวกันทุกหน้า — ปุ่มรีเฟรชใช้ชื่อ "รีเฟรชข้อมูล" + ไอคอน fa-sync-alt เสมอ */
+    .thp-btn-secondary { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 9999px; padding: 8px 16px; font-size: 13px; font-weight: 700; line-height: 1.2; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+    .thp-btn-secondary:hover { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .thp-btn-secondary i { color: #c2410c; }
+
+    /* 16) ส้มมี 2 บทบาท: บนพื้นสว่างใช้ส้มเข้ม #c2410c ทุกที่ (ตัวหนังสือ ปุ่ม แถบ เส้น) — ส้มแบรนด์ #e27d3d ใช้บนพื้นเข้มเท่านั้น (เมนูซ้าย แบนเนอร์ หน้าล็อกอิน) */
+    :is(main, body > [id$="Modal"]) .bg-theme-orange:not(.text-white):not(#homeGreetingSection *):not(#page-postnews *) { background-color: #c2410c; }
+    :is(main, body > [id$="Modal"]) .border-theme-orange:not(#homeGreetingSection *):not(#page-postnews *) { border-color: #c2410c; }
+    /*     หน้าต่างแจ้งเตือน (SweetAlert2 v11.26 ใช้ตัวแปร CSS) ที่ไม่ได้กำหนดสีปุ่ม: เดิมเป็นม่วง #7066e0 ของไลบรารี -> ส้มเข้ม
+           เปลี่ยนที่ค่าตั้งต้นของตัวแปร (:root:root ชนะ :root ของไลบรารี) จุดที่กำหนดสีเองยังใช้สีนั้น
+           (สีที่กำหนดเองถูกแปลงให้เข้าชุดด้วย window.thpSwalColor ใน Module_Core) */
+    :root:root { --swal2-confirm-button-background-color: #c2410c; }
+
+    /* 17) เมนูกลุ่มบนแถบบน (หน้าข้อมูลการใช้บริการ): ปุ่มรอง 6 ปุ่มรวมเป็น 2 เมนูสีเดียว — ปุ่มเดิมยังอยู่ในเมนู (โค้ดเดิมสั่งแสดง/ซ่อนทีละปุ่ม) */
+    .thp-hmenu { position: relative; }
+    .thp-hmenu:not(.hidden) { display: inline-flex; }
+    .thp-hmenu-trigger { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 9999px; padding: 6px 12px; font-size: 12px; font-weight: 600; line-height: 1.2; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+    .thp-hmenu-trigger:hover, .thp-hmenu.is-open .thp-hmenu-trigger { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .thp-hmenu-trigger > i:first-child { color: #c2410c; }
+    .thp-hmenu-caret { font-size: 10px; transition: transform .15s; }
+    .thp-hmenu.is-open .thp-hmenu-caret { transform: rotate(180deg); }
+    .thp-hmenu-panel { display: none; position: absolute; right: 0; top: calc(100% + 6px); min-width: 230px; flex-direction: column; gap: 2px; padding: 6px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 12px 28px -8px rgba(0, 0, 0, .18); z-index: 70; }
+    .thp-hmenu.is-open .thp-hmenu-panel { display: flex; }
+    /*     สีตัวหนังสือรายการเป็นสีกลางเสมอ (!important ชนะกฎปรับสีเขียว/แดง/ส้มข้อ 3, 8 ที่มี #id ในตัวเลือก) — สีบอกกลุ่มอยู่ที่ไอคอน */
+    #headerActions .thp-hmenu-panel > button:not(.hidden) { display: flex !important; align-items: center; gap: 10px; width: 100%; justify-content: flex-start; text-align: left; background: transparent; border: 0; box-shadow: none; transform: none; color: #1f2937 !important; padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+    #headerActions .thp-hmenu-panel > button:not(.hidden):hover,
+    #headerActions .thp-hmenu-panel > button:not(.hidden):focus-visible { background: #fff7ed; color: #9a3412 !important; }
+    #headerActions .thp-hmenu-panel > button i { color: #c2410c; width: 18px; text-align: center; }
+    /*     มือถือ: ในเมนู ⋯ แสดงเป็นหัวข้อกลุ่ม + รายการเลย ไม่ต้องกดเปิดเมนูซ้อน */
+    @media (max-width: 767.98px) {
+        #headerActions.is-open > .thp-hmenu:not(.hidden) { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 6px; margin-top: 4px; padding: 0; min-height: 0; border-radius: 0; }
+        #headerActions.is-open .thp-hmenu-trigger { pointer-events: none; background: none; border: 0; box-shadow: none; padding: 2px 4px; color: #6b7280; font-size: 12px; font-weight: 700; }
+        #headerActions.is-open .thp-hmenu-caret { display: none; }
+        #headerActions.is-open .thp-hmenu-panel { display: flex; position: static; min-width: 0; padding: 0; border: 0; box-shadow: none; background: transparent; gap: 6px; }
+        #headerActions.is-open .thp-hmenu-panel > button:not(.hidden) { min-height: 46px; padding: 10px 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; font-size: 15px; font-weight: 600; }
     }
 </style>

@@ -193,10 +193,10 @@
         border-style: solid !important;
     }
 
+    /* กรอบตาราง: ไม่มีเงา/ขอบของตัวเอง (อยู่ในการ์ดอยู่แล้ว ใส่ซ้ำ = การ์ดซ้อนการ์ด) มุมโค้งไว้ตัดหัวตารางสีเข้มให้มน */
     .table-container {
         overflow-x: auto;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
 
     table {
@@ -517,6 +517,52 @@
     @media (min-width: 1024px) {
         #rightSidebarColumn:not(:has(> :not(.hidden))) { display: none !important; }
     }
+
+    /* =====================================================================
+       รอบ P2 ความสม่ำเสมอ — รูปแบบกลางที่ใช้ซ้ำทุกหน้า (อ้างอิงใน SHARED_NOTES "ความจำถาวร")
+       ===================================================================== */
+
+    /* 14) แถวคำอธิบายบนสุดของการ์ดหลักแต่ละหน้า: ชื่อหน้าอยู่ที่แถบบนที่เดียว ห้ามใส่หัวข้อซ้ำชื่อหน้าในการ์ด */
+    .thp-page-intro { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #f3f4f6; }
+    @media (min-width: 768px) { .thp-page-intro { flex-direction: row; align-items: center; justify-content: space-between; padding: 18px 32px; } }
+    .thp-page-intro-text { font-size: 14px; line-height: 1.6; color: #4b5563; }
+
+    /* 15) ปุ่มคำสั่งรอง (รีเฟรชข้อมูล, พิมพ์, กลับหน้าหลัก ฯลฯ) หน้าตาเดียวกันทุกหน้า — ปุ่มรีเฟรชใช้ชื่อ "รีเฟรชข้อมูล" + ไอคอน fa-sync-alt เสมอ */
+    .thp-btn-secondary { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 9999px; padding: 8px 16px; font-size: 13px; font-weight: 700; line-height: 1.2; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+    .thp-btn-secondary:hover { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .thp-btn-secondary i { color: #c2410c; }
+
+    /* 16) ส้มมี 2 บทบาท: บนพื้นสว่างใช้ส้มเข้ม #c2410c ทุกที่ (ตัวหนังสือ ปุ่ม แถบ เส้น) — ส้มแบรนด์ #e27d3d ใช้บนพื้นเข้มเท่านั้น (เมนูซ้าย แบนเนอร์ หน้าล็อกอิน) */
+    :is(main, body > [id$="Modal"]) .bg-theme-orange:not(.text-white):not(#homeGreetingSection *):not(#page-postnews *) { background-color: #c2410c; }
+    :is(main, body > [id$="Modal"]) .border-theme-orange:not(#homeGreetingSection *):not(#page-postnews *) { border-color: #c2410c; }
+    /*     หน้าต่างแจ้งเตือน (SweetAlert2 v11.26 ใช้ตัวแปร CSS) ที่ไม่ได้กำหนดสีปุ่ม: เดิมเป็นม่วง #7066e0 ของไลบรารี -> ส้มเข้ม
+           เปลี่ยนที่ค่าตั้งต้นของตัวแปร (:root:root ชนะ :root ของไลบรารี) จุดที่กำหนดสีเองยังใช้สีนั้น
+           (สีที่กำหนดเองถูกแปลงให้เข้าชุดด้วย window.thpSwalColor ใน Module_Core) */
+    :root:root { --swal2-confirm-button-background-color: #c2410c; }
+
+    /* 17) เมนูกลุ่มบนแถบบน (หน้าข้อมูลการใช้บริการ): ปุ่มรอง 6 ปุ่มรวมเป็น 2 เมนูสีเดียว — ปุ่มเดิมยังอยู่ในเมนู (โค้ดเดิมสั่งแสดง/ซ่อนทีละปุ่ม) */
+    .thp-hmenu { position: relative; }
+    .thp-hmenu:not(.hidden) { display: inline-flex; }
+    .thp-hmenu-trigger { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 9999px; padding: 6px 12px; font-size: 12px; font-weight: 600; line-height: 1.2; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+    .thp-hmenu-trigger:hover, .thp-hmenu.is-open .thp-hmenu-trigger { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .thp-hmenu-trigger > i:first-child { color: #c2410c; }
+    .thp-hmenu-caret { font-size: 10px; transition: transform .15s; }
+    .thp-hmenu.is-open .thp-hmenu-caret { transform: rotate(180deg); }
+    .thp-hmenu-panel { display: none; position: absolute; right: 0; top: calc(100% + 6px); min-width: 230px; flex-direction: column; gap: 2px; padding: 6px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 12px 28px -8px rgba(0, 0, 0, .18); z-index: 70; }
+    .thp-hmenu.is-open .thp-hmenu-panel { display: flex; }
+    /*     สีตัวหนังสือรายการเป็นสีกลางเสมอ (!important ชนะกฎปรับสีเขียว/แดง/ส้มข้อ 3, 8 ที่มี #id ในตัวเลือก) — สีบอกกลุ่มอยู่ที่ไอคอน */
+    #headerActions .thp-hmenu-panel > button:not(.hidden) { display: flex !important; align-items: center; gap: 10px; width: 100%; justify-content: flex-start; text-align: left; background: transparent; border: 0; box-shadow: none; transform: none; color: #1f2937 !important; padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; }
+    #headerActions .thp-hmenu-panel > button:not(.hidden):hover,
+    #headerActions .thp-hmenu-panel > button:not(.hidden):focus-visible { background: #fff7ed; color: #9a3412 !important; }
+    #headerActions .thp-hmenu-panel > button i { color: #c2410c; width: 18px; text-align: center; }
+    /*     มือถือ: ในเมนู ⋯ แสดงเป็นหัวข้อกลุ่ม + รายการเลย ไม่ต้องกดเปิดเมนูซ้อน */
+    @media (max-width: 767.98px) {
+        #headerActions.is-open > .thp-hmenu:not(.hidden) { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 6px; margin-top: 4px; padding: 0; min-height: 0; border-radius: 0; }
+        #headerActions.is-open .thp-hmenu-trigger { pointer-events: none; background: none; border: 0; box-shadow: none; padding: 2px 4px; color: #6b7280; font-size: 12px; font-weight: 700; }
+        #headerActions.is-open .thp-hmenu-caret { display: none; }
+        #headerActions.is-open .thp-hmenu-panel { display: flex; position: static; min-width: 0; padding: 0; border: 0; box-shadow: none; background: transparent; gap: 6px; }
+        #headerActions.is-open .thp-hmenu-panel > button:not(.hidden) { min-height: 46px; padding: 10px 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; font-size: 15px; font-weight: 600; }
+    }
 </style>
 
   <!-- Vercel Google Apps Script Adapter -->
@@ -743,6 +789,84 @@
     // ==========================================
     // โหมด Apps Script (เปิดผ่าน script.google.com / Google Sites): ห่อ google.script.run ให้ทุกคำสั่งวิ่งผ่าน api(token, ชื่อฟังก์ชัน, args)
     // โหมด Vercel: adapter ใน build-web.js อ่าน token จาก window.getThpSessionToken() เอง
+    // ปีสำหรับ "แสดงผล" เป็น พ.ศ. เสมอ: ข้อมูลรายได้เก็บปีเป็น ค.ศ. (เช่น 2026) ถ้าเป็น พ.ศ. อยู่แล้วไม่บวกซ้ำ
+    // ใช้กับข้อความ/ป้าย/หัวคอลัมน์เท่านั้น ห้ามใช้กับค่าที่เอาไปคำนวณหรือเทียบกับข้อมูล
+    window.thpBE = function (y) {
+        var n = parseInt(y, 10);
+        if (isNaN(n)) return y;
+        return n > 2400 ? n : n + 543;
+    };
+
+    // สีปุ่มในหน้าต่างแจ้งเตือน (SweetAlert2) ให้เข้าชุดเดียวกันทั้งแอป: ส้มเข้ม = ยืนยันทั่วไป, แดงเข้ม = ลบ/อันตราย,
+    // เขียวเข้ม = สำเร็จ, น้ำเงิน = ข้อมูล, เทา = ยกเลิก (เดิมแต่ละจุดใส่สีเอง 15 แบบ หลายแบบตัวหนังสือขาวอ่านยาก)
+    ;(function () {
+        var MAP = {
+            '#ea580c': '#c2410c', '#e27d3d': '#c2410c', '#f97316': '#c2410c', '#7066e0': '#c2410c',
+            '#d33': '#b91c1c', '#dd3333': '#b91c1c', '#ef4444': '#b91c1c', '#dc2626': '#b91c1c', '#dc3741': '#b91c1c',
+            '#10b981': '#15803d', '#22c55e': '#15803d', '#16a34a': '#15803d',
+            '#3b82f6': '#2563eb', '#4f46e5': '#2563eb', '#6366f1': '#2563eb', '#3085d6': '#6b7280'
+        };
+        window.thpSwalColor = function (c) { var k = String(c || '').trim().toLowerCase(); return MAP[k] || c; };
+        function patch() {
+            if (!window.Swal || Swal.__thpColorPatched) return;
+            var orig = Swal.fire;
+            Swal.fire = function () {
+                var o = arguments[0];
+                if (arguments.length === 1 && o && typeof o === 'object') {
+                    ['confirmButtonColor', 'denyButtonColor', 'cancelButtonColor'].forEach(function (k) { if (o[k]) o[k] = window.thpSwalColor(o[k]); });
+                }
+                return orig.apply(this, arguments);
+            };
+            Swal.__thpColorPatched = true;
+        }
+        patch();
+        if (!window.Swal) document.addEventListener('DOMContentLoaded', patch);
+    })();
+
+    // เมนูกลุ่มบนแถบบน (.thp-hmenu: "กราฟและรายงาน", "ติดตามลูกค้า") — ปุ่มเดิมอยู่ในเมนูครบ โค้ดหน้าอื่นยังสั่งแสดง/ซ่อนทีละปุ่มได้
+    // เมนูแสดงเองเมื่อมีปุ่มข้างในแสดงอยู่อย่างน้อย 1 ปุ่ม (ดูการเปลี่ยน class/style ของปุ่มด้วย MutationObserver)
+    window.thpCloseHeaderMenus = function (except) {
+        document.querySelectorAll('.thp-hmenu.is-open').forEach(function (m) {
+            if (m === except) return;
+            m.classList.remove('is-open');
+            var t = m.querySelector('.thp-hmenu-trigger'); if (t) t.setAttribute('aria-expanded', 'false');
+        });
+    };
+    window.thpSyncHeaderMenus = function () {
+        document.querySelectorAll('.thp-hmenu').forEach(function (m) {
+            var any = Array.prototype.some.call(m.querySelectorAll('.thp-hmenu-panel > button'), function (b) {
+                return !b.classList.contains('hidden') && b.style.display !== 'none';
+            });
+            m.classList.toggle('hidden', !any);
+            if (!any && m.classList.contains('is-open')) window.thpCloseHeaderMenus();
+        });
+    };
+    window.thpToggleHeaderMenu = function (trigger) {
+        var m = trigger.closest('.thp-hmenu'); if (!m) return;
+        var open = !m.classList.contains('is-open');
+        window.thpCloseHeaderMenus(m);
+        m.classList.toggle('is-open', open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) { var first = m.querySelector('.thp-hmenu-panel > button:not(.hidden)'); if (first) first.focus(); }
+    };
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest) return;
+        if (!e.target.closest('.thp-hmenu')) { window.thpCloseHeaderMenus(); return; }
+        if (e.target.closest('.thp-hmenu-panel > button')) window.thpCloseHeaderMenus(); // เลือกรายการแล้วปิดเมนู
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var open = document.querySelector('.thp-hmenu.is-open');
+        if (!open) return;
+        window.thpCloseHeaderMenus();
+        var t = open.querySelector('.thp-hmenu-trigger'); if (t) t.focus();
+        e.stopPropagation(); // ไม่ให้ Esc ไปปิดหน้าต่างอื่นด้วย
+    }, true);
+    document.addEventListener('DOMContentLoaded', function () {
+        var mo = new MutationObserver(function () { window.thpSyncHeaderMenus(); });
+        document.querySelectorAll('.thp-hmenu-panel > button').forEach(function (b) { mo.observe(b, { attributes: true, attributeFilter: ['class', 'style'] }); });
+        window.thpSyncHeaderMenus();
+    });
     window.getThpSessionToken = function () {
         try {
             var raw = (typeof SafeStorage !== 'undefined') ? SafeStorage.getItem('thp_user_session') : localStorage.getItem('thp_user_session');
@@ -957,7 +1081,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.0737';
+    var APP_VERSION = 'Ver. 2026.1109.0841';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1526,7 +1650,7 @@
                 <button onclick="toggleSidebar()"
                     class="lg:hidden mr-2.5 sm:mr-4 text-gray-500 hover:text-theme-orange transition-colors shrink-0"><i
                         class="fas fa-bars text-[1.3rem] sm:text-2xl"></i></button>
-                <h1 class="text-lg lg:text-xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
+                <h1 class="text-lg md:text-xl lg:text-2xl font-bold text-theme-black flex items-center mr-2 sm:mr-4 min-w-0 overflow-hidden">
                     <span class="w-1.5 sm:w-2 h-6 sm:h-8 bg-theme-orange rounded hidden sm:block mr-2 sm:mr-3 shrink-0"></span>
                     <span id="pageTitle" class="truncate min-w-0">หน้าหลัก</span>
                 </h1>
@@ -1566,24 +1690,35 @@
                 <button type="button" id="headerAiReportBtn" onclick="openAiRevenueReport()" title="วิเคราะห์ข้อมูลรายได้ด้วย AI แล้วสร้างรายงาน A4 (PDF)"
                     class="hidden text-[10px] sm:text-xs bg-[#c2410c] hover:bg-[#9a3412] text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-semibold transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-robot"></i> วิเคราะห์ด้วย AI</button>
-                <button type="button" id="headerRevenueReportBtn" onclick="openRevenueChartModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-chart-pie"></i> กราฟสรุปรายได้</button>
-                <button type="button" id="headerTopCustomersBtn" onclick="openTopCustomersChartModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-yellow-600 border border-yellow-200 hover:bg-yellow-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-trophy"></i> กราฟลูกค้าสูงสุด</button>
-                <button type="button" id="headerNewCustomerBtn" onclick="openNewCustomerModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-user-plus"></i> ลูกค้าใหม่</button>
-                <button type="button" id="headerInactiveBtn" onclick="openInactiveModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-red-500 border border-red-200 hover:bg-red-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-user-clock"></i> ไม่ใช้บริการนาน</button>
-                <button type="button" id="headerVolumeAlertBtn" onclick="openVolumeAlertModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-orange-500 border border-orange-200 hover:bg-orange-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-exclamation-triangle"></i> ตกเกณฑ์ขั้นต่ำ</button>
-                <button type="button" id="headerKhorLorReportBtn" onclick="openKhorLorReportModal()"
-                    class="hidden text-[10px] sm:text-xs bg-white text-blue-500 border border-blue-200 hover:bg-blue-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-file-invoice"></i> รายงาน ขล.</button>
+                <!-- ข้อมูลการใช้บริการ: ปุ่มรอง 6 ปุ่มรวมเป็น 2 เมนู (Style.html ข้อ 17, สคริปต์ thpSyncHeaderMenus) — ปุ่มเดิมยังอยู่ครบในเมนู -->
+                <div id="headerMenuReports" class="thp-hmenu hidden">
+                    <button type="button" class="thp-hmenu-trigger" aria-haspopup="true" aria-expanded="false" onclick="thpToggleHeaderMenu(this)"><i class="fas fa-chart-pie"></i> กราฟและรายงาน <i class="fas fa-chevron-down thp-hmenu-caret"></i></button>
+                    <div class="thp-hmenu-panel" role="menu" aria-label="กราฟและรายงาน">
+                        <button type="button" role="menuitem" id="headerRevenueReportBtn" onclick="openRevenueChartModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-chart-pie"></i> กราฟสรุปรายได้</button>
+                        <button type="button" role="menuitem" id="headerTopCustomersBtn" onclick="openTopCustomersChartModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-yellow-600 border border-yellow-200 hover:bg-yellow-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-trophy"></i> กราฟลูกค้าสูงสุด</button>
+                        <button type="button" role="menuitem" id="headerKhorLorReportBtn" onclick="openKhorLorReportModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-blue-500 border border-blue-200 hover:bg-blue-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-file-invoice"></i> รายงาน ขล.</button>
+                    </div>
+                </div>
+                <div id="headerMenuFollowup" class="thp-hmenu hidden">
+                    <button type="button" class="thp-hmenu-trigger" aria-haspopup="true" aria-expanded="false" onclick="thpToggleHeaderMenu(this)"><i class="fas fa-user-check"></i> ติดตามลูกค้า <i class="fas fa-chevron-down thp-hmenu-caret"></i></button>
+                    <div class="thp-hmenu-panel" role="menu" aria-label="ติดตามลูกค้า">
+                        <button type="button" role="menuitem" id="headerNewCustomerBtn" onclick="openNewCustomerModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-user-plus"></i> ลูกค้าใหม่</button>
+                        <button type="button" role="menuitem" id="headerInactiveBtn" onclick="openInactiveModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-red-500 border border-red-200 hover:bg-red-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-user-clock"></i> ไม่ใช้บริการนาน</button>
+                        <button type="button" role="menuitem" id="headerVolumeAlertBtn" onclick="openVolumeAlertModal()"
+                            class="hidden text-[10px] sm:text-xs bg-white text-orange-500 border border-orange-200 hover:bg-orange-500 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
+                            class="fas fa-exclamation-triangle"></i> ตกเกณฑ์ขั้นต่ำ</button>
+                    </div>
+                </div>
                 <button type="button" id="headerPostNewsResetBtn" onclick="resetPostNews()"
                     class="hidden text-[10px] sm:text-xs bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
                         class="fas fa-redo"></i> เริ่มใหม่</button>
@@ -1601,7 +1736,7 @@
                         class="fas fa-folder-open"></i> โหลดเอกสารสัญญา FUZE</a>
                 <button type="button" id="headerFuzeAgentReloadBtn" onclick="window.loadFuzeAgentData(true)"
                     class="hidden text-[10px] sm:text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0"><i
-                        class="fas fa-sync-alt"></i> โหลดข้อมูลใหม่</button>
+                        class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
             </div>
 
             <!-- Permanent Right Section (Background Music Note) -->
@@ -1774,7 +1909,7 @@
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
                                     <!-- Summary Section -->
-                                    <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-gradient-to-b from-orange-50/50 to-transparent rounded-2xl py-4 border border-orange-50/50">
+                                    <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-orange-50/70 rounded-2xl px-3 sm:px-4 py-4">
                                         <div class="text-[13px] text-gray-500 font-medium mb-1 flex items-center gap-1.5">
                                             <i class="fas fa-calendar-alt text-orange-400"></i> รวมการเข้าพบประจำเดือน <span id="homeSummaryMonth" class="text-theme-orange font-bold">...</span>
                                         </div>
@@ -1815,7 +1950,7 @@
                                 
                                 <div class="flex flex-col w-full flex-1 justify-center relative z-10">
                                     <!-- Summary Section -->
-                                    <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-gradient-to-b from-green-50/50 to-transparent rounded-2xl py-4 border border-green-50/50">
+                                    <div class="w-full flex flex-col items-center justify-center mb-5 mt-1 bg-green-50/70 rounded-2xl px-3 sm:px-4 py-4">
                                         <div class="text-[13px] text-gray-500 font-medium mb-1 flex items-center gap-1.5">
                                             <i class="fas fa-calendar-alt text-green-500"></i> รายได้ประจำเดือน <span id="homeSummaryRevMonth" class="text-green-600 font-bold">...</span>
                                         </div>
@@ -1911,7 +2046,7 @@
 
             <!-- PAGE: FORM -->
 <div id="page-form" class="hidden animate-fade-in w-full pb-10">
-    <div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-theme-orange max-w-5xl mx-auto">
+    <div class="bg-white custom-radius shadow-xl overflow-hidden max-w-5xl mx-auto">
         <div class="p-4 sm:p-8">
             <form id="mainForm" onsubmit="handleSave(event)">
                 <input type="hidden" id="officeRegion" value="ปข.10">
@@ -2131,7 +2266,7 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
-                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
                     <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
@@ -2139,9 +2274,9 @@
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button onclick="loadVisitData()"
-                    class="text-xs bg-theme-green hover:bg-green-400 text-theme-black px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer border-0"><i
-                        class="fas fa-sync-alt"></i> รีเฟรช</button>
+                <button type="button" onclick="loadVisitData()" class="thp-btn-secondary">
+                    <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
+                </button>
                 <button onclick="resetVisitFilters()"
                     class="text-xs bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-100 hover:border-red-500 px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer"><i
                         class="fas fa-times-circle"></i> ล้างตัวกรอง</button>
@@ -2326,7 +2461,7 @@
                 </div>
             </div>
 
-            <div class="table-container overflow-x-auto w-full rounded-lg border border-gray-100">
+            <div class="table-container overflow-x-auto w-full">
                 <table id="visitTable" class="min-w-full relative whitespace-nowrap">
                     <thead class="bg-theme-black text-white">
                         <tr id="tableHeader">
@@ -9349,7 +9484,7 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="revenueFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'revenueFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'revenueFiltersContainer'); }">
-                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
                     <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
@@ -9357,9 +9492,9 @@
                     ๆ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="loadRevenueReport()"
-                    class="text-xs bg-theme-green hover:bg-green-400 text-theme-black px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer border-0"><i
-                        class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
+                <button type="button" onclick="loadRevenueReport()" class="thp-btn-secondary">
+                    <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
+                </button>
                 <button type="button" onclick="clearRevenueFilters()"
                     class="text-xs bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-100 hover:border-red-500 px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer"><i
                         class="fas fa-times-circle"></i> ล้างตัวกรอง</button>
@@ -9481,7 +9616,7 @@
                             class="fas fa-file-excel"></i> Excel</button>
                 </div>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-100 shadow-sm transition-all duration-300">
+            <div class="overflow-x-auto rounded-xl transition-all duration-300">
                 <table class="w-full text-sm">
                     <thead
                         class="bg-theme-black text-white border-b border-gray-200 uppercase tracking-wider text-[11px] md:text-xs">
@@ -9526,7 +9661,7 @@
                 </div>
             </div>
 
-            <div class="table-container border border-gray-100 rounded-xl overflow-hidden">
+            <div class="table-container overflow-hidden">
                 <table id="revenueReportTable" class="min-w-full">
                     <thead class="bg-theme-black text-white">
                         <tr>
@@ -10149,7 +10284,7 @@
             addCell(row[3]); // ระดับ
             addCell(row[4]); // บริการ
             addCell(row[5], 'center'); // เดือน
-            addCell(row[6], 'center'); // ปี
+            addCell(window.thpBE(row[6]), 'center'); // ปี (แสดง พ.ศ.)
             let pieces = parseFloat(row[7]); addCell(isNaN(pieces) ? '-' : pieces.toLocaleString(), 'right', true, 'text-green-700');
             let revenue = parseFloat(row[8]); addCell(isNaN(revenue) ? '-' : revenue.toLocaleString(), 'right', true, 'text-theme-orange');
 
@@ -10529,7 +10664,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'รายได้ปี ' + currentYear,
+                            label: 'รายได้ปี ' + window.thpBE(currentYear),
                             data: values,
                             backgroundColor: '#e27d3d',
                             borderRadius: 4,
@@ -10552,7 +10687,7 @@
                         },
                         {
                             type: 'line',
-                            label: 'รายได้ปี ' + prevYear,
+                            label: 'รายได้ปี ' + window.thpBE(prevYear),
                             data: valuesPrev,
                             borderColor: '#062e21',
                             backgroundColor: '#062e21',
@@ -10648,7 +10783,7 @@
             var monthName = String(row[5] || '').trim();
             var yearStr = String(row[6] || '').trim();
             var absMonth = window.getAbsoluteMonth(monthName, yearStr);
-            var monthYearStr = monthName + " " + yearStr;
+            var monthYearStr = monthName + " " + window.thpBE(yearStr);
 
             var key = (cMem && cMem !== '-' && cMem !== '' && cMem !== 'ไม่เป็นสมาชิก') ? cMem : cName;
             var year = parseInt(row[6]);
@@ -10719,8 +10854,8 @@
                 '<th class="py-2 px-3 text-left">ทีม</th>' +
                 '<th class="py-2 px-3 text-left">บริการ</th>' +
                 '<th class="py-2 px-3 text-center">ใช้งานล่าสุด</th>' +
-                '<th class="py-2 px-3 text-right">รายได้ปี ' + thaiCurrentYear + '</th>' +
-                '<th class="py-2 px-3 text-right">รายได้ปี ' + thaiLastYear + '</th>' +
+                '<th class="py-2 px-3 text-right">รายได้ปี ' + window.thpBE(thaiCurrentYear) + '</th>' +
+                '<th class="py-2 px-3 text-right">รายได้ปี ' + window.thpBE(thaiLastYear) + '</th>' +
                 '<th class="py-2 px-3 text-right w-24">การเติบโต</th>';
         }
 
@@ -10809,7 +10944,7 @@
         });
 
         var processExcelExport = function (dataToExport, label) {
-            var headers = ['อันดับ', 'ชื่อลูกค้า', 'รหัสสมาชิก', 'ทีม', 'ที่ทำการ', 'บริการ', 'ใช้งานล่าสุด', 'รายได้ปี ' + thaiCurrentYear, 'รายได้ปี ' + thaiLastYear, 'เติบโต (%)'];
+            var headers = ['อันดับ', 'ชื่อลูกค้า', 'รหัสสมาชิก', 'ทีม', 'ที่ทำการ', 'บริการ', 'ใช้งานล่าสุด', 'รายได้ปี ' + window.thpBE(thaiCurrentYear), 'รายได้ปี ' + window.thpBE(thaiLastYear), 'เติบโต (%)'];
 
             var data = dataToExport.map(function (c, index) {
                 var growth = 0;
@@ -10963,7 +11098,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'รายได้ปี ' + thaiCurrentYear,
+                            label: 'รายได้ปี ' + window.thpBE(thaiCurrentYear),
                             data: thisYearData,
                             backgroundColor: '#e27d3d',
                             borderRadius: 4,
@@ -10986,7 +11121,7 @@
                             }
                         },
                         {
-                            label: 'รายได้ปี ' + thaiLastYear,
+                            label: 'รายได้ปี ' + window.thpBE(thaiLastYear),
                             data: lastYearData,
                             backgroundColor: '#062e21',
                             borderRadius: 4,
@@ -11175,12 +11310,12 @@
 
         infoContainer.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#062e21]">' +
-            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + thaiLastYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiLastYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvLastStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offLastStr + '</span></p>' +
             '</div>' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#e27d3d]">' +
-            '<h4 class="text-xs font-bold text-[#e27d3d] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + thaiCurrentYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#e27d3d] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiCurrentYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvThisStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offThisStr + '</span></p>' +
             '</div>' +
@@ -11207,7 +11342,7 @@
                         labels: labels,
                         datasets: [
                             {
-                                label: 'รายได้ปี ' + thaiCurrentYear,
+                                label: 'รายได้ปี ' + window.thpBE(thaiCurrentYear),
                                 data: thisYearValues,
                                 backgroundColor: '#e27d3d',
                                 borderRadius: 4,
@@ -11229,7 +11364,7 @@
                                 }
                             },
                             {
-                                label: 'รายได้ปี ' + thaiLastYear,
+                                label: 'รายได้ปี ' + window.thpBE(thaiLastYear),
                                 data: lastYearValues,
                                 backgroundColor: '#062e21',
                                 borderRadius: 4,
@@ -11628,7 +11763,7 @@
                 var targetVal = (targetObj && targetObj[y]) ? targetObj[y] : 0;
 
                 html += '<div class="flex flex-col items-end bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">';
-                html += '<span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">ปี ' + y + '</span>';
+                html += '<span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">ปี ' + window.thpBE(y) + '</span>';
                 html += '<span class="text-sm font-bold ' + colorClass + '">' + actualVal.toLocaleString() + ' <span class="text-[10px] text-gray-400 font-normal">' + unit + '</span></span>';
 
                 if (targetVal > 0) {
@@ -12561,7 +12696,7 @@
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
-                title.innerText = "ปี " + y;
+                title.innerText = "ปี " + window.thpBE(y);
                 
                 var canvasWrapper = document.createElement('div');
                 canvasWrapper.className = "relative w-full flex-1";
@@ -12582,7 +12717,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 }, cutout: '45%',
                         onClick: function(event, elements) {
-                            window.openChartDetailModal('สัดส่วนรายได้แยกตามประเภทบริการ', 'ปี ' + y, 'doughnut', sLabels, sDataYear, serviceColors);
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามประเภทบริการ', 'ปี ' + window.thpBE(y), 'doughnut', sLabels, sDataYear, serviceColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
@@ -12614,7 +12749,7 @@
 
             var sTableHtml = '<div class="flex-1 overflow-x-auto custom-scrollbar bg-white p-2 md:p-4"><table class="min-w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 whitespace-nowrap">';
             sTableHtml += '<thead><tr class="bg-blue-600 text-white"><th class="py-3 px-4 font-bold border border-blue-700 text-center" rowspan="2" style="vertical-align: middle;">ประเภทบริการ</th>';
-            yearArr.forEach(function (y) { sTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-blue-700" style="vertical-align: middle;">ปี ' + y + '</th>'; });
+            yearArr.forEach(function (y) { sTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-blue-700" style="vertical-align: middle;">ปี ' + window.thpBE(y) + '</th>'; });
             sTableHtml += '</tr><tr class="bg-blue-500 text-blue-50">';
             yearArr.forEach(function (y) { sTableHtml += '<th class="py-2 px-3 text-center font-semibold border border-blue-600" style="vertical-align: middle;">รายได้ (บาท)</th><th class="py-2 px-3 text-center font-semibold border border-blue-600" style="vertical-align: middle;">สัดส่วน</th>'; });
             sTableHtml += '</tr></thead><tbody>';
@@ -12675,7 +12810,7 @@
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
-                title.innerText = "ปี " + y;
+                title.innerText = "ปี " + window.thpBE(y);
                 
                 var canvasWrapper = document.createElement('div');
                 canvasWrapper.className = "relative w-full flex-1";
@@ -12696,7 +12831,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 },
                         onClick: function(event, elements) {
-                            window.openChartDetailModal('สัดส่วนรายได้แยกตามระดับลูกค้า', 'ปี ' + y, 'pie', lLabels, lDataYear, lColors);
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามระดับลูกค้า', 'ปี ' + window.thpBE(y), 'pie', lLabels, lDataYear, lColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
@@ -12728,7 +12863,7 @@
 
             var lTableHtml = '<div class="flex-1 overflow-x-auto custom-scrollbar p-2 md:p-4 bg-white"><table class="min-w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 whitespace-nowrap">';
             lTableHtml += '<thead><tr class="bg-purple-600 text-white"><th class="py-3 px-4 font-bold border border-purple-700 text-center" rowspan="2" style="vertical-align: middle;">ระดับลูกค้า</th>';
-            yearArr.forEach(function (y) { lTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-purple-700" style="vertical-align: middle;">ปี ' + y + '</th>'; });
+            yearArr.forEach(function (y) { lTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-purple-700" style="vertical-align: middle;">ปี ' + window.thpBE(y) + '</th>'; });
             lTableHtml += '</tr><tr class="bg-purple-500 text-purple-50">';
             yearArr.forEach(function (y) { lTableHtml += '<th class="py-2 px-3 text-center font-semibold border border-purple-600" style="vertical-align: middle;">รายได้ (บาท)</th><th class="py-2 px-3 text-center font-semibold border border-purple-600" style="vertical-align: middle;">สัดส่วน</th>'; });
             lTableHtml += '</tr></thead><tbody>';
@@ -13294,7 +13429,7 @@
             var abs = window.getAbsoluteMonth(row[5], row[6]);
             if (abs > maxAbsMonth) {
                 maxAbsMonth = abs;
-                maxMonthStr = row[5] + ' ' + row[6];
+                maxMonthStr = row[5] + ' ' + window.thpBE(row[6]);
             }
         });
 
@@ -13328,7 +13463,7 @@
 
             if (absMonth > custMap[key].latestAbsMonth) {
                 custMap[key].latestAbsMonth = absMonth;
-                custMap[key].latestStrMonth = row[5] + ' ' + row[6];
+                custMap[key].latestStrMonth = row[5] + ' ' + window.thpBE(row[6]);
             }
 
             if (service && service !== '-') custMap[key].servicesSet.add(service);
@@ -13665,7 +13800,7 @@
                 targetMonthCustomersByService[service][key] = {
                     name: cName, member: cMem, office: office, team: team,
                     service: service, pieces: 0, threshold: threshold,
-                    strMonth: row[5] + ' ' + row[6]
+                    strMonth: row[5] + ' ' + window.thpBE(row[6])
                 };
             }
             targetMonthCustomersByService[service][key].pieces += pieces;
@@ -13943,7 +14078,7 @@
             window.allKhorLorTypes.add(typeStr);
             var officeStr = String(row[0]).trim();
             var officeZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : officeStr;
-            var monthYear = row[5] + ' ' + row[6];
+            var monthYear = row[5] + ' ' + window.thpBE(row[6]);
             var absMonth = window.getAbsoluteMonth ? window.getAbsoluteMonth(row[5], row[6]) : (row[6] + '-' + row[5]);
             var pieces = parseFloat(String(row[7]).replace(/,/g, '')) || 0;
             var revenue = parseFloat(String(row[8]).replace(/,/g, '')) || 0;
@@ -14461,12 +14596,12 @@
 
         infoContainer.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#062e21]">' +
-            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + thaiLastYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiLastYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvLastStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offLastStr + '</span></p>' +
             '</div>' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#10b981]">' +
-            '<h4 class="text-xs font-bold text-[#10b981] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + thaiCurrentYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#10b981] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiCurrentYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvThisStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offThisStr + '</span></p>' +
             '</div>' +
@@ -14488,7 +14623,7 @@
 
             var datasetsArr = [
                 {
-                    label: 'ปริมาณปี ' + thaiCurrentYear,
+                    label: 'ปริมาณปี ' + window.thpBE(thaiCurrentYear),
                     data: thisYearValues,
                     backgroundColor: '#10b981',
                     borderRadius: 4,
@@ -14510,7 +14645,7 @@
                     }
                 },
                 {
-                    label: 'ปริมาณปี ' + thaiLastYear,
+                    label: 'ปริมาณปี ' + window.thpBE(thaiLastYear),
                     data: lastYearValues,
                     backgroundColor: '#062e21',
                     borderRadius: 4,
@@ -14721,7 +14856,7 @@
                 if (!targetMonthCustomers[key]) {
                     targetMonthCustomers[key] = {
                         name: cName, member: cMem, level: level, office: office, team: team,
-                        latestService: service, pieces: 0, revenue: 0, strMonth: row[5] + ' ' + row[6]
+                        latestService: service, pieces: 0, revenue: 0, strMonth: row[5] + ' ' + window.thpBE(row[6])
                     };
                 }
                 targetMonthCustomers[key].pieces += pieces;
@@ -16827,12 +16962,9 @@
     }
 </style>
 
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-50 max-w-5xl mx-auto mb-6">
-    <div class="p-8">
-        <h3 class="text-xl font-bold text-theme-black mb-6 border-b pb-4 flex items-center gap-3">
-            <i class="fas fa-cog text-orange-500"></i>
-            การตั้งค่าระบบ
-        </h3>
+<div class="bg-white custom-radius shadow-xl overflow-hidden max-w-5xl mx-auto mb-6">
+    <div class="p-6 sm:p-8">
+        <!-- ชื่อหน้า "การตั้งค่าระบบ" แสดงที่แถบบนแล้ว จึงไม่ซ้ำในการ์ด -->
 
         <div class="space-y-10">
 
@@ -17997,19 +18129,10 @@
             <!-- 💡 PAGE: EVALUATION (หน้าประเมินการวัดผล) -->
             <div id="page-evaluation" class="hidden animate-fade-in w-full pb-10">
                 <!-- PAGE: EVALUATION -->
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 max-w-4xl mx-auto mt-4 mb-8">
-    <div class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
-        <h3 class="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div
-                class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0">
-                <i class="fas fa-star-half-alt text-xl"></i>
-            </div>
-            ประเมินการวัดผล
-        </h3>
-        <p class="text-xs sm:text-sm text-gray-500 mt-2 pl-15 font-medium border-l-2 border-orange-200 ml-5 pl-3">
-            กรุณาให้คะแนนความพึงพอใจในแต่ละหัวข้อคำถามด้านล่าง<br>
-            <span class="text-orange-600 font-bold">(1 = น้อยที่สุด, 10 = มากที่สุด)</span>
-        </p>
+<div class="bg-white custom-radius shadow-xl overflow-hidden max-w-4xl mx-auto mt-4 mb-8">
+    <!-- ส่วนหัว: ชื่อหน้า "ประเมินระบบ" แสดงที่แถบบนแล้ว (.thp-page-intro) -->
+    <div class="thp-page-intro">
+        <p class="thp-page-intro-text">กรุณาให้คะแนนความพึงพอใจในแต่ละหัวข้อคำถามด้านล่าง <span class="font-bold text-orange-600 whitespace-nowrap">(1 = น้อยที่สุด, 10 = มากที่สุด)</span></p>
     </div>
 
     <div class="p-6 sm:p-8 bg-gray-50/30">
@@ -18475,29 +18598,13 @@
     }
 </style>
 
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-emerald-500 max-w-6xl mx-auto mt-4 mb-8">
+<div class="bg-white custom-radius shadow-xl overflow-hidden max-w-6xl mx-auto mt-4 mb-8">
 
-    <!-- ส่วนหัวของหน้า -->
-    <div
-        class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div
-            class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full opacity-50 blur-3xl pointer-events-none">
-        </div>
-
-        <div class="flex items-center gap-4 relative z-10">
-            <div
-                class="bg-emerald-100 text-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-emerald-200">
-                <i class="fas fa-file-invoice-dollar text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">อัตราค่าบริการ (Rate Price)</h3>
-                <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">ตรวจสอบพิกัดน้ำหนัก ค่าบริการ
-                    และเงื่อนไขต่างๆ</p>
-            </div>
-        </div>
-        <button onclick="loadRatePricePage()"
-            class="relative z-10 text-xs bg-white text-gray-600 hover:text-emerald-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm font-bold flex items-center gap-2 hover:bg-emerald-50">
-            <i class="fas fa-sync-alt"></i> รีเซ็ตข้อมูล
+    <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว ที่นี่มีคำอธิบาย + ปุ่มคำสั่ง (รูปแบบเดียวกันทุกหน้า: .thp-page-intro ใน Style.html) -->
+    <div class="thp-page-intro">
+        <p class="thp-page-intro-text">ตรวจสอบพิกัดน้ำหนัก ค่าบริการ และเงื่อนไขต่างๆ</p>
+        <button type="button" onclick="loadRatePricePage()" class="thp-btn-secondary">
+            <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
         </button>
     </div>
 
@@ -18998,28 +19105,12 @@
 
 <div class="max-w-7xl mx-auto mt-4 mb-8 px-4 sm:px-6 lg:px-8">
     <!-- 📦 Header Panel -->
-    <div class="glass-card custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 mb-6">
-        <div
-            class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 via-white to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-            <div
-                class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-orange-50 to-amber-100 rounded-full opacity-40 blur-3xl pointer-events-none">
-            </div>
-
-            <div class="flex items-center gap-4 relative z-10">
-                <div
-                    class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-200">
-                    <i class="fas fa-shopping-basket text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">สั่งสินค้า BigLot</h3>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">สั่งซื้อสินค้าที่ต้องการ สะดวกรวดเร็ว
-                        ตรวจสอบยอดรวมเรียลไทม์</p>
-                </div>
-            </div>
-
-            <button onclick="window.loadBigLotPage()"
-                class="relative z-10 text-xs bg-white text-gray-600 hover:text-orange-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm font-bold flex items-center gap-2 hover:bg-orange-50">
-                <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูลคลังสินค้า
+    <div class="glass-card custom-radius shadow-xl overflow-hidden mb-6">
+        <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว (.thp-page-intro) -->
+        <div class="thp-page-intro">
+            <p class="thp-page-intro-text">สั่งซื้อสินค้าที่ต้องการ สะดวกรวดเร็ว ตรวจสอบยอดรวมเรียลไทม์</p>
+            <button type="button" onclick="window.loadBigLotPage()" class="thp-btn-secondary">
+                <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
             </button>
         </div>
 
@@ -20766,33 +20857,18 @@
 <div class="max-w-7xl mx-auto mt-4 mb-8 px-4 sm:px-6 lg:px-8">
 
     <!-- 📦 Header Panel -->
-    <div class="glass-card custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 mb-6">
-        <div
-            class="p-6 sm:p-8 bg-gradient-to-r from-orange-50/50 via-white to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-            <div
-                class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-orange-50 to-amber-100 rounded-full opacity-40 blur-3xl pointer-events-none">
-            </div>
+    <div class="glass-card custom-radius shadow-xl overflow-hidden mb-6">
+        <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว (.thp-page-intro) — #bigLotReportSubtitle ถูกเปลี่ยนข้อความจากสคริปต์ -->
+        <div class="thp-page-intro">
+            <p class="thp-page-intro-text" id="bigLotReportSubtitle">ตรวจสอบรายงานการสั่งสินค้า</p>
 
-            <div class="flex items-center gap-4 relative z-10">
-                <div
-                    class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-200">
-                    <i class="fas fa-file-alt text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">รายงานการสั่งซื้อ BigLot</h3>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium" id="bigLotReportSubtitle">
-                        ตรวจสอบรายงานการสั่งสินค้า</p>
-                </div>
-            </div>
-
-            <div class="flex flex-row flex-wrap items-center justify-end gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
+            <div class="flex flex-row flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
                 <button type="button" id="bigLotBulkDeleteBtn" onclick="window.deleteSelectedBigLotOrders()" style="display: none;"
                     class="text-xs bg-white text-red-600 hover:text-white border border-red-200 px-4 py-2.5 rounded-xl transition-all shadow-sm font-bold flex items-center justify-center gap-2 hover:bg-red-600 btn-pop shrink-0 animate-fade-in">
                     <i class="fas fa-trash-alt"></i> ยกเลิกรายการที่เลือก <span id="bigLotBulkDeleteCount" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full text-[10px] ml-0.5 font-black">0</span>
                 </button>
-                <button type="button" onclick="window.loadBigLotReportPage()"
-                    class="text-xs bg-white text-gray-600 hover:text-orange-600 border border-gray-200 px-4 py-2.5 rounded-xl transition-all shadow-sm font-bold flex items-center justify-center gap-2 hover:bg-orange-50 btn-pop shrink-0">
-                    <i class="fas fa-sync-alt text-orange-500"></i> รีเฟรชข้อมูล
+                <button type="button" onclick="window.loadBigLotReportPage()" class="thp-btn-secondary">
+                    <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
                 </button>
                 <div class="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-sm">
                     <button type="button" onclick="window.exportBigLotReportToExcel()" id="bigLotExportExcelBtn" disabled
@@ -23798,33 +23874,19 @@
 
 <div class="max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-6">
   
-  <!-- Banner หัวข้อคู่มือ -->
-  <div class="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
-    <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-      <i class="fas fa-book-reader text-9xl"></i>
+  <!-- ส่วนหัวคู่มือ: ชื่อแสดงที่แถบบนแล้ว ตอนพิมพ์แถบบนถูกซ่อน จึงแสดงชื่อเฉพาะตอนพิมพ์ -->
+  <div class="manual-card thp-page-intro">
+    <div>
+      <h2 class="hidden print:block text-2xl font-bold text-theme-black mb-2">คู่มือการใช้งานระบบ THP Sales Team Reg.10 (ปข.10)</h2>
+      <p class="thp-page-intro-text max-w-3xl">ระบบบริหารงานทีมขายและดูแลลูกค้า ปข.10 ครอบคลุมการบันทึกการเข้าพบลูกค้า การติดตามรายได้ การวิเคราะห์อัจฉริยะด้วย AI และเครื่องมือเสริมสำหรับทีมขายครบวงจร</p>
     </div>
-    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">CRM Document</span>
-          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">ปข.10</span>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
-          📖 คู่มือการใช้งานระบบ THP Sales Team Reg.10
-        </h1>
-        <p class="text-orange-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-          ระบบบริหารงานทีมขายและดูแลลูกค้า ปข.10 ครอบคลุมการบันทึกการเข้าพบลูกค้า การติดตามรายได้ การวิเคราะห์อัจฉริยะด้วย AI และเครื่องมือเสริมสำหรับทีมขายครบวงจร
-        </p>
-      </div>
-
-      <div id="manualHeaderActions" class="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
-        <button onclick="window.print()" class="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+    <div id="manualHeaderActions" class="flex flex-wrap items-center gap-2 shrink-0">
+      <button type="button" onclick="window.print()" class="thp-btn-secondary">
           <i class="fas fa-print"></i> พิมพ์คู่มือ / PDF
-        </button>
-        <button onclick="switchPage('home')" class="px-4 py-2.5 bg-black/20 hover:bg-black/30 text-white font-medium rounded-xl text-xs transition flex items-center gap-2">
+      </button>
+      <button type="button" onclick="switchPage('home')" class="thp-btn-secondary">
           <i class="fas fa-home"></i> กลับหน้าหลัก
-        </button>
-      </div>
+      </button>
     </div>
   </div>
 
@@ -29535,7 +29597,7 @@
             const barColor = done ? 'bg-emerald-500' : o.bar;
             const pctColor = done ? 'text-emerald-600' : o.pctColor;
             return `
-                <div class="w-full bg-white border ${o.border} rounded-2xl p-4 shadow-sm">
+                <div class="w-full px-1">
                     <div class="flex items-end justify-between gap-3">
                         <div class="min-w-0 flex-1">
                             <div class="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5 whitespace-nowrap"><i class="fas ${o.icon} ${o.iconColor}"></i> ${o.label}</div>
@@ -30324,20 +30386,12 @@
 <!-- PAGE: PK ADMIN DASHBOARD (หน้าตรวจสอบและยืนยันข้อมูล ปก.) -->
 <div id="page-pk-admin" class="hidden animate-fade-in w-full pb-10">
     <div
-        class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-red-500 max-w-7xl mx-auto my-4 sm:my-8">
+        class="bg-white custom-radius shadow-xl overflow-hidden max-w-7xl mx-auto my-4 sm:my-8">
 
-        <!-- ส่วนหัว -->
-        <div
-            class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-user-shield text-red-500"></i> ตรวจสอบข้อมูลติดตามลูกค้า (ปก.)
-                </h2>
-                <p class="text-xs text-gray-500 mt-1">แสดงเฉพาะผู้ดูแลระบบ (Admin) เพื่อตรวจสอบและยืนยันการติดตามลูกค้า
-                </p>
-            </div>
-            <button onclick="loadPKDashboardData()"
-                class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm flex items-center gap-2 transition">
+        <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว (.thp-page-intro) -->
+        <div class="thp-page-intro">
+            <p class="thp-page-intro-text">แสดงเฉพาะผู้ดูแลระบบ (Admin) เพื่อตรวจสอบและยืนยันการติดตามลูกค้า</p>
+            <button type="button" onclick="loadPKDashboardData()" class="thp-btn-secondary">
                 <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
             </button>
         </div>
@@ -32428,50 +32482,6 @@
                         class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-full shadow-md transition transform hover:-translate-y-0.5 text-sm flex items-center gap-2">
                         <i class="fas fa-external-link-alt"></i> เปิดหน้าต่างแชท (Popup)
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 11. Modal สรุปผลการประเมิน (Evaluation Summary) -->
-    <div id="evalSummaryModal"
-        class="hidden fixed inset-0 bg-gray-900 bg-opacity-70 flex justify-center items-center z-[160] px-4 backdrop-blur-md transition-opacity duration-300">
-        <div
-            class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 relative border-t-4 border-orange-500">
-            <div
-                class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 shadow-sm z-10">
-                <div class="flex items-center gap-3">
-                    <div
-                        class="bg-orange-50 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-100">
-                        <i class="fas fa-chart-pie text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800 leading-tight">สรุปผลการประเมิน</h3>
-                        <p id="evalSummaryTopicName" class="text-[11px] text-orange-600 font-bold mt-0.5 line-clamp-1">-
-                        </p>
-                    </div>
-                </div>
-                <button type="button" onclick="closeEvalSummaryModal()"
-                    class="text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-50 transition flex items-center justify-center border border-transparent hover:border-gray-200">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-            </div>
-
-            <div class="flex-1 flex flex-col bg-gray-50/80 p-4 sm:p-6 overflow-hidden">
-                <div
-                    class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center mb-4 shrink-0 bg-gradient-to-r from-white to-orange-50/30">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-gray-400">
-                            <i class="fas fa-users text-lg"></i>
-                        </div>
-                        <span class="text-sm font-bold text-gray-700">จำนวนผู้ประเมินทั้งหมด</span>
-                    </div>
-                    <span id="evalSummaryTotalCount" class="text-2xl font-black text-orange-600 drop-shadow-sm">-
-                        คน</span>
-                </div>
-
-                <div id="evalSummaryContent" class="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                    <!-- Content injected via JS -->
                 </div>
             </div>
         </div>

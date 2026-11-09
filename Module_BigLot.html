@@ -170,28 +170,12 @@
 
 <div class="max-w-7xl mx-auto mt-4 mb-8 px-4 sm:px-6 lg:px-8">
     <!-- 📦 Header Panel -->
-    <div class="glass-card custom-radius shadow-xl overflow-hidden border-t-4 border-orange-500 mb-6">
-        <div
-            class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 via-white to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-            <div
-                class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-orange-50 to-amber-100 rounded-full opacity-40 blur-3xl pointer-events-none">
-            </div>
-
-            <div class="flex items-center gap-4 relative z-10">
-                <div
-                    class="bg-orange-100 text-orange-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-orange-200">
-                    <i class="fas fa-shopping-basket text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">สั่งสินค้า BigLot</h3>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">สั่งซื้อสินค้าที่ต้องการ สะดวกรวดเร็ว
-                        ตรวจสอบยอดรวมเรียลไทม์</p>
-                </div>
-            </div>
-
-            <button onclick="window.loadBigLotPage()"
-                class="relative z-10 text-xs bg-white text-gray-600 hover:text-orange-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm font-bold flex items-center gap-2 hover:bg-orange-50">
-                <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูลคลังสินค้า
+    <div class="glass-card custom-radius shadow-xl overflow-hidden mb-6">
+        <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว (.thp-page-intro) -->
+        <div class="thp-page-intro">
+            <p class="thp-page-intro-text">สั่งซื้อสินค้าที่ต้องการ สะดวกรวดเร็ว ตรวจสอบยอดรวมเรียลไทม์</p>
+            <button type="button" onclick="window.loadBigLotPage()" class="thp-btn-secondary">
+                <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
             </button>
         </div>
 

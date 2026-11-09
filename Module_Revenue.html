@@ -550,7 +550,7 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="revenueFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'revenueFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'revenueFiltersContainer'); }">
-                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
                     <span data-filter-badge="revenueFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
@@ -558,9 +558,9 @@
                     ๆ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button type="button" onclick="loadRevenueReport()"
-                    class="text-xs bg-theme-green hover:bg-green-400 text-theme-black px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer border-0"><i
-                        class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
+                <button type="button" onclick="loadRevenueReport()" class="thp-btn-secondary">
+                    <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
+                </button>
                 <button type="button" onclick="clearRevenueFilters()"
                     class="text-xs bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-100 hover:border-red-500 px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer"><i
                         class="fas fa-times-circle"></i> ล้างตัวกรอง</button>
@@ -682,7 +682,7 @@
                             class="fas fa-file-excel"></i> Excel</button>
                 </div>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-100 shadow-sm transition-all duration-300">
+            <div class="overflow-x-auto rounded-xl transition-all duration-300">
                 <table class="w-full text-sm">
                     <thead
                         class="bg-theme-black text-white border-b border-gray-200 uppercase tracking-wider text-[11px] md:text-xs">
@@ -727,7 +727,7 @@
                 </div>
             </div>
 
-            <div class="table-container border border-gray-100 rounded-xl overflow-hidden">
+            <div class="table-container overflow-hidden">
                 <table id="revenueReportTable" class="min-w-full">
                     <thead class="bg-theme-black text-white">
                         <tr>
@@ -1350,7 +1350,7 @@
             addCell(row[3]); // ระดับ
             addCell(row[4]); // บริการ
             addCell(row[5], 'center'); // เดือน
-            addCell(row[6], 'center'); // ปี
+            addCell(window.thpBE(row[6]), 'center'); // ปี (แสดง พ.ศ.)
             let pieces = parseFloat(row[7]); addCell(isNaN(pieces) ? '-' : pieces.toLocaleString(), 'right', true, 'text-green-700');
             let revenue = parseFloat(row[8]); addCell(isNaN(revenue) ? '-' : revenue.toLocaleString(), 'right', true, 'text-theme-orange');
 
@@ -1730,7 +1730,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'รายได้ปี ' + currentYear,
+                            label: 'รายได้ปี ' + window.thpBE(currentYear),
                             data: values,
                             backgroundColor: '#e27d3d',
                             borderRadius: 4,
@@ -1753,7 +1753,7 @@
                         },
                         {
                             type: 'line',
-                            label: 'รายได้ปี ' + prevYear,
+                            label: 'รายได้ปี ' + window.thpBE(prevYear),
                             data: valuesPrev,
                             borderColor: '#062e21',
                             backgroundColor: '#062e21',
@@ -1849,7 +1849,7 @@
             var monthName = String(row[5] || '').trim();
             var yearStr = String(row[6] || '').trim();
             var absMonth = window.getAbsoluteMonth(monthName, yearStr);
-            var monthYearStr = monthName + " " + yearStr;
+            var monthYearStr = monthName + " " + window.thpBE(yearStr);
 
             var key = (cMem && cMem !== '-' && cMem !== '' && cMem !== 'ไม่เป็นสมาชิก') ? cMem : cName;
             var year = parseInt(row[6]);
@@ -1920,8 +1920,8 @@
                 '<th class="py-2 px-3 text-left">ทีม</th>' +
                 '<th class="py-2 px-3 text-left">บริการ</th>' +
                 '<th class="py-2 px-3 text-center">ใช้งานล่าสุด</th>' +
-                '<th class="py-2 px-3 text-right">รายได้ปี ' + thaiCurrentYear + '</th>' +
-                '<th class="py-2 px-3 text-right">รายได้ปี ' + thaiLastYear + '</th>' +
+                '<th class="py-2 px-3 text-right">รายได้ปี ' + window.thpBE(thaiCurrentYear) + '</th>' +
+                '<th class="py-2 px-3 text-right">รายได้ปี ' + window.thpBE(thaiLastYear) + '</th>' +
                 '<th class="py-2 px-3 text-right w-24">การเติบโต</th>';
         }
 
@@ -2010,7 +2010,7 @@
         });
 
         var processExcelExport = function (dataToExport, label) {
-            var headers = ['อันดับ', 'ชื่อลูกค้า', 'รหัสสมาชิก', 'ทีม', 'ที่ทำการ', 'บริการ', 'ใช้งานล่าสุด', 'รายได้ปี ' + thaiCurrentYear, 'รายได้ปี ' + thaiLastYear, 'เติบโต (%)'];
+            var headers = ['อันดับ', 'ชื่อลูกค้า', 'รหัสสมาชิก', 'ทีม', 'ที่ทำการ', 'บริการ', 'ใช้งานล่าสุด', 'รายได้ปี ' + window.thpBE(thaiCurrentYear), 'รายได้ปี ' + window.thpBE(thaiLastYear), 'เติบโต (%)'];
 
             var data = dataToExport.map(function (c, index) {
                 var growth = 0;
@@ -2164,7 +2164,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'รายได้ปี ' + thaiCurrentYear,
+                            label: 'รายได้ปี ' + window.thpBE(thaiCurrentYear),
                             data: thisYearData,
                             backgroundColor: '#e27d3d',
                             borderRadius: 4,
@@ -2187,7 +2187,7 @@
                             }
                         },
                         {
-                            label: 'รายได้ปี ' + thaiLastYear,
+                            label: 'รายได้ปี ' + window.thpBE(thaiLastYear),
                             data: lastYearData,
                             backgroundColor: '#062e21',
                             borderRadius: 4,
@@ -2376,12 +2376,12 @@
 
         infoContainer.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#062e21]">' +
-            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + thaiLastYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiLastYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvLastStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offLastStr + '</span></p>' +
             '</div>' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#e27d3d]">' +
-            '<h4 class="text-xs font-bold text-[#e27d3d] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + thaiCurrentYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#e27d3d] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiCurrentYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvThisStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offThisStr + '</span></p>' +
             '</div>' +
@@ -2408,7 +2408,7 @@
                         labels: labels,
                         datasets: [
                             {
-                                label: 'รายได้ปี ' + thaiCurrentYear,
+                                label: 'รายได้ปี ' + window.thpBE(thaiCurrentYear),
                                 data: thisYearValues,
                                 backgroundColor: '#e27d3d',
                                 borderRadius: 4,
@@ -2430,7 +2430,7 @@
                                 }
                             },
                             {
-                                label: 'รายได้ปี ' + thaiLastYear,
+                                label: 'รายได้ปี ' + window.thpBE(thaiLastYear),
                                 data: lastYearValues,
                                 backgroundColor: '#062e21',
                                 borderRadius: 4,
@@ -2829,7 +2829,7 @@
                 var targetVal = (targetObj && targetObj[y]) ? targetObj[y] : 0;
 
                 html += '<div class="flex flex-col items-end bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">';
-                html += '<span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">ปี ' + y + '</span>';
+                html += '<span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">ปี ' + window.thpBE(y) + '</span>';
                 html += '<span class="text-sm font-bold ' + colorClass + '">' + actualVal.toLocaleString() + ' <span class="text-[10px] text-gray-400 font-normal">' + unit + '</span></span>';
 
                 if (targetVal > 0) {
@@ -3762,7 +3762,7 @@
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
-                title.innerText = "ปี " + y;
+                title.innerText = "ปี " + window.thpBE(y);
                 
                 var canvasWrapper = document.createElement('div');
                 canvasWrapper.className = "relative w-full flex-1";
@@ -3783,7 +3783,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 }, cutout: '45%',
                         onClick: function(event, elements) {
-                            window.openChartDetailModal('สัดส่วนรายได้แยกตามประเภทบริการ', 'ปี ' + y, 'doughnut', sLabels, sDataYear, serviceColors);
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามประเภทบริการ', 'ปี ' + window.thpBE(y), 'doughnut', sLabels, sDataYear, serviceColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
@@ -3815,7 +3815,7 @@
 
             var sTableHtml = '<div class="flex-1 overflow-x-auto custom-scrollbar bg-white p-2 md:p-4"><table class="min-w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 whitespace-nowrap">';
             sTableHtml += '<thead><tr class="bg-blue-600 text-white"><th class="py-3 px-4 font-bold border border-blue-700 text-center" rowspan="2" style="vertical-align: middle;">ประเภทบริการ</th>';
-            yearArr.forEach(function (y) { sTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-blue-700" style="vertical-align: middle;">ปี ' + y + '</th>'; });
+            yearArr.forEach(function (y) { sTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-blue-700" style="vertical-align: middle;">ปี ' + window.thpBE(y) + '</th>'; });
             sTableHtml += '</tr><tr class="bg-blue-500 text-blue-50">';
             yearArr.forEach(function (y) { sTableHtml += '<th class="py-2 px-3 text-center font-semibold border border-blue-600" style="vertical-align: middle;">รายได้ (บาท)</th><th class="py-2 px-3 text-center font-semibold border border-blue-600" style="vertical-align: middle;">สัดส่วน</th>'; });
             sTableHtml += '</tr></thead><tbody>';
@@ -3876,7 +3876,7 @@
                 
                 var title = document.createElement('div');
                 title.className = "text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-full mb-1 border border-gray-200 shadow-sm";
-                title.innerText = "ปี " + y;
+                title.innerText = "ปี " + window.thpBE(y);
                 
                 var canvasWrapper = document.createElement('div');
                 canvasWrapper.className = "relative w-full flex-1";
@@ -3897,7 +3897,7 @@
                     options: {
                         responsive: true, maintainAspectRatio: false, layout: { padding: 25 },
                         onClick: function(event, elements) {
-                            window.openChartDetailModal('สัดส่วนรายได้แยกตามระดับลูกค้า', 'ปี ' + y, 'pie', lLabels, lDataYear, lColors);
+                            window.openChartDetailModal('สัดส่วนรายได้แยกตามระดับลูกค้า', 'ปี ' + window.thpBE(y), 'pie', lLabels, lDataYear, lColors);
                         },
                         plugins: {
                             chart3DShadowPlugin: { enabled: true }, legend: { display: false },
@@ -3929,7 +3929,7 @@
 
             var lTableHtml = '<div class="flex-1 overflow-x-auto custom-scrollbar p-2 md:p-4 bg-white"><table class="min-w-full text-[10px] md:text-xs text-center border-collapse border border-gray-300 whitespace-nowrap">';
             lTableHtml += '<thead><tr class="bg-purple-600 text-white"><th class="py-3 px-4 font-bold border border-purple-700 text-center" rowspan="2" style="vertical-align: middle;">ระดับลูกค้า</th>';
-            yearArr.forEach(function (y) { lTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-purple-700" style="vertical-align: middle;">ปี ' + y + '</th>'; });
+            yearArr.forEach(function (y) { lTableHtml += '<th colspan="2" class="py-2 px-3 text-center font-bold border border-purple-700" style="vertical-align: middle;">ปี ' + window.thpBE(y) + '</th>'; });
             lTableHtml += '</tr><tr class="bg-purple-500 text-purple-50">';
             yearArr.forEach(function (y) { lTableHtml += '<th class="py-2 px-3 text-center font-semibold border border-purple-600" style="vertical-align: middle;">รายได้ (บาท)</th><th class="py-2 px-3 text-center font-semibold border border-purple-600" style="vertical-align: middle;">สัดส่วน</th>'; });
             lTableHtml += '</tr></thead><tbody>';
@@ -4495,7 +4495,7 @@
             var abs = window.getAbsoluteMonth(row[5], row[6]);
             if (abs > maxAbsMonth) {
                 maxAbsMonth = abs;
-                maxMonthStr = row[5] + ' ' + row[6];
+                maxMonthStr = row[5] + ' ' + window.thpBE(row[6]);
             }
         });
 
@@ -4529,7 +4529,7 @@
 
             if (absMonth > custMap[key].latestAbsMonth) {
                 custMap[key].latestAbsMonth = absMonth;
-                custMap[key].latestStrMonth = row[5] + ' ' + row[6];
+                custMap[key].latestStrMonth = row[5] + ' ' + window.thpBE(row[6]);
             }
 
             if (service && service !== '-') custMap[key].servicesSet.add(service);
@@ -4866,7 +4866,7 @@
                 targetMonthCustomersByService[service][key] = {
                     name: cName, member: cMem, office: office, team: team,
                     service: service, pieces: 0, threshold: threshold,
-                    strMonth: row[5] + ' ' + row[6]
+                    strMonth: row[5] + ' ' + window.thpBE(row[6])
                 };
             }
             targetMonthCustomersByService[service][key].pieces += pieces;
@@ -5144,7 +5144,7 @@
             window.allKhorLorTypes.add(typeStr);
             var officeStr = String(row[0]).trim();
             var officeZip = officeStr.length >= 5 ? officeStr.substring(0, 5) : officeStr;
-            var monthYear = row[5] + ' ' + row[6];
+            var monthYear = row[5] + ' ' + window.thpBE(row[6]);
             var absMonth = window.getAbsoluteMonth ? window.getAbsoluteMonth(row[5], row[6]) : (row[6] + '-' + row[5]);
             var pieces = parseFloat(String(row[7]).replace(/,/g, '')) || 0;
             var revenue = parseFloat(String(row[8]).replace(/,/g, '')) || 0;
@@ -5662,12 +5662,12 @@
 
         infoContainer.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#062e21]">' +
-            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + thaiLastYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#062e21] mb-2 flex items-center"><i class="fas fa-history mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiLastYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvLastStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offLastStr + '</span></p>' +
             '</div>' +
             '<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-[#10b981]">' +
-            '<h4 class="text-xs font-bold text-[#10b981] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + thaiCurrentYear + '</h4>' +
+            '<h4 class="text-xs font-bold text-[#10b981] mb-2 flex items-center"><i class="fas fa-calendar-check mr-2"></i>ข้อมูลปี ' + window.thpBE(thaiCurrentYear) + '</h4>' +
             '<p class="text-[11px] text-gray-600 mb-1 flex items-start gap-2"><i class="fas fa-box w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">บริการ:</b> ' + srvThisStr + '</span></p>' +
             '<p class="text-[11px] text-gray-600 flex items-start gap-2"><i class="fas fa-building w-3 mt-0.5 opacity-60"></i><span class="flex-1 break-words leading-tight"><b class="text-gray-700">ที่ทำการ:</b> ' + offThisStr + '</span></p>' +
             '</div>' +
@@ -5689,7 +5689,7 @@
 
             var datasetsArr = [
                 {
-                    label: 'ปริมาณปี ' + thaiCurrentYear,
+                    label: 'ปริมาณปี ' + window.thpBE(thaiCurrentYear),
                     data: thisYearValues,
                     backgroundColor: '#10b981',
                     borderRadius: 4,
@@ -5711,7 +5711,7 @@
                     }
                 },
                 {
-                    label: 'ปริมาณปี ' + thaiLastYear,
+                    label: 'ปริมาณปี ' + window.thpBE(thaiLastYear),
                     data: lastYearValues,
                     backgroundColor: '#062e21',
                     borderRadius: 4,
@@ -5922,7 +5922,7 @@
                 if (!targetMonthCustomers[key]) {
                     targetMonthCustomers[key] = {
                         name: cName, member: cMem, level: level, office: office, team: team,
-                        latestService: service, pieces: 0, revenue: 0, strMonth: row[5] + ' ' + row[6]
+                        latestService: service, pieces: 0, revenue: 0, strMonth: row[5] + ' ' + window.thpBE(row[6])
                     };
                 }
                 targetMonthCustomers[key].pieces += pieces;

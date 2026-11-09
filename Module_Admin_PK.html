@@ -2,20 +2,12 @@
 <!-- PAGE: PK ADMIN DASHBOARD (หน้าตรวจสอบและยืนยันข้อมูล ปก.) -->
 <div id="page-pk-admin" class="hidden animate-fade-in w-full pb-10">
     <div
-        class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-red-500 max-w-7xl mx-auto my-4 sm:my-8">
+        class="bg-white custom-radius shadow-xl overflow-hidden max-w-7xl mx-auto my-4 sm:my-8">
 
-        <!-- ส่วนหัว -->
-        <div
-            class="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-user-shield text-red-500"></i> ตรวจสอบข้อมูลติดตามลูกค้า (ปก.)
-                </h2>
-                <p class="text-xs text-gray-500 mt-1">แสดงเฉพาะผู้ดูแลระบบ (Admin) เพื่อตรวจสอบและยืนยันการติดตามลูกค้า
-                </p>
-            </div>
-            <button onclick="loadPKDashboardData()"
-                class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 shadow-sm flex items-center gap-2 transition">
+        <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว (.thp-page-intro) -->
+        <div class="thp-page-intro">
+            <p class="thp-page-intro-text">แสดงเฉพาะผู้ดูแลระบบ (Admin) เพื่อตรวจสอบและยืนยันการติดตามลูกค้า</p>
+            <button type="button" onclick="loadPKDashboardData()" class="thp-btn-secondary">
                 <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
             </button>
         </div>

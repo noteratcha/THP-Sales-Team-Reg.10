@@ -19,29 +19,13 @@
     }
 </style>
 
-<div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-emerald-500 max-w-6xl mx-auto mt-4 mb-8">
+<div class="bg-white custom-radius shadow-xl overflow-hidden max-w-6xl mx-auto mt-4 mb-8">
 
-    <!-- ส่วนหัวของหน้า -->
-    <div
-        class="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div
-            class="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full opacity-50 blur-3xl pointer-events-none">
-        </div>
-
-        <div class="flex items-center gap-4 relative z-10">
-            <div
-                class="bg-emerald-100 text-emerald-600 w-12 h-12 rounded-full flex items-center justify-center shadow-inner shrink-0 border border-emerald-200">
-                <i class="fas fa-file-invoice-dollar text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">อัตราค่าบริการ (Rate Price)</h3>
-                <p class="text-xs sm:text-sm text-gray-500 mt-1 font-medium">ตรวจสอบพิกัดน้ำหนัก ค่าบริการ
-                    และเงื่อนไขต่างๆ</p>
-            </div>
-        </div>
-        <button onclick="loadRatePricePage()"
-            class="relative z-10 text-xs bg-white text-gray-600 hover:text-emerald-600 border border-gray-200 px-4 py-2 rounded-xl transition-all shadow-sm font-bold flex items-center gap-2 hover:bg-emerald-50">
-            <i class="fas fa-sync-alt"></i> รีเซ็ตข้อมูล
+    <!-- ส่วนหัว: ชื่อหน้าแสดงที่แถบบนแล้ว ที่นี่มีคำอธิบาย + ปุ่มคำสั่ง (รูปแบบเดียวกันทุกหน้า: .thp-page-intro ใน Style.html) -->
+    <div class="thp-page-intro">
+        <p class="thp-page-intro-text">ตรวจสอบพิกัดน้ำหนัก ค่าบริการ และเงื่อนไขต่างๆ</p>
+        <button type="button" onclick="loadRatePricePage()" class="thp-btn-secondary">
+            <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
         </button>
     </div>
 

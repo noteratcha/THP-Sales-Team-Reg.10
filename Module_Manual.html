@@ -108,33 +108,19 @@
 
 <div class="max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-6">
   
-  <!-- Banner หัวข้อคู่มือ -->
-  <div class="bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
-    <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-      <i class="fas fa-book-reader text-9xl"></i>
+  <!-- ส่วนหัวคู่มือ: ชื่อแสดงที่แถบบนแล้ว ตอนพิมพ์แถบบนถูกซ่อน จึงแสดงชื่อเฉพาะตอนพิมพ์ -->
+  <div class="manual-card thp-page-intro">
+    <div>
+      <h2 class="hidden print:block text-2xl font-bold text-theme-black mb-2">คู่มือการใช้งานระบบ THP Sales Team Reg.10 (ปข.10)</h2>
+      <p class="thp-page-intro-text max-w-3xl">ระบบบริหารงานทีมขายและดูแลลูกค้า ปข.10 ครอบคลุมการบันทึกการเข้าพบลูกค้า การติดตามรายได้ การวิเคราะห์อัจฉริยะด้วย AI และเครื่องมือเสริมสำหรับทีมขายครบวงจร</p>
     </div>
-    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">CRM Document</span>
-          <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">ปข.10</span>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
-          📖 คู่มือการใช้งานระบบ THP Sales Team Reg.10
-        </h1>
-        <p class="text-orange-100 text-xs sm:text-sm max-w-2xl leading-relaxed">
-          ระบบบริหารงานทีมขายและดูแลลูกค้า ปข.10 ครอบคลุมการบันทึกการเข้าพบลูกค้า การติดตามรายได้ การวิเคราะห์อัจฉริยะด้วย AI และเครื่องมือเสริมสำหรับทีมขายครบวงจร
-        </p>
-      </div>
-
-      <div id="manualHeaderActions" class="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
-        <button onclick="window.print()" class="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+    <div id="manualHeaderActions" class="flex flex-wrap items-center gap-2 shrink-0">
+      <button type="button" onclick="window.print()" class="thp-btn-secondary">
           <i class="fas fa-print"></i> พิมพ์คู่มือ / PDF
-        </button>
-        <button onclick="switchPage('home')" class="px-4 py-2.5 bg-black/20 hover:bg-black/30 text-white font-medium rounded-xl text-xs transition flex items-center gap-2">
+      </button>
+      <button type="button" onclick="switchPage('home')" class="thp-btn-secondary">
           <i class="fas fa-home"></i> กลับหน้าหลัก
-        </button>
-      </div>
+      </button>
     </div>
   </div>
 

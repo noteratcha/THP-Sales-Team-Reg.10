@@ -1,6 +1,6 @@
 <!-- PAGE: FORM -->
 <div id="page-form" class="hidden animate-fade-in w-full pb-10">
-    <div class="bg-white custom-radius shadow-xl overflow-hidden border-t-4 border-theme-orange max-w-5xl mx-auto">
+    <div class="bg-white custom-radius shadow-xl overflow-hidden max-w-5xl mx-auto">
         <div class="p-4 sm:p-8">
             <form id="mainForm" onsubmit="handleSave(event)">
                 <input type="hidden" id="officeRegion" value="ปข.10">
@@ -220,7 +220,7 @@
             <div class="cursor-pointer group rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-theme-orange/50" role="button" tabindex="0" aria-expanded="true" aria-controls="visitFiltersContainer"
                 onclick="thpToggleFilterPanel(this, 'visitFiltersContainer')"
                 onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); thpToggleFilterPanel(this, 'visitFiltersContainer'); }">
-                <h2 class="text-base sm:text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
+                <h2 class="text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2 group-hover:text-theme-orange transition-colors"><span
                         class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i
                             class="fas fa-filter"></i></span> ตัวกรองข้อมูล <i class="fas fa-chevron-up text-gray-400 text-sm ml-1 transition-transform duration-300"></i>
                     <span data-filter-badge="visitFiltersContainer" class="hidden text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">กรองอยู่ 0 รายการ</span></h2>
@@ -228,9 +228,9 @@
                     จำกัดขอบเขตข้อมูลการเข้าพบลูกค้าที่คุณต้องการตรวจสอบ (คลิกเพื่อซ่อน/แสดง)</p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <button onclick="loadVisitData()"
-                    class="text-xs bg-theme-green hover:bg-green-400 text-theme-black px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer border-0"><i
-                        class="fas fa-sync-alt"></i> รีเฟรช</button>
+                <button type="button" onclick="loadVisitData()" class="thp-btn-secondary">
+                    <i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล
+                </button>
                 <button onclick="resetVisitFilters()"
                     class="text-xs bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-100 hover:border-red-500 px-4 py-2 rounded-full font-bold shadow-sm transition transform hover:scale-105 active:scale-98 flex items-center gap-1.5 cursor-pointer"><i
                         class="fas fa-times-circle"></i> ล้างตัวกรอง</button>
@@ -415,7 +415,7 @@
                 </div>
             </div>
 
-            <div class="table-container overflow-x-auto w-full rounded-lg border border-gray-100">
+            <div class="table-container overflow-x-auto w-full">
                 <table id="visitTable" class="min-w-full relative whitespace-nowrap">
                     <thead class="bg-theme-black text-white">
                         <tr id="tableHeader">
