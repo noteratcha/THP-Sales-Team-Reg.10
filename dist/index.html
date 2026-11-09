@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1124';
+    var APP_VERSION = 'Ver. 2026.1109.1131';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -7866,8 +7866,21 @@
      * 🔹 เทคนิคระดับโปร: Pre-load รูปภาพผ่าน Proxy และแปลงเป็น Base64
      * เพื่อให้ภาพแสดงผลได้ 100% และ html2canvas ไม่ติดปัญหา CORS ตอนดาวน์โหลด
      */
-    function preloadUrlToBase64(url, targetImgElement, callback) {
-        if (!targetImgElement) { if (callback) callback(false); return; }
+    function preloadUrlToBase64(url, targetImgElement, rawCallback) {
+        // เรียก callback ครั้งเดียวเสมอ: proxy บางตัวค้างไม่ตอบ (fetch ไม่มีหมดเวลา) ทำให้โครงร่าง/หน้าจอโหลดค้าง
+        // จึงจำกัดเวลาต่อ proxy 8 วินาที และรวมทั้งหมดไม่เกิน 25 วินาที แล้วใช้ลิงก์ Thumbnail ตรง
+        var settled = false;
+        var callback = function (ok) { if (settled) return; settled = true; clearTimeout(overallTimer); if (rawCallback) rawCallback(ok); };
+        var overallTimer = setTimeout(function () {
+            if (settled) return;
+            var m = String(url || '').match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || String(url || '').match(/id=([a-zA-Z0-9_-]+)/);
+            if (targetImgElement) {
+                targetImgElement.removeAttribute('crossorigin');
+                targetImgElement.src = m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : url;
+            }
+            callback(false);
+        }, 25000);
+        if (!targetImgElement) { callback(false); return; }
 
         // ดึง File ID จากลิงก์ Google Drive เฉพาะเจาะจงเพื่อหลีกเลี่ยงการจับ URL ภายนอกทั่วไปผิดพลาด
         var fileId = "";
@@ -7904,8 +7917,11 @@
 
             var finalUrl = proxyUrls[index] + encodeURIComponent(driveUrl);
 
-            fetch(finalUrl)
+            var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            var proxyTimer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+            fetch(finalUrl, ctrl ? { signal: ctrl.signal } : undefined)
                 .then(function (res) {
+                    clearTimeout(proxyTimer);
                     if (!res.ok) throw new Error("Proxy response error");
                     return res.blob();
                 })
@@ -8062,12 +8078,11 @@
         var titleText = subject + " " + customer;
         var detailText = "เมื่อวันที่ " + thaiDateFull + " นำทีมโดย " + teamInRow + " (" + office + ") ได้เข้าพบผู้ประกอบการ " + customer + " (เบอร์โทร: " + maskedPhone + ") ซึ่งเป็นกลุ่มลูกค้า " + customerGroup + " โดยจำหน่ายสินค้าประเภท" + productType + " ผ่านช่องทาง" + salesChannel + " มีปริมาณการจัดส่งประมาณ " + shippingVolume + " ชิ้น/เดือน (ปัจจุบันใช้บริการขนส่งของ " + currentCarrier + ")\n\nการเข้าพบครั้งนี้มีหัวข้อในการพูดคุยคือ \"" + subject + "\" โดยมีรายละเอียดดังนี้...";
 
-        var signature = 'ส่วนทีมขายและดูแลลูกค้า ปข.10';
-        if (currentUserInfo && currentUserInfo.user !== 'admin') {
-            var teamName = currentUserInfo.team || 'ทีมขาย';
-            var zipCode = currentUserInfo.zipcode || '';
-            signature = teamName + (zipCode ? " (" + zipCode + ")" : "");
-        }
+        // ลงชื่อ = ผู้สร้างรายการเข้าพบนี้ (ทีม + รหัสไปรษณีย์ในแถว) ไม่ใช่ผู้ที่ล็อกอินอยู่
+        var rowZip = rowData[5] ? String(rowData[5]).replace(/^'/, '').trim() : '';
+        var signature = (teamInRow && teamInRow !== '-')
+            ? teamInRow + (rowZip ? " (" + rowZip + ")" : "")
+            : 'ส่วนทีมขายและดูแลลูกค้า ปข.10';
 
         var trySetInput = function (id, val) { var el = document.getElementById(id); if (el) el.value = val; }
         trySetInput('newsTitleInput', titleText); trySetInput('newsDetailInput', detailText); trySetInput('newsDateInput', isoDate); trySetInput('newsTeamInput', signature);
