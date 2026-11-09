@@ -23,6 +23,7 @@
 
     <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-5">
         <!-- ภาพรวม: เป้ารวม / ในประเทศ / ระหว่างประเทศ (#tpSummary เป็นที่ใส่ skeleton ตอนโหลดด้วย) -->
+        <div id="tpSavedBar" class="hidden"></div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="tpSummary"></div>
 
         <!-- ตั้งค่าการคำนวณ (พับได้ จำสถานะในเบราว์เซอร์) -->
@@ -606,6 +607,66 @@
             }
         };
 
+        // ===== เป้าปีถัดไปที่บันทึกไว้ในชีต (ผู้ใช้ขอ 2026-11-09: มีข้อมูลเดิม → โหลดมาแสดง) =====
+        var monthNumOf = function (v) {
+            if (v instanceof Date) return v.getMonth() + 1;
+            var t = String(v === null || v === undefined ? '' : v).trim();
+            if (TH_MONTHS[t]) return TH_MONTHS[t];
+            var si = TH_SHORT.indexOf(t); if (si > 0) return si;
+            var n = parseInt(t, 10); return (n >= 1 && n <= 12 && String(n) === t) ? n : 0;
+        };
+        // { any, byZip: { zip: [_, ม.ค., …, ธ.ค.] } } ของกลุ่ม+ปี
+        var savedMonthly = function (grp, year) {
+            var out = { any: false, byZip: {} };
+            (window.__tpTargets || []).forEach(function (r, i) {
+                if (i === 0 || !r) return;
+                var y = parseInt(r[0], 10); if (y > 2500) y -= 543;
+                if (y !== year) return;
+                var m = monthNumOf(r[1]); if (!m) return;
+                var raw = targetCellOf(r, grp);
+                if (raw === '' || raw === null || raw === undefined) return;
+                var z = String(r[2] || '').replace(/^'/, '').trim();
+                var a = out.byZip[z] || (out.byZip[z] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+                a[m] += parseFloat(String(raw).replace(/,/g, '')) || 0; out.any = true;
+            });
+            return out;
+        };
+        var applySavedTargets = function (r) {
+            r.savedAvailable = false; r.savedLoaded = false;
+            var ny = r.yearTo + 1, md = savedMonthly('dom', ny);
+            if (!md.any) return;
+            r.savedAvailable = true;
+            if (state.useSaved === false) return;
+            var mi = savedMonthly('intl', ny);
+            var sumA = function (a) { var t = 0; for (var i = 1; i <= 12; i++) t += a[i] || 0; return t; };
+            r.offices.forEach(function (o) {
+                GROUPS.forEach(function (g) {
+                    var k = g[0], src = (k === 'dom' ? md : mi).byZip[o.zip];
+                    var arr = src ? src.slice() : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+                    o[k].monthTarget = arr; o[k].target = sumA(arr);
+                    o[k].topUp = 0; o[k].atFloor = false; o[k].atPrev = false;
+                });
+                o.intlAtFloor = false;
+                o.target = o.dom.target + o.intl.target;
+            });
+            var avgD = r.offices.reduce(function (a, o) { return a + o.dom.avg; }, 0), avgI = r.offices.reduce(function (a, o) { return a + o.intl.avg; }, 0);
+            var tD = r.offices.reduce(function (a, o) { return a + o.dom.target; }, 0), tI = r.offices.reduce(function (a, o) { return a + o.intl.target; }, 0);
+            r.pDom = avgD > 0 ? tD / avgD - 1 : 0; r.pIntl = avgI > 0 ? tI / avgI - 1 : 0;
+            r.domTopUp = 0; r.floorCount = 0; r.domFloorCount = 0; r.savedLoaded = true;
+        };
+        window.useTargetPlanSaved = function (on) { state.useSaved = !!on; recompute(); };
+        var renderSavedBar = function (r) {
+            var el = document.getElementById('tpSavedBar'); if (!el) return;
+            var ny = be(r.yearTo + 1);
+            if (!r.savedAvailable) { el.className = 'hidden'; el.innerHTML = ''; return; }
+            el.className = 'flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border px-4 py-3 text-sm ' + (r.savedLoaded ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-200 bg-amber-50 text-amber-900');
+            el.innerHTML = r.savedLoaded
+                ? '<span class="flex-1"><i class="fas fa-database mr-1.5"></i>แสดง<b>เป้าปี ' + ny + ' ที่บันทึกไว้ในชีต</b> (ค่าตั้งด้านล่างไม่มีผลจนกว่าจะคำนวณใหม่)</span>' +
+                  '<button type="button" class="thp-btn-secondary shrink-0" onclick="useTargetPlanSaved(false)"><i class="fas fa-calculator"></i> คำนวณใหม่จากค่าตั้ง</button>'
+                : '<span class="flex-1"><i class="fas fa-calculator mr-1.5"></i>แสดง<b>เป้าที่คำนวณใหม่ (ยังไม่บันทึก)</b> · มีเป้าปี ' + ny + ' บันทึกไว้แล้วในชีต</span>' +
+                  '<button type="button" class="thp-btn-secondary shrink-0" onclick="useTargetPlanSaved(true)"><i class="fas fa-database"></i> โหลดเป้าที่บันทึกไว้</button>';
+        };
+
         var recompute = function () {
             if (!window.__tpRows) return;
             if (!state.yearsReady) setupYearOptions(window.__tpRows);
@@ -627,6 +688,7 @@
                 teamMap: buildTeamMap(window.__tpTargets),
                 prevDom: prevMapOf('dom', to), prevIntl: prevMapOf('intl', to)
             });
+            applySavedTargets(state.result);
             var teams = Array.from(new Set(state.result.offices.map(function (o) { return o.team; }).filter(Boolean)));
             if (typeof window.sortRevenueTeams === 'function') teams.sort(window.sortRevenueTeams); else teams.sort();
             var sel = document.getElementById('tpTeamFilter');
@@ -637,6 +699,7 @@
         };
 
         window.onTargetPlanInput = function () {
+            state.useSaved = false; // เปลี่ยนค่าตั้ง → แสดงผลคำนวณใหม่
             ['tpTargetDom', 'tpTargetIntl', 'tpIntlFloor', 'tpDomFloor'].forEach(function (id) {
                 var el = document.getElementById(id);
                 el.value = parseNum(el.value).toLocaleString('th-TH');
@@ -725,6 +788,7 @@
             var r = state.result;
             if (!r) return;
             var to = r.yearTo, all = r.offices;
+            renderSavedBar(r);
             Array.prototype.forEach.call(document.querySelectorAll('.tpNextYearText'), function (el) { el.textContent = be(to + 1); });
             document.getElementById('tpRangeHint').textContent = 'คำนวณจาก ' + r.years.length + ' ปี (' + be(r.years[0]) + '–' + be(to) + ')' +
                 (r.partial ? ' · ปี ' + be(to) + ' ใช้รายได้จริง ม.ค.–' + TH_SHORT[r.actualMonths] + ' แล้วประมาณ ' + TH_SHORT[r.actualMonths + 1] + (r.actualMonths + 1 < 12 ? '–ธ.ค.' : '') + ' จากค่าเฉลี่ยรายเดือน' : '');
@@ -983,6 +1047,7 @@
                     google.script.run.withSuccessHandler(function (tRes) {
                         if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                         if (tRes && tRes.status === 'success' && Array.isArray(tRes.data)) { window.__tpTargets = tRes.data; window.globalRevenueTargets = undefined; }
+                        state.useSaved = true;
                         recompute();
                         Swal.fire({ icon: 'success', title: 'บันทึกเป้าปี ' + be(ny) + ' แล้ว', text: 'แก้ ' + res.updated + ' แถว · เพิ่ม ' + res.appended + ' แถว', timer: 2500, showConfirmButton: false });
                     }).withFailureHandler(function () { if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); recompute(); }).getRevenueTargets();
