@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1452';
+    var APP_VERSION = 'Ver. 2026.1109.1505';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17067,10 +17067,9 @@
                 <div class="text-xs text-gray-500 mt-0.5" id="tpIntlFileStatus">ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้</div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <label class="thp-btn-secondary cursor-pointer"><i class="fas fa-file-csv"></i> เลือกไฟล์ (หลายไฟล์ได้)
+                <label class="thp-btn-secondary cursor-pointer"><i class="fas fa-file-csv"></i> เลือกไฟล์และบันทึก (หลายไฟล์ได้)
                     <input id="tpIntlFiles" type="file" accept=".csv" multiple class="hidden" onchange="handleTargetPlanIntlFiles(this)">
                 </label>
-                <button type="button" id="tpIntlFileClear" class="thp-btn-secondary hidden" onclick="clearTargetPlanIntlFiles()"><i class="fas fa-times"></i> เลิกใช้ไฟล์ (ใช้ข้อมูลในชีต)</button>
             </div>
         </div>
 
@@ -17409,7 +17408,7 @@
                     '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
             }).join('');
             document.getElementById('tpNote').textContent =
-                'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักพัน · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่เลือก' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
+                'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักพัน · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่บันทึกในระบบ' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
                     : (r.floorCount ? ' · เป้าระหว่างประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.floorCount + ' แห่ง ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
 
@@ -17483,7 +17482,6 @@
             else if (typeof window.ensureXLSX === 'function') window.ensureXLSX().then(go).catch(function () { Swal.fire('ข้อผิดพลาด', 'โหลดไลบรารี Excel ไม่สำเร็จ', 'error'); });
         };
 
-        var TP_INTL_FILE_KEY = 'thp_tp_intl_file';
         var parseCsvLine = function (l) {
             var out = [], cur = '', q = false;
             for (var i = 0; i < l.length; i++) {
@@ -17529,59 +17527,82 @@
             return { byZip: byZip, total: total };
         };
 
+        // ข้อมูลระหว่างประเทศจากไฟล์ เก็บที่หลังบ้าน (ชีต เป้าหมาย_ระหว่างประเทศ) ทุกเครื่องที่ล็อกอิน admin ใช้ร่วมกัน
         var renderIntlFileStatus = function () {
-            var st = document.getElementById('tpIntlFileStatus'), clr = document.getElementById('tpIntlFileClear');
+            var st = document.getElementById('tpIntlFileStatus');
             if (!st) return;
+            if (state.intlLoading) { st.textContent = 'กำลังโหลดข้อมูลระหว่างประเทศจากไฟล์ที่บันทึกไว้...'; return; }
             if (!state.intlFile) {
-                st.textContent = 'ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้';
-                clr.classList.add('hidden');
+                st.textContent = 'ยังไม่มีไฟล์ที่บันทึกไว้ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้ (เลือกไฟล์ครั้งเดียว ระบบจะบันทึกให้ทุกเครื่อง)';
                 return;
             }
-            st.textContent = 'ใช้ข้อมูลระหว่างประเทศจากไฟล์ที่เลือก: ' + state.intlFile.files.map(function (x) {
-                return x.name + ' (ปี ' + be(x.year) + ' · ' + fmt(x.total) + ' บาท)';
+            st.textContent = 'ใช้ข้อมูลระหว่างประเทศจากไฟล์ที่บันทึกในระบบ: ' + state.intlFile.files.map(function (x) {
+                return x.name + ' (ปี ' + be(x.year) + ' · ' + fmt(x.total) + ' บาท' + (x.savedAt ? ' · บันทึก ' + x.savedAt : '') + ')';
             }).join(', ') + ' · ปีที่ไม่มีไฟล์ถือว่าไม่มีข้อมูลระหว่างประเทศ';
-            clr.classList.remove('hidden');
+        };
+
+        var applyIntlResponse = function (res) {
+            state.intlFile = (res && res.status === 'success' && res.files && res.files.length) ? { years: res.years, files: res.files } : null;
         };
 
         window.handleTargetPlanIntlFiles = function (input) {
             var files = Array.prototype.slice.call(input.files || []);
             if (!files.length) return;
-            var current = state.intlFile || { years: {}, files: [] };
+            var payload = { files: [] };
             var readOne = function (file) {
                 return file.arrayBuffer().then(function (buf) {
                     var year = yearFromFileName(file.name);
                     if (!year) throw new Error('ไม่ทราบปีของไฟล์ ' + file.name + ' (ให้ชื่อไฟล์ลงท้ายด้วยปี เช่น ... 68.csv)');
                     var parsed = window.thpParseIntlCsv(decodeCsv(buf));
                     if (!Object.keys(parsed.byZip).length) throw new Error('ไฟล์ ' + file.name + ' ไม่มีแถว รายได้รวม');
-                    current.years[year] = parsed.byZip; // ไฟล์ปีเดียวกันอันใหม่แทนอันเก่า
-                    current.files = current.files.filter(function (x) { return x.year !== year; });
-                    current.files.push({ name: file.name, year: year, total: parsed.total });
+                    payload.files = payload.files.filter(function (x) { return x.year !== year; });
+                    payload.files.push({ name: file.name, year: year, byZip: parsed.byZip, total: parsed.total });
                 });
             };
+            var st = document.getElementById('tpIntlFileStatus');
             files.reduce(function (p, file) { return p.then(function () { return readOne(file); }); }, Promise.resolve())
                 .then(function () {
-                    current.files.sort(function (a, b) { return a.year - b.year; });
-                    state.intlFile = current;
-                    try { localStorage.setItem(TP_INTL_FILE_KEY, JSON.stringify(current)); } catch (e) {}
-                    renderIntlFileStatus();
-                    recompute();
+                    var summary = payload.files.map(function (x) { return 'ปี ' + be(x.year) + ': ' + fmt(x.total) + ' บาท'; }).join('<br>');
+                    return Swal.fire({
+                        title: 'บันทึกข้อมูลระหว่างประเทศ?',
+                        html: summary + '<br><br><span style="font-size:13px;color:#6b7280">บันทึกเฉพาะยอดรายได้รวมรายที่ทำการ-รายเดือน แทนข้อมูลปีเดียวกันที่เคยบันทึก ทุกเครื่องที่ล็อกอิน admin จะใช้ข้อมูลนี้</span>',
+                        icon: 'question', showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก'
+                    }).then(function (ans) {
+                        if (!ans.isConfirmed) return;
+                        if (st) st.textContent = 'กำลังบันทึกข้อมูลระหว่างประเทศ...';
+                        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังบันทึกข้อมูลระหว่างประเทศ...');
+                        return new Promise(function (resolve) {
+                            var send = { files: payload.files.map(function (x) { return { name: x.name, year: x.year, byZip: x.byZip }; }) };
+                            google.script.run.withSuccessHandler(function (res) {
+                                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                                if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); }
+                                else { applyIntlResponse(res); Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', timer: 1500, showConfirmButton: false }); }
+                                renderIntlFileStatus(); recompute(); resolve();
+                            }).withFailureHandler(function (err) {
+                                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                                Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                                renderIntlFileStatus(); resolve();
+                            }).saveTargetPlanIntlData(send);
+                        });
+                    });
                 })
                 .catch(function (err) { Swal.fire('อ่านไฟล์ไม่สำเร็จ', err.message || String(err), 'error'); })
                 .then(function () { input.value = ''; });
         };
 
-        window.clearTargetPlanIntlFiles = function () {
-            state.intlFile = null;
-            try { localStorage.removeItem(TP_INTL_FILE_KEY); } catch (e) {}
+        var loadIntlFromServer = function () {
+            state.intlLoading = true;
             renderIntlFileStatus();
-            recompute();
+            google.script.run.withSuccessHandler(function (res) {
+                state.intlLoading = false;
+                applyIntlResponse(res);
+                renderIntlFileStatus();
+                recompute();
+            }).withFailureHandler(function () {
+                state.intlLoading = false;
+                renderIntlFileStatus();
+            }).getTargetPlanIntlData();
         };
-
-        // ไฟล์ที่เคยเลือกไว้ (เก็บเป็นยอดรวมในเครื่อง)
-        try {
-            var savedIntl = JSON.parse(localStorage.getItem(TP_INTL_FILE_KEY) || 'null');
-            if (savedIntl && savedIntl.years && savedIntl.files) state.intlFile = savedIntl;
-        } catch (e) {}
 
         // ===== โหลดข้อมูล: ใช้แคชเดียวกับหน้า "ข้อมูลการใช้บริการ" (SWR) =====
         window.loadTargetPlanPage = function (force) {
@@ -17589,7 +17610,7 @@
             var body = document.getElementById('targetPlanBody');
             if (!isAdmin()) { noAccess.classList.remove('hidden'); body.classList.add('hidden'); return; }
             noAccess.classList.add('hidden'); body.classList.remove('hidden');
-            renderIntlFileStatus();
+            loadIntlFromServer();
 
             var hasCache = false;
             if (!force && typeof SafeStorage !== 'undefined') {

@@ -5183,6 +5183,109 @@ function sendBigLotLineNotification(message) {
 
 // 🔐 รายชื่อฟังก์ชันที่หน้าเว็บเรียกผ่าน executeFunction ได้ (ฟังก์ชันอื่นจะถูกปฏิเสธ)
 // เพิ่มฟังก์ชันใหม่ที่หน้าเว็บต้องเรียกใช้ลงในรายการนี้ด้วย
+// ==========================================
+// 🎯 SECTION: ข้อมูลรายได้ระหว่างประเทศสำหรับวางแผนเป้าหมาย (หน้า Module_TargetPlan, admin เท่านั้น)
+// ==========================================
+// ชีตรายได้หลักแทบไม่มีกลุ่ม 3 ระหว่างประเทศ ผู้ใช้จึงให้ใช้ไฟล์ส่งออก Tableau (ข้อมูลสำหรับกำหนดเป้าหมาย/ระหว่างประเทศ/*.csv)
+// หน้าเว็บอ่าน CSV แล้วส่งเฉพาะยอดรวมรายที่ทำการ-รายเดือนมาเก็บ (ไม่มีชื่อลูกค้า/เลขบัตรประชาชน)
+// ห้ามฝังข้อมูลนี้ในหน้าเว็บ (salesreg10.vercel.app เป็นไฟล์สาธารณะ) — ดึงผ่านฟังก์ชันนี้หลังล็อกอินเท่านั้น
+// ผู้ใช้กำหนด 2026-11-09: เก็บในไฟล์เป้าหมาย (1rg-HOLC…) ชีตใหม่ เฉพาะข้อมูลที่ประมวลผลแล้ว
+var TARGET_PLAN_INTL_SS_ID = '1rg-HOLCgxgoKOqGx3GxmtUmDc0joNRGUYs7Skc4zxzM';
+var TARGET_PLAN_INTL_SHEET = 'เป้าหมาย_ระหว่างประเทศ';
+var TARGET_PLAN_INTL_HEADER = ['ปี ค.ศ.', 'รหัส ปณ.', 'ชื่อ ปณ.', 'เดือน', 'รายได้รวม', 'ชื่อไฟล์', 'วันที่บันทึก'];
+
+function isTargetPlanAdmin_(actor) {
+  return !!(actor && String(actor.user || '').toLowerCase() === 'admin');
+}
+
+function getTargetPlanIntlSheet_(createIfMissing) {
+  var ss = SpreadsheetApp.openById(TARGET_PLAN_INTL_SS_ID);
+  var sheet = ss.getSheetByName(TARGET_PLAN_INTL_SHEET);
+  if (!sheet && createIfMissing) {
+    sheet = ss.insertSheet(TARGET_PLAN_INTL_SHEET);
+    sheet.getRange(1, 1, 1, TARGET_PLAN_INTL_HEADER.length).setValues([TARGET_PLAN_INTL_HEADER]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// คืน { status, years: { ปี ค.ศ.: { zip: { name, m: { เดือน: รายได้ } } } }, files: [{ name, year, total, savedAt }] }
+function getTargetPlanIntlData_(actor) {
+  try {
+    if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
+    var sheet = getTargetPlanIntlSheet_(false);
+    if (!sheet || sheet.getLastRow() < 2) return { status: 'success', years: {}, files: [] };
+    var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, TARGET_PLAN_INTL_HEADER.length).getValues();
+    var years = {}, files = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var y = parseInt(r[0], 10), zip = String(r[1]).replace(/^'/, '').trim(), m = parseInt(r[3], 10);
+      var v = parseFloat(r[4]) || 0;
+      if (!y || !zip || !(m >= 1 && m <= 12)) continue;
+      if (zip.length < 5) zip = ('00000' + zip).slice(-5);
+      years[y] = years[y] || {};
+      var rec = years[y][zip] || (years[y][zip] = { name: String(r[2]), m: {} });
+      rec.m[m] = (rec.m[m] || 0) + v;
+      var fkey = y + '|' + r[5];
+      if (!files[fkey]) files[fkey] = { name: String(r[5]), year: y, total: 0, savedAt: r[6] instanceof Date ? Utilities.formatDate(r[6], 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') : String(r[6]) };
+      files[fkey].total += v;
+    }
+    var fileList = Object.keys(files).map(function (k) { return files[k]; }).sort(function (a, b) { return a.year - b.year; });
+    return { status: 'success', years: years, files: fileList };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getTargetPlanIntlData_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// payload = { files: [{ name, year, byZip: { zip: { name, m: { เดือน: รายได้ } } } }] } — แทนแถวของปีที่ส่งมา ปีอื่นคงไว้
+function saveTargetPlanIntlData_(payload, actor) {
+  try {
+    if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
+    var files = (payload && Array.isArray(payload.files)) ? payload.files : [];
+    if (!files.length) return { status: 'error', message: 'ไม่มีข้อมูลไฟล์' };
+    var now = new Date();
+    var newRows = [], replaceYears = {};
+    files.forEach(function (f) {
+      var y = parseInt(f.year, 10);
+      if (!(y >= 2000 && y <= 2100)) throw new Error('ปีไม่ถูกต้อง: ' + f.year);
+      replaceYears[y] = true;
+      var fname = String(f.name || '').substring(0, 200);
+      Object.keys(f.byZip || {}).forEach(function (zip) {
+        if (!/^\d{5}$/.test(zip)) return;
+        var rec = f.byZip[zip] || {};
+        Object.keys(rec.m || {}).forEach(function (ms) {
+          var m = parseInt(ms, 10), v = Number(rec.m[ms]);
+          if (!(m >= 1 && m <= 12) || !isFinite(v)) return;
+          newRows.push([y, "'" + zip, String(rec.name || zip).substring(0, 200), m, Math.round(v * 100) / 100, fname, now]);
+        });
+      });
+    });
+    if (!newRows.length) return { status: 'error', message: 'ไม่พบแถวรายได้ที่ใช้ได้' };
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var sheet = getTargetPlanIntlSheet_(true);
+      var keep = [];
+      if (sheet.getLastRow() >= 2) {
+        keep = sheet.getRange(2, 1, sheet.getLastRow() - 1, TARGET_PLAN_INTL_HEADER.length).getValues()
+          .filter(function (r) { return !replaceYears[parseInt(r[0], 10)]; })
+          .map(function (r) { r[1] = "'" + ('00000' + String(r[1]).replace(/^'/, '').trim()).slice(-5); return r; }); // รหัสต้องเป็นข้อความ (00066 ไม่กลายเป็น 66)
+        sheet.getRange(2, 1, sheet.getLastRow() - 1, TARGET_PLAN_INTL_HEADER.length).clearContent();
+      }
+      var all = keep.concat(newRows);
+      if (all.length) sheet.getRange(2, 1, all.length, TARGET_PLAN_INTL_HEADER.length).setValues(all);
+    } finally {
+      lock.releaseLock();
+    }
+    return getTargetPlanIntlData_(actor);
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'saveTargetPlanIntlData_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 var API_ALLOWED_FUNCTIONS = [
   'endSession',
   'getRevenueAnalysisReport',
@@ -5204,7 +5307,8 @@ var API_ALLOWED_FUNCTIONS = [
   'searchFuzeAgentContractPdf', 'sendBugReportToLine', 'sendErrorToLine', 'sendSuccessToLine',
   'sendVisitSummaryImagesToLine', 'setPostNewsTemplateActive', 'submitBigLotOrders',
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
-  'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData'
+  'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
+  'getTargetPlanIntlData', 'saveTargetPlanIntlData'
 ];
 
 
@@ -5223,7 +5327,9 @@ var AUTH_SESSION_USER_ARG = {
   deleteVisitData: 2,            // (rowIndex, expected, actor)
   updateBigLotOrder: 5,          // (rowIndex, qty, total, deliveryDate, remark, userInfo)
   deleteBigLotOrder: 1,          // (rowIndex, userInfo)
-  deleteMultipleBigLotOrders: 1  // (rowIndices, userInfo)
+  deleteMultipleBigLotOrders: 1, // (rowIndices, userInfo)
+  getTargetPlanIntlData: 0,      // (actor) — admin เท่านั้น
+  saveTargetPlanIntlData: 1      // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
