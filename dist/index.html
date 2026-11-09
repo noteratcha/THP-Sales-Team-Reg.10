@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1814';
+    var APP_VERSION = 'Ver. 2026.1109.1816';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17383,9 +17383,8 @@
                 var growth = prevSame > 0 ? curSum / prevSame : 1;
                 var curAvg = am ? curSum / am : 0;
                 for (i = 1; i <= 12; i++) {
-                    // เดือนที่ยังไม่มีข้อมูล: ปีก่อนเดือนนั้นมีรายได้ → ใช้ปีก่อน × อัตราเติบโต; ปีก่อนเป็น 0/ไม่มีข้อมูล → ค่าเฉลี่ยรายเดือนปีนี้ (ไม่ให้เป้าเป็น 0)
-                    var pv = prev && prevSame > 0 && growth > 0 ? prev[i] * growth : 0;
-                    var v = i <= am ? (cur ? cur[i] : 0) : (pv > 0 ? pv : curAvg);
+                    // เดือนที่ยังไม่มีข้อมูล = ค่าประมาณเดียวกับคอลัมน์ "ประมาณ พ.ย./ธ.ค." ในตาราง (รายได้จริงปีนี้ ÷ จำนวนเดือนที่มีข้อมูล) — ผู้ใช้กำหนด 2026-11-09
+                    var v = i <= am ? (cur ? cur[i] : 0) : curAvg;
                     w.push(Math.max(0, v));
                 }
                 var s = w.reduce(function (a, b) { return a + b; }, 0);
@@ -17657,7 +17656,7 @@
             var ny = be(r.yearTo + 1);
             document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
             document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
-                (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้รูปแบบเดือนเดียวกันของปี ' + be(r.yearTo - 1) + ' ปรับตามการเติบโตของปีนี้' : '') +
+                (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้ค่าประมาณเดียวกับคอลัมน์ "ประมาณ" (ค่าเฉลี่ยรายเดือนของรายได้จริงปีนี้)' : '') +
                 ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
             var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
             for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
