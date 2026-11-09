@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1828';
+    var APP_VERSION = 'Ver. 2026.1109.1830';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17166,6 +17166,7 @@
         var TP_INTL_ZERO_TARGET = 60000;
         // เป้าในประเทศปัดเป็นหลักหมื่น (หลักหน่วย สิบ ร้อย พัน = 0) ผู้ใช้กำหนด 2026-11-09
         var TP_DOM_ROUND = 10000;
+        var TP_DOM_MONTH_MIN = 10000; // เป้ารายเดือนในประเทศขั้นต่ำ (บาท/เดือน)
         // ค่าตั้งต้นเป้าในประเทศขั้นต่ำต่อที่ทำการ (ผู้ใช้กำหนด 2026-11-09: 300,000 บาท/ปี แก้ได้ที่ช่อง #tpDomFloor)
         var TP_DOM_MIN_TARGET = 300000;
         // เป้าระหว่างประเทศปัดเป็นหลักพัน (หลักหน่วย สิบ ร้อย = 0)
@@ -17398,7 +17399,18 @@
             list.forEach(function (o) {
                 GROUPS.forEach(function (g) {
                     var d = o[g[0]], w = monthWeights(d), mt = [0], best = 1, i;
-                    for (i = 1; i <= 12; i++) { mt.push(Math.round((d.target || 0) * w[i])); if (w[i] > w[best]) best = i; }
+                    // เป้ารายเดือนในประเทศขั้นต่ำ 10,000 บาท (ผู้ใช้กำหนด 2026-11-09): เดือนที่ต่ำกว่าตั้งเป็นขั้นต่ำ ที่เหลือแบ่งเดือนอื่นตามสัดส่วนเดิม วนจนนิ่ง
+                    var T = d.target || 0, mf = g[0] === 'dom' ? TP_DOM_MONTH_MIN : 0, fixed = {}, amt = [0];
+                    if (mf > 0 && T <= mf * 12) { for (i = 1; i <= 12; i++) { w[i] = 1 / 12; fixed[i] = true; } }
+                    for (var it = 0; it < 13; it++) {
+                        var rest = T, ws = 0, low = false;
+                        for (i = 1; i <= 12; i++) { if (fixed[i]) rest -= (mf && T > mf * 12 ? mf : T / 12); else ws += w[i]; }
+                        for (i = 1; i <= 12; i++) amt[i] = fixed[i] ? (mf && T > mf * 12 ? mf : T / 12) : (ws > 0 ? rest * w[i] / ws : rest / 12);
+                        for (i = 1; i <= 12; i++) if (!fixed[i] && mf > 0 && amt[i] < mf) { fixed[i] = true; low = true; }
+                        if (!low) break;
+                    }
+                    for (i = 1; i <= 12; i++) { mt.push(Math.round(amt[i])); if (!fixed[i] && (fixed[best] || amt[i] > amt[best])) best = i; }
+                    d.monthFloorCount = Object.keys(fixed).length < 12 ? Object.keys(fixed).length : 0;
                     mt[best] += (d.target || 0) - mt.reduce(function (a, b) { return a + b; }, 0);
                     d.monthTarget = mt; d.monthShare = w;
                 });
@@ -17661,7 +17673,7 @@
             document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
             document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
                 (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้ค่าประมาณเดียวกับคอลัมน์ "ประมาณ" (ค่าเฉลี่ยรายเดือนของรายได้จริงปีนี้)' : '') +
-                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
+                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + (g !== 'intl' ? ' · เป้าในประเทศแต่ละเดือนไม่ต่ำกว่า 10,000 บาท' : '') + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
             var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
             for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
             document.getElementById('tpHeadMon').innerHTML = head + '<th class="py-3 px-3 text-right font-semibold">รวมทั้งปี</th></tr>';
