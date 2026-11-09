@@ -130,11 +130,10 @@
     <!-- 📋 Data Table Section -->
     <div class="w-full">
         <!-- Loading State -->
-        <div id="bigLotReportLoading"
-            class="hidden glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[350px] shadow-lg">
-            <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
-            <p class="font-bold text-lg text-gray-700">กำลังดาวน์โหลดข้อมูลรายงาน...</p>
-            <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังประมวลผลบทสรุปของท่าน</p>
+        <!-- โครงร่างตารางระหว่างโหลด (เติมด้วย window.thpSkeletonRows ใน loadBigLotReportPage) -->
+        <div id="bigLotReportLoading" role="status" aria-label="กำลังโหลดข้อมูลรายงาน"
+            class="hidden bg-white custom-radius shadow-sm border border-gray-100 overflow-hidden">
+            <table class="min-w-full"><tbody id="bigLotReportSkeletonBody"></tbody></table>
         </div>
 
         <!-- Empty State -->
@@ -324,9 +323,10 @@
         const exportPdfBtn = document.getElementById('bigLotExportPdfBtn');
         const pageSizeSelect = document.getElementById('bigLotReportPageSize');
 
-        if (loading) loading.classList.add('hidden');
-        if (typeof showGlobalLoader === 'function') {
-            showGlobalLoader('กำลังดาวน์โหลดข้อมูลรายงาน...');
+        // โครงร่างตารางแทนหน้าจอโหลดเต็มจอ (renderBigLotReportUI / ตอนล้มเหลว ซ่อนให้เอง)
+        if (loading) {
+            if (typeof window.thpSkeletonRows === 'function') window.thpSkeletonRows(document.getElementById('bigLotReportSkeletonBody'), 7, 8);
+            loading.classList.remove('hidden');
         }
         if (empty) empty.classList.add('hidden');
         if (table) table.classList.add('hidden');

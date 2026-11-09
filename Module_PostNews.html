@@ -125,8 +125,13 @@
     // ==========================================
     // 5. POST NEWS LOGIC
     // ==========================================
+    // โครงร่างทับภาพตัวอย่างข่าวระหว่างโหลด (แทนหน้าจอโหลดเต็มจอ)
+    function setPostNewsSkeleton(on) {
+        if (typeof window.thpSkeletonOverlay === 'function') window.thpSkeletonOverlay(document.getElementById('newsCaptureArea'), on, 'block');
+    }
+
     function initPostNews() {
-        showGlobalLoader('กำลังดึงภาพพื้นหลังจากระบบ...');
+        setPostNewsSkeleton(true);
 
         // 1. ดึงเทมเพลตทั้งหมดเพื่อสร้างตัวเลือกใน Dropdown
         google.script.run.withSuccessHandler(function (res) {
@@ -177,8 +182,8 @@
     function continueInitPostNews() {
         if (allFetchedRows.length === 0) {
             google.script.run.withSuccessHandler(function (r) {
-                hideGlobalLoader();
-                if (r.status === 'success') {
+                setPostNewsSkeleton(false);
+                if (r && r.status === 'success') {
                     var data = r.data;
                     allFetchedRows = [];
                     for (var i = data.length - 1; i >= 1; i--) {
@@ -189,9 +194,13 @@
                     populatePostNewsSelector();
                     renderNewsPreviewFromSelect();
                 }
+            }).withFailureHandler(function (err) {
+                // เดิมไม่มีตัวจัดการล้มเหลว ทำให้หน้าจอโหลดค้าง
+                setPostNewsSkeleton(false);
+                console.error('Post News: โหลดรายการเข้าพบไม่สำเร็จ', err);
             }).getDataForTable();
         } else {
-            hideGlobalLoader();
+            setPostNewsSkeleton(false);
             populatePostNewsSelector();
             renderNewsPreviewFromSelect();
         }
@@ -200,9 +209,9 @@
     // เมื่อผู้ใช้เปลี่ยน Template จาก Dropdown
     window.changePostNewsTemplate = function (url) {
         if (!url) return;
-        showGlobalLoader('กำลังเปลี่ยนภาพพื้นหลัง...');
+        setPostNewsSkeleton(true);
         preloadTemplateToBase64(url, function (success) {
-            hideGlobalLoader();
+            setPostNewsSkeleton(false);
             if (!success) {
                 Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดรูปภาพแม่แบบได้ กรุณาลองเลือกรูปแบบอื่น', 'error');
             }
@@ -429,9 +438,11 @@
         if (fileInput) fileInput.value = '';
 
         if (imgUrl && imgUrl.startsWith('http') && previewImg && noImgDiv) {
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดรูปภาพประกอบข่าว...');
+            // โครงร่างในกรอบรูปประกอบระหว่างโหลด (แทนหน้าจอโหลดเต็มจอ)
+            var imgBox = document.getElementById('newsImageContainer');
+            if (typeof window.thpSkeletonOverlay === 'function') window.thpSkeletonOverlay(imgBox, true, 'block');
             preloadUrlToBase64(imgUrl, previewImg, function (success) {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                if (typeof window.thpSkeletonOverlay === 'function') window.thpSkeletonOverlay(imgBox, false);
                 previewImg.onload = function () { adjustNewsImageWidth(); };
                 adjustNewsImageWidth();
                 previewImg.classList.remove('hidden');

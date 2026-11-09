@@ -220,12 +220,9 @@
         <!-- 🛒 Left Column: Products Grid (3/4 on lg) -->
         <div class="w-full lg:w-3/4 flex-1">
             <!-- Loading skeleton state -->
-            <div id="bigLotLoadingState"
-                class="hidden glass-card p-12 custom-radius flex flex-col items-center justify-center min-h-[400px] shadow-lg">
-                <i class="fas fa-circle-notch fa-spin text-orange-500 text-5xl mb-4"></i>
-                <p class="font-bold text-lg text-gray-700">กำลังดาวน์โหลดข้อมูลคลังสินค้า...</p>
-                <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังสื่อสารกับฐานข้อมูล Google Sheets</p>
-            </div>
+            <!-- โครงร่างการ์ดสินค้าระหว่างโหลด (เติมด้วย window.thpSkeletonCards ใน loadBigLotPage) -->
+            <div id="bigLotLoadingState" role="status" aria-label="กำลังโหลดข้อมูลสินค้า"
+                class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
 
             <!-- Empty result state -->
             <div id="bigLotEmptyState"
@@ -394,12 +391,13 @@
         const emptyState = document.getElementById('bigLotEmptyState');
         const grid = document.getElementById('bigLotCatalogGrid');
 
-        if (loadingState) loadingState.classList.add('hidden');
         if (emptyState) emptyState.classList.add('hidden');
         if (grid) grid.classList.add('hidden');
 
-        if (typeof showGlobalLoader === 'function') {
-            showGlobalLoader('กำลังดาวน์โหลดข้อมูลคลังสินค้า...');
+        // โครงร่างการ์ดสินค้าแทนหน้าจอโหลดเต็มจอ (renderBigLotGrid / ตอนล้มเหลว ซ่อนให้เอง)
+        if (loadingState) {
+            if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(loadingState, 6, 'product');
+            loadingState.classList.remove('hidden');
         }
 
         // Check and setup Admin view permissions

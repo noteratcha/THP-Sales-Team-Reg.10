@@ -1286,25 +1286,31 @@
             } catch(e) {}
         }
 
+        // ยังไม่มีแคช: แสดงโครงร่าง (skeleton) ของตารางและกราฟแทนหน้าจอโหลดเต็มจอ
+        const visitChartCanvas = document.getElementById('monthlyVisitChart');
         if (!hasCache) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="15" class="py-8 text-center text-gray-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-theme-orange"></i><p class="text-xs">กำลังโหลดข้อมูล...</p></td></tr>`;
+            if (typeof window.thpSkeletonHeader === 'function') window.thpSkeletonHeader(document.getElementById('tableHeader'), 10);
+            if (typeof window.thpSkeletonRows === 'function') window.thpSkeletonRows(tbody, 10, 10);
+            else if (tbody) tbody.innerHTML = `<tr><td colspan="15" class="py-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>`;
+            if (typeof window.thpSkeletonOverlay === 'function') window.thpSkeletonOverlay(visitChartCanvas, true);
             if (pagControls) pagControls.classList.add('hidden');
             if (noDataMsg) noDataMsg.classList.add('hidden');
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลการเข้าพบลูกค้า...');
         }
+        const clearVisitSkeleton = () => {
+            if (typeof window.thpSkeletonOverlay === 'function') window.thpSkeletonOverlay(visitChartCanvas, false);
+        };
 
         google.script.run
             .withSuccessHandler((res) => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
                     if (typeof SafeStorage !== 'undefined') {
                         try { SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data)); } catch(e) {}
                     }
                 }
-                renderTable(res);
+                try { renderTable(res); } finally { clearVisitSkeleton(); }
             })
             .withFailureHandler((err) => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                clearVisitSkeleton();
                 if (!hasCache) dataLoadFailed(err);
             })
             .getDataForTable();
@@ -1634,7 +1640,14 @@
         XLSX.writeFile(wb, fileName);
     }
 
-    function dataLoadFailed(error) { const tbody = document.getElementById('tableBody'); if (tbody) tbody.innerHTML = `<tr><td colspan="100%" class="text-center py-4 text-red-500">Error: ${error}</td></tr>`; }
+    function dataLoadFailed(error) {
+        const tbody = document.getElementById('tableBody');
+        // หัวตารางอาจเป็นโครงร่าง (skeleton) อยู่ ให้แทนด้วยหัวธรรมดา
+        const head = document.getElementById('tableHeader');
+        if (head && head.querySelector('.thp-skel')) head.innerHTML = '<th class="py-3 px-4 text-left">ข้อมูลการเข้าพบลูกค้า</th>';
+        const msg = (error && error.message) ? error.message : String(error);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="100%" class="text-center py-6 text-red-600">โหลดข้อมูลไม่สำเร็จ: ${window.escapeHtml ? window.escapeHtml(msg) : msg}<br><button type="button" class="thp-btn-secondary mt-3" onclick="loadVisitData()"><i class="fas fa-sync-alt"></i> ลองใหม่</button></td></tr>`;
+    }
 
     // ==========================================
     // 6. EDIT MODAL LOGIC

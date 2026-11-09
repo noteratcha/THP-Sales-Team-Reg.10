@@ -981,23 +981,22 @@
             } catch(e) {}
         }
 
+        // ยังไม่มีแคช: แสดงโครงร่าง (skeleton) ของตารางแทนหน้าจอโหลดเต็มจอ
         if (!hasCache) {
-            if (tbody) tbody.innerHTML = '';
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดึงข้อมูลเป้าหมายและการใช้บริการ...');
+            if (typeof window.thpSkeletonRows === 'function') window.thpSkeletonRows(tbody, 11, 10);
+            else if (tbody) tbody.innerHTML = '';
         }
 
         const fetchMainData = function () {
             google.script.run.withSuccessHandler(function (res) {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res && res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
                     if (typeof SafeStorage !== 'undefined') {
                         try { SafeStorage.setItem('thp_cache_rev_data', JSON.stringify(res.data)); } catch(e) {}
                     }
                 }
-                processAndRenderRevenueData(res);
+                processAndRenderRevenueData(res || { status: 'error', message: 'ไม่ได้รับข้อมูลจากเซิร์ฟเวอร์' });
             }).withFailureHandler(err => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                if (!hasCache && tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">Error: ${err}</td></tr>`;
+                if (!hasCache && tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-600 py-6">โหลดข้อมูลไม่สำเร็จ: ${window.escapeHtml(err && err.message ? err.message : String(err))}<br><button type="button" class="thp-btn-secondary mt-3" onclick="loadRevenueReport()"><i class="fas fa-sync-alt"></i> ลองใหม่</button></td></tr>`;
             }).getRevenueReportData(currentUserInfo);
         };
 

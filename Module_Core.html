@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.0841';
+    var APP_VERSION = 'Ver. 2026.1109.1124';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -543,6 +543,13 @@
                         class="group flex items-center justify-center w-full px-3 py-2.5 text-xs font-semibold text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-theme-orange hover:text-white hover:border-theme-orange transition-all duration-300 shadow-sm cursor-pointer gap-2 mb-2">
                         <i class="fas fa-star-half-alt transition-transform duration-300 group-hover:scale-110"></i>
                         ประเมินระบบ
+                    </button>
+
+                    <!-- คู่มือการใช้งานระบบ (ย้ายมาจากเมนูซ้ายตามที่ผู้ใช้ขอ 2026-11-09) -->
+                    <button type="button" onclick="switchPage('manual')" id="profile-manual"
+                        class="group flex items-center justify-center w-full px-3 py-2.5 text-xs font-semibold text-gray-300 bg-white/5 border border-white/10 rounded-xl hover:bg-theme-orange hover:text-white hover:border-theme-orange transition-all duration-300 shadow-sm cursor-pointer gap-2 mb-2">
+                        <i class="fas fa-book-reader transition-transform duration-300 group-hover:scale-110"></i>
+                        คู่มือการใช้งานระบบ
                     </button>
 
                     <!-- Action Item: Logout Button -->
@@ -941,17 +948,7 @@
                 </a>
             </div>
 
-            <!-- 💡 เมนู คู่มือการใช้งานระบบ (ต่อจากเมนู สินค้า BigLot) -->
-            <div id="nav-divider-manual" class="mx-4 my-2 border-t border-gray-700/60"></div>
-            <div onclick="switchPage('manual')" id="menu-manual"
-                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
-                <div
-                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1 text-amber-400">
-                    <i class="fas fa-book-reader text-sm"></i>
-                </div>
-                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">คู่มือการใช้งานระบบ</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">เปิดอ่าน</span>
-            </div>
+            <!-- Manual menu was moved to profile context menu (profile-manual) -->
 
             <!-- Evaluation menu was moved to profile context menu -->
 
@@ -1287,9 +1284,9 @@
                                         </div>
                                         <div id="homeSummaryRevContainer" class="flex flex-col items-center justify-center mt-2 w-full px-2">
                                             <div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full">
-                                                <div class="col-span-2 xl:col-span-1 animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
-                                                <div class="animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
-                                                <div class="animate-pulse bg-green-50 border border-green-100/60 rounded-xl h-[88px] w-full"></div>
+                                                <div class="col-span-2 xl:col-span-1 thp-skel rounded-xl h-[88px] w-full"></div>
+                                                <div class="thp-skel rounded-xl h-[88px] w-full"></div>
+                                                <div class="thp-skel rounded-xl h-[88px] w-full"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -1302,7 +1299,7 @@
                                             </h3>
                                         </div>
                                         <div class="w-full relative flex-1 min-h-[220px] lg:min-h-[260px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.01]">
-                                            <div id="homeRevenueChartSkeleton" class="absolute inset-0 animate-pulse bg-gray-100 rounded-xl"></div>
+                                            <div id="homeRevenueChartSkeleton" class="absolute inset-0 thp-skel rounded-xl"></div>
                                             <canvas id="homeRevenueChart" class="w-full h-full hidden"></canvas>
                                         </div>
                                     </div>
@@ -2102,6 +2099,83 @@
     }
 
     // ==========================================
+    // 🦴 โครงร่างระหว่างโหลดข้อมูล (skeleton) — ใช้แทน showGlobalLoader เมื่อดึงข้อมูลมาแสดง (CSS อยู่ Style.html ข้อ 18)
+    // ทุกคำขอต้องแทนที่ skeleton ทั้งตอนสำเร็จและล้มเหลว (ห้ามปล่อยค้าง) — มีแคชแล้วไม่ต้องแสดง skeleton
+    // ==========================================
+    ;(function () {
+        var SKEL_WIDTHS = ['w-1/2', 'w-2/3', 'w-3/4', 'w-4/5', 'w-11/12', 'w-3/5'];
+        var bar = function (cls) { return '<span class="thp-skel ' + (cls || 'h-3 w-3/4') + '"></span>'; };
+        var pick = function (i, j) { return SKEL_WIDTHS[(i * 7 + j * 3) % SKEL_WIDTHS.length]; };
+
+        // แถว skeleton ในตาราง (cols = จำนวนคอลัมน์)
+        window.thpSkeletonRows = function (tbody, cols, rows) {
+            if (!tbody) return;
+            var html = '';
+            for (var i = 0; i < (rows || 8); i++) {
+                html += '<tr class="thp-skel-row" aria-hidden="true">';
+                for (var j = 0; j < (cols || 6); j++) html += '<td>' + bar('h-3 ' + pick(i, j)) + '</td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        };
+
+        // หัวตาราง skeleton (ใช้เมื่อหัวตารางมาจากข้อมูล เช่น หน้าการเข้าพบ)
+        window.thpSkeletonHeader = function (tr, cols) {
+            if (!tr) return;
+            var html = '';
+            for (var j = 0; j < (cols || 6); j++) html += '<th class="py-3 px-4">' + bar('h-3 w-16 opacity-40') + '</th>';
+            tr.innerHTML = html;
+        };
+
+        // การ์ด skeleton: variant 'product' (รูป + ข้อความ + ปุ่ม), 'card' (หัว + 3 บรรทัด), 'list' (แถวรายการ)
+        window.thpSkeletonCards = function (container, count, variant) {
+            if (!container) return;
+            var html = '';
+            for (var i = 0; i < (count || 3); i++) {
+                if (variant === 'product') {
+                    html += '<div class="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3" aria-hidden="true">' +
+                        bar('h-40 w-full rounded-xl') + bar('h-4 ' + pick(i, 1)) + bar('h-3 ' + pick(i, 2)) +
+                        '<div class="flex justify-between items-center mt-1">' + bar('h-5 w-20') + bar('h-8 w-24 rounded-full') + '</div></div>';
+                } else if (variant === 'list') {
+                    html += '<div class="flex items-center gap-3 px-3 py-3 border-b border-gray-50" aria-hidden="true">' +
+                        bar('h-8 w-8 rounded-lg shrink-0') + '<div class="flex-1 flex flex-col gap-2">' + bar('h-3 ' + pick(i, 1)) + bar('h-2.5 w-1/3') + '</div></div>';
+                } else {
+                    html += '<div class="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3" aria-hidden="true">' +
+                        bar('h-5 w-1/3') + bar('h-3 ' + pick(i, 1)) + bar('h-3 ' + pick(i, 2)) + bar('h-3 w-1/2') + '</div>';
+                }
+            }
+            container.innerHTML = html;
+        };
+
+        // แผ่น skeleton ทับพื้นที่กราฟ/รูป (on = true วาง, false ถอด; kind 'block' = รูป/เอกสาร แทนแท่งกราฟ) — parent ต้องเป็น relative
+        window.thpSkeletonOverlay = function (el, on, kind) {
+            var host = el && (el.tagName === 'CANVAS' || el.tagName === 'IMG' ? el.parentElement : el);
+            if (!host) return;
+            var old = host.querySelector(':scope > .thp-skel-overlay');
+            if (!on) { if (old) old.remove(); host.removeAttribute('aria-busy'); return; }
+            if (old) return;
+            if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+            var ov = document.createElement('div');
+            ov.className = 'thp-skel-overlay';
+            ov.setAttribute('aria-hidden', 'true');
+            ov.innerHTML = kind === 'block'
+                ? '<div class="flex flex-col gap-4 h-full justify-center px-[8%]">' + bar('h-8 w-2/3 mx-auto') + bar('h-1/2 w-full rounded-2xl') +
+                    bar('h-3 w-11/12') + bar('h-3 w-4/5') + bar('h-3 w-3/5') + '</div>'
+                : '<div class="thp-skel-bars">' + [55, 80, 40, 70, 90, 60, 75].map(function (h) {
+                    return '<span class="thp-skel" style="height:' + h + '%"></span>';
+                }).join('') + '</div>' + bar('h-2.5 w-full opacity-60');
+            host.appendChild(ov);
+            host.setAttribute('aria-busy', 'true');
+        };
+
+        // แทนข้อความ/ตัวเลขด้วยแท่ง skeleton แบบอยู่ในบรรทัด
+        window.thpSkeletonText = function (el, cls) {
+            if (!el) return;
+            el.innerHTML = '<span class="thp-skel thp-skel-inline ' + (cls || 'h-4 w-16') + '" aria-hidden="true"></span>';
+        };
+    })();
+
+    // ==========================================
     // 3. INITIALIZATION
     // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
@@ -2309,7 +2383,7 @@
                 },
                 'manual': {
                     page: 'page-manual',
-                    menu: 'menu-manual',
+                    menu: '',
                     title: 'คู่มือการใช้งานระบบ (ปข.10)',
                     action: () => {
                         if (typeof window.initManualPage === 'function') window.initManualPage();
@@ -2725,12 +2799,11 @@
     window.loadServicesManagerList = function () {
         const list = document.getElementById('serviceManagerList');
         if (!list) return;
-        list.innerHTML = '';
-        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดบริการ...');
+        // โครงร่างรายการแทนหน้าจอโหลดเต็มจอ (ทั้งสำเร็จ/ล้มเหลวแทนที่ list ให้เอง)
+        if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(list, 6, 'list'); else list.innerHTML = '';
 
         if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.currentServicesList = res.data;
                     window.renderServicesManagerList(res.data);
@@ -2738,7 +2811,6 @@
                     list.innerHTML = `<div class="text-center text-red-500 py-4">${res.message}</div>`;
                 }
             }).withFailureHandler(err => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 list.innerHTML = `<div class="text-center text-red-500 py-4">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getServicesList();
         }
@@ -2864,19 +2936,17 @@
     window.loadPostNewsTemplates = function () {
         const list = document.getElementById('postNewsTemplateList');
         if (!list) return;
-        list.innerHTML = '';
-        if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังโหลดบริการ...');
+        // โครงร่างการ์ดแทนหน้าจอโหลดเต็มจอ (ทั้งสำเร็จ/ล้มเหลวแทนที่ list ให้เอง)
+        if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(list, 3, 'card'); else list.innerHTML = '';
 
         if (typeof google !== 'undefined') {
             google.script.run.withSuccessHandler(res => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 if (res.status === 'success') {
                     window.renderPostNewsTemplateList(res.data);
                 } else {
                     list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">${res.message}</div>`;
                 }
             }).withFailureHandler(err => {
-                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                 list.innerHTML = `<div class="text-center text-red-500 py-4 col-span-full">เกิดข้อผิดพลาด: ${err.message}</div>`;
             }).getPostNewsTemplates();
         }
@@ -6287,15 +6357,29 @@
             });
         }
 
-        // ถ้ายังไม่มีข้อมูลในแคชเลย (เช่น เพิ่งเปิดเครื่องใหม่ครั้งแรก) ให้แสดงตัวโหลดเต็มจอ
-        if (missingVisitData || missingVisitTargets || missingRevTargets) {
-            if (!isSilent && typeof showGlobalLoader === 'function') showGlobalLoader('กำลังอัปเดตข้อมูลสถิติ...');
+        // ถ้ายังไม่มีข้อมูลในแคชเลย (เช่น เพิ่งเปิดเครื่องใหม่ครั้งแรก) ให้แสดงโครงร่าง (skeleton) ในการ์ดเข้าพบแทนหน้าจอโหลดเต็มจอ
+        // ส่วนที่แสดงผลด้านล่างของฟังก์ชันนี้จะแทนที่ skeleton เมื่อข้อมูลครบ (ทั้งสำเร็จและล้มเหลว checkDone เรียกซ้ำเสมอ)
+        // โหลดรอบล่าสุดจบไม่ถึง 60 วินาที (เช่น ล้มเหลว) ไม่ยิงซ้ำทันที — เดิม checkDone เรียกฟังก์ชันนี้ซ้ำแล้วยิงคำขอใหม่วนไม่รู้จบ
+        const homeRecentlyLoaded = window.__homeLoadRoundAt && (Date.now() - window.__homeLoadRoundAt < 60000);
+        if ((missingVisitData || missingVisitTargets || missingRevTargets) && !homeRecentlyLoaded) {
+            if (missingVisitData || missingVisitTargets) {
+                if (typeof window.thpSkeletonText === 'function') window.thpSkeletonText(monthSpan, 'h-3.5 w-12');
+                const countBox = document.getElementById('homeSummaryCountContainer');
+                if (countBox && !countBox.querySelector('.thp-skel')) {
+                    countBox.className = 'w-full';
+                    countBox.innerHTML = '<div class="w-full flex flex-col items-center gap-3 py-2" aria-hidden="true">' +
+                        '<span class="thp-skel h-12 w-32"></span><span class="thp-skel h-3 w-2/3"></span><span class="thp-skel h-2 w-full"></span></div>';
+                }
+                const chartSkel = document.getElementById('homeVisitChartSkeleton');
+                if (chartSkel) { chartSkel.className = 'absolute inset-0 thp-skel rounded-xl'; }
+                if (chartCanvas) chartCanvas.classList.add('hidden');
+            }
 
             let pendingReqs = 0;
             const checkDone = () => {
                 pendingReqs--;
                 if (pendingReqs <= 0) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    window.__homeLoadRoundAt = Date.now();
                     updateHomeVisitSummary();
                 }
             };
@@ -6309,9 +6393,10 @@
                         if (res && res.status === 'success' && Array.isArray(res.data)) {
                             SafeStorage.setItem('thp_cache_visit_raw', JSON.stringify(res.data));
                         }
+                        window.__homeVisitLoadError = !(res && res.status === 'success');
                         if (typeof renderTable === 'function') renderTable(res);
                         checkDone();
-                    }).withFailureHandler(() => { window.isFetchingVisitData = false; checkDone(); }).getDataForTable();
+                    }).withFailureHandler(() => { window.isFetchingVisitData = false; window.__homeVisitLoadError = true; checkDone(); }).getDataForTable();
                 } else if (missingVisitData && window.isFetchingVisitData) { pendingReqs++; }
 
                 if (missingVisitTargets && !window.isFetchingVisitTargets) {
@@ -6347,8 +6432,8 @@
             }
             
             if (pendingReqs > 0) return;
-        } else if (!isSilent) {
-            // หากมีข้อมูลจากแคชพร้อมแล้ว ให้สั่งซิงค์ข้อมูลใหม่ล่าสุดในเบื้องหลังแบบเงียบๆ
+        } else if (!isSilent && !homeRecentlyLoaded) {
+            // หากมีข้อมูลจากแคชพร้อมแล้ว ให้สั่งซิงค์ข้อมูลใหม่ล่าสุดในเบื้องหลังแบบเงียบๆ (เพิ่งโหลดรอบใหม่จบไม่ต้องซิงค์ซ้ำ)
             setTimeout(triggerSilentBackgroundSync, 600);
         }
 
@@ -6743,7 +6828,11 @@
             window.homeVisitChartInstance.destroy();
         }
         
-        setHomeChartEmpty('homeVisitChart', my10DaysCount === 0, 'ยังไม่มีการเข้าพบในช่วง 10 วันที่ผ่านมา', 'fa-calendar-times');
+        if (window.__homeVisitLoadError && missingVisitData) {
+            setHomeChartEmpty('homeVisitChart', true, 'โหลดข้อมูลการเข้าพบไม่สำเร็จ กดปุ่มรีเฟรชด้านบนเพื่อลองใหม่', 'fa-exclamation-triangle');
+        } else {
+            setHomeChartEmpty('homeVisitChart', my10DaysCount === 0, 'ยังไม่มีการเข้าพบในช่วง 10 วันที่ผ่านมา', 'fa-calendar-times');
+        }
 
         const labels = last10DaysLabels;
         const data = last10Days.map(d => dailyCounts[d]);
@@ -7173,16 +7262,14 @@
 
     window.loadFuzeAgentData = function(force) {
         if (!force && window.fuzeAgentData.length > 0) return;
-        showGlobalLoader('กำลังโหลดข้อมูลตัวแทนฯ...');
+        // โครงร่างตารางแทนหน้าจอโหลดเต็มจอ (renderFuzeAgentTable / ตอนล้มเหลว แทนที่ให้เอง)
         var tbody = document.getElementById('fuzeAgentTableBody');
-        tbody.innerHTML = '<tr><td colspan="10" class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2 text-theme-orange"></i><p>กำลังโหลดข้อมูล...</p></td></tr>';
+        if (typeof window.thpSkeletonRows === 'function') window.thpSkeletonRows(tbody, 9, 8);
         google.script.run.withSuccessHandler(function(data) {
             window.fuzeAgentData = data;
             renderFuzeAgentTable();
-            hideGlobalLoader();
         }).withFailureHandler(function(error) {
             tbody.innerHTML = '<tr><td colspan="10" class="py-12 text-center text-red-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p>เกิดข้อผิดพลาดในการโหลดข้อมูล</p></td></tr>';
-            hideGlobalLoader();
             Swal.fire('ข้อผิดพลาด', error.message, 'error');
         }).getFuzeAgentData();
     };

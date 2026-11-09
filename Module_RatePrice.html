@@ -50,12 +50,9 @@
         </div>
 
         <!-- หน้าต่างโหลดข้อมูล -->
-        <div id="ratePriceLoader"
-            class="hidden flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <i class="fas fa-circle-notch fa-spin text-emerald-500 text-5xl mb-4"></i>
-            <p class="font-bold text-lg text-gray-600">กำลังซิงค์ข้อมูลอัตราค่าบริการ...</p>
-            <p class="text-xs text-gray-400 mt-1">โปรดรอสักครู่ ระบบกำลังดึงข้อมูลจากฐานข้อมูล</p>
-        </div>
+        <!-- โครงร่างระหว่างโหลด (เติมด้วย window.thpSkeletonCards ใน loadRatePricePage) -->
+        <div id="ratePriceLoader" role="status" aria-label="กำลังโหลดข้อมูลอัตราค่าบริการ"
+            class="hidden flex flex-col gap-4"></div>
 
         <!-- พื้นที่ว่าง (กรณีไม่พบข้อมูล) -->
         <div id="ratePriceNoData"
@@ -85,12 +82,13 @@
         const noData = document.getElementById('ratePriceNoData');
 
         if (selector) { selector.disabled = true; selector.innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>'; }
-        if (loader) loader.classList.add('hidden');
         if (container) container.classList.add('hidden');
         if (noData) noData.classList.add('hidden');
 
-        if (typeof showGlobalLoader === 'function') {
-            showGlobalLoader('กำลังซิงค์ข้อมูลอัตราค่าบริการ...');
+        // โครงร่างการ์ดแทนหน้าจอโหลดเต็มจอ (populateRateDropdown / ตอนล้มเหลว ซ่อนให้เอง)
+        if (loader) {
+            if (typeof window.thpSkeletonCards === 'function') window.thpSkeletonCards(loader, 3, 'card');
+            loader.classList.remove('hidden');
         }
 
         if (typeof google !== 'undefined') {
