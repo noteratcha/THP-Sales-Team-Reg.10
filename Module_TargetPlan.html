@@ -129,6 +129,38 @@
             </div>
         </div>
 
+        <!-- สรุปเป้าปีหน้า แยกทีม -->
+        <div class="flex flex-col gap-2">
+            <button type="button" onclick="toggleTargetPlanTable('Team')" aria-expanded="true" aria-controls="tpWrapTeam" id="tpToggleTeam"
+                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
+                <i id="tpChevTeam" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
+                <h4 class="text-lg font-bold text-gray-800" id="tpTitleTeam">สรุปเป้าปีหน้า แยกทีม</h4>
+            </button>
+            <div class="table-container overflow-x-auto w-full" id="tpWrapTeam">
+                <table class="min-w-full whitespace-nowrap text-sm">
+                    <thead class="bg-theme-black text-white" id="tpHeadTeam"></thead>
+                    <tbody id="tpBodyTeam"></tbody>
+                    <tfoot id="tpFootTeam" class="bg-orange-50 font-bold text-gray-800"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- สรุปเป้าปีหน้า แยกจังหวัด -->
+        <div class="flex flex-col gap-2">
+            <button type="button" onclick="toggleTargetPlanTable('Prov')" aria-expanded="true" aria-controls="tpWrapProv" id="tpToggleProv"
+                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
+                <i id="tpChevProv" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
+                <h4 class="text-lg font-bold text-gray-800" id="tpTitleProv">สรุปเป้าปีหน้า แยกจังหวัด</h4>
+            </button>
+            <div class="table-container overflow-x-auto w-full" id="tpWrapProv">
+                <table class="min-w-full whitespace-nowrap text-sm">
+                    <thead class="bg-theme-black text-white" id="tpHeadProv"></thead>
+                    <tbody id="tpBodyProv"></tbody>
+                    <tfoot id="tpFootProv" class="bg-orange-50 font-bold text-gray-800"></tfoot>
+                </table>
+            </div>
+        </div>
+
         <!-- ตารางเป้ารายเดือน -->
         <div class="flex flex-col gap-2">
             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
@@ -598,7 +630,7 @@
             try { localStorage.setItem(TP_COLLAPSE_KEY, JSON.stringify(st)); } catch (e) {}
             applyTableCollapse(k, st[k]);
         };
-        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl', 'Mon'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
+        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl', 'Team', 'Prov', 'Mon'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
 
         window.sortTargetPlan = function (key, grp) {
             if (state.sortKey === key && state.sortGroup === grp) state.sortDir = -state.sortDir;
@@ -673,6 +705,8 @@
 
             renderGroupTable(r, 'dom', 'tpHeadDom', 'tpBody', 'tpFootDom');
             renderGroupTable(r, 'intl', 'tpHeadIntl', 'tpBodyIntl', 'tpFootIntl');
+            renderSummaryTable(r, 'Team');
+            renderSummaryTable(r, 'Prov');
             renderMonthTable(r);
             document.getElementById('tpTitleDom').textContent = 'บริการในประเทศ · เป้า ' + fmt(tot(function (o) { return o.dom.target; })) + ' บาท (' + pctStr(r.pDom) + ' จากค่าเฉลี่ย)';
             document.getElementById('tpTitleIntl').textContent = 'บริการระหว่างประเทศ · เป้า ' + fmt(tot(function (o) { return o.intl.target; })) + ' บาท (' + pctStr(r.pIntl) + ' จากค่าเฉลี่ย)';
@@ -686,6 +720,65 @@
             try { localStorage.setItem(TP_PARTS_KEY, partsOpen() ? '0' : '1'); } catch (e) {}
             renderTargetPlanTable();
         };
+        // ===== สรุปเป้าปีหน้า แยกทีม / แยกจังหวัด (ผู้ใช้กำหนด 2026-11-09) — ทุกที่ทำการ ไม่ขึ้นกับช่องค้นหา/ตัวกรองทีม =====
+        // จังหวัดจากรหัสไปรษณีย์ 2 หลักแรก; 34010 และ 47010 แยกเป็นแถวของตัวเอง (ไม่รวมในจังหวัด)
+        var TP_PROVINCES = { '30': 'นครราชสีมา', '31': 'บุรีรัมย์', '32': 'สุรินทร์', '33': 'ศรีสะเกษ', '34': 'อุบลราชธานี', '35': 'ยโสธร', '36': 'ชัยภูมิ', '37': 'อำนาจเจริญ', '38': 'บึงกาฬ', '39': 'หนองบัวลำภู', '40': 'ขอนแก่น', '41': 'อุดรธานี', '42': 'เลย', '43': 'หนองคาย', '44': 'มหาสารคาม', '45': 'ร้อยเอ็ด', '46': 'กาฬสินธุ์', '47': 'สกลนคร', '48': 'นครพนม', '49': 'มุกดาหาร' };
+        var TP_PROV_SEPARATE = ['34010', '47010'];
+        var summaryGroups = function (r, kind) {
+            var map = {}, order = [];
+            r.offices.forEach(function (o) {
+                var key, label;
+                if (kind === 'Team') { key = 't' + (o.team || '-'); label = o.team || '(ไม่ระบุทีม)'; }
+                else if (TP_PROV_SEPARATE.indexOf(o.zip) !== -1) { key = 'z' + o.zip; label = o.name; }
+                else { var p = o.zip.slice(0, 2); key = 'p' + p; label = 'จ.' + (TP_PROVINCES[p] || ('รหัส ' + p + 'xxx')); }
+                var g = map[key];
+                if (!g) { g = map[key] = { key: key, label: label, sep: key.charAt(0) === 'z', n: 0, avgDom: 0, dom: 0, avgIntl: 0, intl: 0, prevDom: 0, prevIntl: 0 }; order.push(g); }
+                g.n++; g.avgDom += o.dom.avg || 0; g.dom += o.dom.target || 0; g.avgIntl += o.intl.avg || 0; g.intl += o.intl.target || 0;
+                g.prevDom += prevTargetOf('dom', r.yearTo, o.zip) || 0; g.prevIntl += prevTargetOf('intl', r.yearTo, o.zip) || 0;
+            });
+            if (kind === 'Team') {
+                if (typeof window.sortRevenueTeams === 'function') order.sort(function (a, b) { return window.sortRevenueTeams(a.label, b.label); });
+                else order.sort(function (a, b) { return a.label.localeCompare(b.label, 'th'); });
+            } else order.sort(function (a, b) { return (a.key.slice(1, 3) + (a.sep ? '1' : '0')).localeCompare(b.key.slice(1, 3) + (b.sep ? '1' : '0')); });
+            return order;
+        };
+        var summaryCols = function (r) {
+            var ny = be(r.yearTo + 1), py = be(r.yearTo);
+            var gr = function (a, b) { return b > 0 ? pctStr(a / b - 1) : '–'; };
+            var cols = [
+                { label: 'ที่ทำการ', get: function (g) { return g.n; }, raw: true },
+                { label: 'ค่าเฉลี่ยในประเทศ', get: function (g) { return g.avgDom; } }
+            ];
+            if (hasPrevTarget('dom', r.yearTo)) cols.push({ label: 'เป้าในประเทศ ' + py, get: function (g) { return g.prevDom; }, cls: 'text-blue-700' });
+            cols.push({ label: 'เป้าในประเทศ ' + ny, get: function (g) { return g.dom; }, cls: 'font-bold text-orange-700' });
+            cols.push({ label: '% จากค่าเฉลี่ย', get: function (g) { return gr(g.dom, g.avgDom); }, text: true, cls: 'text-gray-600' });
+            cols.push({ label: 'ค่าเฉลี่ยระหว่างประเทศ', get: function (g) { return g.avgIntl; } });
+            if (hasPrevTarget('intl', r.yearTo)) cols.push({ label: 'เป้าระหว่างประเทศ ' + py, get: function (g) { return g.prevIntl; }, cls: 'text-blue-700' });
+            cols.push({ label: 'เป้าระหว่างประเทศ ' + ny, get: function (g) { return g.intl; }, cls: 'font-bold text-orange-700' });
+            cols.push({ label: 'เป้ารวม ' + ny, get: function (g) { return g.dom + g.intl; }, cls: 'font-bold text-gray-900' });
+            cols.push({ label: 'สัดส่วนเป้ารวม', get: function (g, all) { return all > 0 ? ((g.dom + g.intl) / all * 100).toFixed(2) + '%' : '–'; }, text: true, cls: 'text-gray-600' });
+            return cols;
+        };
+        var renderSummaryTable = function (r, kind) {
+            var groups = summaryGroups(r, kind), cols = summaryCols(r);
+            var all = groups.reduce(function (a, g) { return a + g.dom + g.intl; }, 0);
+            var tot = { n: 0, avgDom: 0, dom: 0, avgIntl: 0, intl: 0, prevDom: 0, prevIntl: 0 };
+            groups.forEach(function (g) { Object.keys(tot).forEach(function (k) { tot[k] += g[k]; }); });
+            var td = function (c, g) { var v = c.get(g, all); return '<td class="py-2.5 px-3 text-right ' + (c.cls || '') + '">' + (c.text || c.raw ? v : fmt(v)) + '</td>'; };
+            var noun = kind === 'Team' ? 'ทีม' : 'จังหวัด';
+            document.getElementById('tpTitle' + kind).textContent = 'สรุปเป้าปี ' + be(r.yearTo + 1) + ' แยก' + noun + (kind === 'Prov' ? ' (34010, 47010 แยกจากจังหวัด)' : '');
+            document.getElementById('tpHead' + kind).innerHTML = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">' + noun + '</th>' +
+                cols.map(function (c) { return '<th class="py-3 px-3 text-right font-semibold">' + c.label + '</th>'; }).join('') + '</tr>';
+            document.getElementById('tpBody' + kind).innerHTML = groups.map(function (g, i) {
+                var tag = g.sep ? ' <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">แยกจากจังหวัด</span>' : '';
+                return '<tr class="border-b border-gray-100 ' + (i % 2 ? 'bg-gray-50/60' : '') + '"><td class="py-2.5 px-3 text-center text-gray-500">' + (i + 1) + '</td>' +
+                    '<td class="py-2.5 px-3 text-left font-semibold text-gray-800">' + esc(g.label) + tag + '</td>' +
+                    cols.map(function (c) { return td(c, g); }).join('') + '</tr>';
+            }).join('');
+            document.getElementById('tpFoot' + kind).innerHTML = '<tr><td class="py-3 px-3"></td><td class="py-3 px-3 text-left">รวม ' + groups.length + ' ' + (kind === 'Team' ? 'ทีม' : 'กลุ่ม') + '</td>' +
+                cols.map(function (c) { return td(c, tot); }).join('') + '</tr>';
+        };
+
         // ===== เป้ารายเดือน =====
         var monthTargetOf = function (o, g) {
             if (g !== 'all') return o[g].monthTarget || [];
@@ -823,6 +916,18 @@
                         }
                     }
                     XLSX.utils.book_append_sheet(wb, ws, g[1]);
+                });
+                // แผ่นสรุปแยกทีม / แยกจังหวัด
+                [['Team', 'สรุปแยกทีม'], ['Prov', 'สรุปแยกจังหวัด']].forEach(function (sk) {
+                    var groups = summaryGroups(r, sk[0]), cols = summaryCols(r);
+                    var all = groups.reduce(function (a, g) { return a + g.dom + g.intl; }, 0);
+                    var hd = ['ลำดับ', sk[0] === 'Team' ? 'ทีม' : 'จังหวัด'].concat(cols.map(function (c) { return c.label; }));
+                    var aoa = [['เป้าหมายรายได้ปี ' + be(r.yearTo + 1) + ' ' + sk[1]], hd];
+                    groups.forEach(function (g, i) { aoa.push([i + 1, g.label].concat(cols.map(function (c) { var v = c.get(g, all); return (c.text || c.raw) ? v : Math.round(v); }))); });
+                    var ws = XLSX.utils.aoa_to_sheet(aoa);
+                    ws['!cols'] = [{ wch: 7 }, { wch: 30 }].concat(cols.map(function () { return { wch: 18 }; }));
+                    for (var R = 2; R < aoa.length; R++) for (var C = 2; C < hd.length; C++) { var ref = XLSX.utils.encode_cell({ r: R, c: C }); if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].z = '#,##0'; }
+                    XLSX.utils.book_append_sheet(wb, ws, sk[1]);
                 });
                 // แผ่นเป้ารายเดือน (ในประเทศ / ระหว่างประเทศ / รวม)
                 [['dom', 'เป้ารายเดือน ในประเทศ'], ['intl', 'เป้ารายเดือน ระหว่างประเทศ'], ['all', 'เป้ารายเดือน รวม']].forEach(function (mg) {
