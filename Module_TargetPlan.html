@@ -21,89 +21,98 @@
         <p>หน้านี้ใช้ได้เฉพาะผู้ดูแลระบบ (admin)</p>
     </div>
 
-    <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-6">
-        <!-- ตั้งค่าเป้าหมายปีถัดไป -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการในประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
-                <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
-            </label>
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">เป้าในประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
-                <input id="tpDomFloor" type="text" inputmode="numeric" value="300,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าในประเทศต่ำกว่าค่านี้ ปรับเป็นค่านี้ ส่วนที่เหลือแบ่งตามสัดส่วน"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
-            </label>
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการระหว่างประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
-                <input id="tpTargetIntl" type="text" inputmode="numeric" value="13,000,000" onchange="onTargetPlanInput()"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
-            </label>
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">เป้าระหว่างประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
-                <input id="tpIntlFloor" type="text" inputmode="numeric" value="60,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าต่ำกว่าค่านี้ (รวมที่ไม่มีรายได้) ปรับเป็นค่านี้ ส่วนที่เหลือแบ่งตามสัดส่วน"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
-            </label>
-            <div class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">เป้าหมายรวม ปี <span class="tpNextYearText">2570</span> (บาท)</span>
-                <div class="border border-orange-200 bg-orange-50 rounded-lg px-3 py-2 text-right text-xl font-bold text-orange-700" id="tpTargetTotal">210,000,000</div>
-            </div>
-        </div>
+    <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-5">
+        <!-- ภาพรวม: เป้ารวม / ในประเทศ / ระหว่างประเทศ (#tpSummary เป็นที่ใส่ skeleton ตอนโหลดด้วย) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="tpSummary"></div>
 
-        <!-- ช่วงข้อมูลที่ใช้คำนวณ -->
-        <div class="flex flex-col md:flex-row md:items-end gap-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">ช่วงปีที่คำนวณ</span>
-                <span class="flex items-center gap-2">
-                    <select id="tpYearFrom" onchange="onTargetPlanInput()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-orange-500"></select>
-                    <span class="text-gray-500">ถึง</span>
-                    <select id="tpYearTo" onchange="onTargetPlanInput()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-orange-500"></select>
-                </span>
-            </label>
-            <label class="flex flex-col gap-1.5" id="tpCutoffWrap">
-                <span class="text-sm font-semibold text-gray-700">ปีล่าสุดใช้รายได้จริงถึงเดือน</span>
-                <select id="tpCutoffMonth" onchange="onTargetPlanInput()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-orange-500">
-                    <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option><option value="4">เม.ย.</option>
-                    <option value="5">พ.ค.</option><option value="6">มิ.ย.</option><option value="7">ก.ค.</option><option value="8">ส.ค.</option>
-                    <option value="9">ก.ย.</option><option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+        <!-- ตั้งค่าการคำนวณ (พับได้ จำสถานะในเบราว์เซอร์) -->
+        <details class="tp-settings rounded-xl border border-gray-200 bg-gray-50/60" id="tpSettings">
+            <summary class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 cursor-pointer select-none">
+                <span class="font-bold text-gray-800"><i class="fas fa-sliders-h text-gray-500 mr-1.5"></i>ตั้งค่าการคำนวณ</span>
+                <span class="text-xs text-gray-500 min-w-0" id="tpSettingsSummary"></span>
+                <i class="fas fa-chevron-down text-gray-400 text-xs ml-auto tp-settings-chev"></i>
+            </summary>
+            <div class="px-4 pb-4 flex flex-col gap-4 border-t border-gray-200 pt-4">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <fieldset class="tp-fieldset">
+                        <legend>บริการในประเทศ ปี <span class="tpNextYearText">2570</span></legend>
+                        <label class="tp-field"><span>เป้าหมายรวม (บาท)</span>
+                            <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()" class="tp-input"></label>
+                        <label class="tp-field"><span>ขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
+                            <input id="tpDomFloor" type="text" inputmode="numeric" value="300,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าในประเทศต่ำกว่าค่านี้ ปรับเป็นค่านี้" class="tp-input"></label>
+                    </fieldset>
+                    <fieldset class="tp-fieldset">
+                        <legend>บริการระหว่างประเทศ ปี <span class="tpNextYearText">2570</span></legend>
+                        <label class="tp-field"><span>เป้าหมายรวม (บาท)</span>
+                            <input id="tpTargetIntl" type="text" inputmode="numeric" value="13,000,000" onchange="onTargetPlanInput()" class="tp-input"></label>
+                        <label class="tp-field"><span>ขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
+                            <input id="tpIntlFloor" type="text" inputmode="numeric" value="60,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าต่ำกว่าค่านี้ (รวมที่ไม่มีรายได้) ปรับเป็นค่านี้" class="tp-input"></label>
+                    </fieldset>
+                    <fieldset class="tp-fieldset">
+                        <legend>ข้อมูลที่ใช้คำนวณ</legend>
+                        <label class="tp-field"><span>ช่วงปี</span>
+                            <span class="flex items-center gap-2">
+                                <select id="tpYearFrom" onchange="onTargetPlanInput()" class="tp-input tp-select"></select>
+                                <span class="text-gray-500 text-sm">ถึง</span>
+                                <select id="tpYearTo" onchange="onTargetPlanInput()" class="tp-input tp-select"></select>
+                            </span></label>
+                        <label class="tp-field" id="tpCutoffWrap"><span>ปีล่าสุดใช้รายได้จริงถึงเดือน</span>
+                            <select id="tpCutoffMonth" onchange="onTargetPlanInput()" class="tp-input tp-select">
+                                <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option><option value="4">เม.ย.</option>
+                                <option value="5">พ.ค.</option><option value="6">มิ.ย.</option><option value="7">ก.ค.</option><option value="8">ส.ค.</option>
+                                <option value="9">ก.ย.</option><option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+                            </select></label>
+                    </fieldset>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center gap-3 text-sm">
+                    <div class="text-gray-600">เป้าหมายรวม ปี <span class="tpNextYearText">2570</span>: <b class="text-orange-700" id="tpTargetTotal">210,000,000</b> บาท</div>
+                    <p class="text-xs text-gray-500 md:ml-auto" id="tpRangeHint"></p>
+                </div>
+                <!-- ข้อมูลระหว่างประเทศจากไฟล์ CSV -->
+                <div class="flex flex-col md:flex-row md:items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-gray-700">รายได้ระหว่างประเทศจากไฟล์ CSV</div>
+                        <div class="text-xs text-gray-500 mt-0.5" id="tpIntlFileStatus">ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้</div>
+                    </div>
+                    <label class="thp-btn-secondary cursor-pointer shrink-0"><i class="fas fa-file-csv"></i> เลือกไฟล์และบันทึก
+                        <input id="tpIntlFiles" type="file" accept=".csv" multiple class="hidden" onchange="handleTargetPlanIntlFiles(this)">
+                    </label>
+                </div>
+            </div>
+        </details>
+
+        <!-- วิธีคำนวณ / ข้อสังเกต -->
+        <details class="text-xs text-gray-500 -mt-2" id="tpNoteWrap">
+            <summary class="cursor-pointer select-none text-gray-600 hover:text-gray-800 w-fit"><i class="fas fa-info-circle mr-1"></i>วิธีคำนวณและข้อสังเกต</summary>
+            <p class="mt-2 leading-relaxed" id="tpNote"></p>
+        </details>
+
+        <!-- แท็บมุมมอง -->
+        <div class="flex flex-col gap-3">
+            <div class="tp-tabs" role="tablist" aria-label="มุมมองเป้าหมาย">
+                <button type="button" role="tab" id="tpTab-dom" data-tp-tab="dom" aria-controls="tpPanel-dom" onclick="setTargetPlanTab('dom')">ในประเทศ</button>
+                <button type="button" role="tab" id="tpTab-intl" data-tp-tab="intl" aria-controls="tpPanel-intl" onclick="setTargetPlanTab('intl')">ระหว่างประเทศ</button>
+                <button type="button" role="tab" id="tpTab-team" data-tp-tab="team" aria-controls="tpPanel-team" onclick="setTargetPlanTab('team')">สรุปแยกทีม</button>
+                <button type="button" role="tab" id="tpTab-prov" data-tp-tab="prov" aria-controls="tpPanel-prov" onclick="setTargetPlanTab('prov')">สรุปแยกจังหวัด</button>
+                <button type="button" role="tab" id="tpTab-mon" data-tp-tab="mon" aria-controls="tpPanel-mon" onclick="setTargetPlanTab('mon')">เป้ารายเดือน</button>
+            </div>
+            <!-- ตัวกรอง (ใช้กับ ในประเทศ / ระหว่างประเทศ / เป้ารายเดือน) -->
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-center" id="tpFilterBar">
+                <div class="relative w-full sm:w-72">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input id="tpSearch" type="search" placeholder="ค้นหาที่ทำการ / รหัสไปรษณีย์" oninput="renderTargetPlanTable()" class="tp-input tp-search w-full pl-9">
+                </div>
+                <select id="tpTeamFilter" onchange="renderTargetPlanTable()" class="tp-input tp-select w-full sm:w-60">
+                    <option value="">ทุกทีม</option>
                 </select>
-            </label>
-            <p class="text-xs text-gray-500 md:pb-2" id="tpRangeHint"></p>
-        </div>
-
-        <!-- ข้อมูลระหว่างประเทศจากไฟล์ (ใช้เฉพาะหน้านี้ ไม่นำเข้าชีต) -->
-        <div class="flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-            <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-gray-700">ข้อมูลรายได้ระหว่างประเทศจากไฟล์ CSV</div>
-                <div class="text-xs text-gray-500 mt-0.5" id="tpIntlFileStatus">ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้</div>
+                <span class="text-xs text-gray-500 sm:ml-auto" id="tpFilterHint"></span>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                <label class="thp-btn-secondary cursor-pointer"><i class="fas fa-file-csv"></i> เลือกไฟล์และบันทึก (หลายไฟล์ได้)
-                    <input id="tpIntlFiles" type="file" accept=".csv" multiple class="hidden" onchange="handleTargetPlanIntlFiles(this)">
-                </label>
-            </div>
-        </div>
-
-        <!-- สรุปรวม -->
-        <div class="flex flex-col gap-4" id="tpSummary"></div>
-        <p class="text-xs text-gray-500 -mt-3" id="tpNote"></p>
-
-        <!-- ตัวกรอง -->
-        <div class="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <input id="tpSearch" type="search" placeholder="ค้นหาที่ทำการ / รหัสไปรษณีย์" oninput="renderTargetPlanTable()"
-                class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-72 outline-none focus:border-orange-500">
-            <select id="tpTeamFilter" onchange="renderTargetPlanTable()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-60 outline-none focus:border-orange-500">
-                <option value="">ทุกทีม</option>
-            </select>
         </div>
 
         <!-- ตารางบริการในประเทศ -->
-        <div class="flex flex-col gap-2">
-            <button type="button" onclick="toggleTargetPlanTable('Dom')" aria-expanded="true" aria-controls="tpWrapDom" id="tpToggleDom"
-                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
-                <i id="tpChevDom" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
-                <h4 class="text-lg font-bold text-gray-800" id="tpTitleDom">บริการในประเทศ</h4>
-            </button>
+        <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="dom" id="tpPanel-dom" aria-labelledby="tpTab-dom">
+            <div id="tpStatsDom" class="tp-stats"></div>
+            <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleDom">บริการในประเทศ</h4>
             <div class="table-container overflow-x-auto w-full" id="tpWrapDom">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadDom"></thead>
@@ -114,12 +123,9 @@
         </div>
 
         <!-- ตารางบริการระหว่างประเทศ -->
-        <div class="flex flex-col gap-2">
-            <button type="button" onclick="toggleTargetPlanTable('Intl')" aria-expanded="true" aria-controls="tpWrapIntl" id="tpToggleIntl"
-                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
-                <i id="tpChevIntl" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
-                <h4 class="text-lg font-bold text-gray-800" id="tpTitleIntl">บริการระหว่างประเทศ</h4>
-            </button>
+        <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="intl" id="tpPanel-intl" aria-labelledby="tpTab-intl">
+            <div id="tpStatsIntl" class="tp-stats"></div>
+            <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleIntl">บริการระหว่างประเทศ</h4>
             <div class="table-container overflow-x-auto w-full" id="tpWrapIntl">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadIntl"></thead>
@@ -130,12 +136,8 @@
         </div>
 
         <!-- สรุปเป้าปีหน้า แยกทีม -->
-        <div class="flex flex-col gap-2">
-            <button type="button" onclick="toggleTargetPlanTable('Team')" aria-expanded="true" aria-controls="tpWrapTeam" id="tpToggleTeam"
-                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
-                <i id="tpChevTeam" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
-                <h4 class="text-lg font-bold text-gray-800" id="tpTitleTeam">สรุปเป้าปีหน้า แยกทีม</h4>
-            </button>
+        <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="team" id="tpPanel-team" aria-labelledby="tpTab-team">
+            <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleTeam">สรุปเป้าปีหน้า แยกทีม</h4>
             <div class="table-container overflow-x-auto w-full" id="tpWrapTeam">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadTeam"></thead>
@@ -146,12 +148,8 @@
         </div>
 
         <!-- สรุปเป้าปีหน้า แยกจังหวัด -->
-        <div class="flex flex-col gap-2">
-            <button type="button" onclick="toggleTargetPlanTable('Prov')" aria-expanded="true" aria-controls="tpWrapProv" id="tpToggleProv"
-                class="flex items-center gap-2 text-left w-full rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
-                <i id="tpChevProv" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
-                <h4 class="text-lg font-bold text-gray-800" id="tpTitleProv">สรุปเป้าปีหน้า แยกจังหวัด</h4>
-            </button>
+        <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="prov" id="tpPanel-prov" aria-labelledby="tpTab-prov">
+            <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleProv">สรุปเป้าปีหน้า แยกจังหวัด</h4>
             <div class="table-container overflow-x-auto w-full" id="tpWrapProv">
                 <table class="min-w-full whitespace-nowrap text-sm">
                     <thead class="bg-theme-black text-white" id="tpHeadProv"></thead>
@@ -162,13 +160,9 @@
         </div>
 
         <!-- ตารางเป้ารายเดือน -->
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-3 hidden" role="tabpanel" data-tp-panel="mon" id="tpPanel-mon" aria-labelledby="tpTab-mon">
             <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
-                <button type="button" onclick="toggleTargetPlanTable('Mon')" aria-expanded="true" aria-controls="tpWrapMon" id="tpToggleMon"
-                    class="flex items-center gap-2 text-left rounded-lg px-1 py-1 hover:bg-gray-50" title="คลิกเพื่อย่อ/ขยายตาราง">
-                    <i id="tpChevMon" class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200"></i>
-                    <h4 class="text-lg font-bold text-gray-800" id="tpTitleMon">เป้ารายเดือน</h4>
-                </button>
+                <h4 class="text-base md:text-lg font-bold text-gray-800" id="tpTitleMon">เป้ารายเดือน</h4>
                 <select id="tpMonGroup" onchange="renderTargetPlanTable()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-60 outline-none focus:border-orange-500">
                     <option value="dom">บริการในประเทศ</option>
                     <option value="intl">บริการระหว่างประเทศ</option>
@@ -186,6 +180,38 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* หน้า วางแผนเป้าหมายรายได้ (จัดใหม่ 2026-11-09) */
+    #page-target-plan .tp-input { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; text-align: right; font-weight: 600; outline: none; min-height: 40px; }
+    #page-target-plan .tp-input:focus { border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
+    #page-target-plan .tp-select { text-align: left; font-weight: 500; }
+    #page-target-plan .tp-search { text-align: left; font-weight: 400; padding-left: 2.25rem; }
+    #page-target-plan .tp-fieldset { display: flex; flex-direction: column; gap: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: #fff; padding: 0.75rem 1rem 1rem; min-width: 0; }
+    #page-target-plan .tp-fieldset legend { padding: 0 0.35rem; font-size: 0.875rem; font-weight: 700; color: #1f2937; }
+    #page-target-plan .tp-field { display: flex; flex-direction: column; gap: 0.35rem; }
+    #page-target-plan .tp-field > span:first-child { font-size: 0.8125rem; color: #4b5563; font-weight: 600; }
+    #page-target-plan .tp-settings > summary { list-style: none; }
+    #page-target-plan .tp-settings > summary::-webkit-details-marker { display: none; }
+    #page-target-plan .tp-settings[open] .tp-settings-chev { transform: rotate(180deg); }
+    #page-target-plan #tpNoteWrap > summary { list-style: none; }
+    #page-target-plan #tpNoteWrap > summary::-webkit-details-marker { display: none; }
+    #page-target-plan .tp-tabs { display: flex; gap: 0.25rem; overflow-x: auto; border-bottom: 1px solid #e5e7eb; scrollbar-width: none; }
+    #page-target-plan .tp-tabs::-webkit-scrollbar { display: none; }
+    #page-target-plan .tp-tabs > button { flex: 0 0 auto; padding: 0.625rem 1rem; font-size: 0.875rem; font-weight: 600; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; min-height: 44px; }
+    #page-target-plan .tp-tabs > button:hover { color: #1f2937; }
+    #page-target-plan .tp-tabs > button[aria-selected="true"] { color: #c2410c; border-bottom-color: #c2410c; }
+    #page-target-plan .tp-tabs > button:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; border-radius: 0.375rem; }
+    #page-target-plan .tp-stats { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.8125rem; color: #6b7280; }
+    #page-target-plan .tp-stats b { color: #1f2937; font-weight: 700; font-variant-numeric: tabular-nums; }
+    #page-target-plan .tp-kpi { border: 1px solid #e5e7eb; border-radius: 0.75rem; background: #fff; padding: 1rem 1.125rem; display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+    #page-target-plan .tp-kpi-label { font-size: 0.8125rem; color: #4b5563; font-weight: 600; }
+    #page-target-plan .tp-kpi-value { font-size: 1.75rem; line-height: 1.2; font-weight: 800; color: #111827; font-variant-numeric: tabular-nums; }
+    #page-target-plan .tp-kpi-sub { font-size: 0.75rem; color: #6b7280; line-height: 1.5; }
+    #page-target-plan .tp-kpi.is-total { background: #fff7ed; border-color: #fed7aa; }
+    #page-target-plan .tp-kpi.is-total .tp-kpi-value { color: #c2410c; }
+    #page-target-plan table td, #page-target-plan table th { font-variant-numeric: tabular-nums; }
+</style>
 
 <script>
     ;(function () {
@@ -630,7 +656,38 @@
             try { localStorage.setItem(TP_COLLAPSE_KEY, JSON.stringify(st)); } catch (e) {}
             applyTableCollapse(k, st[k]);
         };
-        setTimeout(function () { var st = readCollapsed(); ['Dom', 'Intl', 'Team', 'Prov', 'Mon'].forEach(function (k) { applyTableCollapse(k, !!st[k]); }); }, 0);
+        // แท็บมุมมอง (จำแท็บล่าสุดในเบราว์เซอร์) + สถานะพับแผงตั้งค่า
+        var TP_TAB_KEY = 'thp_tp_tab', TP_SET_KEY = 'thp_tp_settings_open';
+        window.setTargetPlanTab = function (k) {
+            var tabs = ['dom', 'intl', 'team', 'prov', 'mon'];
+            if (tabs.indexOf(k) === -1) k = 'dom';
+            tabs.forEach(function (t) {
+                var b = document.getElementById('tpTab-' + t), p = document.getElementById('tpPanel-' + t);
+                if (b) { b.setAttribute('aria-selected', t === k ? 'true' : 'false'); b.tabIndex = t === k ? 0 : -1; }
+                if (p) p.classList.toggle('hidden', t !== k);
+            });
+            var fb = document.getElementById('tpFilterBar');
+            if (fb) fb.classList.toggle('hidden', k === 'team' || k === 'prov');
+            state.tab = k;
+            try { localStorage.setItem(TP_TAB_KEY, k); } catch (e) {}
+        };
+        setTimeout(function () {
+            var k = 'dom'; try { k = localStorage.getItem(TP_TAB_KEY) || 'dom'; } catch (e) {}
+            setTargetPlanTab(k);
+            var tl = document.querySelector('#page-target-plan .tp-tabs');
+            if (tl) tl.addEventListener('keydown', function (ev) {
+                if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+                var bs = Array.prototype.slice.call(tl.querySelectorAll('[role="tab"]')), i = bs.indexOf(document.activeElement);
+                if (i < 0) return;
+                var n = bs[(i + (ev.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length];
+                n.focus(); setTargetPlanTab(n.getAttribute('data-tp-tab')); ev.preventDefault();
+            });
+            var st = document.getElementById('tpSettings');
+            if (st) {
+                try { if (localStorage.getItem(TP_SET_KEY) === '1') st.open = true; } catch (e) {}
+                st.addEventListener('toggle', function () { try { localStorage.setItem(TP_SET_KEY, st.open ? '1' : '0'); } catch (e) {} });
+            }
+        }, 0);
 
         window.sortTargetPlan = function (key, grp) {
             if (state.sortKey === key && state.sortGroup === grp) state.sortDir = -state.sortDir;
@@ -672,26 +729,40 @@
             var card = function (c) {
                 return '<div class="rounded-xl border border-gray-200 bg-white p-4"><div class="text-xs text-gray-500 mb-1">' + c[0] + '</div><div class="text-2xl font-bold ' + c[3] + '">' + c[1] + '</div><div class="text-xs text-gray-500 mt-1">' + c[2] + '</div></div>';
             };
-            document.getElementById('tpSummary').innerHTML = GROUPS.map(function (g) {
-                var k = g[0];
-                var cards = r.years.map(function (y) {
-                    if (y === to && r.partial) {
-                        var act = tot(function (o) { return o[k].act; }), full = tot(function (o) { return o[k].full; });
-                        return ['รายได้ปี ' + be(y) + ' (รวมประมาณการ)', fmt(full), 'จริง ม.ค.–' + TH_SHORT[r.actualMonths] + ' ' + fmt(act) + ' + ประมาณ ' + fmt(full - act), 'text-gray-900'];
-                    }
-                    return ['รายได้ปี ' + be(y), fmt(tot(function (o) { return o[k].y[y]; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'];
+            // ภาพรวม 3 ตัวเลข: เป้ารวม / ในประเทศ / ระหว่างประเทศ (เทียบค่าเฉลี่ยและเป้าปีก่อน)
+            var tDom = tot(function (o) { return o.dom.target; }), tIntl = tot(function (o) { return o.intl.target; });
+            var pDomT = hasPrevTarget('dom', to) ? tot(function (o) { return prevTargetOf('dom', to, o.zip); }) : null;
+            var pIntlT = hasPrevTarget('intl', to) ? tot(function (o) { return prevTargetOf('intl', to, o.zip); }) : null;
+            var vsPrev = function (cur, prev) { return prev ? 'เป้าปี ' + be(to) + ' ' + fmt(prev) + ' (' + pctStr(cur / prev - 1) + ')' : ''; };
+            var kpi = function (cls, label, value, subs) {
+                return '<div class="tp-kpi ' + cls + '"><div class="tp-kpi-label">' + label + '</div><div class="tp-kpi-value">' + value + '</div>' +
+                    subs.filter(Boolean).map(function (x) { return '<div class="tp-kpi-sub">' + x + '</div>'; }).join('') + '</div>';
+            };
+            var bothPrev = pDomT !== null && pIntlT !== null ? pDomT + pIntlT : null;
+            document.getElementById('tpSummary').innerHTML =
+                kpi('is-total', 'เป้าหมายรวม ปี ' + be(to + 1), fmt(tDom + tIntl), [vsPrev(tDom + tIntl, bothPrev), all.length + ' ที่ทำการ · หน่วย บาท']) +
+                kpi('', 'บริการในประเทศ', fmt(tDom), [pctStr(r.pDom) + ' จากค่าเฉลี่ย ' + r.years.length + ' ปี', vsPrev(tDom, pDomT),
+                    r.domTopUp ? 'ส่วนที่ขาด <b class="text-orange-700">+' + fmt(r.domTopUp) + '</b> เพิ่มให้ ' + esc(r.domTopName) : '']) +
+                kpi('', 'บริการระหว่างประเทศ', fmt(tIntl), [pctStr(r.pIntl) + ' จากค่าเฉลี่ย ' + r.years.length + ' ปี', vsPrev(tIntl, pIntlT),
+                    r.floorCount ? 'ใช้ขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ' + r.floorCount + ' แห่ง' : '']);
+            // สถิติรายได้ย่อในแต่ละแท็บ
+            GROUPS.forEach(function (g) {
+                var k = g[0], items = r.years.map(function (y) {
+                    if (y === to && r.partial) return 'รายได้ ' + be(y) + ' (รวมประมาณการ) <b>' + fmt(tot(function (o) { return o[k].full; })) + '</b>';
+                    return 'รายได้ ' + be(y) + ' <b>' + fmt(tot(function (o) { return o[k].y[y]; })) + '</b>';
                 });
-                cards.push(['ค่าเฉลี่ยรายได้ ' + r.years.length + ' ปี', fmt(tot(function (o) { return o[k].avg; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900']);
-                if (hasPrevTarget(k, to)) {
-                    var pt = tot(function (o) { return prevTargetOf(k, to, o.zip); });
-                    cards.push([prevTargetLabel(k, to).replace('เป้า ', 'เป้าปี ') + ' (ที่ตั้งไว้)', fmt(pt), 'รวมที่ทำการในตาราง (บาท)', 'text-blue-700']);
-                }
-                cards.push(['เป้าปี ' + be(to + 1) + ' (' + pctStr(k === 'dom' ? r.pDom : r.pIntl) + ' จากค่าเฉลี่ย)', fmt(tot(function (o) { return o[k].target; })), 'บาท', 'text-orange-700']);
-                if (k === 'dom' && r.domTopUp) cards.push(['ส่วนที่ขาด เพิ่มให้ ' + r.domTopName, '+' + fmt(r.domTopUp), 'รายได้ในประเทศปี ' + be(to) + ' สูงสุด (บาท)', 'text-orange-700']);
-                return '<div class="rounded-xl border ' + (k === 'dom' ? 'border-orange-100 bg-orange-50/30' : 'border-blue-100 bg-blue-50/30') + ' p-3">' +
-                    '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
-                    '<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-' + Math.min(6, cards.length) + ' gap-3">' + cards.map(card).join('') + '</div></div>';
-            }).join('');
+                items.push('ค่าเฉลี่ย ' + r.years.length + ' ปี <b>' + fmt(tot(function (o) { return o[k].avg; })) + '</b>');
+                if (hasPrevTarget(k, to)) items.push(prevTargetLabel(k, to) + ' <b class="!text-blue-700">' + fmt(tot(function (o) { return prevTargetOf(k, to, o.zip); })) + '</b>');
+                items.push('เป้า ' + be(to + 1) + ' <b class="!text-orange-700">' + fmt(tot(function (o) { return o[k].target; })) + '</b>');
+                var el = document.getElementById(k === 'dom' ? 'tpStatsDom' : 'tpStatsIntl');
+                if (el) el.innerHTML = items.map(function (x) { return '<span>' + x + '</span>'; }).join('');
+            });
+            // สรุปค่าตั้งในหัวแผงตั้งค่า
+            var ss = document.getElementById('tpSettingsSummary');
+            if (ss) ss.textContent = 'ในประเทศ ' + fmt(parseNum(document.getElementById('tpTargetDom').value)) + ' · ระหว่างประเทศ ' + fmt(parseNum(document.getElementById('tpTargetIntl').value)) +
+                ' · ข้อมูลปี ' + be(r.years[0]) + '–' + be(to) + (r.partial ? ' (ถึง ' + TH_SHORT[r.actualMonths] + ')' : '');
+            var fh = document.getElementById('tpFilterHint');
+            if (fh) { var q = (document.getElementById('tpSearch').value || '').trim(), tf = document.getElementById('tpTeamFilter').value; fh.textContent = (q || tf) ? 'แสดง ' + filteredOffices('dom').length + ' จาก ' + all.length + ' ที่ทำการ' : ''; }
             var domFloorNote = ' · ในประเทศ: เป้า = ค่าเฉลี่ย × ' + pctStr(r.pDom) + ' ทุกที่ทำการ รวม ' + fmt(r.domSum) + ' บาท (ไม่เกินเป้ารวม · เพิ่มได้สูงสุด ' + pctStr(r.domMaxPct) + ')' +
                 (r.domTopUp ? ' · ส่วนที่ยังขาด ' + fmt(r.domTopUp) + ' บาท เพิ่มให้ ' + r.domTopName + ' (รายได้ในประเทศปี ' + be(to) + ' สูงสุด)' : '') +
                 (r.domPctCapped ? ' ⚠ % ที่กรอกทำให้เกินเป้ารวม จึงใช้ % สูงสุดแทน' : '') +
@@ -708,8 +779,8 @@
             renderSummaryTable(r, 'Team');
             renderSummaryTable(r, 'Prov');
             renderMonthTable(r);
-            document.getElementById('tpTitleDom').textContent = 'บริการในประเทศ · เป้า ' + fmt(tot(function (o) { return o.dom.target; })) + ' บาท (' + pctStr(r.pDom) + ' จากค่าเฉลี่ย)';
-            document.getElementById('tpTitleIntl').textContent = 'บริการระหว่างประเทศ · เป้า ' + fmt(tot(function (o) { return o.intl.target; })) + ' บาท (' + pctStr(r.pIntl) + ' จากค่าเฉลี่ย)';
+            document.getElementById('tpTitleDom').textContent = 'เป้าบริการในประเทศ รายที่ทำการ';
+            document.getElementById('tpTitleIntl').textContent = 'เป้าบริการระหว่างประเทศ รายที่ทำการ';
         };
 
         // หด/ขยายคอลัมน์ย่อยของปีปัจจุบัน (จริง ม.ค.–x + ประมาณรายเดือน) เพราะมีคอลัมน์ "รวม" แล้ว — ค่าเริ่มต้นหด (ผู้ใช้กำหนด 2026-11-09), จำในเบราว์เซอร์; Excel ยังมีครบ
