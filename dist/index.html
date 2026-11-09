@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1835';
+    var APP_VERSION = 'Ver. 2026.1109.1837';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17017,7 +17017,7 @@
 
     <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-6">
         <!-- ตั้งค่าเป้าหมายปีถัดไป -->
-        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการในประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
                 <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()"
@@ -17026,11 +17026,6 @@
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าในประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
                 <input id="tpDomFloor" type="text" inputmode="numeric" value="300,000" onchange="onTargetPlanInput()" title="ที่ทำการที่เป้าในประเทศต่ำกว่าค่านี้ ปรับเป็นค่านี้ ส่วนที่เหลือแบ่งตามสัดส่วน"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
-            </label>
-            <label class="flex flex-col gap-1.5">
-                <span class="text-sm font-semibold text-gray-700">ในประเทศ: เพิ่มจากค่าเฉลี่ย (%) ทุกที่ทำการ</span>
-                <input id="tpDomPct" type="text" inputmode="decimal" value="" placeholder="ว่าง = สูงสุดที่ไม่เกินเป้า" onchange="onTargetPlanInput()" title="เป้ารายที่ทำการ = ค่าเฉลี่ย 3 ปี × (1 + %) ผลรวมต้องไม่เกินเป้าหมายบริการในประเทศ ถ้าเกินจะใช้ % สูงสุดที่ทำได้"
                     class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
             </label>
             <label class="flex flex-col gap-1.5">
@@ -17536,7 +17531,7 @@
                 targetIntl: parseNum(document.getElementById('tpTargetIntl').value),
                 intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
                 domFloor: parseNum(document.getElementById('tpDomFloor').value),
-                domPct: (function () { var v = String(document.getElementById('tpDomPct').value || '').replace(/[^0-9.\-]/g, ''); return v === '' ? null : parseFloat(v); })(),
+                domPct: null, // ใช้ % สูงสุดที่ไม่เกินเป้ารวมเสมอ (ผู้ใช้เอาช่องกรอก % ออก 2026-11-09)
                 intlOverride: state.intlFile ? state.intlFile.years : null,
                 teamMap: buildTeamMap(window.__tpTargets),
                 prevDom: prevMapOf('dom', to), prevIntl: prevMapOf('intl', to)
