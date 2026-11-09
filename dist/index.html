@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1902';
+    var APP_VERSION = 'Ver. 2026.1109.1910';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17727,7 +17727,8 @@
                 else if (TP_PROV_SEPARATE.indexOf(o.zip) !== -1) { key = 'z' + o.zip; label = o.name; }
                 else { var p = o.zip.slice(0, 2); key = 'p' + p; label = 'จ.' + (TP_PROVINCES[p] || ('รหัส ' + p + 'xxx')); }
                 var g = map[key];
-                if (!g) { g = map[key] = { key: key, label: label, sep: key.charAt(0) === 'z', n: 0, avgDom: 0, dom: 0, avgIntl: 0, intl: 0, prevDom: 0, prevIntl: 0 }; order.push(g); }
+                if (!g) { g = map[key] = { key: key, label: label, sep: key.charAt(0) === 'z', n: 0, avgDom: 0, dom: 0, avgIntl: 0, intl: 0, prevDom: 0, prevIntl: 0, offices: [] }; order.push(g); }
+                g.offices.push(o);
                 g.n++; g.avgDom += o.dom.avg || 0; g.dom += o.dom.target || 0; g.avgIntl += o.intl.avg || 0; g.intl += o.intl.target || 0;
                 g.prevDom += prevTargetOf('dom', r.yearTo, o.zip) || 0; g.prevIntl += prevTargetOf('intl', r.yearTo, o.zip) || 0;
             });
@@ -17754,6 +17755,17 @@
             cols.push({ label: 'สัดส่วนเป้ารวม', get: function (g, all) { return all > 0 ? ((g.dom + g.intl) / all * 100).toFixed(2) + '%' : '–'; }, text: true, cls: 'text-gray-600' });
             return cols;
         };
+        // คลิกแถวทีม/จังหวัด → แสดงรายที่ทำการในกลุ่มนั้น (ผู้ใช้ขอ 2026-11-09)
+        var officeAsGroup = function (r, o) {
+            return { label: o.name, n: 1, avgDom: o.dom.avg || 0, dom: o.dom.target || 0, avgIntl: o.intl.avg || 0, intl: o.intl.target || 0,
+                prevDom: prevTargetOf('dom', r.yearTo, o.zip) || 0, prevIntl: prevTargetOf('intl', r.yearTo, o.zip) || 0, team: o.team };
+        };
+        window.toggleTargetPlanSummary = function (kind, idx) {
+            var g = summaryGroups(state.result, kind)[idx]; if (!g) return;
+            var key = g.key, ex = state.sumOpen || (state.sumOpen = {});
+            ex[kind + '|' + key] = !ex[kind + '|' + key];
+            renderSummaryTable(state.result, kind);
+        };
         var renderSummaryTable = function (r, kind) {
             var groups = summaryGroups(r, kind), cols = summaryCols(r);
             var all = groups.reduce(function (a, g) { return a + g.dom + g.intl; }, 0);
@@ -17764,11 +17776,24 @@
             document.getElementById('tpTitle' + kind).textContent = 'สรุปเป้าปี ' + be(r.yearTo + 1) + ' แยก' + noun + (kind === 'Prov' ? ' (34010, 47010 แยกจากจังหวัด)' : '');
             document.getElementById('tpHead' + kind).innerHTML = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">' + noun + '</th>' +
                 cols.map(function (c) { return '<th class="py-3 px-3 text-right font-semibold">' + c.label + '</th>'; }).join('') + '</tr>';
+            var ex = state.sumOpen || {};
             document.getElementById('tpBody' + kind).innerHTML = groups.map(function (g, i) {
                 var tag = g.sep ? ' <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">แยกจากจังหวัด</span>' : '';
-                return '<tr class="border-b border-gray-100 ' + (i % 2 ? 'bg-gray-50/60' : '') + '"><td class="py-2.5 px-3 text-center text-gray-500">' + (i + 1) + '</td>' +
-                    '<td class="py-2.5 px-3 text-left font-semibold text-gray-800">' + esc(g.label) + tag + '</td>' +
+                var open = !!ex[kind + '|' + g.key];
+                var html = '<tr class="border-b border-gray-100 cursor-pointer hover:bg-orange-50/60 ' + (open ? 'bg-orange-50/40' : (i % 2 ? 'bg-gray-50/60' : '')) + '" data-kind="' + kind + '" data-idx="' + i + '" onclick="toggleTargetPlanSummary(this.dataset.kind, Number(this.dataset.idx))" title="คลิกเพื่อดูรายที่ทำการ" aria-expanded="' + open + '">' +
+                    '<td class="py-2.5 px-3 text-center text-gray-500">' + (i + 1) + '</td>' +
+                    '<td class="py-2.5 px-3 text-left font-semibold text-gray-800"><i class="fas fa-chevron-' + (open ? 'down' : 'right') + ' text-xs text-gray-400 mr-2 w-3"></i>' + esc(g.label) + tag + '</td>' +
                     cols.map(function (c) { return td(c, g); }).join('') + '</tr>';
+                if (open) {
+                    html += g.offices.slice().sort(function (a, b) { return (b.dom.target + b.intl.target) - (a.dom.target + a.intl.target); }).map(function (o, j) {
+                        var og = officeAsGroup(r, o);
+                        var sub = kind === 'Prov' && o.team ? ' <span class="text-xs text-gray-400">' + esc(o.team) + '</span>' : '';
+                        return '<tr class="border-b border-gray-100 bg-white text-gray-700"><td class="py-2 px-3 text-center text-xs text-gray-400">' + (i + 1) + '.' + (j + 1) + '</td>' +
+                            '<td class="py-2 px-3 pl-10 text-left">' + esc(o.name) + sub + '</td>' +
+                            cols.map(function (c) { var v = c.get(og, all); return '<td class="py-2 px-3 text-right ' + (c.cls || '').replace('font-bold', 'font-semibold') + '">' + (c.text || c.raw ? (c.raw ? '' : v) : fmt(v)) + '</td>'; }).join('') + '</tr>';
+                    }).join('');
+                }
+                return html;
             }).join('');
             document.getElementById('tpFoot' + kind).innerHTML = '<tr><td class="py-3 px-3"></td><td class="py-3 px-3 text-left">รวม ' + groups.length + ' ' + (kind === 'Team' ? 'ทีม' : 'กลุ่ม') + '</td>' +
                 cols.map(function (c) { return td(c, tot); }).join('') + '</tr>';
