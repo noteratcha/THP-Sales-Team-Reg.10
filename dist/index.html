@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1203';
+    var APP_VERSION = 'Ver. 2026.1109.1254';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17014,7 +17014,7 @@
 
     <div id="targetPlanBody" class="p-4 md:p-8 flex flex-col gap-6">
         <!-- ตั้งค่าเป้าหมายปีถัดไป -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการในประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
                 <input id="tpTargetDom" type="text" inputmode="numeric" value="197,000,000" onchange="onTargetPlanInput()"
@@ -17023,6 +17023,11 @@
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าหมายบริการระหว่างประเทศ ปี <span class="tpNextYearText">2570</span> (บาท)</span>
                 <input id="tpTargetIntl" type="text" inputmode="numeric" value="13,000,000" onchange="onTargetPlanInput()"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
+            </label>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-sm font-semibold text-gray-700">เป้าระหว่างประเทศขั้นต่ำต่อที่ทำการ (บาท/ปี)</span>
+                <input id="tpIntlFloor" type="text" inputmode="numeric" value="12,000" onchange="onTargetPlanInput()" title="ค่าแนะนำ 12,000 บาท/ปี (1,000 บาท/เดือน) — เทียบงานส่งต่างประเทศราว 1–2 ชิ้นต่อเดือน"
                     class="border border-gray-300 rounded-lg px-3 py-2 text-right font-semibold focus:border-orange-500 focus:ring-1 focus:ring-orange-200 outline-none">
             </label>
             <div class="flex flex-col gap-1.5">
@@ -17132,13 +17137,39 @@
             });
             var tot = sumKeys(list);
             var pDom = tot.avgDom > 0 ? (opts.targetDom || 0) / tot.avgDom - 1 : 0;
-            var pIntl = tot.avgIntl > 0 ? (opts.targetIntl || 0) / tot.avgIntl - 1 : 0;
+            var intlTotal = opts.targetIntl || 0;
+            var pIntl = tot.avgIntl > 0 ? intlTotal / tot.avgIntl - 1 : 0;
+
+            // เป้าระหว่างประเทศ: แบ่งตามสัดส่วนค่าเฉลี่ยเดิม แต่ไม่ต่ำกว่าขั้นต่ำ (opts.intlFloor บาท/ปี)
+            // ที่ทำการที่ต่ำกว่าขั้นต่ำ → ตั้งเป็นขั้นต่ำ แล้วแบ่งงบที่เหลือให้ที่ทำการอื่นตามสัดส่วนใหม่ วนจนนิ่ง (ผลรวมยังเท่าเป้ารวม)
+            var floor = Math.max(0, opts.intlFloor || 0);
+            var floorTooHigh = false;
+            list.forEach(function (o) { o.intlAtFloor = false; });
+            if (list.length && floor * list.length >= intlTotal) {
+                floorTooHigh = floor > 0;
+                list.forEach(function (o) { o.targetIntl = intlTotal / list.length; o.intlAtFloor = floor > 0; });
+            } else {
+                var pool = list.slice();
+                for (var guard = 0; guard < list.length + 1; guard++) {
+                    var budget = intlTotal - (list.length - pool.length) * floor;
+                    var base = pool.reduce(function (a, o) { return a + o.avgIntl; }, 0);
+                    var below = [];
+                    pool.forEach(function (o) {
+                        o.targetIntl = base > 0 ? budget * o.avgIntl / base : budget / pool.length;
+                        if (o.targetIntl < floor) below.push(o);
+                    });
+                    if (!below.length) break;
+                    below.forEach(function (o) { o.targetIntl = floor; o.intlAtFloor = true; });
+                    pool = pool.filter(function (o) { return !o.intlAtFloor; });
+                    if (!pool.length) break;
+                }
+            }
             list.forEach(function (o) {
                 o.targetDom = o.avgDom * (1 + pDom);
-                o.targetIntl = o.avgIntl * (1 + pIntl);
                 o.target = o.targetDom + o.targetIntl;
             });
-            return { years: years, lastMonth: lastMonth, pDom: pDom, pIntl: pIntl, offices: list, totals: sumKeys(list) };
+            var floorCount = list.filter(function (o) { return o.intlAtFloor; }).length;
+            return { years: years, lastMonth: lastMonth, pDom: pDom, pIntl: pIntl, intlFloor: floor, floorCount: floorCount, floorTooHigh: floorTooHigh, offices: list, totals: sumKeys(list) };
         };
 
         var buildTeamMap = function (targets) {
@@ -17157,6 +17188,7 @@
                 currentYear: new Date().getFullYear(),
                 targetDom: parseNum(document.getElementById('tpTargetDom').value),
                 targetIntl: parseNum(document.getElementById('tpTargetIntl').value),
+                intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
                 teamMap: buildTeamMap(window.__tpTargets)
             });
             var teams = Array.from(new Set(state.result.offices.map(function (o) { return o.team; }).filter(Boolean)));
@@ -17169,7 +17201,7 @@
         };
 
         window.onTargetPlanInput = function () {
-            ['tpTargetDom', 'tpTargetIntl'].forEach(function (id) {
+            ['tpTargetDom', 'tpTargetIntl', 'tpIntlFloor'].forEach(function (id) {
                 var el = document.getElementById(id);
                 el.value = parseNum(el.value).toLocaleString('th-TH');
             });
@@ -17233,7 +17265,9 @@
             document.getElementById('tpNote').textContent = (lm
                 ? 'ปี ' + be(y[2]) + ' มีข้อมูลถึงเดือน' + TH_SHORT[lm] + (lm < 12 ? ' เดือนที่เหลือประมาณจากค่าเฉลี่ยรายเดือน ม.ค.–' + TH_SHORT[lm] + ' ของแต่ละที่ทำการ' : '')
                 : 'ยังไม่มีข้อมูลรายได้ปี ' + be(y[2])) +
-                ' · ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · ระหว่างประเทศ = กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ"';
+                ' · ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · ระหว่างประเทศ = กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ"' +
+                (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
+                    : (r.floorCount ? ' · เป้าระหว่างประเทศต่ำกว่าขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ตั้งเป็นขั้นต่ำ ' + r.floorCount + ' แห่ง ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
 
             var cols = colDefs(r);
             var th = function (key, label, align) {
@@ -17253,7 +17287,12 @@
                     '<td class="py-2.5 px-3 text-center text-gray-500">' + (i + 1) + '</td>' +
                     '<td class="py-2.5 px-3 text-left">' + esc(o.name) + badge + '</td>' +
                     '<td class="py-2.5 px-3 text-left text-gray-600">' + esc(o.team || '-') + '</td>' +
-                    cols.map(function (c) { return cell(o[c[0]], style[c[0]]); }).join('') + '</tr>';
+                    cols.map(function (c) {
+                        if (c[0] === 'targetIntl' && o.intlAtFloor) {
+                            return '<td class="py-2.5 px-3 text-right" title="ตั้งเป็นเป้าขั้นต่ำ"><span class="mr-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">ขั้นต่ำ</span>' + fmt(o.targetIntl) + '</td>';
+                        }
+                        return cell(o[c[0]], style[c[0]]);
+                    }).join('') + '</tr>';
             }).join('') : '<tr><td colspan="' + colspan + '" class="py-8 text-center text-gray-400">ไม่พบที่ทำการตามเงื่อนไข</td></tr>';
 
             var t = sumKeys(list);
@@ -17266,14 +17305,14 @@
             if (!r) { Swal.fire('ยังไม่มีข้อมูล', 'กรุณารอให้ข้อมูลโหลดเสร็จก่อน', 'info'); return; }
             var go = function () {
                 var y = r.years, cols = colDefs(r);
-                var head = ['ลำดับ', 'ที่ทำการ', 'ทีม'].concat(cols.map(function (c) { return c[1]; })).concat(['จำนวนปีที่มีข้อมูล']);
+                var head = ['ลำดับ', 'ที่ทำการ', 'ทีม'].concat(cols.map(function (c) { return c[1]; })).concat(['จำนวนปีที่มีข้อมูล', 'เป้าระหว่างประเทศใช้ขั้นต่ำ']);
                 var list = filteredOffices();
                 var aoa = [['วางแผนเป้าหมายรายได้ปี ' + be(y[2] + 1) + ' (ในประเทศ ' + pctStr(r.pDom) + ' / ระหว่างประเทศ ' + pctStr(r.pIntl) + ' จากค่าเฉลี่ย 3 ปี)'], head];
                 list.forEach(function (o, i) {
-                    aoa.push([i + 1, o.name, o.team || ''].concat(cols.map(function (c) { return o[c[0]]; })).concat([o.yearsWithData]));
+                    aoa.push([i + 1, o.name, o.team || ''].concat(cols.map(function (c) { return o[c[0]]; })).concat([o.yearsWithData, o.intlAtFloor ? 'ใช่' : '']));
                 });
                 var t = sumKeys(list);
-                aoa.push(['', 'รวมทั้งหมด', ''].concat(cols.map(function (c) { return t[c[0]]; })).concat(['']));
+                aoa.push(['', 'รวมทั้งหมด', ''].concat(cols.map(function (c) { return t[c[0]]; })).concat(['', '']));
                 var ws = XLSX.utils.aoa_to_sheet(aoa);
                 ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: head.length - 1 } }];
                 ws['!cols'] = [{ wch: 7 }, { wch: 32 }, { wch: 20 }].concat(cols.map(function () { return { wch: 20 }; })).concat([{ wch: 10 }]);
