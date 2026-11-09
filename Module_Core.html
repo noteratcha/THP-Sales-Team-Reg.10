@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1131';
+    var APP_VERSION = 'Ver. 2026.1109.1153';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -663,6 +663,16 @@
                     </div>
                     <span
                         class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">สรุปการใช้บริการ</span>
+                </div>
+                <!-- วางแผนเป้าหมายรายได้ปีถัดไป (เฉพาะ admin — แสดงในตรรกะสิทธิ์หลังล็อกอิน) -->
+                <div onclick="switchPage('target-plan')" id="menu-target-plan"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-bullseye text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้
+                        (Admin)</span>
                 </div>
             </div>
 
@@ -1380,6 +1390,11 @@
             </div>
 
             <?!= include('Module_Revenue'); ?>
+
+            <!-- 🎯 PAGE: วางแผนเป้าหมายรายได้ (เฉพาะ admin) -->
+            <div id="page-target-plan" class="hidden animate-fade-in w-full pb-10">
+                <?!= include('Module_TargetPlan'); ?>
+            </div>
 
             <!-- PAGE: SETTINGS -->
             <div id="page-settings" class="hidden animate-fade-in w-full pb-10">
@@ -2265,7 +2280,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -2324,6 +2339,7 @@
                 },
                 'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
                 'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'ข้อมูลการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
+                'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
                     page: 'page-settings',
@@ -2647,6 +2663,10 @@
                 if (elRevAdmin) elRevAdmin.classList.add('hidden');
                 if (elSysSettings) elSysSettings.classList.add('hidden');
             }
+
+            // เมนูวางแผนเป้าหมายรายได้: เฉพาะ admin (หน้าเองตรวจซ้ำใน loadTargetPlanPage)
+            const elTargetPlan = document.getElementById('menu-target-plan');
+            if (elTargetPlan) elTargetPlan.classList.toggle('hidden', userRole !== 'admin');
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();
