@@ -5321,6 +5321,93 @@ function saveTargetPlanIntlData_(payload, actor) {
   }
 }
 
+// ==========================================
+// 🎯 บันทึกเป้าปีถัดไปจากหน้าวางแผนเป้าหมาย ลงชีต "เป้าหมายรายได้" (ไฟล์ TARGET_SS_ID) — admin เท่านั้น (ผู้ใช้กำหนด 2026-11-09)
+// คอลัมน์: A ปี | B เดือน | C รหัสไปรษณีย์ | D ที่ทำการ | E เป้าหมาย (ในประเทศ) | F ค่าใช้จ่ายทีมขาย (คงค่าเดิม) | G เป้าหมายระหว่างประเทศ (เพิ่มใหม่)
+// ปี/เดือนเขียนตามรูปแบบแถวเดิมในชีต (พ.ศ./ค.ศ., ชื่อเดือนเต็ม/ย่อ/ตัวเลข); แถว ปี-เดือน-รหัส ที่มีอยู่แล้วแก้ E,G ในที่ ไม่มีก็เพิ่มต่อท้าย
+// payload = { year: ปี ค.ศ., offices: [{ zip, name, dom: [12 เดือน], intl: [12 เดือน] }] }
+var TARGET_INTL_COL_HEADER = 'เป้าหมายระหว่างประเทศ';
+function saveNextYearTargets_(payload, actor) {
+  try {
+    if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
+    var year = parseInt(payload && payload.year, 10);
+    var offices = (payload && Array.isArray(payload.offices)) ? payload.offices : [];
+    if (!(year >= 2000 && year <= 2100)) return { status: 'error', message: 'ปีไม่ถูกต้อง' };
+    if (!offices.length) return { status: 'error', message: 'ไม่มีข้อมูลเป้าหมาย' };
+    var FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    var SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    var monthOf = function (v) {
+      if (v instanceof Date) return v.getMonth() + 1;
+      var t = String(v).trim(), n = parseInt(t, 10);
+      if (FULL.indexOf(t) >= 0) return FULL.indexOf(t) + 1;
+      if (SHORT.indexOf(t) >= 0) return SHORT.indexOf(t) + 1;
+      return (n >= 1 && n <= 12 && String(n) === t) ? n : 0;
+    };
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var sheet = SpreadsheetApp.openById(TARGET_SS_ID).getSheetByName('เป้าหมายรายได้');
+      if (!sheet) return { status: 'error', message: 'ไม่พบชีต เป้าหมายรายได้' };
+      var data = sheet.getDataRange().getValues();
+      // รูปแบบปี/เดือนตามแถวเดิม
+      var useBE = false, mFmt = 'full';
+      for (var i = 1; i < data.length; i++) {
+        var y0 = parseInt(data[i][0], 10);
+        if (!y0) continue;
+        useBE = y0 > 2500;
+        var mv = data[i][1];
+        mFmt = (typeof mv === 'number' || /^\d+$/.test(String(mv).trim())) ? 'num' : (SHORT.indexOf(String(mv).trim()) >= 0 ? 'short' : 'full');
+        break;
+      }
+      var yearVal = useBE ? year + 543 : year;
+      var monthVal = function (m) { return mFmt === 'num' ? m : (mFmt === 'short' ? SHORT[m - 1] : FULL[m - 1]); };
+      var width = Math.max(7, data[0].length);
+      data = data.map(function (r) { while (r.length < width) r.push(''); return r; });
+      if (!String(data[0][6] || '').trim()) data[0][6] = TARGET_INTL_COL_HEADER;
+      var idx = {};
+      for (var j = 1; j < data.length; j++) {
+        var yy = parseInt(data[j][0], 10);
+        if (yy > 2500) yy -= 543;
+        if (yy !== year) continue;
+        var mm = monthOf(data[j][1]);
+        if (!mm) continue;
+        idx[mm + '|' + String(data[j][2]).replace(/^'/, '').trim()] = j;
+      }
+      var appended = [], updated = 0, total = { dom: 0, intl: 0 };
+      offices.forEach(function (o) {
+        var zip = String(o.zip || '').trim();
+        if (!/^\d{5}$/.test(zip)) return;
+        for (var m = 1; m <= 12; m++) {
+          var d = Math.round(Number((o.dom || [])[m - 1]) || 0), t = Math.round(Number((o.intl || [])[m - 1]) || 0);
+          total.dom += d; total.intl += t;
+          var at = idx[m + '|' + zip];
+          if (at !== undefined) { data[at][4] = d; data[at][6] = t; updated++; }
+          else {
+            var row = [yearVal, monthVal(m), zip, String(o.name || zip).substring(0, 200), d, '', t];
+            while (row.length < width) row.push('');
+            appended.push(row);
+          }
+        }
+      });
+      // เขียนเฉพาะหัวคอลัมน์ G และคอลัมน์ E, G ช่วงแถวที่แก้ (แถวปีอื่นไม่ถูกเขียนทับ)
+      sheet.getRange(1, 7).setValue(data[0][6]);
+      var rowsHit = Object.keys(idx).map(function (k) { return idx[k]; });
+      if (updated && rowsHit.length) {
+        var r0 = Math.min.apply(null, rowsHit), r1 = Math.max.apply(null, rowsHit), span = data.slice(r0, r1 + 1);
+        sheet.getRange(r0 + 1, 5, span.length, 1).setValues(span.map(function (r) { return [r[4]]; }));
+        sheet.getRange(r0 + 1, 7, span.length, 1).setValues(span.map(function (r) { return [r[6]]; }));
+      }
+      if (appended.length) sheet.getRange(data.length + 1, 1, appended.length, width).setValues(appended);
+      return { status: 'success', year: year, updated: updated, appended: appended.length, totalDom: total.dom, totalIntl: total.intl };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'saveNextYearTargets_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 var API_ALLOWED_FUNCTIONS = [
   'endSession',
   'getRevenueAnalysisReport',
@@ -5343,7 +5430,7 @@ var API_ALLOWED_FUNCTIONS = [
   'sendVisitSummaryImagesToLine', 'setPostNewsTemplateActive', 'submitBigLotOrders',
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
-  'getTargetPlanIntlData', 'saveTargetPlanIntlData'
+  'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets'
 ];
 
 
@@ -5364,7 +5451,8 @@ var AUTH_SESSION_USER_ARG = {
   deleteBigLotOrder: 1,          // (rowIndex, userInfo)
   deleteMultipleBigLotOrders: 1, // (rowIndices, userInfo)
   getTargetPlanIntlData: 0,      // (actor) — admin เท่านั้น
-  saveTargetPlanIntlData: 1      // (payload, actor) — admin เท่านั้น
+  saveTargetPlanIntlData: 1,     // (payload, actor) — admin เท่านั้น
+  saveNextYearTargets: 1         // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
