@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1844';
+    var APP_VERSION = 'Ver. 2026.1109.1952';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2338,7 +2338,7 @@
                     }
                 },
                 'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
-                'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'ข้อมูลการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
+                'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'สรุปการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {

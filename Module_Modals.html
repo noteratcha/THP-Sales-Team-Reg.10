@@ -441,7 +441,12 @@
                         ข้อมูลแสดงผลตามตัวกรองที่เลือกไว้ · ชี้ที่แท่งกราฟเพื่อดูตัวเลขเต็ม เป้าหมาย และรายทีม · คลิกแท่งเพื่อเปิดรายละเอียด</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
+                <div class="thp-tmode hidden md:inline-flex" role="radiogroup" aria-label="เป้าที่ใช้เทียบ">
+                <button type="button" role="radio" data-tmode="total" aria-checked="true" onclick="setThpTargetMode('total')">เป้ารวม</button>
+                <button type="button" role="radio" data-tmode="dom" aria-checked="false" onclick="setThpTargetMode('dom')">เป้าในประเทศ</button>
+                <button type="button" role="radio" data-tmode="intl" aria-checked="false" onclick="setThpTargetMode('intl')">เป้าระหว่างประเทศ</button>
+            </div>
                 <button type="button" onclick="exportChartsToPDF()"
                     class="text-[11px] sm:text-xs bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition flex items-center gap-2 shadow-[0_4px_10px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.5)] transform hover:-translate-y-0.5 font-bold">
                     <i class="fas fa-file-pdf"></i> <span class="hidden sm:inline">ดาวน์โหลด PDF</span>

@@ -576,6 +576,14 @@
     tr.thp-skel-row td { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
     @keyframes thpSkelShimmer { 100% { transform: translateX(100%); } }
     @media (prefers-reduced-motion: reduce) { .thp-skel::after { animation: none; display: none; } }
+
+    /* 18) ปุ่มสลับเป้าที่ใช้เทียบ (หน้าสรุปการใช้บริการ + กราฟสรุปรายได้) — 2026-11-09 */
+    .thp-tmode { display: inline-flex; border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; background: #fff; }
+    .thp-tmode > button { padding: 0.5rem 0.9rem; font-size: 0.8125rem; font-weight: 600; color: #4b5563; min-height: 40px; border-left: 1px solid #e5e7eb; white-space: nowrap; }
+    .thp-tmode > button:first-child { border-left: 0; }
+    .thp-tmode > button:hover { background: #f9fafb; }
+    .thp-tmode > button[aria-checked="true"] { background: #c2410c; color: #fff; }
+    .thp-tmode > button:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
 </style>
 
   <!-- Vercel Google Apps Script Adapter -->
@@ -1094,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1937';
+    var APP_VERSION = 'Ver. 2026.1109.1952';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -9653,6 +9661,21 @@
         </div>
     </div>
 
+    <!-- เป้าที่ใช้เทียบ (ผู้ใช้ขอ 2026-11-09): เป้ารวม = คอลัมน์ E, ในประเทศ = I, ระหว่างประเทศ = J ของชีต เป้าหมายรายได้; รายได้ที่เทียบกรองกลุ่มบริการตามที่เลือก -->
+    <div class="bg-white custom-radius shadow-md w-full mb-6 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3" id="thpTargetModeBar">
+        <div class="min-w-0">
+            <div class="font-bold text-theme-black"><i class="fas fa-bullseye text-orange-700 mr-1.5"></i>เป้าที่ใช้เทียบ</div>
+            <div class="text-xs text-gray-500" id="thpTargetModeHint">ใช้กับกราฟสรุปรายได้ และรายละเอียดเป้า/รายได้ของทีมและที่ทำการ</div>
+        </div>
+        <div class="sm:ml-auto">
+            <div class="thp-tmode " role="radiogroup" aria-label="เป้าที่ใช้เทียบ">
+                <button type="button" role="radio" data-tmode="total" aria-checked="true" onclick="setThpTargetMode('total')">เป้ารวม</button>
+                <button type="button" role="radio" data-tmode="dom" aria-checked="false" onclick="setThpTargetMode('dom')">เป้าในประเทศ</button>
+                <button type="button" role="radio" data-tmode="intl" aria-checked="false" onclick="setThpTargetMode('intl')">เป้าระหว่างประเทศ</button>
+            </div>
+        </div>
+    </div>
+
     <div id="topCustomersSection"
         class="bg-white custom-radius shadow-md w-full mb-6 hidden hover:shadow-lg transition-shadow duration-300">
         <div class="p-6">
@@ -9845,6 +9868,38 @@
     let allRevenueRows = [];
     let revenueFilteredRows = [];
     window.globalRevenueTargets = window.globalRevenueTargets || [];
+
+    // ===== เป้าที่ใช้เทียบ: รวม / ในประเทศ / ระหว่างประเทศ (จำในเบราว์เซอร์) =====
+    // แถวเป้าแบบใหม่ (ปี 2570 ขึ้นไป) มี I = ในประเทศ, J = ระหว่างประเทศ, E = รวม; แถวแบบเดิมมีแต่ E (= ในประเทศ)
+    window.thpTargetMode = (function () { try { var m = localStorage.getItem('thp_target_mode'); return (m === 'dom' || m === 'intl') ? m : 'total'; } catch (e) { return 'total'; } })();
+    window.thpTargetOf = function (r) {
+        var num = function (v) { return parseFloat(String(v === undefined || v === null ? '' : v).replace(/,/g, '')) || 0; };
+        var split = r && ((r[8] !== '' && r[8] !== null && r[8] !== undefined) || (r[9] !== '' && r[9] !== null && r[9] !== undefined));
+        if (window.thpTargetMode === 'dom') return split ? num(r[8]) : num(r[4]);
+        if (window.thpTargetMode === 'intl') return split ? num(r[9]) : 0;
+        return num(r[4]);
+    };
+    // แถวรายได้อยู่ในกลุ่มที่เลือกไหม (ระหว่างประเทศ = กลุ่มบริการขึ้นต้น "3." หรือมีคำว่า ระหว่างประเทศ)
+    window.thpRowInTargetMode = function (row) {
+        if (window.thpTargetMode === 'total') return true;
+        var intl = /^\s*3\.|ระหว่างประเทศ/.test(String((row && row[4]) || ''));
+        return window.thpTargetMode === 'intl' ? intl : !intl;
+    };
+    window.setThpTargetMode = function (m) {
+        window.thpTargetMode = (m === 'dom' || m === 'intl') ? m : 'total';
+        try { localStorage.setItem('thp_target_mode', window.thpTargetMode); } catch (e) {}
+        window.syncThpTargetMode();
+        var modal = document.getElementById('revenueChartModal');
+        if (modal && !modal.classList.contains('hidden') && typeof window.renderRevenueCharts === 'function') window.renderRevenueCharts();
+    };
+    window.syncThpTargetMode = function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.thp-tmode > button'), function (b) {
+            b.setAttribute('aria-checked', b.getAttribute('data-tmode') === window.thpTargetMode ? 'true' : 'false');
+        });
+        var label = { total: 'เป้ารวม (ในประเทศ + ระหว่างประเทศ)', dom: 'เป้าในประเทศ เทียบรายได้บริการในประเทศ', intl: 'เป้าระหว่างประเทศ เทียบรายได้บริการระหว่างประเทศ' }[window.thpTargetMode];
+        Array.prototype.forEach.call(document.querySelectorAll('.thp-tmode-label'), function (el) { el.textContent = label; });
+    };
+    setTimeout(function () { window.syncThpTargetMode(); }, 0);
     var globalRevenueTargets = window.globalRevenueTargets;
     var zipToTeamMap = {};
     let currentRevenuePage = 1;
@@ -11613,7 +11668,7 @@
     }
 
     window.renderRevenueCharts = function () {
-        var data = revenueFilteredRows;
+        var data = (revenueFilteredRows || []).filter(window.thpRowInTargetMode);
         var monthlyData = {};
         var serviceData = {};
         var levelData = {};
@@ -11717,7 +11772,7 @@
                 var tMonthName = String(r[1]).trim();
                 var tZip = String(r[2]).trim();
                 var tOfficeName = String(r[3]).toLowerCase().trim();
-                var tTarget = parseFloat(r[4]) || 0;
+                var tTarget = window.thpTargetOf(r);
                 var tTeam = String(r[6]).trim() || zipToTeamMap[tZip] || 'ไม่ระบุทีม';
 
                 if (!isAdmin && tZip !== userZip) continue;
@@ -12091,13 +12146,14 @@
                             var oTeam = String(r[6]).trim() || zipToTeamMap[oZip] || 'ไม่ระบุทีม';
                             if (!teamOfficeDetails[oTeam]) teamOfficeDetails[oTeam] = {};
                             if (!teamOfficeDetails[oTeam][oZip]) teamOfficeDetails[oTeam][oZip] = { name: oName, target: 0, actual: 0 };
-                            if (isRev) teamOfficeDetails[oTeam][oZip].target += parseFloat(r[4]) || 0;
+                            if (isRev) teamOfficeDetails[oTeam][oZip].target += window.thpTargetOf(r);
                         }
                     }
                 });
             }
 
             revenueFilteredRows.forEach(function (row) {
+                if (!window.thpRowInTargetMode(row)) return;
                 var rYear = parseInt(row[6]);
                 var rMonth = (typeof thaiMonthMap !== 'undefined') ? thaiMonthMap[String(row[5]).trim()] : fallbackMonthMap[String(row[5]).trim()];
                 if (rMonth !== undefined && !isNaN(rYear)) {
@@ -12188,13 +12244,14 @@
                             var key = oZip ? oZip : oName;
                             if (!officeMap[key]) officeMap[key] = { zip: oZip, name: oName, team: oTeam, target: 0, actual: 0 };
                             else officeMap[key].name = oName;
-                            officeMap[key].target += parseFloat(r[4]) || 0;
+                            officeMap[key].target += window.thpTargetOf(r);
                         }
                     }
                 });
             }
 
             revenueFilteredRows.forEach(function (row) {
+                if (!window.thpRowInTargetMode(row)) return;
                 var rYear = parseInt(row[6]);
                 var rMonth = (typeof thaiMonthMap !== 'undefined') ? thaiMonthMap[String(row[5]).trim()] : fallbackMonthMap[String(row[5]).trim()];
                 if (rMonth !== undefined && !isNaN(rYear)) {
@@ -26689,7 +26746,7 @@
                     }
                 },
                 'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
-                'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'ข้อมูลการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
+                'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'สรุปการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
@@ -33275,7 +33332,12 @@
                         ข้อมูลแสดงผลตามตัวกรองที่เลือกไว้ · ชี้ที่แท่งกราฟเพื่อดูตัวเลขเต็ม เป้าหมาย และรายทีม · คลิกแท่งเพื่อเปิดรายละเอียด</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap justify-end">
+                <div class="thp-tmode hidden md:inline-flex" role="radiogroup" aria-label="เป้าที่ใช้เทียบ">
+                <button type="button" role="radio" data-tmode="total" aria-checked="true" onclick="setThpTargetMode('total')">เป้ารวม</button>
+                <button type="button" role="radio" data-tmode="dom" aria-checked="false" onclick="setThpTargetMode('dom')">เป้าในประเทศ</button>
+                <button type="button" role="radio" data-tmode="intl" aria-checked="false" onclick="setThpTargetMode('intl')">เป้าระหว่างประเทศ</button>
+            </div>
                 <button type="button" onclick="exportChartsToPDF()"
                     class="text-[11px] sm:text-xs bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition flex items-center gap-2 shadow-[0_4px_10px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.5)] transform hover:-translate-y-0.5 font-bold">
                     <i class="fas fa-file-pdf"></i> <span class="hidden sm:inline">ดาวน์โหลด PDF</span>
