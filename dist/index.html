@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1910';
+    var APP_VERSION = 'Ver. 2026.1109.1913';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17735,7 +17735,7 @@
             if (kind === 'Team') {
                 if (typeof window.sortRevenueTeams === 'function') order.sort(function (a, b) { return window.sortRevenueTeams(a.label, b.label); });
                 else order.sort(function (a, b) { return a.label.localeCompare(b.label, 'th'); });
-            } else order.sort(function (a, b) { return (a.key.slice(1, 3) + (a.sep ? '1' : '0')).localeCompare(b.key.slice(1, 3) + (b.sep ? '1' : '0')); });
+            } else order.sort(function (a, b) { return ((a.sep ? '1' : '0') + a.key.slice(1)).localeCompare((b.sep ? '1' : '0') + b.key.slice(1)); }); // 34010, 47010 ต่อท้ายตาราง (ผู้ใช้ขอ)
             return order;
         };
         var summaryCols = function (r) {
