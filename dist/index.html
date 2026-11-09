@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1725';
+    var APP_VERSION = 'Ver. 2026.1109.1726';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17344,12 +17344,12 @@
             r.years.forEach(function (y) {
                 if (y === r.yearTo && r.partial) {
                     var am = r.actualMonths;
-                    cols.push({ key: 'act', label: be(y) + ' จริง ม.ค.–' + TH_SHORT[am], get: function (o) { return o[grp].act; } });
+                    cols.push({ key: 'act', label: be(y) + ' จริง ม.ค.–' + TH_SHORT[am], get: function (o) { return o[grp].act; }, part: true });
                     // ประมาณการแยกรายเดือน: แต่ละเดือนที่ยังไม่มีข้อมูล = ค่าเฉลี่ยรายเดือนของรายได้จริง (ม.ค.–เดือนสุดท้ายที่ใช้)
                     for (var em = am + 1; em <= 12; em++) {
-                        cols.push({ key: 'est' + em, label: 'ประมาณ ' + TH_SHORT[em], get: function (o) { return o[grp].act === null ? null : o[grp].act / am; }, cls: 'text-gray-500' });
+                        cols.push({ key: 'est' + em, label: 'ประมาณ ' + TH_SHORT[em], get: function (o) { return o[grp].act === null ? null : o[grp].act / am; }, cls: 'text-gray-500', part: true });
                     }
-                    cols.push({ key: 'full', label: 'รวม ' + be(y), get: function (o) { return o[grp].full; } });
+                    cols.push({ key: 'full', hasParts: true, label: 'รวม ' + be(y), get: function (o) { return o[grp].full; } });
                 } else {
                     cols.push({ key: 'y' + y, label: 'รายได้ ' + be(y), get: function (o) { return o[grp].y[y]; } });
                 }
@@ -17558,11 +17558,23 @@
             document.getElementById('tpTitleIntl').textContent = 'บริการระหว่างประเทศ · เป้า ' + fmt(tot(function (o) { return o.intl.target; })) + ' บาท (' + pctStr(r.pIntl) + ' จากค่าเฉลี่ย)';
         };
 
+        // หด/ขยายคอลัมน์ย่อยของปีปัจจุบัน (จริง ม.ค.–x + ประมาณรายเดือน) เพราะมีคอลัมน์ "รวม" แล้ว — ค่าเริ่มต้นหด (ผู้ใช้กำหนด 2026-11-09), จำในเบราว์เซอร์; Excel ยังมีครบ
+        var TP_PARTS_KEY = 'thp_tp_parts_open';
+        var partsOpen = function () { try { return localStorage.getItem(TP_PARTS_KEY) === '1'; } catch (e) { return false; } };
+        window.toggleTargetPlanParts = function (ev) {
+            if (ev) ev.stopPropagation();
+            try { localStorage.setItem(TP_PARTS_KEY, partsOpen() ? '0' : '1'); } catch (e) {}
+            renderTargetPlanTable();
+        };
         var renderGroupTable = function (r, grp, headId, bodyId, footId) {
-            var cols = colDefs(r, grp);
+            var open = partsOpen();
+            var cols = colDefs(r, grp).filter(function (c) { return open || !c.part; });
             var th = function (key, label, align) {
                 var arrow = state.sortKey === key && (key === 'zip' || key === 'team' || state.sortGroup === grp) ? (state.sortDir > 0 ? ' ▲' : ' ▼') : '';
-                return '<th class="py-3 px-3 font-semibold cursor-pointer select-none text-' + (align || 'right') + '" onclick="sortTargetPlan(\'' + key + '\', \'' + grp + '\')">' + label + arrow + '</th>';
+                var c0 = cols.filter(function (c) { return c.key === key; })[0];
+                var tog = c0 && c0.hasParts ? '<button type="button" onclick="toggleTargetPlanParts(event)" aria-expanded="' + open + '" title="' + (open ? 'หดคอลัมน์รายเดือน' : 'ขยายดูรายได้จริงและประมาณรายเดือน') + '" class="mr-1.5 inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/15 hover:bg-white/30 text-xs"><i class="fas fa-' + (open ? 'compress-alt' : 'expand-alt') + '"></i></button>' : '';
+                label = tog + label;
+                return '<th class="py-3 px-3 font-semibold cursor-pointer select-none whitespace-nowrap text-' + (align || 'right') + '" onclick="sortTargetPlan(\'' + key + '\', \'' + grp + '\')">' + label + arrow + '</th>';
             };
             document.getElementById(headId).innerHTML = '<tr><th class="py-3 px-3 text-center font-semibold">#</th>' +
                 th('zip', 'ที่ทำการ', 'left') + th('team', 'ทีม', 'left') + cols.map(function (c) { return th(c.key, c.label); }).join('') + '</tr>';
