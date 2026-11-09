@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1830';
+    var APP_VERSION = 'Ver. 2026.1109.1832';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17166,6 +17166,7 @@
         var TP_INTL_ZERO_TARGET = 60000;
         // เป้าในประเทศปัดเป็นหลักหมื่น (หลักหน่วย สิบ ร้อย พัน = 0) ผู้ใช้กำหนด 2026-11-09
         var TP_DOM_ROUND = 10000;
+        var TP_MONTH_ROUND = 1000; // เป้ารายเดือนปัดเป็นหลักพัน
         var TP_DOM_MONTH_MIN = 10000; // เป้ารายเดือนในประเทศขั้นต่ำ (บาท/เดือน)
         // ค่าตั้งต้นเป้าในประเทศขั้นต่ำต่อที่ทำการ (ผู้ใช้กำหนด 2026-11-09: 300,000 บาท/ปี แก้ได้ที่ช่อง #tpDomFloor)
         var TP_DOM_MIN_TARGET = 300000;
@@ -17375,7 +17376,7 @@
 
             // กระจายเป้ารายเดือน (ผู้ใช้กำหนด 2026-11-09): สัดส่วนตามรายได้แต่ละเดือนของปีล่าสุดของที่ทำการนั้น
             //  เดือนที่ยังไม่มีข้อมูลจริง → รายได้เดือนเดียวกันปีก่อน × อัตราเติบโต (ปีนี้/ปีก่อน ช่วงเดือนเดียวกัน); ไม่มีปีก่อน → ค่าเฉลี่ยรายเดือนปีนี้
-            //  ไม่มีรายได้เลย → เท่ากัน 12 เดือน; ปัดเป็นบาท เศษใส่เดือนที่สัดส่วนสูงสุด → รวม 12 เดือน = เป้าทั้งปีพอดี
+            //  ไม่มีรายได้เลย → เท่ากัน 12 เดือน; ปัดเป็นบาท เศษใส่เดือนที่สัดส่วนสูงสุด → เป้ารายเดือนปัดเป็นหลักพัน · รวม 12 เดือน = เป้าทั้งปีพอดี
             var am = actualMonths || (partial ? 0 : 12);
             // เดือนที่รายได้สูงผิดปกติ (งานครั้งเดียว เช่น มิ.ย.) ไม่ให้ดึงเป้าเดือนนั้นสูงตาม — ผู้ใช้กำหนด 2026-11-09
             //  เพดานต่อเดือน = มัธยฐานรายได้รายเดือนปีนี้ของที่ทำการนั้น × TP_MONTH_CAP; เดือนที่เกินใช้ค่าเพดานแทนในการคิดสัดส่วน
@@ -17409,9 +17410,14 @@
                         for (i = 1; i <= 12; i++) if (!fixed[i] && mf > 0 && amt[i] < mf) { fixed[i] = true; low = true; }
                         if (!low) break;
                     }
-                    for (i = 1; i <= 12; i++) { mt.push(Math.round(amt[i])); if (!fixed[i] && (fixed[best] || amt[i] > amt[best])) best = i; }
+                    // ปัดเป้ารายเดือนเป็นหลักพัน (ผู้ใช้กำหนด 2026-11-09): ปัดลงก่อน แล้วเกลี่ยหน่วยพันที่ขาดให้เดือนที่มีเศษมากสุด (ไม่ใช่เดือนขั้นต่ำ) → รวม = เป้าทั้งปี
+                    var MR = TP_MONTH_ROUND, parts = [];
+                    for (i = 1; i <= 12; i++) { var u = amt[i] / MR, bse = fixed[i] && mf ? Math.round(u) : Math.floor(u); mt.push(bse * MR); parts.push({ i: i, frac: fixed[i] && mf ? -1 : u - Math.floor(u) }); if (!fixed[i] && (fixed[best] || amt[i] > amt[best])) best = i; }
+                    var diffU = Math.round((T - mt.reduce(function (a, b) { return a + b; }, 0)) / MR);
+                    parts.sort(function (x, y) { return y.frac - x.frac; });
+                    for (var pi = 0; pi < diffU && pi < parts.length; pi++) mt[parts[pi].i] += MR;
                     d.monthFloorCount = Object.keys(fixed).length < 12 ? Object.keys(fixed).length : 0;
-                    mt[best] += (d.target || 0) - mt.reduce(function (a, b) { return a + b; }, 0);
+                    mt[best] += T - mt.reduce(function (a, b) { return a + b; }, 0); // เศษที่เหลือ (กรณีเป้าทั้งปีไม่ลงหลักพัน)
                     d.monthTarget = mt; d.monthShare = w;
                 });
             });
@@ -17673,7 +17679,7 @@
             document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
             document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
                 (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้ค่าประมาณเดียวกับคอลัมน์ "ประมาณ" (ค่าเฉลี่ยรายเดือนของรายได้จริงปีนี้)' : '') +
-                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + (g !== 'intl' ? ' · เป้าในประเทศแต่ละเดือนไม่ต่ำกว่า 10,000 บาท' : '') + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
+                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + (g !== 'intl' ? ' · เป้าในประเทศแต่ละเดือนไม่ต่ำกว่า 10,000 บาท' : '') + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · เป้ารายเดือนปัดเป็นหลักพัน · รวม 12 เดือน = เป้าทั้งปีพอดี';
             var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
             for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
             document.getElementById('tpHeadMon').innerHTML = head + '<th class="py-3 px-3 text-right font-semibold">รวมทั้งปี</th></tr>';
