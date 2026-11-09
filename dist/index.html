@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1304';
+    var APP_VERSION = 'Ver. 2026.1109.1309';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17027,7 +17027,7 @@
             </label>
             <label class="flex flex-col gap-1.5">
                 <span class="text-sm font-semibold text-gray-700">เป้าระหว่างประเทศ ที่ทำการที่ไม่มีรายได้ (บาท/ปี)</span>
-                <div id="tpIntlFloor" title="คำนวณอัตโนมัติ = ค่าเฉลี่ยรายได้ระหว่างประเทศ 3 ปีที่ต่ำที่สุดของที่ทำการที่มีรายได้"
+                <div id="tpIntlFloor" title="กำหนดคงที่ 60,000 บาท/ปี (TP_INTL_ZERO_TARGET)"
                     class="border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-right font-semibold text-gray-700">–</div>
             </label>
             <div class="flex flex-col gap-1.5">
@@ -17090,6 +17090,8 @@
         var SUM_KEYS = ['y1', 'y2', 'curActual', 'curEst', 'curFull', 'avgDom', 'avgIntl', 'avg', 'targetDom', 'targetIntl', 'target']
             .concat(GROUP_YEAR_KEYS.map(function (k) { return 'dom_' + k; }), GROUP_YEAR_KEYS.map(function (k) { return 'intl_' + k; }));
         // ที่ทำการที่ไม่นำมาคำนวณ (ผู้ใช้กำหนด 2026-11-09): คปณ.ลานทอง/ทุ่งสว่าง พีทีที สเตชั่น, ปณอ.กันทรลักษ์ 107/108
+        // เป้าระหว่างประเทศของที่ทำการที่ไม่มีรายได้ระหว่างประเทศ (ผู้ใช้กำหนด 2026-11-09: 60,000 บาท/ปี)
+        var TP_INTL_ZERO_TARGET = 60000;
         var TP_EXCLUDED_ZIPS = ['00243', '00425', '08076', '08077'];
         var state = { result: null, sortKey: 'zip', sortDir: 1, loading: false };
 
@@ -17176,11 +17178,11 @@
             var pIntl = tot.avgIntl > 0 ? intlTotal / tot.avgIntl - 1 : 0;
 
             // เป้าระหว่างประเทศ (ผู้ใช้กำหนด 2026-11-09): ที่ทำการที่ไม่มีรายได้ระหว่างประเทศ (ค่าเฉลี่ย 0)
-            // ได้เป้า = ค่าเฉลี่ยรายได้ระหว่างประเทศ 3 ปีที่ต่ำที่สุดของที่ทำการที่มีรายได้ (ขั้นต่ำอัตโนมัติ)
+            // ได้เป้าคงที่ TP_INTL_ZERO_TARGET (60,000 บาท/ปี)
             // งบที่เหลือแบ่งให้ที่ทำการที่มีรายได้ตามสัดส่วนค่าเฉลี่ยเดิม → ผลรวมเท่าเป้ารวมพอดี
             var withIntl = list.filter(function (o) { return o.avgIntl > 0; });
             var zeroIntl = list.filter(function (o) { return !(o.avgIntl > 0); });
-            var floor = withIntl.length ? Math.min.apply(null, withIntl.map(function (o) { return o.avgIntl; })) : 0;
+            var floor = TP_INTL_ZERO_TARGET;
             var floorTooHigh = false;
             list.forEach(function (o) { o.intlAtFloor = false; });
             var budget = intlTotal - floor * zeroIntl.length;
@@ -17304,7 +17306,7 @@
                 : 'ยังไม่มีข้อมูลรายได้ปี ' + be(y[2])) +
                 ' · ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · ระหว่างประเทศ = กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ"' +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการที่ไม่มีรายได้ระหว่างประเทศเกินเป้า จึงแบ่งเท่ากันทุกที่ทำการ'
-                    : (r.floorCount ? ' · ที่ทำการที่ไม่มีรายได้ระหว่างประเทศ ' + r.floorCount + ' แห่ง ได้เป้าเท่ากับค่าเฉลี่ยต่ำสุดของที่ทำการที่มีรายได้ (' + fmt(r.intlFloor) + ' บาท) ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
+                    : (r.floorCount ? ' · ที่ทำการที่ไม่มีรายได้ระหว่างประเทศ ' + r.floorCount + ' แห่ง ได้เป้า ' + fmt(r.intlFloor) + ' บาท/ปี ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
 
             [['dom', 'tpHeadDom', 'tpBody', 'tpFootDom'], ['intl', 'tpHeadIntl', 'tpBodyIntl', 'tpFootIntl']].forEach(function (t) {
                 renderGroupTable(r, t[0], t[1], t[2], t[3]);
