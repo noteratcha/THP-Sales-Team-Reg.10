@@ -309,10 +309,37 @@
                     cols.push({ key: 'y' + y, label: 'รายได้ ' + be(y), get: function (o) { return o[grp].y[y]; } });
                 }
             });
+            if (hasPrevTarget(grp, r.yearTo)) cols.push({ key: 'prevT', label: prevTargetLabel(grp, r.yearTo), get: function (o) { return prevTargetOf(grp, r.yearTo, o.zip); }, cls: 'text-blue-700' });
             cols.push({ key: 'avg', label: 'ค่าเฉลี่ย ' + r.years.length + ' ปี', get: function (o) { return o[grp].avg; }, cls: 'font-semibold text-gray-900' });
             cols.push({ key: 'target', label: 'เป้า ' + be(r.yearTo + 1) + ' (' + pctStr(grp === 'dom' ? r.pDom : r.pIntl) + ')', get: function (o) { return o[grp].target; }, cls: 'font-bold text-orange-700' });
             return cols;
         };
+        // เป้าที่ตั้งไว้ของปี yearTo (เช่น 2569) ใช้เทียบ — ในประเทศ: ชีต เป้าหมายรายได้ (รวม 12 เดือน), ระหว่างประเทศ: ไฟล์เป้าระหว่างประเทศ (มี.ค.–ธ.ค.)
+        var prevTargetOf = function (grp, year, zip) {
+            if (grp === 'dom') {
+                var m = state.domTargetCache;
+                if (!m || m.src !== window.__tpTargets || m.year !== year) {
+                    m = { src: window.__tpTargets, year: year, byZip: {}, any: false };
+                    (window.__tpTargets || []).forEach(function (r, i) {
+                        if (i === 0 || !r) return;
+                        var y = parseInt(r[0], 10); if (y > 2500) y -= 543;
+                        if (y !== year) return;
+                        var z = String(r[2] || '').trim();
+                        m.byZip[z] = (m.byZip[z] || 0) + (parseFloat(String(r[4]).replace(/,/g, '')) || 0); m.any = true;
+                    });
+                    state.domTargetCache = m;
+                }
+                return m.any ? (m.byZip[zip] || 0) : null;
+            }
+            var t = state.intlTargets;
+            if (!t || !t.byZip || t.year !== year) return null;
+            return t.byZip[zip] || 0;
+        };
+        var prevTargetLabel = function (grp, year) {
+            var t = state.intlTargets;
+            return 'เป้า ' + be(year) + (grp === 'intl' && t && t.fromMonth > 1 ? ' (' + TH_SHORT[t.fromMonth] + '–' + TH_SHORT[t.toMonth] + ')' : '');
+        };
+        var hasPrevTarget = function (grp, year) { return prevTargetOf(grp, year, '') !== null; };
         var sumCol = function (list, col) { return list.reduce(function (a, o) { return a + (col.get(o) || 0); }, 0); };
 
         var buildTeamMap = function (targets) {
@@ -453,6 +480,10 @@
                     return ['รายได้ปี ' + be(y), fmt(tot(function (o) { return o[k].y[y]; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900'];
                 });
                 cards.push(['ค่าเฉลี่ยรายได้ ' + r.years.length + ' ปี', fmt(tot(function (o) { return o[k].avg; })), 'รวมทุกที่ทำการ (บาท)', 'text-gray-900']);
+                if (hasPrevTarget(k, to)) {
+                    var pt = tot(function (o) { return prevTargetOf(k, to, o.zip); });
+                    cards.push([prevTargetLabel(k, to).replace('เป้า ', 'เป้าปี ') + ' (ที่ตั้งไว้)', fmt(pt), 'รวมที่ทำการในตาราง (บาท)', 'text-blue-700']);
+                }
                 cards.push(['เป้าปี ' + be(to + 1) + ' (' + pctStr(k === 'dom' ? r.pDom : r.pIntl) + ' จากค่าเฉลี่ย)', fmt(tot(function (o) { return o[k].target; })), 'บาท', 'text-orange-700']);
                 return '<div class="rounded-xl border ' + (k === 'dom' ? 'border-orange-100 bg-orange-50/30' : 'border-blue-100 bg-blue-50/30') + ' p-3">' +
                     '<div class="text-sm font-bold text-gray-800 mb-2">บริการ' + g[1] + '</div>' +
@@ -596,6 +627,7 @@
 
         var applyIntlResponse = function (res) {
             state.intlFile = (res && res.status === 'success' && res.files && res.files.length) ? { years: res.years, files: res.files } : null;
+            state.intlTargets = (res && res.intlTargets && !res.intlTargets.error) ? res.intlTargets : null;
         };
 
         window.handleTargetPlanIntlFiles = function (input) {

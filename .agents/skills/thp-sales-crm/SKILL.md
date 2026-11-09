@@ -10,7 +10,7 @@ description: >
 
 ## 1. ภาพรวมระบบ (System Overview)
 
-ระบบ CRM สำหรับทีมขายไปรษณีย์ไทย ภาค 10 — ใช้สถาปัตยกรรม **Decoupled Dual-Platform**:
+ระบบ CRM สำหรับทีมขายไปรษณีย์ไทย ปข.10 — ใช้สถาปัตยกรรม **Decoupled Dual-Platform**:
 
 | Layer | Platform | URL |
 |---|---|---|
@@ -28,7 +28,7 @@ THP Sales Team Reg.10/
 ├── Index.html            # Entry point — โหลด CDN + include ทุก Module
 ├── Style.html            # Custom CSS + Tailwind theme config
 ├── Module_Core.html      # Layout หลัก, Sidebar, Dashboard, SafeStorage Engine
-├── JS_Core.html          # Global functions, SafeStorage, Event Listeners
+├── JS_Core.html          # ⚠️ ไม่ถูก include (โค้ดตาย) — ฟังก์ชันส่วนกลางจริงอยู่ใน Module_Core
 ├── Module_Revenue.html   # นำเข้า/ประมวลผลข้อมูลรายได้ (Tableau, Logistics, DropOff)
 ├── Module_BigLot.html    # ระบบสั่งซื้อสินค้า BigLot
 ├── Module_BigLotReport.html  # รายงาน BigLot + Export Excel/PDF
@@ -45,7 +45,7 @@ THP Sales Team Reg.10/
 ├── update-version.js     # Auto-version: Ver. yyyy.MMdd.HHmm
 ├── appsscript.json       # GAS config (timezone: Asia/Bangkok, runtime: V8)
 ├── vercel.json           # SPA rewrite: ทุก route → dist/index.html
-├── package.json          # scripts: build, push
+├── package.json          # scripts: build, push, deploy
 └── dist/index.html       # Production bundle (~1.8 MB) สำหรับ Vercel
 ```
 
@@ -109,6 +109,18 @@ fetch(GAS_URL, {
 { __gas_execution__: true, success: false, error: 'error message' }
 ```
 
+### API Gateway + Session (บังคับ)
+- ทุกคำขอจากหน้าเว็บวิ่งเข้า `dispatchApiCall_(token, funcName, args)` ใน `Code.js` (ทั้งโหมด Vercel ผ่าน `doPost` action `executeFunction` และโหมด Apps Script ผ่าน `google.script.run.api(token, ชื่อ, args)`)
+- ขั้นตอนตรวจ:
+  1. ชื่อฟังก์ชันต้องอยู่ใน `API_ALLOWED_FUNCTIONS` (allowlist) ไม่งั้น `Function not allowed`
+  2. ถ้าไม่อยู่ใน `AUTH_PUBLIC_FUNCTIONS` จะอ่าน session จาก `token` (`getSession_` → CacheService `sess_<token>`, อายุ 6 ชม. ต่ออายุทุกครั้งที่ใช้)
+  3. Script Property `AUTH_ENFORCE = 'true'` → ไม่มี session = `SESSION_EXPIRED` (ตอนนี้ยังปิดอยู่ ระหว่างทยอยเปลี่ยน)
+  4. ฟังก์ชันใน `AUTH_USER_SCOPED_FUNCTIONS` จะถูกแทน `args[0].user/zipcode` ด้วยค่าจาก session เสมอ (หน้าเว็บปลอมเป็น admin ไม่ได้)
+  5. เรียก `globalThis[funcName + '_']` (ฟังก์ชันจริงลงท้าย `_` เป็น private เรียกตรงจาก google.script.run ไม่ได้)
+- `checkLogin_` สร้าง token ด้วย `createSession_()` แล้วส่งกลับใน `info.token` → หน้าเว็บเก็บใน `thp_user_session`
+- **เพิ่มฟังก์ชันใหม่ที่หน้าเว็บเรียก:** นิยาม `ชื่อ_` + เพิ่ม `'ชื่อ'` ใน `API_ALLOWED_FUNCTIONS` (+ `AUTH_USER_SCOPED_FUNCTIONS` ถ้าข้อมูลขึ้นกับผู้ใช้)
+- ผลตอบกลับ: `{ __gas_execution__: true, success: true, result }` หรือ `{ __gas_execution__: true, success: false, error }`
+
 ---
 
 ## 4. ระบบ Bundler และ Include Syntax
@@ -135,7 +147,8 @@ npm run build            # → dist/index.html
 npx serve dist -l 3000
 
 # Push Backend ขึ้น GAS
-npm run push             # = update-version.js + clasp push -f + clasp version
+npm run push             # = update-version.js + clasp push -f (HEAD เท่านั้น)
+npm run deploy           # = push + clasp deploy -i AKfycbw5b49… (กินโควตา 200 เวอร์ชัน)
 
 # Deploy Frontend บน Vercel (auto จาก GitHub)
 git add .
@@ -143,7 +156,7 @@ git commit -m "feat: ..."
 git push origin main     # Vercel CI/CD ทำงานอัตโนมัติ
 ```
 
-### Re-deploy GAS โดยไม่เพิ่ม Deployment Slot (สูงสุด 20 slots)
+### Re-deploy GAS โดยไม่เพิ่ม Deployment (เวอร์ชันสูงสุด 200 — ถึงขีดแล้ว ดูหัวข้อ 15.7)
 
 ```powershell
 npx clasp deploy -i AKfycbw5b49--9pt6c1z-_duPTHSX6IcI1E2N7qMsRFreogzX8kbQWHYnbXHKiCKHIOrA8Qx -V <versionNumber> -d "คำอธิบาย"
@@ -420,5 +433,97 @@ Set-Content file.html -Value $content -Encoding UTF8
 | setTimeout(fn, 800) ใน html2canvas | ใช้ requestAnimationFrame + setTimeout(fn, 80) |
 | maxRotation: -90 บน Chart.js mobile | ใช้ maxRotation: 90, minRotation: 90 |
 | ส่ง Token 1 หา User ID ของ Provider 2 | จับคู่ Token + UserID ตาม index เสมอ |
-| สร้าง GAS Deployment ใหม่ทุกครั้ง (เกิน 20) | Re-deploy ทับ Deployment ID เดิม |
+| สร้าง GAS Deployment ใหม่ทุกครั้ง | Re-deploy ทับ Deployment ID เดิม (`npm run deploy`) |
+| เพิ่มฟังก์ชันหลังบ้านแล้วเรียกตรง | นิยาม `ชื่อ_` + เพิ่มใน `API_ALLOWED_FUNCTIONS` (+ `AUTH_USER_SCOPED_FUNCTIONS`) |
+| เชื่อ `user` ที่หน้าเว็บส่งมา | ใช้ผู้ใช้จาก session (dispatchApiCall_ แทนค่าให้) |
+| `return` เงียบใน adapter ตอน error | เรียก failureHandler เสมอ (ใช้ค่าคืนของ handleSessionExpired) |
+| ใช้ `XLSX` ตรงๆ โดยไม่มีสำรอง | พึ่ง CDN fallback / `ensureXLSX()` ใน Index.html |
+| `<input type="month">` สำหรับผู้ใช้ไทย | select เดือนไทย + ปี พ.ศ. + hidden `YYYY-MM` |
+| grep `Ver. 2026` เช็กเวอร์ชัน Vercel | grep `APP_VERSION = '…'` |
+| จัดกลุ่ม Excel ตามระดับลูกค้า | จัดกลุ่มตามรหัสสมาชิก+บริการ แสดงระดับสูงสุด |
 | new Swiper() โดยไม่ destroy ของเดิม | swiperInstance.destroy(true, true) ก่อนสร้างใหม่เสมอ |
+
+---
+
+## 15. บทเรียนและเทคนิคจากงานจริง (อัปเดต 2026-11-08)
+
+### 15.1 Session, สิทธิ์ และข้อมูลส่วนบุคคล
+- `getDataForTable_` ต้องมีผู้ใช้จาก session (ไม่มี = `SESSION_EXPIRED`); admin/viewer ได้ข้อมูลเต็ม ผู้ใช้อื่นได้คอลัมน์ข้อมูลส่วนบุคคล `VISIT_PII_COLUMNS = [7, 8, 17, 18]` (ชื่อ, เบอร์, Post Family, รูป) ของ **ที่ทำการอื่น** เป็นค่าว่าง แต่คอลัมน์ที่ใช้นับสถิติยังครบ
+- หน้าเว็บ: `window.runWhenLoggedIn(fn)` = เรียกหลังบ้านที่ต้องใช้ session เฉพาะเมื่อมี token แล้ว ไม่งั้นเข้าคิว `__postLoginQueue` แล้ว `flushPostLoginQueue()` หลัง `restoreSession`
+- `window.handleSessionExpired()` **คืนค่า boolean**: `true` = จัดการแล้ว (เด้งให้ล็อกอินใหม่) / `false` = ยังไม่เคยล็อกอิน ให้ adapter ส่งต่อ `failureHandler` ตามปกติ — adapter ทั้ง 2 โหมดต้องใช้ค่าที่คืนนี้
+- session ที่บันทึกในเครื่องแต่ไม่มี `token` (ล็อกอินก่อนมีระบบ token) **ห้าม restore** ให้ล็อกอินใหม่
+- เปิด `AUTH_ENFORCE` เมื่อมั่นใจว่าทุกหน้าส่ง token แล้วเท่านั้น
+
+### 15.2 กับดัก: สถานะ "กำลังโหลด" ค้าง (In-flight Flags)
+- โค้ดหน้าหลักใช้ธง `window.isFetchingVisitData / isFetchingVisitTargets / isFetchingRevTargets / isFetchingRevData / isSyncingDashboardData` กันยิงซ้ำ
+- ถ้าคำขอล้มเหลวแล้ว **ไม่มี callback ใดถูกเรียก** ธงจะค้าง `true` จนรีเฟรช → ข้อมูลไม่โหลดอีกเลย (อาการ: "ซิงค์สด..." ค้าง, ยอดเป็น 0, skeleton ค้าง)
+- กฎ: ทุกคำขอต้องจบที่ success หรือ failure handler เสมอ (ห้าม `return` เงียบใน adapter) และตอนล็อกอินสำเร็จให้รีเซ็ตธงทั้งหมด + `thp_cache_last_sync = 0`
+- `renderTable()` ใน success handler ถ้า throw จะทำให้ `checkDone()` ไม่ถูกเรียก — ระวังโค้ดก่อน `checkDone()`
+
+### 15.3 Google Sites, กรอบ (iframe) และข้อจำกัดเบราว์เซอร์
+- `sites.google.com/view/salesreg10` **ฝังหน้า Vercel** (ไม่ใช่หน้า Apps Script) — ดูจาก `APP_VERSION` มุมซ้ายล่าง
+- สคริปต์แรกสุดของ `Module_Core.html` ตรวจ `window.self !== window.top` + `location.ancestorOrigins` มี `sites.google.com` (Firefox: referrer `googleusercontent.com` เฉพาะโหมด Vercel) → ลอง `window.top.location.replace(Vercel)` ถ้าถูกบล็อกแสดงหน้าจอ "ย้ายไปเว็บไซต์ใหม่แล้ว" (ลูกโลก 🌐 + คลื่นสัญญาณ, นับถอยหลัง 3 วิ, ปุ่มเปิดแท็บใหม่)
+- ข้อจำกัดที่แก้ด้วยโค้ดไม่ได้: กรอบ Sites **ห้ามย้ายหน้าทั้งแท็บ**, เปิดแท็บใหม่ได้เฉพาะตอนผู้ใช้กดจริง (popup blocker), **ปิดแท็บที่ผู้ใช้เปิดเองไม่ได้**, เพลง YouTube ในกรอบซ้อนเล่นไม่ได้ (ไม่มีสิทธิ์ autoplay) — ทางแก้จริงคือแจกลิงก์ `https://salesreg10.vercel.app`
+- เพลงพื้นหลังเริ่มเมื่อคลิกครั้งแรก (นโยบาย autoplay ของเบราว์เซอร์)
+
+### 15.4 Excel (SheetJS) — โหลดสำรองและตารางแบบไขว้
+- `Index.html` โหลด `cdn.sheetjs.com` xlsx 0.20.1 ถ้าไม่ได้ (ไฟร์วอลล์หน่วยงาน) `document.write` ไป cdnjs 0.18.5; `window.ensureXLSX()` ลอง sheetjs → cdnjs → jsdelivr; click listener (capture) ดักปุ่มที่ `onclick`/ข้อความมี excel|xlsx ถ้ายังไม่มี `XLSX` จะโหลดก่อนแล้ว `click()` ซ้ำ — ปุ่ม Excel ใหม่ใส่ชื่อ/ข้อความที่มีคำว่า Excel ก็ได้รับการป้องกันอัตโนมัติ
+- ตารางแบบไขว้ (`exportRevenueToExcel`): หัว 3 แถว (ปี → เดือน+รวม → จำนวน/รายได้) ด้วย `ws['!merges']`, ความกว้าง `ws['!cols']`, รูปแบบตัวเลข `cell.z = '#,##0'`, แถว "รวมทั้งหมด"; `ws['!freeze']` ใช้ไม่ได้ในรุ่น community
+- จัดกลุ่ม "คนเดียวกัน" ด้วย **รหัสสมาชิก** (ไม่มีรหัส → ปณ.+ชื่อ) + บริการ ไม่แยกตามระดับ; ระดับแสดงสูงสุด `PLATINUM BOX > BLUE BOX > RED BOX > Customer > ไม่เป็นสมาชิก`; ชื่อ ปณ./ทีม/ชื่อ ใช้ของเดือนล่าสุด
+- เรียงภาษาไทย+ตัวเลข: `a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' })` (ชื่อ ปณ. ขึ้นต้นรหัสไปรษณีย์จึงเรียงตามรหัส)
+- เก็บชีตข้อมูลดิบ ("ข้อมูลรายการ") คู่กับชีตสรุปเสมอ เผื่อผู้ใช้กรอง/คำนวณต่อ
+
+### 15.5 รูปแบบ UI ที่ใช้ซ้ำได้
+- **ตัวเลือกเดือนไทย:** เก็บค่าจริงใน `<input type="hidden">` รูปแบบ `YYYY-MM` (ค.ศ.) ให้โค้ดเดิมอ่านได้ แสดงผลด้วย select เดือนไทย + ปี พ.ศ. (`syncRevThaiMonthPickers` / `onRevThaiMonthChange`) — `<input type="month">` แสดงภาษาตามเบราว์เซอร์ บังคับไทยไม่ได้
+- **แผง KPI:** `buildKpiPanel()` ตัวเลขหลักใหญ่ + เป้าหมาย + แถบ % (หน้าหลัก)
+- **สถานะว่าง/ผิดพลาด:** แสดงข้อความทับกราฟ (`setHomeChartEmpty`) และปุ่ม "ลองใหม่" แทนกรอบโหลดค้าง; ต้นเดือนที่ยังไม่มีรายได้ ใช้เดือนล่าสุดที่มีข้อมูลและบอก "(ล่าสุดที่มีข้อมูล)"
+- **ResizeObserver:** ปรับขนาดใน callback ให้เลื่อนไป `requestAnimationFrame` และ `window.onerror` ข้ามข้อความ `ResizeObserver loop` (ไม่ใช่บั๊กจริง ไม่ต้องเด้งหน้าต่าง Bug)
+- **ส่วนที่แสดงบนจออย่างเดียว:** วางไว้นอก element ที่ `html2canvas` จับภาพ เช่น `#visitSummaryKpis` อยู่นอก `#visitSummaryContent`; การส่ง LINE อาศัย `#visitSummaryContent > div.bg-white` และ `.bg-gray-50 > div` — ห้ามเปลี่ยนโครงนี้
+- ตาราง: 0 แสดงเป็น "–" สีจาง, หัวตารางแยกสีตามกลุ่ม, แถวที่มีความเคลื่อนไหวพื้นอ่อน
+- **ภาพเคลื่อนไหว:** CSS `@keyframes` ใส่ใน `<style>` ของ overlay เอง และปิดเมื่อ `prefers-reduced-motion`
+
+### 15.6 การทดสอบและตรวจสอบก่อนส่งงาน
+- ตรวจ syntax ทุก `<script>` ใน .html + `dist/index.html` + Code.js ด้วย `vm.Script` (สคริปต์ตรวจที่ใช้: ไล่ทุก inline script แล้ว parse)
+- ทดสอบตรรกะฝั่งหน้าเว็บด้วย node: ตัดฟังก์ชันออกจากไฟล์ .html มา `eval` กับข้อมูลตัวอย่าง (เช่น export Excel ใช้แพ็กเกจ `xlsx@0.18.5` อ่านผลกลับด้วย `sheet_to_json`)
+- หลัง push เช็ก Vercel ด้วย `curl -s https://salesreg10.vercel.app/ | grep -o "APP_VERSION = '[^']*'"` (อย่า grep `Ver. 2026` เพราะเจอตัวอย่างในคอมเมนต์) — Vercel ใช้เวลา build ~1 นาที ให้วนเช็กจนเจอโค้ดใหม่
+- ทดสอบหลังบ้านจากภายนอก: `curl -sL -H "Content-Type: text/plain" --data '{"action":"executeFunction","functionName":"...","args":[]}' <exec URL>` (ห้ามใส่ `-X POST` จะได้ 411 ตอน redirect)
+- เวลาไทยใน Git Bash: `TZ=Asia/Bangkok` อาจไม่ทำงาน ให้ใช้ `node -e "new Date().toLocaleString('sv-SE',{timeZone:'Asia/Bangkok'})"`
+- `SHARED_NOTES.md` เป็น CRLF — ต่อท้ายด้วย `printf '...\r\n'` หรือแปลงกลับหลังแก้
+
+### 15.7 Deploy และโควตา Apps Script (สถานะล่าสุด)
+- `npm run build` = update-version + build-web → `dist/index.html`; `git push` → Vercel; `npm run push` = update-version + `clasp push -f` (HEAD เท่านั้น); `npm run deploy` = push + `clasp deploy -i AKfycbw5b49…` (สร้างเวอร์ชันใหม่ทับ deployment เดิม)
+- **โควตา: 1 โปรเจกต์ Apps Script มีได้สูงสุด 200 เวอร์ชัน** — ถึงขีดแล้ว (2026-11-03, ล่าสุด @344): `Cannot create more versions` → ต้องลบเวอร์ชันเก่าที่หน้า Project history ก่อน (ห้ามลบเวอร์ชันที่ deployment หลักใช้อยู่) ผู้ใช้เป็นคนลบเอง
+- งานที่แก้เฉพาะหน้าเว็บ (Module_*.html, Index.html, build-web.js) ส่ง Vercel อย่างเดียวพอ เพราะผู้ใช้และ Google Sites ใช้หน้า Vercel
+- ห้ามสร้าง deployment ใหม่หรือ archive `AKfycbw5b49…`; ลบ `desktop.ini` ก่อน push; deploy เมื่อผู้ใช้สั่งชัดเจนเท่านั้น (Claude Code auto mode บล็อกคำสั่ง deploy ถ้าผู้ใช้ไม่ได้สั่งในข้อความนั้น)
+
+## 16. บทเรียนจากงานส่วนขยาย กราฟ PDF และ AI (อัปเดต 2026-11-09)
+
+### 16.1 ส่วนขยาย Chrome SalesReg10 (MV3)
+- โค้ดแก้ที่ `Extention/SalesReg10/` แต่ผู้ใช้โหลดจาก `C:\SalesReg10` (Google Drive แสดง `desktop.ini` ให้ Chrome เห็น → "Cannot load extension with file or directory name desktop.ini" ทุกครั้งที่รีโหลด ลบก็กลับมา) — แก้เสร็จ: คัดลอกไป C:\SalesReg10, แพ็ก `SalesReg10.zip`, เพิ่ม version ใน manifest (PowerShell `Set-Content -Encoding UTF8` ใส่ BOM ให้ลบออก), บอกผู้ใช้กดรีโหลด
+- service worker ถูกปิดถ้ารอ fetch เกิน 30 วินาที → เรียก Apps Script ผ่าน offscreen document; heartbeat `chrome.runtime.getPlatformInfo()` ทุก 20 วินาที + เก็บ `runAlive` ใน storage (ล็อกหมดอายุ 5 นาที แทนเวลาเริ่ม 60 นาที เพราะรอบที่ลองใหม่อาจเกินชั่วโมง)
+- สถานะให้ popup อ่านผ่าน `chrome.storage.local` (progress: file, partNo/partTotal, stepNo/stepTotal, round) — popup ฟัง `storage.onChanged`
+- ลองใหม่: ทำทีละไฟล์ ไฟล์พังไม่หยุดไฟล์ถัดไป → ลองเฉพาะไฟล์ที่พัง 3 รอบ → `chrome.alarms` ลองใหม่ทุก 30 นาที (ข้ามไฟล์ที่สำเร็จแล้ววันนี้ด้วย `doneParts`); ข้อผิดพลาดร้ายแรง (ล็อกอินไม่ได้/ยังไม่ตั้งค่า) หยุดทันที; แจ้ง LINE เฉพาะครั้งแรกและครั้งที่เลิกลอง
+- แท็บเบื้องหลังตั้ง `autoDiscardable:false` (Chrome ล้างแท็บแล้ว id เปลี่ยน → "No tab with id") และเจอ No tab with id ให้เปิดแท็บใหม่ทันที ไม่รอจนหมดเวลา
+- สคริปต์ที่ฉีดด้วย `chrome.scripting.executeScript` (isolated world) ส่ง `chrome.runtime.sendMessage` กลับมาระหว่างทำงานได้ — ใช้รายงานขนาดไฟล์ที่ดาวน์โหลด (อ่าน `res.body.getReader()` ทีละชิ้น)
+- เอารายงานออกจาก REPORTS ต้องเลื่อนผลเดิมใน `lastResult.reports` (อ้างตามลำดับ) — ดู `migrateRemovedEparcel`
+
+### 16.2 กราฟ Chart.js (ต่อจากหัวข้อมาตรฐาน)
+- แกนเป็นทีม/ที่ทำการ (ไม่ใช่เวลา): เป้าหมายเป็นขีดบนแท่ง `{type:'line', showLine:false, pointStyle:'line', pointRadius: ctx => bar.width*0.65}` ไม่ใช่เส้นประต่อกัน
+- ตัวเลขบนแท่ง: เลขเต็ม เหนือแท่ง (`anchor:'end', align:'end', clamp:true`) พื้นขาวโปร่ง หมุน -90 เมื่อแท่งแคบกว่า ~64px; ซ่อนตัวเลขบนเส้น (`datalabels:{display:false}`) ให้ไปอยู่ใน tooltip
+- ค่าที่ไม่มีใช้ `null` (เส้นจะขาด) ไม่ใช่ 0 (เส้นดิ่งลงแกน); tooltip ที่อ่านค่า dataset ต้องรับ null (`|| 0`)
+- แกน y ย่อภาษาไทย: `new Intl.NumberFormat('th-TH',{notation:'compact',compactDisplay:'long',maximumFractionDigits:1})` → "19.7 ล้าน", "6.3 แสน" (compactDisplay short ให้ M/K)
+- สีแท่งตามผลงานเทียบเป้า + legend เอง (`generateLabels`) ดีกว่าสีสุ่มรายทีมที่ไม่มีความหมาย
+- ตรวจหน้าตากราฟก่อนส่ง: เขียน HTML จำลองที่ใช้ chart.js@4 + datalabels@2 จาก CDN แล้วถ่ายภาพด้วย Chrome headless (`--screenshot --virtual-time-budget=5000`)
+
+### 16.3 PDF ตาราง (html2canvas + jsPDF)
+- กำหนดจำนวนหน้าสูงสุดแทนจำนวนแถวตายตัว: แถวต่อหน้า = max(23, ceil(n / maxPages)) ลด padding เมื่อแถวเยอะ และถ้าภาพยังสูงเกินหน้าให้ย่อทั้งภาพ (คำนวณจาก `pdf.internal.pageSize.getHeight()`)
+- วัดความสูงจริงก่อนเชื่อ: เรนเดอร์ตารางจำลองใน Chrome headless แล้วอ่าน `getBoundingClientRect()` ผ่าน `--dump-dom`
+
+### 16.4 AI (Gemini) บน Apps Script
+- เวลาสูงสุด 6 นาที: ส่ง deadline ให้ฟังก์ชันที่วนเรียก API แล้วเลิกลองเมื่อเวลาไม่พอ (ประมาณจากเวลาเรียกครั้งล่าสุด) เพื่อให้ตอบเป็นข้อความได้ทัน
+- 503 "high demand": ลองโมเดลเดิมซ้ำมักไม่ช่วย ให้สลับโมเดลสำรอง (ชื่อแฝง `gemini-flash-latest`, `gemini-flash-lite-latest`) 404 ของโมเดลสำรองให้ข้าม
+- ทดสอบตรรกะ retry/fallback: รัน Code.js ใน `vm` แล้วจำลอง `UrlFetchApp/PropertiesService/Utilities`
+
+### 16.5 กับดักการแก้ไฟล์ด้วยสคริปต์
+- แทนที่ช่วงโค้ดด้วย `indexOf('                });')` อาจไปเจอ "ท้าย" บรรทัด `});` ที่ย่อหน้าลึกกว่า → โค้ดเก่าค้าง หลังแก้ต้องตรวจ syntax ทุก `<script>` เสมอ (`new Function(body)`)
+- ไฟล์ .html ในโปรเจกต์เป็น CRLF: สคริปต์แก้ต้องรองรับ `\r\n`; ข้อความที่มี `\u2009` ในโค้ดทำให้ Edit จับคู่ไม่ได้ ให้ใช้สคริปต์ node

@@ -5209,12 +5209,47 @@ function getTargetPlanIntlSheet_(createIfMissing) {
   return sheet;
 }
 
-// คืน { status, years: { ปี ค.ศ.: { zip: { name, m: { เดือน: รายได้ } } } }, files: [{ name, year, total, savedAt }] }
+// เป้าหมายรายได้ระหว่างประเทศปี 2569 (ผู้ใช้กำหนด 2026-11-09): ไฟล์ 1oBOGzfK… ชีต gid 205227328
+// คอลัมน์: ลำดับ | ที่ทำการ | รหัส | ม.ค. … ธ.ค. | รวม — ใช้เฉพาะ มี.ค.–ธ.ค. (รวม 13,000,000)
+var TARGET_PLAN_INTL_TARGET_SS_ID = '1oBOGzfK709V8p-1XtOU_2z7629TjeKMIg3w9g5o6MN0';
+var TARGET_PLAN_INTL_TARGET_GID = 205227328;
+var TARGET_PLAN_INTL_TARGET_YEAR = 2026;
+var TARGET_PLAN_INTL_TARGET_FROM_MONTH = 3; // มี.ค.
+
+// คืน { year, fromMonth, toMonth, byZip: { zip: เป้ารวมช่วงเดือน }, error? } — ใช้ภายใน (เรียกจาก getTargetPlanIntlData_ ที่ตรวจ admin แล้ว)
+function getTargetPlanIntlTargets_() {
+  try {
+    var ss = SpreadsheetApp.openById(TARGET_PLAN_INTL_TARGET_SS_ID);
+    var sheet = ss.getSheets().filter(function (sh) { return sh.getSheetId() === TARGET_PLAN_INTL_TARGET_GID; })[0];
+    if (!sheet) return { error: 'ไม่พบชีตเป้าหมายระหว่างประเทศ (gid ' + TARGET_PLAN_INTL_TARGET_GID + ')' };
+    var data = sheet.getDataRange().getValues();
+    var head = data[0].map(function (h) { return String(h).trim(); });
+    var iZip = head.indexOf('รหัส');
+    var iJan = head.indexOf('ม.ค.');
+    if (iZip < 0 || iJan < 0) return { error: 'ชีตเป้าหมายระหว่างประเทศไม่มีคอลัมน์ รหัส / ม.ค.' };
+    var byZip = {};
+    for (var i = 1; i < data.length; i++) {
+      var zip = String(data[i][iZip]).replace(/^'/, '').trim();
+      if (!/^\d{1,5}$/.test(zip)) continue;
+      zip = ('00000' + zip).slice(-5);
+      var sum = 0;
+      for (var m = TARGET_PLAN_INTL_TARGET_FROM_MONTH; m <= 12; m++) {
+        sum += parseFloat(String(data[i][iJan + m - 1]).replace(/,/g, '')) || 0;
+      }
+      byZip[zip] = (byZip[zip] || 0) + sum;
+    }
+    return { year: TARGET_PLAN_INTL_TARGET_YEAR, fromMonth: TARGET_PLAN_INTL_TARGET_FROM_MONTH, toMonth: 12, byZip: byZip };
+  } catch (e) {
+    return { error: e.toString() };
+  }
+}
+
+// คืน { status, years: { ปี ค.ศ.: { zip: { name, m: { เดือน: รายได้ } } } }, files: [{ name, year, total, savedAt }], intlTargets }
 function getTargetPlanIntlData_(actor) {
   try {
     if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
     var sheet = getTargetPlanIntlSheet_(false);
-    if (!sheet || sheet.getLastRow() < 2) return { status: 'success', years: {}, files: [] };
+    if (!sheet || sheet.getLastRow() < 2) return { status: 'success', years: {}, files: [], intlTargets: getTargetPlanIntlTargets_() };
     var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, TARGET_PLAN_INTL_HEADER.length).getValues();
     var years = {}, files = {};
     for (var i = 0; i < rows.length; i++) {
@@ -5231,7 +5266,7 @@ function getTargetPlanIntlData_(actor) {
       files[fkey].total += v;
     }
     var fileList = Object.keys(files).map(function (k) { return files[k]; }).sort(function (a, b) { return a.year - b.year; });
-    return { status: 'success', years: years, files: fileList };
+    return { status: 'success', years: years, files: fileList, intlTargets: getTargetPlanIntlTargets_() };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getTargetPlanIntlData_');
     return { status: 'error', message: e.toString() };
