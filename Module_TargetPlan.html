@@ -381,17 +381,21 @@
             //  เดือนที่ยังไม่มีข้อมูลจริง → รายได้เดือนเดียวกันปีก่อน × อัตราเติบโต (ปีนี้/ปีก่อน ช่วงเดือนเดียวกัน); ไม่มีปีก่อน → ค่าเฉลี่ยรายเดือนปีนี้
             //  ไม่มีรายได้เลย → เท่ากัน 12 เดือน; ปัดเป็นบาท เศษใส่เดือนที่สัดส่วนสูงสุด → รวม 12 เดือน = เป้าทั้งปีพอดี
             var am = actualMonths || (partial ? 0 : 12);
+            // เดือนที่รายได้สูงผิดปกติ (งานครั้งเดียว เช่น มิ.ย.) ไม่ให้ดึงเป้าเดือนนั้นสูงตาม — ผู้ใช้กำหนด 2026-11-09
+            //  เพดานต่อเดือน = มัธยฐานรายได้รายเดือนปีนี้ของที่ทำการนั้น × TP_MONTH_CAP; เดือนที่เกินใช้ค่าเพดานแทนในการคิดสัดส่วน
+            var TP_MONTH_CAP = 2;
             var monthWeights = function (d) {
-                var cur = d.mon[to] || null, prev = d.mon[to - 1] || null;
-                var w = [0], i, curSum = 0, prevSame = 0;
-                for (i = 1; i <= am; i++) { curSum += cur ? cur[i] : 0; prevSame += prev ? prev[i] : 0; }
-                var growth = prevSame > 0 ? curSum / prevSame : 1;
-                var curAvg = am ? curSum / am : 0;
-                for (i = 1; i <= 12; i++) {
-                    // เดือนที่ยังไม่มีข้อมูล = ค่าประมาณเดียวกับคอลัมน์ "ประมาณ พ.ย./ธ.ค." ในตาราง (รายได้จริงปีนี้ ÷ จำนวนเดือนที่มีข้อมูล) — ผู้ใช้กำหนด 2026-11-09
-                    var v = i <= am ? (cur ? cur[i] : 0) : curAvg;
-                    w.push(Math.max(0, v));
-                }
+                var cur = d.mon[to] || null;
+                var w = [0], i, raw = [], adj = [0];
+                for (i = 1; i <= am; i++) raw.push(Math.max(0, cur ? cur[i] : 0));
+                var sorted = raw.slice().sort(function (x, y) { return x - y; });
+                var med = sorted.length ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) : 0;
+                var cap = med > 0 ? med * TP_MONTH_CAP : Infinity;
+                d.cappedMonths = [];
+                for (i = 1; i <= am; i++) { var v0 = raw[i - 1]; if (v0 > cap) { d.cappedMonths.push(i); v0 = cap; } adj.push(v0); }
+                var adjAvg = am ? adj.slice(1).reduce(function (x, y) { return x + y; }, 0) / am : 0;
+                // เดือนที่ยังไม่มีข้อมูล = ค่าเฉลี่ยรายเดือนปีนี้ (หลังปรับเดือนที่สูงผิดปกติ)
+                for (i = 1; i <= 12; i++) w.push(i <= am ? adj[i] : adjAvg);
                 var s = w.reduce(function (a, b) { return a + b; }, 0);
                 for (i = 1; i <= 12; i++) w[i] = s > 0 ? w[i] / s : 1 / 12;
                 return w;
@@ -662,7 +666,7 @@
             document.getElementById('tpTitleMon').textContent = 'เป้ารายเดือน ปี ' + ny + ' · ' + gname;
             document.getElementById('tpMonNote').textContent = 'กระจายเป้าทั้งปีของแต่ละที่ทำการตามสัดส่วนรายได้แต่ละเดือนของปี ' + be(r.yearTo) + ' ของที่ทำการนั้น' +
                 (r.partial ? ' · เดือน ' + TH_SHORT[r.actualMonths + 1] + '–ธ.ค. ที่ยังไม่มีข้อมูล ใช้ค่าประมาณเดียวกับคอลัมน์ "ประมาณ" (ค่าเฉลี่ยรายเดือนของรายได้จริงปีนี้)' : '') +
-                ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
+                ' · เดือนที่รายได้สูงเกิน 2 เท่าของมัธยฐานรายเดือนของที่ทำการนั้น (เช่น งานครั้งเดียว) ใช้ 2 เท่าของมัธยฐานแทน เพื่อไม่ให้เป้าเดือนนั้นสูงผิดปกติ' + (function(){var n=list.filter(function(o){var d=g==='all'?o.dom:o[g];return d.cappedMonths&&d.cappedMonths.length;}).length;return n?' (ปรับ '+n+' แห่ง)':'';})() + ' · ที่ทำการที่ไม่มีรายได้ แบ่งเท่ากัน 12 เดือน · รวม 12 เดือน = เป้าทั้งปีพอดี';
             var head = '<tr><th class="py-3 px-3 text-center font-semibold">#</th><th class="py-3 px-3 text-left font-semibold">ที่ทำการ</th><th class="py-3 px-3 text-left font-semibold">ทีม</th>';
             for (var m = 1; m <= 12; m++) head += '<th class="py-3 px-3 text-right font-semibold">' + TH_SHORT[m] + ' ' + String(ny).slice(-2) + '</th>';
             document.getElementById('tpHeadMon').innerHTML = head + '<th class="py-3 px-3 text-right font-semibold">รวมทั้งปี</th></tr>';
