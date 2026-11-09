@@ -1094,7 +1094,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1109.1627';
+    var APP_VERSION = 'Ver. 2026.1109.1635';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -17285,6 +17285,17 @@
             var floor = (opts.intlFloor === undefined || opts.intlFloor === null) ? TP_INTL_ZERO_TARGET : Math.max(0, opts.intlFloor);
             var domRes = allocate('dom', targetDom, domFloor, TP_DOM_ROUND, opts.prevDom);
             var intlRes = allocate('intl', targetIntl, floor, TP_INTL_ROUND, opts.prevIntl);
+            // เป้ารวมเท่ากับเป้าปีก่อนรวม → ใช้เป้าปีก่อนรายที่ทำการตรง ๆ (ผู้ใช้กำหนด 2026-11-09: ระหว่างประเทศเป้าเท่าเดิม = เป้า 2569)
+            var sameAsPrev = function (k, total, prevMap, res) {
+                if (!prevMap) return false;
+                var ps = Object.keys(prevMap).reduce(function (a, z) { return a + (prevMap[z] || 0); }, 0);
+                if (!(ps > 0) || Math.abs(ps - total) >= 1) return false;
+                list.forEach(function (o) { o[k].target = prevMap[o.zip] || 0; o[k].atFloor = false; o[k].atPrev = true; });
+                res.tooHigh = false; res.count = 0; res.prevCount = list.length; res.same = true;
+                return true;
+            };
+            sameAsPrev('dom', targetDom, opts.prevDom, domRes);
+            sameAsPrev('intl', targetIntl, opts.prevIntl, intlRes);
             var floorTooHigh = intlRes.tooHigh;
             list.forEach(function (o) { o.intlAtFloor = o.intl.atFloor; });
             list.forEach(function (o) { o.target = o.dom.target + o.intl.target; });
@@ -17293,7 +17304,7 @@
                 years: years, yearTo: to, partial: partial, actualMonths: actualMonths, cutoff: cutoff,
                 pDom: pDom, pIntl: pIntl, intlFloor: floor, floorTooHigh: floorTooHigh, floorCount: intlRes.count,
                 domFloor: domFloor, domFloorCount: domRes.count, domFloorTooHigh: domRes.tooHigh,
-                domPrevCount: domRes.prevCount, intlPrevCount: intlRes.prevCount,
+                domPrevCount: domRes.prevCount, intlPrevCount: intlRes.prevCount, domSame: !!domRes.same, intlSame: !!intlRes.same,
                 offices: list
             };
         };
@@ -17503,7 +17514,7 @@
             }).join('');
             var domFloorNote = r.domFloorTooHigh ? ' · ⚠ ขั้นต่ำในประเทศ × จำนวนที่ทำการเกินเป้า จึงแบ่งเท่ากันทุกที่ทำการ'
                 : (r.domFloorCount ? ' · เป้าในประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.domFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.domFloorCount + ' แห่ง' : '');
-            var prevNote = (r.domPrevCount || r.intlPrevCount) ? 'เป้า ' + be(to + 1) + ' ไม่ต่ำกว่าเป้า ' + be(to) + ': ปรับขึ้นในประเทศ ' + (r.domPrevCount || 0) + ' แห่ง, ระหว่างประเทศ ' + (r.intlPrevCount || 0) + ' แห่ง' + ((r.domFloorTooHigh || r.floorTooHigh) ? ' (⚠ รวมเป้าขั้นต่ำเกินเป้ารวม)' : '') + ' · ' : '';
+            var prevNote = (r.intlSame ? 'ระหว่างประเทศ: เป้ารวมเท่าปี ' + be(to) + ' จึงใช้เป้า ' + be(to) + ' รายที่ทำการ · ' : '') + (r.domSame ? 'ในประเทศ: เป้ารวมเท่าปี ' + be(to) + ' จึงใช้เป้า ' + be(to) + ' รายที่ทำการ · ' : '') + (!r.intlSame && !r.domSame && (r.domPrevCount || r.intlPrevCount) ? 'เป้า ' + be(to + 1) + ' ไม่ต่ำกว่าเป้า ' + be(to) + ': ปรับขึ้นในประเทศ ' + (r.domPrevCount || 0) + ' แห่ง, ระหว่างประเทศ ' + (r.intlPrevCount || 0) + ' แห่ง' + ((r.domFloorTooHigh || r.floorTooHigh) ? ' (⚠ รวมเป้าขั้นต่ำเกินเป้ารวม)' : '') + ' · ' : '');
             document.getElementById('tpNote').textContent = prevNote + domFloorNote.replace(/^ · /, '') + (domFloorNote ? ' · ' : '') +
                 'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักหมื่น · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่บันทึกในระบบ' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
