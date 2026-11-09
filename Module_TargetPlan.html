@@ -5,7 +5,8 @@
        ค่าเฉลี่ย = ผลรวมปีที่มีข้อมูล ÷ จำนวนปีที่มีข้อมูล
        ในประเทศ: เป้า = ค่าเฉลี่ย × (1 + %) โดย % = เป้ากลุ่ม ÷ ผลรวมค่าเฉลี่ย − 1 ปัดเป็นหลักพัน (เกลี่ยเศษให้ผลรวมตรงเป้า)
        ระหว่างประเทศ: ที่ทำการที่ไม่มีรายได้ได้ TP_INTL_ZERO_TARGET ที่เหลือแบ่งตามสัดส่วนค่าเฉลี่ย -->
-<div class="bg-white custom-radius shadow-xl overflow-hidden max-w-7xl mx-auto mt-4 mb-8">
+<!-- ตารางกว้าง (หลายปี + ประมาณรายเดือน) จึงใช้ความกว้างเกือบเต็มพื้นที่ (ผู้ใช้ขอ 2026-11-09) -->
+<div class="bg-white custom-radius shadow-xl overflow-hidden w-full max-w-none mx-auto mt-4 mb-8">
     <div class="thp-page-intro">
         <p class="thp-page-intro-text">คำนวณเป้าหมายรายได้ที่แนะนำของแต่ละที่ทำการ จากค่าเฉลี่ยรายได้ทั้งปีในช่วงปีที่เลือก แยกบริการในประเทศและระหว่างประเทศ</p>
         <div class="flex items-center gap-2 flex-wrap">
@@ -19,7 +20,7 @@
         <p>หน้านี้ใช้ได้เฉพาะผู้ดูแลระบบ (admin)</p>
     </div>
 
-    <div id="targetPlanBody" class="p-4 md:p-8 flex flex-col gap-6">
+    <div id="targetPlanBody" class="p-3 md:p-5 flex flex-col gap-6">
         <!-- ตั้งค่าเป้าหมายปีถัดไป -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <label class="flex flex-col gap-1.5">
@@ -62,6 +63,20 @@
                 </select>
             </label>
             <p class="text-xs text-gray-500 md:pb-2" id="tpRangeHint"></p>
+        </div>
+
+        <!-- ข้อมูลระหว่างประเทศจากไฟล์ (ใช้เฉพาะหน้านี้ ไม่นำเข้าชีต) -->
+        <div class="flex flex-col md:flex-row md:items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-semibold text-gray-700">ข้อมูลรายได้ระหว่างประเทศจากไฟล์ CSV</div>
+                <div class="text-xs text-gray-500 mt-0.5" id="tpIntlFileStatus">ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้</div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <label class="thp-btn-secondary cursor-pointer"><i class="fas fa-file-csv"></i> เลือกไฟล์ (หลายไฟล์ได้)
+                    <input id="tpIntlFiles" type="file" accept=".csv" multiple class="hidden" onchange="handleTargetPlanIntlFiles(this)">
+                </label>
+                <button type="button" id="tpIntlFileClear" class="thp-btn-secondary hidden" onclick="clearTargetPlanIntlFiles()"><i class="fas fa-times"></i> เลิกใช้ไฟล์</button>
+            </div>
         </div>
 
         <!-- สรุปรวม -->
@@ -150,12 +165,35 @@
                 var zip = zipMatch ? zipMatch[0] : name.substring(0, 5);
                 if (!zip || TP_EXCLUDED_ZIPS.indexOf(zip) !== -1) return;
                 var grp = /^\s*3\.|ระหว่างประเทศ/.test(String(r[4] || '')) ? 'intl' : 'dom';
+                if (grp === 'intl' && opts.intlOverride) return; // มีไฟล์ระหว่างประเทศ → ไม่ใช้กลุ่มนี้จากชีต
                 var o = offices[zip] || (offices[zip] = { zip: zip, name: name, sums: { dom: {}, intl: {} }, has: {} });
                 if (y === to) o.name = name;
                 o.sums[grp][y] = (o.sums[grp][y] || 0) + rev;
                 o.has[y] = true;
                 if (y === to && rev !== 0 && m > lastSeen) lastSeen = m;
             });
+
+            // ข้อมูลระหว่างประเทศจากไฟล์: { ปี ค.ศ.: { zip: { name, m: { เดือน: รายได้ } } } }
+            if (opts.intlOverride) {
+                Object.keys(opts.intlOverride).forEach(function (ys) {
+                    var y = parseInt(ys, 10);
+                    if (y < from || y > to) return;
+                    var byZip = opts.intlOverride[ys];
+                    Object.keys(byZip).forEach(function (zip) {
+                        if (TP_EXCLUDED_ZIPS.indexOf(zip) !== -1) return;
+                        var rec = byZip[zip];
+                        Object.keys(rec.m).forEach(function (ms) {
+                            var m = parseInt(ms, 10);
+                            if (y === to && m > cutoff) return;
+                            var rev = rec.m[ms] || 0;
+                            var o = offices[zip] || (offices[zip] = { zip: zip, name: rec.name, sums: { dom: {}, intl: {} }, has: {} });
+                            o.sums.intl[y] = (o.sums.intl[y] || 0) + rev;
+                            o.has[y] = true;
+                            if (y === to && rev !== 0 && m > lastSeen) lastSeen = m;
+                        });
+                    });
+                });
+            }
 
             // ปีล่าสุดไม่ครบปี → ใช้เดือน ม.ค.–cutoff แล้วประมาณที่เหลือ (ถ้าข้อมูลยังมาไม่ถึง cutoff ใช้เดือนล่าสุดที่มีจริง)
             var actualMonths = lastSeen ? Math.min(cutoff, lastSeen) : 0;
@@ -298,6 +336,7 @@
                 targetDom: parseNum(document.getElementById('tpTargetDom').value),
                 targetIntl: parseNum(document.getElementById('tpTargetIntl').value),
                 intlFloor: parseNum(document.getElementById('tpIntlFloor').value),
+                intlOverride: state.intlFile ? state.intlFile.years : null,
                 teamMap: buildTeamMap(window.__tpTargets)
             });
             var teams = Array.from(new Set(state.result.offices.map(function (o) { return o.team; }).filter(Boolean)));
@@ -371,7 +410,7 @@
                 return '<div class="rounded-xl border border-gray-200 p-4"><div class="text-xs text-gray-500 mb-1">' + c[0] + '</div><div class="text-2xl font-bold ' + c[3] + '">' + c[1] + '</div><div class="text-xs text-gray-500 mt-1">' + c[2] + '</div></div>';
             }).join('');
             document.getElementById('tpNote').textContent =
-                'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักพัน · ระหว่างประเทศ = กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ"' +
+                'ค่าเฉลี่ยหารด้วยจำนวนปีที่ที่ทำการนั้นมีข้อมูล · เป้าในประเทศปัดเป็นหลักพัน · ระหว่างประเทศ ' + (state.intlFile ? '= จากไฟล์ CSV ที่เลือก' : '= กลุ่มบริการ "3.กลุ่มบริการระหว่างประเทศ" ในชีต') +
                 (r.floorTooHigh ? ' · ⚠ ขั้นต่ำ × จำนวนที่ทำการเกินเป้าระหว่างประเทศ จึงแบ่งเท่ากันทุกที่ทำการ'
                     : (r.floorCount ? ' · เป้าระหว่างประเทศที่ต่ำกว่าขั้นต่ำ ' + fmt(r.intlFloor) + ' บาท ปรับเป็นขั้นต่ำ ' + r.floorCount + ' แห่ง ส่วนที่เหลือแบ่งตามสัดส่วนรายได้ระหว่างประเทศเดิม' : ''));
 
@@ -445,12 +484,115 @@
             else if (typeof window.ensureXLSX === 'function') window.ensureXLSX().then(go).catch(function () { Swal.fire('ข้อผิดพลาด', 'โหลดไลบรารี Excel ไม่สำเร็จ', 'error'); });
         };
 
+        // ===== ข้อมูลระหว่างประเทศจากไฟล์ CSV (ส่งออกจาก Tableau: เขตพื้นที่, ชื่อ ปณ., กลุ่มบริการทั้งหมด, ..., เดือนของ ปี, ชื่อการวัดผล, ค่าการวัดผล) =====
+        // อ่านในเบราว์เซอร์อย่างเดียว เก็บเฉพาะยอดรวมรายที่ทำการ/รายเดือน (ไม่เก็บคอลัมน์ข้อมูลส่วนบุคคล เช่น เลขบัตรประชาชน)
+        var TP_INTL_FILE_KEY = 'thp_tp_intl_file';
+        var parseCsvLine = function (l) {
+            var out = [], cur = '', q = false;
+            for (var i = 0; i < l.length; i++) {
+                var ch = l[i];
+                if (q) { if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+                else if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch;
+            }
+            out.push(cur);
+            return out;
+        };
+        var decodeCsv = function (buf) {
+            try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+            catch (e) { return new TextDecoder('windows-874').decode(buf); }
+        };
+        // ปีจากชื่อไฟล์: "... 68.csv" → พ.ศ. 2568 → ค.ศ. 2025 (รองรับ 2568 เต็มด้วย)
+        var yearFromFileName = function (name) {
+            var m = String(name).match(/(25\d{2}|\d{2})\s*\.csv$/i) || String(name).match(/(25\d{2})/);
+            if (!m) return null;
+            var n = parseInt(m[1], 10);
+            if (n < 100) n += 2500;
+            return n - 543;
+        };
+        window.thpParseIntlCsv = function (text) {
+            var lines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/);
+            var head = parseCsvLine(lines[0] || '').map(function (h) { return h.trim(); });
+            var iO = head.indexOf('ชื่อ ปณ.'), iM = head.indexOf('เดือนของ ปี'), iK = head.indexOf('ชื่อการวัดผล'), iV = head.indexOf('ค่าการวัดผล');
+            if (iO < 0 || iM < 0 || iK < 0 || iV < 0) throw new Error('ไม่พบคอลัมน์ ชื่อ ปณ. / เดือนของ ปี / ชื่อการวัดผล / ค่าการวัดผล');
+            var byZip = {}, total = 0;
+            for (var i = 1; i < lines.length; i++) {
+                if (!lines[i]) continue;
+                var r = parseCsvLine(lines[i]);
+                if (String(r[iK]).trim() !== 'รายได้รวม') continue;
+                var m = TH_MONTHS[String(r[iM]).trim()];
+                if (!m) continue;
+                var name = String(r[iO] || '').trim();
+                var zm = name.match(/^\d{5}/);
+                if (!zm) continue;
+                var v = parseFloat(String(r[iV]).replace(/,/g, '')) || 0;
+                var rec = byZip[zm[0]] || (byZip[zm[0]] = { name: name, m: {} });
+                rec.m[m] = (rec.m[m] || 0) + v;
+                total += v;
+            }
+            return { byZip: byZip, total: total };
+        };
+
+        var renderIntlFileStatus = function () {
+            var st = document.getElementById('tpIntlFileStatus'), clr = document.getElementById('tpIntlFileClear');
+            if (!st) return;
+            if (!state.intlFile) {
+                st.textContent = 'ยังไม่ได้เลือกไฟล์ · ใช้ข้อมูลระหว่างประเทศจากชีตรายได้';
+                clr.classList.add('hidden');
+                return;
+            }
+            st.textContent = 'ใช้ข้อมูลระหว่างประเทศจากไฟล์: ' + state.intlFile.files.map(function (x) {
+                return x.name + ' (ปี ' + be(x.year) + ' · ' + fmt(x.total) + ' บาท)';
+            }).join(', ') + ' · ปีที่ไม่มีไฟล์ถือว่าไม่มีข้อมูลระหว่างประเทศ';
+            clr.classList.remove('hidden');
+        };
+
+        window.handleTargetPlanIntlFiles = function (input) {
+            var files = Array.prototype.slice.call(input.files || []);
+            if (!files.length) return;
+            var current = state.intlFile || { years: {}, files: [] };
+            var readOne = function (file) {
+                return file.arrayBuffer().then(function (buf) {
+                    var year = yearFromFileName(file.name);
+                    if (!year) throw new Error('ไม่ทราบปีของไฟล์ ' + file.name + ' (ให้ชื่อไฟล์ลงท้ายด้วยปี เช่น ... 68.csv)');
+                    var parsed = window.thpParseIntlCsv(decodeCsv(buf));
+                    if (!Object.keys(parsed.byZip).length) throw new Error('ไฟล์ ' + file.name + ' ไม่มีแถว รายได้รวม');
+                    current.years[year] = parsed.byZip; // ไฟล์ปีเดียวกันอันใหม่แทนอันเก่า
+                    current.files = current.files.filter(function (x) { return x.year !== year; });
+                    current.files.push({ name: file.name, year: year, total: parsed.total });
+                });
+            };
+            files.reduce(function (p, file) { return p.then(function () { return readOne(file); }); }, Promise.resolve())
+                .then(function () {
+                    current.files.sort(function (a, b) { return a.year - b.year; });
+                    state.intlFile = current;
+                    try { localStorage.setItem(TP_INTL_FILE_KEY, JSON.stringify(current)); } catch (e) {}
+                    renderIntlFileStatus();
+                    recompute();
+                })
+                .catch(function (err) { Swal.fire('อ่านไฟล์ไม่สำเร็จ', err.message || String(err), 'error'); })
+                .then(function () { input.value = ''; });
+        };
+
+        window.clearTargetPlanIntlFiles = function () {
+            state.intlFile = null;
+            try { localStorage.removeItem(TP_INTL_FILE_KEY); } catch (e) {}
+            renderIntlFileStatus();
+            recompute();
+        };
+
+        // ไฟล์ที่เคยเลือกไว้ (เก็บเป็นยอดรวมในเครื่อง)
+        try {
+            var savedIntl = JSON.parse(localStorage.getItem(TP_INTL_FILE_KEY) || 'null');
+            if (savedIntl && savedIntl.years && savedIntl.files) state.intlFile = savedIntl;
+        } catch (e) {}
+
         // ===== โหลดข้อมูล: ใช้แคชเดียวกับหน้า "ข้อมูลการใช้บริการ" (SWR) =====
         window.loadTargetPlanPage = function (force) {
             var noAccess = document.getElementById('targetPlanNoAccess');
             var body = document.getElementById('targetPlanBody');
             if (!isAdmin()) { noAccess.classList.remove('hidden'); body.classList.add('hidden'); return; }
             noAccess.classList.add('hidden'); body.classList.remove('hidden');
+            renderIntlFileStatus();
 
             var hasCache = false;
             if (!force && typeof SafeStorage !== 'undefined') {
