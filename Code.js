@@ -362,27 +362,103 @@ function getDataForTable_(requestingUser) {
 /**
  * ฟังก์ชัน: อัปเดต/แก้ไขข้อมูลการเข้าพบเดิม
  */
-function updateVisitData_(rowIndex, data) {
+// ---------- ระบุแถวการเข้าพบที่จะแก้/ลบให้ถูกแถว ----------
+// หน้าเว็บส่งเลขแถวที่นับจากรายการของ getDataForTable_ (ตัดแถวรหัสยกเว้นออกแล้ว แถวหัวตาราง = 1)
+// จึงต้องแปลงกลับเป็นแถวจริงในชีตด้วยกฎตัดแถวเดียวกัน แล้วตรวจว่าเป็นแถวเดียวกับที่ผู้ใช้เห็น
+// ถ้าไม่ตรง (มีคนลบแถวด้านบน หรือหน้าเว็บแสดงข้อมูลเก่าจากแคช) ค้นแถวที่ตรงทั้งชีต เจอแถวเดียวจึงใช้ ไม่งั้นให้รีเฟรช
+var VISIT_SIG_COLUMNS = [0, 5, 7, 8]; // A วันที่, F รหัสไปรษณีย์, H ชื่อผู้ประกอบการ, I เบอร์โทร
+var VISIT_ROW_NOT_FOUND_MSG = 'ไม่พบแถวข้อมูลนี้ในระบบ กรุณากดรีเฟรชแล้วลองใหม่';
+var VISIT_ROW_CHANGED_MSG = 'ข้อมูลแถวนี้ถูกแก้ไขหรือลบไปแล้ว กรุณากดรีเฟรชแล้วลองใหม่';
+
+function normVisitCell_(v) {
+  return String(v == null ? '' : v).replace(/^'/, '').trim();
+}
+
+function visitRowMatches_(rowVals, expected) {
+  for (var k = 0; k < VISIT_SIG_COLUMNS.length; k++) {
+    if (normVisitCell_(rowVals[VISIT_SIG_COLUMNS[k]]) !== normVisitCell_(expected[k])) return false;
+  }
+  return true;
+}
+
+// frontRow = เลขแถวจากหน้าเว็บ, expected = [วันที่, รหัสไปรษณีย์, ชื่อผู้ประกอบการ, เบอร์] ที่ผู้ใช้เห็น (หน้าเว็บรุ่นเก่าไม่ส่ง)
+// sheetRowHint = แถวจริงที่รู้อยู่แล้ว (ใช้ตอนตรวจซ้ำหลังอัปโหลดรูป) -> คืน { row, values } หรือ { error, code }
+function resolveVisitRow_(sheet, frontRow, expected, sheetRowHint) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { error: VISIT_ROW_NOT_FOUND_MSG, code: 'ROW_CHANGED' };
+  var vals = sheet.getRange(2, 1, lastRow - 1, 9).getDisplayValues(); // A..I ตั้งแต่แถว 2
+  var idx = -1;
+  if (sheetRowHint) {
+    idx = parseInt(sheetRowHint, 10) - 2;
+  } else {
+    var want = parseInt(frontRow, 10);
+    var pos = 1; // แถวหัวตาราง
+    for (var r = 0; r < vals.length && want >= 2; r++) {
+      if (EXCLUDED_ZIPCODES.indexOf(normVisitCell_(vals[r][5])) !== -1) continue;
+      pos++;
+      if (pos === want) { idx = r; break; }
+    }
+  }
+  var inRange = idx >= 0 && idx < vals.length;
+  var hasExpected = Array.isArray(expected) && expected.length === VISIT_SIG_COLUMNS.length;
+  if (!hasExpected) {
+    return inRange ? { row: idx + 2, values: vals[idx] } : { error: VISIT_ROW_NOT_FOUND_MSG, code: 'ROW_CHANGED' };
+  }
+  if (inRange && visitRowMatches_(vals[idx], expected)) return { row: idx + 2, values: vals[idx] };
+  var found = -1;
+  for (var k = 0; k < vals.length; k++) {
+    if (!visitRowMatches_(vals[k], expected)) continue;
+    if (found !== -1) return { error: VISIT_ROW_CHANGED_MSG, code: 'ROW_CHANGED' }; // ตรงมากกว่า 1 แถว ไม่เดา
+    found = k;
+  }
+  if (found === -1) return { error: VISIT_ROW_CHANGED_MSG, code: 'ROW_CHANGED' };
+  return { row: found + 2, values: vals[found] };
+}
+
+// สิทธิ์เดียวกับปุ่มบนหน้าเว็บ: admin แก้ได้ทุกแถว, viewer แก้ไม่ได้, ผู้ใช้อื่นแก้ได้เฉพาะแถวของรหัสไปรษณีย์ตน
+// actor มาจาก session เสมอ (dispatchApiCall_ ใส่ให้ตาม AUTH_SESSION_USER_ARG)
+function canEditVisitRow_(actor, rowVals) {
+  var login = (actor && actor.user) ? String(actor.user).trim().toLowerCase() : '';
+  if (!login || login === 'viewer') return false;
+  if (login === 'admin') return true;
+  var rowZip = normVisitCell_(rowVals[5]);
+  var ownZip = (actor.zipcode != null) ? String(actor.zipcode).trim() : '';
+  return rowZip === login || (ownZip !== '' && rowZip === ownZip);
+}
+
+function updateVisitData_(rowIndex, data, expected, actor) {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
+    if (!sheet) return { status: 'error', message: 'ไม่พบชีตข้อมูล' };
+    data = data || {};
 
     var phone = data.entrepreneurPhone ? data.entrepreneurPhone.toString().trim() : "";
     if (!/^0\d{8,9}$/.test(phone)) {
       return { status: 'error', message: 'เบอร์โทรศัพท์ไม่ถูกต้อง' };
     }
 
+    var target = resolveVisitRow_(sheet, rowIndex, expected);
+    if (target.error) return { status: 'error', code: target.code, message: target.error };
+    if (!canEditVisitRow_(actor, target.values)) {
+      return { status: 'error', message: 'ไม่มีสิทธิ์แก้ไขข้อมูลการเข้าพบรายการนี้' };
+    }
+
     var imageUrl = data.oldImageUrl || "";
     if (data.fileData && data.fileName) {
       var userInfo = (data.salesName || "") + " (" + (data.officeName || "") + ")";
       imageUrl = uploadImageToDrive(data.fileData, data.fileName, userInfo);
+      // อัปโหลดรูปใช้เวลา: ตรวจซ้ำว่าแถวยังอยู่ที่เดิม (ถ้ามีคนลบแถวด้านบนระหว่างนี้ แถวจะเลื่อน)
+      var sig = VISIT_SIG_COLUMNS.map(function (c) { return target.values[c]; });
+      target = resolveVisitRow_(sheet, null, sig, target.row);
+      if (target.error) return { status: 'error', code: target.code, message: target.error };
     }
 
     var offerResult = data.offerResult || "";
     var recommendedService = data.recommendedService || "";
     var lostReason = data.lostReason || "";
 
-    var range = sheet.getRange(rowIndex, 2, 1, 21);
+    var range = sheet.getRange(target.row, 2, 1, 21);
     var updateValues = [[
       data.subject, data.customerGroup, data.officeRegion, data.officeName, "'" + data.zipCode,
       data.salesName, data.entrepreneurName, "'" + phone, data.productType, data.salesChannel,
@@ -408,7 +484,7 @@ function updateVisitData_(rowIndex, data) {
 /**
  * ฟังก์ชัน: ลบข้อมูลการเข้าพบ
  */
-function deleteVisitData_(rowIndex) {
+function deleteVisitData_(rowIndex, expected, actor) {
   try {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('ข้อมูลการเข้าพบ');
@@ -417,7 +493,13 @@ function deleteVisitData_(rowIndex) {
       return { status: 'error', message: 'ไม่พบชีตข้อมูล' };
     }
 
-    sheet.deleteRow(rowIndex);
+    var target = resolveVisitRow_(sheet, rowIndex, expected);
+    if (target.error) return { status: 'error', code: target.code, message: target.error };
+    if (!canEditVisitRow_(actor, target.values)) {
+      return { status: 'error', message: 'ไม่มีสิทธิ์ลบข้อมูลการเข้าพบรายการนี้' };
+    }
+
+    sheet.deleteRow(target.row);
     return { status: 'success' };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
@@ -4426,7 +4508,9 @@ function updateBigLotOrder_(rowIndex, newQuantity, newTotalPrice, newDeliveryDat
   }
 }
 
-function updateBigLotOrderQuantity(rowIndex, newQuantity, newTotalPrice, userInfo) {
+// เดิมไม่มี _ จึงเรียกตรงผ่าน google.script.run ได้ (โหมด Apps Script) โดยส่ง {user:'admin'} ปลอมเอง
+// ไม่มีที่ใดเรียกใช้แล้ว จึงทำเป็นฟังก์ชันภายใน
+function updateBigLotOrderQuantity_(rowIndex, newQuantity, newTotalPrice, userInfo) {
   return updateBigLotOrder_(rowIndex, newQuantity, newTotalPrice, null, null, userInfo);
 }
 
@@ -5132,6 +5216,15 @@ var API_ALLOWED_FUNCTIONS = [
 // Script Property AUTH_ENFORCE = 'true' → บังคับต้องมี token (ปิดไว้ = ยอมให้เรียกได้แม้ไม่มี token ระหว่างทยอยเปลี่ยน)
 var AUTH_PUBLIC_FUNCTIONS = ['checkLogin', 'incrementVisitorCount', 'logFrontendErrorToLine', 'sendBugReportToLine', 'getAiUsageStats'];
 var AUTH_USER_SCOPED_FUNCTIONS = ['getRevenueAnalysisReport', 'getHomeRevenueSummary', 'getRevenueReportData', 'getDataForTable'];
+// ฟังก์ชันที่แก้/ลบข้อมูลและตัดสินสิทธิ์จากผู้ใช้: ต้องมี session เสมอ (แม้ AUTH_ENFORCE ยังปิด)
+// และใส่ผู้ใช้จาก session ลงอาร์กิวเมนต์ตำแหน่งที่กำหนด แทนค่าที่หน้าเว็บส่งมา (ส่ง {user:'admin'} ปลอมไม่ได้)
+var AUTH_SESSION_USER_ARG = {
+  updateVisitData: 3,            // (rowIndex, data, expected, actor)
+  deleteVisitData: 2,            // (rowIndex, expected, actor)
+  updateBigLotOrder: 5,          // (rowIndex, qty, total, deliveryDate, remark, userInfo)
+  deleteBigLotOrder: 1,          // (rowIndex, userInfo)
+  deleteMultipleBigLotOrders: 1  // (rowIndices, userInfo)
+};
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
 function createSession_(info) {
@@ -5175,6 +5268,12 @@ function dispatchApiCall_(token, funcName, args) {
         // ไม่มี session ห้ามใช้ข้อมูลผู้ใช้ที่หน้าเว็บส่งมาเอง (ปลอมเป็น admin ได้)
         args[0] = {};
       }
+    }
+    if (AUTH_SESSION_USER_ARG.hasOwnProperty(funcName)) {
+      if (!sess) throw new Error('SESSION_EXPIRED');
+      var at = AUTH_SESSION_USER_ARG[funcName];
+      while (args.length < at) args.push(null);
+      args[at] = { user: sess.user, zipcode: sess.zipcode, name: sess.name, team: sess.team };
     }
   }
   var fn = globalThis[funcName + '_'] || globalThis[funcName];

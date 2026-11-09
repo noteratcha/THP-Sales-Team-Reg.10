@@ -1646,9 +1646,16 @@
         else { wrapper.classList.add('hidden'); input.value = ''; }
     }
 
+    // ข้อมูลที่หลังบ้านใช้ตรวจว่ากำลังแก้/ลบแถวเดียวกับที่ผู้ใช้เห็น (VISIT_SIG_COLUMNS ใน Code.js):
+    // วันที่, รหัสไปรษณีย์, ชื่อผู้ประกอบการ, เบอร์โทร — ถ้าแถวในชีตเปลี่ยน หลังบ้านจะไม่บันทึกและให้รีเฟรช
+    window.visitRowSignature = function (row) {
+        return [0, 5, 7, 8].map(function (c) { return (row && row[c] != null) ? String(row[c]).trim() : ''; });
+    };
+
     window.openEditModal = function (sheetRowIndex, rowData) {
         const trySetInput = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; }
         trySetInput('editRowIndex', sheetRowIndex);
+        window.__editVisitSig = window.visitRowSignature(rowData);
         trySetInput('editSubject', rowData[1]);
 
         // 💡 เรียกใช้อัปเดตเครื่องหมาย * ทันทีที่เปิดหน้าต่าง
@@ -1875,13 +1882,23 @@
         google.script.run.withSuccessHandler(res => {
             if (btn) btn.disabled = false;
             if (res && res.status === 'success') { closeEditModal(); successSound.play().catch(e => { }); Swal.fire('สำเร็จ', 'อัปเดตข้อมูลเรียบร้อยแล้ว', 'success').then(() => loadVisitData()); }
-            else { Swal.fire('ผิดพลาด', res ? res.message : 'Unknown Error', 'error'); }
+            else if (res && res.code === 'ROW_CHANGED') {
+                // แถวในชีตเปลี่ยนไปแล้ว (มีคนแก้/ลบ หรือรายการบนจอเก่า) — ไม่บันทึกทับ ปิดหน้าต่างแล้วดึงรายการใหม่
+                closeEditModal();
+                Swal.fire('ข้อมูลเปลี่ยนแปลงแล้ว', res.message, 'warning').then(() => loadVisitData());
+            }
+            else { Swal.fire('ผิดพลาด', res ? res.message : 'บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error'); }
         }).withFailureHandler(err => {
-            if (btn) btn.disabled = false; Swal.fire('ผิดพลาด', err.toString(), 'error');
-        }).updateVisitData(getValOrEmpty('editRowIndex'), updatedData);
+            if (btn) btn.disabled = false;
+            Swal.fire('บันทึกไม่สำเร็จ', 'เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่ (' + ((err && err.message) || err) + ')', 'error');
+        }).updateVisitData(getValOrEmpty('editRowIndex'), updatedData, window.__editVisitSig || null);
     }
 
     window.confirmDelete = function (sheetRowIndex) {
+        // หาแถวที่ผู้ใช้กดลบ (ตัวเลขท้ายแถวคือเลขแถวที่ส่งหลังบ้าน) เพื่อส่งข้อมูลตรวจว่าเป็นแถวเดียวกัน
+        const pool = (window.filteredRows && window.filteredRows.length) ? window.filteredRows : (window.globalAllFetchedRows || []);
+        const rowForSig = pool.find(r => r && String(r[r.length - 1]) === String(sheetRowIndex));
+        const sig = rowForSig ? window.visitRowSignature(rowForSig) : null;
         Swal.fire({
             title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบออกจากระบบถาวร ไม่สามารถกู้คืนได้!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก'
         }).then((result) => {
@@ -1889,8 +1906,11 @@
                 Swal.fire({ title: 'กำลังลบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 google.script.run.withSuccessHandler(res => {
                     if (res && res.status === 'success') { successSound.play().catch(e => { }); Swal.fire('ลบสำเร็จ!', 'ข้อมูลถูกลบเรียบร้อยแล้ว', 'success').then(() => loadVisitData()); }
-                    else { Swal.fire('ผิดพลาด', res ? res.message : 'Unknown Error', 'error'); }
-                }).withFailureHandler(err => { Swal.fire('ผิดพลาด', err.toString(), 'error'); }).deleteVisitData(sheetRowIndex);
+                    else if (res && res.code === 'ROW_CHANGED') { Swal.fire('ข้อมูลเปลี่ยนแปลงแล้ว', res.message, 'warning').then(() => loadVisitData()); }
+                    else { Swal.fire('ผิดพลาด', res ? res.message : 'ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error'); }
+                }).withFailureHandler(err => {
+                    Swal.fire('ลบไม่สำเร็จ', 'เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่ (' + ((err && err.message) || err) + ')', 'error');
+                }).deleteVisitData(sheetRowIndex, sig);
             }
         });
     }
