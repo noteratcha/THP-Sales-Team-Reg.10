@@ -675,6 +675,26 @@
         </div>
     </div>
 
+    <!-- สรุปรายบริการ: จำนวนลูกค้า + รายได้รวม (ตามตัวกรอง) -->
+    <div id="serviceSummarySection" class="bg-white custom-radius shadow-md w-full mb-6 hidden hover:shadow-lg transition-shadow duration-300">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3 gap-3">
+                <h3 class="text-lg font-bold text-theme-black flex items-center gap-2">
+                    <span class="bg-theme-black text-white p-1.5 rounded-lg text-xs shadow-sm"><i class="fas fa-layer-group text-yellow-400"></i></span>
+                    <span>จำนวนลูกค้าและรายได้รายบริการ</span>
+                </h3>
+                <span class="text-xs text-gray-500" id="serviceSummaryNote"></span>
+            </div>
+            <div class="overflow-x-auto rounded-xl">
+                <table class="w-full text-sm">
+                    <thead class="bg-theme-black text-white text-[11px] md:text-xs"><tr id="serviceSummaryHead"></tr></thead>
+                    <tbody id="serviceSummaryBody" class="bg-white divide-y divide-gray-50"></tbody>
+                    <tfoot id="serviceSummaryFoot" class="bg-gray-50 font-bold"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div id="topCustomersSection"
         class="bg-white custom-radius shadow-md w-full mb-6 hidden hover:shadow-lg transition-shadow duration-300">
         <div class="p-6">
@@ -941,7 +961,7 @@
     function loadRevenueReport() {
         const tbody = document.getElementById('revenueReportBody');
         const noDataEl = document.getElementById('revenueNoData'); const pagEl = document.getElementById('revenuePaginationControls'); const topSec = document.getElementById('topCustomersSection');
-        if (noDataEl) noDataEl.classList.add('hidden'); if (pagEl) pagEl.classList.add('hidden'); if (topSec) topSec.classList.add('hidden');
+        if (noDataEl) noDataEl.classList.add('hidden'); if (pagEl) pagEl.classList.add('hidden'); if (topSec) topSec.classList.add('hidden'); var svcSec = document.getElementById('serviceSummarySection'); if (svcSec) svcSec.classList.add('hidden');
 
         const processAndRenderRevenueData = function (res) {
             if (res.status !== 'success') { if (tbody) tbody.innerHTML = `<tr><td colspan="11" class="text-center text-red-500 py-4">${res.message}</td></tr>`; return; }
@@ -1869,7 +1889,47 @@
     // TOP CUSTOMERS LOGIC (ลูกค้าที่มีรายได้สูงสุด และกราฟ Popup)
     // ==========================================
 
+    // สรุปรายบริการ: นับลูกค้าไม่ซ้ำ (รหัสสมาชิก หรือชื่อ) + รายได้รวม ปีปัจจุบัน/ปีก่อน ตามข้อมูลที่กรองแล้ว
+    window.renderServiceSummary = function (data) {
+        var sec = document.getElementById('serviceSummarySection');
+        if (!sec) return;
+        if (!data || !data.length) { sec.classList.add('hidden'); return; }
+        sec.classList.remove('hidden');
+        var years = [...new Set(data.map(function (r) { return parseInt(r[6]); }).filter(function (y) { return !isNaN(y); }))].sort(function (a, b) { return b - a; });
+        var cy = years[0], ly = cy - 1;
+        var map = {}, allC = {}, allL = {}, totC = 0, totL = 0;
+        data.forEach(function (row) {
+            var svc = String(row[4] || '').trim() || 'ไม่ระบุบริการ';
+            var cName = String(row[1] || '').trim(), cMem = String(row[2] || '').trim();
+            var key = (cMem && cMem !== '-' && cMem !== 'ไม่เป็นสมาชิก') ? cMem : cName;
+            var y = parseInt(row[6]), rev = parseFloat(String(row[8]).replace(/,/g, '')) || 0;
+            var m = map[svc] || (map[svc] = { svc: svc, c: {}, l: {}, revC: 0, revL: 0 });
+            if (y === cy) { m.revC += rev; totC += rev; if (key) { m.c[key] = 1; allC[key] = 1; } }
+            else if (y === ly) { m.revL += rev; totL += rev; if (key) { m.l[key] = 1; allL[key] = 1; } }
+        });
+        var fmtN = function (n) { return Math.round(n || 0).toLocaleString('th-TH'); };
+        var be = window.thpBE ? window.thpBE : function (y) { return y; };
+        var growth = function (a, b) {
+            if (!b) return '<span class="text-gray-400">-</span>';
+            var p = (a - b) / Math.abs(b) * 100;
+            return '<span class="' + (p >= 0 ? 'text-green-600' : 'text-red-600') + '"><i class="fas fa-arrow-' + (p >= 0 ? 'up' : 'down') + '"></i> ' + Math.abs(p).toFixed(2) + '%</span>';
+        };
+        var list = Object.values(map).sort(function (a, b) { return b.revC - a.revC || b.revL - a.revL; });
+        var th = function (t, al) { return '<th class="py-3 px-3 ' + (al || 'text-right') + ' whitespace-nowrap">' + t + '</th>'; };
+        document.getElementById('serviceSummaryHead').innerHTML = th('บริการ', 'text-left') + th('ลูกค้าปี ' + be(cy) + ' (ราย)') + th('รายได้ปี ' + be(cy)) + th('ลูกค้าปี ' + be(ly) + ' (ราย)') + th('รายได้ปี ' + be(ly)) + th('การเติบโต');
+        var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+        var td = function (v, cls) { return '<td class="py-2.5 px-3 text-right ' + (cls || '') + '">' + v + '</td>'; };
+        document.getElementById('serviceSummaryBody').innerHTML = list.map(function (m) {
+            return '<tr class="hover:bg-orange-50/40"><td class="py-2.5 px-3 text-left">' + esc(m.svc) + '</td>' +
+                td(fmtN(Object.keys(m.c).length)) + td(fmtN(m.revC), 'font-bold text-theme-orange') + td(fmtN(Object.keys(m.l).length)) + td(fmtN(m.revL)) + td(growth(m.revC, m.revL)) + '</tr>';
+        }).join('');
+        document.getElementById('serviceSummaryFoot').innerHTML = '<tr><td class="py-2.5 px-3 text-left">รวมทุกบริการ (ลูกค้าไม่ซ้ำ)</td>' +
+            td(fmtN(Object.keys(allC).length)) + td(fmtN(totC), 'text-theme-orange') + td(fmtN(Object.keys(allL).length)) + td(fmtN(totL)) + td(growth(totC, totL)) + '</tr>';
+        document.getElementById('serviceSummaryNote').textContent = list.length + ' บริการ · ตามตัวกรองที่เลือก · ลูกค้า 1 รายใช้หลายบริการนับในแต่ละบริการ';
+    };
+
     window.renderTopCustomers = function (data) {
+        try { window.renderServiceSummary(data); } catch (e) { console.error(e); }
         var topSec = document.getElementById('topCustomersSection');
         if (!data || data.length === 0) {
             if (topSec) topSec.classList.add('hidden');
