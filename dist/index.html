@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1112.1552';
+    var APP_VERSION = 'Ver. 2026.1112.1557';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -10915,7 +10915,7 @@
         if (!data || !data.length) return;
         var years = [...new Set(data.map(function (r) { return parseInt(r[6]); }).filter(function (y) { return !isNaN(y); }))].sort(function (a, b) { return b - a; });
         var cy = years[0], ly = cy - 1;
-        var map = {}, allC = {}, allL = {}, totC = 0, totL = 0;
+        var map = {}, allC = {}, allL = {}, totC = 0, totL = 0, byOff = {};
         data.forEach(function (row) {
             var svc = String(row[4] || '').trim() || 'ไม่ระบุบริการ';
             var cName = String(row[1] || '').trim(), cMem = String(row[2] || '').trim();
@@ -10924,6 +10924,15 @@
             var m = map[svc] || (map[svc] = { svc: svc, c: {}, l: {}, revC: 0, revL: 0 });
             if (y === cy) { m.revC += rev; totC += rev; if (key) { m.c[key] = 1; allC[key] = 1; } }
             else if (y === ly) { m.revL += rev; totL += rev; if (key) { m.l[key] = 1; allL[key] = 1; } }
+            // แยกรายที่ทำการ (สำหรับ Excel)
+            if (y === cy || y === ly) {
+                var off = String(row[0] || '').trim() || 'ไม่ระบุที่ทำการ';
+                var zm = off.match(/^\d{5}/), oz = zm ? zm[0] : off;
+                var ob = byOff[oz] || (byOff[oz] = { zip: oz, name: off, svc: {}, c: {}, l: {}, revC: 0, revL: 0 });
+                var os = ob.svc[svc] || (ob.svc[svc] = { svc: svc, c: {}, l: {}, revC: 0, revL: 0 });
+                var side = y === cy ? 'c' : 'l', rk = y === cy ? 'revC' : 'revL';
+                os[rk] += rev; ob[rk] += rev; if (key) { os[side][key] = 1; ob[side][key] = 1; }
+            }
         });
         var fmtN = function (n) { return Math.round(n || 0).toLocaleString('th-TH'); };
         var be = window.thpBE ? window.thpBE : function (y) { return y; };
@@ -10943,7 +10952,13 @@
         }).join('');
         document.getElementById('serviceSummaryFoot').innerHTML = '<tr><td class="py-2.5 px-3 text-left">รวมทุกบริการ (ลูกค้าไม่ซ้ำ)</td>' +
             td(fmtN(Object.keys(allC).length)) + td(fmtN(totC), 'text-theme-orange') + td(fmtN(Object.keys(allL).length)) + td(fmtN(totL)) + td(growth(totC, totL)) + '</tr>';
-        window.__svcSummary = { cy: cy, ly: ly, rows: list.map(function (m) { return [m.svc, Object.keys(m.c).length, Math.round(m.revC), Object.keys(m.l).length, Math.round(m.revL), m.revL ? +(((m.revC - m.revL) / Math.abs(m.revL)) * 100).toFixed(2) : '']; }),
+        var gp = function (a, b) { return b ? +(((a - b) / Math.abs(b)) * 100).toFixed(2) : ''; };
+        var offices = Object.values(byOff).sort(function (a, b) { return String(a.zip).localeCompare(String(b.zip)); }).map(function (ob) {
+            return { zip: ob.zip, name: ob.name,
+                rows: Object.values(ob.svc).sort(function (a, b) { return b.revC - a.revC || b.revL - a.revL; }).map(function (m) { return [m.svc, Object.keys(m.c).length, Math.round(m.revC), Object.keys(m.l).length, Math.round(m.revL), gp(m.revC, m.revL)]; }),
+                total: ['รวมทุกบริการ (ลูกค้าไม่ซ้ำ)', Object.keys(ob.c).length, Math.round(ob.revC), Object.keys(ob.l).length, Math.round(ob.revL), gp(ob.revC, ob.revL)] };
+        });
+        window.__svcSummary = { offices: offices, cy: cy, ly: ly, rows: list.map(function (m) { return [m.svc, Object.keys(m.c).length, Math.round(m.revC), Object.keys(m.l).length, Math.round(m.revL), m.revL ? +(((m.revC - m.revL) / Math.abs(m.revL)) * 100).toFixed(2) : '']; }),
             total: ['รวมทุกบริการ (ลูกค้าไม่ซ้ำ)', Object.keys(allC).length, Math.round(totC), Object.keys(allL).length, Math.round(totL), totL ? +(((totC - totL) / Math.abs(totL)) * 100).toFixed(2) : ''] };
         document.getElementById('serviceSummaryNote').textContent = list.length + ' บริการ · ตามตัวกรองที่เลือก · ลูกค้า 1 รายใช้หลายบริการนับในแต่ละบริการ';
     };
@@ -10964,7 +10979,23 @@
         var be = window.thpBE ? window.thpBE : function (y) { return y; };
         var aoa = [['บริการ', 'ลูกค้าปี ' + be(d.cy) + ' (ราย)', 'รายได้ปี ' + be(d.cy), 'ลูกค้าปี ' + be(d.ly) + ' (ราย)', 'รายได้ปี ' + be(d.ly), 'การเติบโต (%)']].concat(d.rows, [d.total]);
         var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{ wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
-        var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'รายบริการ');
+        var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'รวมทุกที่ทำการ');
+        var head = aoa[0], cols = ws['!cols'];
+        // ชีตรวมแยกที่ทำการ (ตารางยาว กรองต่อใน Excel ได้)
+        var longA = [['รหัส ปณ.', 'ที่ทำการ'].concat(head)];
+        (d.offices || []).forEach(function (o) { o.rows.concat([o.total]).forEach(function (r) { longA.push([o.zip, o.name].concat(r)); }); });
+        var wl = XLSX.utils.aoa_to_sheet(longA); wl['!cols'] = [{ wch: 10 }, { wch: 30 }].concat(cols);
+        XLSX.utils.book_append_sheet(wb, wl, 'แยกที่ทำการ (ทั้งหมด)');
+        // 1 ชีตต่อรหัสไปรษณีย์
+        var used = {};
+        (d.offices || []).forEach(function (o) {
+            var nm = String(o.zip).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31), base = nm, i = 2;
+            while (used[nm]) nm = (base.slice(0, 27) + ' (' + (i++) + ')');
+            used[nm] = 1;
+            var wo = XLSX.utils.aoa_to_sheet([[o.name], []].concat([head], o.rows, [o.total]));
+            wo['!cols'] = cols;
+            XLSX.utils.book_append_sheet(wb, wo, nm);
+        });
         XLSX.writeFile(wb, 'ลูกค้าและรายได้รายบริการ_' + be(d.cy) + '.xlsx');
     };
 
