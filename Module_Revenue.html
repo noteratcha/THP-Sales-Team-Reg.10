@@ -712,6 +712,9 @@
                         <option value="thisYear" selected>เรียงจาก: รายได้ปีปัจจุบัน</option>
                         <option value="lastYear">เรียงจาก: รายได้ปีก่อน</option>
                     </select>
+                    <button type="button" onclick="openServiceSummaryPopup()"
+                        class="text-xs bg-theme-black text-white hover:bg-gray-800 px-4 py-1.5 rounded-full font-normal shadow-sm flex items-center gap-1 transition transform hover:scale-105"><i
+                            class="fas fa-layer-group text-yellow-400"></i> สรุปรายบริการ</button>
                     <button type="button" onclick="exportTopCustomersToExcel()"
                         class="text-xs bg-theme-orange text-white hover:bg-orange-600 px-4 py-1.5 rounded-full font-normal shadow-sm flex items-center gap-1 transition transform hover:scale-105"><i
                             class="fas fa-file-excel"></i> Excel</button>
@@ -1893,8 +1896,9 @@
     window.renderServiceSummary = function (data) {
         var sec = document.getElementById('serviceSummarySection');
         if (!sec) return;
-        if (!data || !data.length) { sec.classList.add('hidden'); return; }
-        sec.classList.remove('hidden');
+        sec.classList.add('hidden'); // แสดงผ่าน popup (openServiceSummaryPopup)
+        window.__svcSummary = null;
+        if (!data || !data.length) return;
         var years = [...new Set(data.map(function (r) { return parseInt(r[6]); }).filter(function (y) { return !isNaN(y); }))].sort(function (a, b) { return b - a; });
         var cy = years[0], ly = cy - 1;
         var map = {}, allC = {}, allL = {}, totC = 0, totL = 0;
@@ -1925,7 +1929,29 @@
         }).join('');
         document.getElementById('serviceSummaryFoot').innerHTML = '<tr><td class="py-2.5 px-3 text-left">รวมทุกบริการ (ลูกค้าไม่ซ้ำ)</td>' +
             td(fmtN(Object.keys(allC).length)) + td(fmtN(totC), 'text-theme-orange') + td(fmtN(Object.keys(allL).length)) + td(fmtN(totL)) + td(growth(totC, totL)) + '</tr>';
+        window.__svcSummary = { cy: cy, ly: ly, rows: list.map(function (m) { return [m.svc, Object.keys(m.c).length, Math.round(m.revC), Object.keys(m.l).length, Math.round(m.revL), m.revL ? +(((m.revC - m.revL) / Math.abs(m.revL)) * 100).toFixed(2) : '']; }),
+            total: ['รวมทุกบริการ (ลูกค้าไม่ซ้ำ)', Object.keys(allC).length, Math.round(totC), Object.keys(allL).length, Math.round(totL), totL ? +(((totC - totL) / Math.abs(totL)) * 100).toFixed(2) : ''] };
         document.getElementById('serviceSummaryNote').textContent = list.length + ' บริการ · ตามตัวกรองที่เลือก · ลูกค้า 1 รายใช้หลายบริการนับในแต่ละบริการ';
+    };
+
+    window.openServiceSummaryPopup = function () {
+        if (!window.__svcSummary) { Swal.fire('ไม่มีข้อมูล', 'ยังไม่มีข้อมูลตามตัวกรองที่เลือก', 'info'); return; }
+        var tbl = document.querySelector('#serviceSummarySection table').outerHTML;
+        Swal.fire({
+            title: 'จำนวนลูกค้าและรายได้รายบริการ',
+            html: '<div class="text-xs text-gray-500 mb-2 text-right">' + document.getElementById('serviceSummaryNote').textContent + '</div>' +
+                '<div style="max-height:65vh;overflow:auto" class="rounded-xl text-left">' + tbl.replace(/ id="[^"]*"/g, '') + '</div>',
+            width: '90%', showCloseButton: true, showConfirmButton: true, confirmButtonText: '<i class="fas fa-file-excel"></i> ดาวน์โหลด Excel',
+            confirmButtonColor: '#ea580c', showCancelButton: true, cancelButtonText: 'ปิด'
+        }).then(function (r) { if (r.isConfirmed) window.exportServiceSummaryToExcel(); });
+    };
+    window.exportServiceSummaryToExcel = function () {
+        var d = window.__svcSummary; if (!d || typeof XLSX === 'undefined') return;
+        var be = window.thpBE ? window.thpBE : function (y) { return y; };
+        var aoa = [['บริการ', 'ลูกค้าปี ' + be(d.cy) + ' (ราย)', 'รายได้ปี ' + be(d.cy), 'ลูกค้าปี ' + be(d.ly) + ' (ราย)', 'รายได้ปี ' + be(d.ly), 'การเติบโต (%)']].concat(d.rows, [d.total]);
+        var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = [{ wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
+        var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'รายบริการ');
+        XLSX.writeFile(wb, 'ลูกค้าและรายได้รายบริการ_' + be(d.cy) + '.xlsx');
     };
 
     window.renderTopCustomers = function (data) {
