@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1112.1546';
+    var APP_VERSION = 'Ver. 2026.1112.1552';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -9573,7 +9573,7 @@
             <div class="group-filter">
                 <label class="text-[10px] font-bold text-gray-400 mb-1.5 block uppercase tracking-wider"><i
                         class="fas fa-building text-theme-orange mr-1"></i> ชื่อ ปณ.</label>
-                <input type="text" id="revFilterOffice" oninput="applyRevenueFilters()" placeholder="ระบุชื่อ ปณ."
+                <input type="text" id="revFilterOffice" oninput="applyRevenueFilters()" placeholder="ชื่อ ปณ. หรือหลายรหัส เช่น 34000, 47120" title="ใส่หลายที่ทำการได้ คั่นด้วย , หรือเว้นวรรค (รหัสไปรษณีย์)"
                     class="w-full text-xs p-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-1 focus:ring-theme-orange/40 focus:border-theme-orange transition outline-none font-sans">
             </div>
 
@@ -10249,6 +10249,13 @@
     function applyRevenueFilters() {
         syncRevThaiMonthPickers();
         const fOffice = document.getElementById('revFilterOffice')?.value.toLowerCase().trim() || '';
+        // ตัวกรอง ปณ. หลายที่ทำการ: คั่นด้วย , ; หรือขึ้นบรรทัด และถ้าทุกคำเป็นตัวเลข คั่นด้วยเว้นวรรคได้ด้วย → ตรงคำใดคำหนึ่ง
+        if (!window.thpOfficeMatch) window.thpOfficeMatch = function (q) {
+            var terms = String(q).split(/[,;\n]+/).map(function (t) { return t.trim(); }).filter(Boolean);
+            terms = [].concat.apply([], terms.map(function (t) { var w = t.split(/s+/); return w.every(function (x) { return /^d+$/.test(x); }) ? w : [t]; }));
+            var hay = Array.prototype.slice.call(arguments, 1).map(function (x) { return String(x || '').toLowerCase(); });
+            return terms.some(function (t) { return hay.some(function (h) { return h.indexOf(t) !== -1; }); });
+        };
         const fCustomer = document.getElementById('revFilterCustomer')?.value.toLowerCase().trim() || '';
         const fMember = document.getElementById('revFilterMemberID')?.value.toLowerCase().trim() || '';
         const selectedServices = Array.from(document.querySelectorAll('.service-checkbox:checked')).map(cb => cb.value);
@@ -10270,7 +10277,7 @@
             const rLevel = String(row[3]); const rService = String(row[4]); const rMonthName = String(row[5]); const rYearStr = String(row[6]);
             const rTeam = String(row[10] || 'ไม่ระบุทีม').trim();
 
-            if (fOffice && !rOffice.includes(fOffice)) return false;
+            if (fOffice && !window.thpOfficeMatch(fOffice, rOffice)) return false;
             if (fCustomer && !rCustomer.includes(fCustomer)) return false;
             if (fMember && !rMember.includes(fMember)) return false;
             if (!allLvlChecked && (selectedLevels.length === 0 || !selectedLevels.includes(rLevel))) return false;
@@ -10894,6 +10901,12 @@
     // ==========================================
 
     // สรุปรายบริการ: นับลูกค้าไม่ซ้ำ (รหัสสมาชิก หรือชื่อ) + รายได้รวม ปีปัจจุบัน/ปีก่อน ตามข้อมูลที่กรองแล้ว
+    if (!window.thpOfficeMatch) window.thpOfficeMatch = function (q) {
+        var terms = String(q).split(/[,;\n]+/).map(function (t) { return t.trim(); }).filter(Boolean);
+        terms = [].concat.apply([], terms.map(function (t) { var w = t.split(/s+/); return w.every(function (x) { return /^d+$/.test(x); }) ? w : [t]; }));
+        var hay = Array.prototype.slice.call(arguments, 1).map(function (x) { return String(x || '').toLowerCase(); });
+        return terms.some(function (t) { return hay.some(function (h) { return h.indexOf(t) !== -1; }); });
+    };
     window.renderServiceSummary = function (data) {
         var sec = document.getElementById('serviceSummarySection');
         if (!sec) return;
@@ -11862,7 +11875,7 @@
                 var tTeam = String(r[6]).trim() || zipToTeamMap[tZip] || 'ไม่ระบุทีม';
 
                 if (!isAdmin && tZip !== userZip) continue;
-                if (fOffice && !tOfficeName.includes(fOffice) && !tZip.includes(fOffice)) continue;
+                if (fOffice && !window.thpOfficeMatch(fOffice, tOfficeName, tZip)) continue;
                 if (!allTeamChecked && (selectedTeams.length === 0 || !selectedTeams.includes(tTeam))) continue;
 
                 if (tYear > 2500) tYear -= 543;
