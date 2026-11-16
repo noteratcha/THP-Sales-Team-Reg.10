@@ -12,7 +12,7 @@
         <div class="flex items-center gap-2 flex-wrap">
             <button type="button" class="thp-btn-secondary" onclick="loadTargetPlanPage(true)"><i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
             <button type="button" class="thp-btn-secondary" onclick="exportTargetPlanExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-            <button type="button" class="thp-btn-secondary" onclick="saveTargetPlanNextYear()" title="บันทึกเป้ารายเดือนปีถัดไป (ในประเทศ + ระหว่างประเทศ) ลงชีต เป้าหมายรายได้"><i class="fas fa-save"></i> บันทึกเป้า <span class="tpNextYearText">2570</span></button>
+            <button type="button" class="thp-btn-secondary tp-admin-only" onclick="saveTargetPlanNextYear()" title="บันทึกเป้ารายเดือนปีถัดไป (ในประเทศ + ระหว่างประเทศ) ลงชีต เป้าหมายรายได้"><i class="fas fa-save"></i> บันทึกเป้า <span class="tpNextYearText">2570</span></button>
         </div>
     </div>
 
@@ -27,7 +27,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="tpSummary"></div>
 
         <!-- ตั้งค่าการคำนวณ (พับได้ จำสถานะในเบราว์เซอร์) -->
-        <details class="tp-settings rounded-xl border border-gray-200 bg-gray-50/60" id="tpSettings">
+        <details class="tp-settings tp-admin-only rounded-xl border border-gray-200 bg-gray-50/60" id="tpSettings">
             <summary class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 cursor-pointer select-none">
                 <span class="font-bold text-gray-800"><i class="fas fa-sliders-h text-gray-500 mr-1.5"></i>ตั้งค่าการคำนวณ</span>
                 <span class="text-xs text-gray-500 min-w-0" id="tpSettingsSummary"></span>
@@ -667,10 +667,16 @@
             Array.prototype.forEach.call(document.querySelectorAll('#page-target-plan .tp-seg > button'), function (b) { b.setAttribute('aria-checked', b.getAttribute('data-mon') === g ? 'true' : 'false'); });
             renderTargetPlanTable();
         };
-        window.useTargetPlanSaved = function (on) { state.useSaved = !!on; recompute(); };
+        window.useTargetPlanSaved = function (on) { if (!isAdmin()) on = true; state.useSaved = !!on; recompute(); };
         var renderSavedBar = function (r) {
             var el = document.getElementById('tpSavedBar'); if (!el) return;
             var ny = be(r.yearTo + 1);
+            if (!isAdmin()) {
+                el.className = 'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ' + (r.savedLoaded ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-200 bg-amber-50 text-amber-900');
+                el.innerHTML = r.savedLoaded ? '<i class="fas fa-eye"></i><span>แสดง<b>เป้าปี ' + ny + ' ที่บันทึกแล้ว</b> (ดูอย่างเดียว · บันทึก/แก้ไขได้เฉพาะผู้ดูแลระบบ)</span>'
+                    : '<i class="fas fa-info-circle"></i><span>ยังไม่มีเป้าปี ' + ny + ' ที่ผู้ดูแลระบบบันทึกไว้ ตัวเลขด้านล่างเป็นค่าประมาณเท่านั้น</span>';
+                return;
+            }
             if (!r.savedAvailable) { el.className = 'hidden'; el.innerHTML = ''; return; }
             el.className = 'flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border px-4 py-3 text-sm ' + (r.savedLoaded ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-200 bg-amber-50 text-amber-900');
             el.innerHTML = r.savedLoaded
@@ -1037,6 +1043,7 @@
 
         // บันทึกเป้ารายเดือนปีถัดไปลงชีต เป้าหมายรายได้ (ผู้ใช้กำหนด 2026-11-09) — บันทึกทุกที่ทำการ (ไม่ขึ้นกับตัวกรอง)
         window.saveTargetPlanNextYear = function () {
+            if (!isAdmin()) return; // ดูอย่างเดียว (หลังบ้านตรวจซ้ำ)
             var r = state.result;
             if (!r) { Swal.fire('ยังไม่มีข้อมูล', 'กรุณารอให้ข้อมูลโหลดเสร็จก่อน', 'info'); return; }
             var ny = r.yearTo + 1;
@@ -1261,9 +1268,12 @@
         window.loadTargetPlanPage = function (force) {
             var noAccess = document.getElementById('targetPlanNoAccess');
             var body = document.getElementById('targetPlanBody');
-            if (!isAdmin()) { noAccess.classList.remove('hidden'); body.classList.add('hidden'); return; }
+            // ผู้ใช้อื่น: ดูอย่างเดียว (ซ่อนปุ่มบันทึก/ค่าตั้ง ใช้เป้าที่บันทึกไว้เสมอ) ข้อมูลรายได้ตามพื้นที่ของผู้ใช้
+            var ro = !isAdmin();
+            Array.prototype.forEach.call(document.querySelectorAll('#page-target-plan .tp-admin-only'), function (el) { el.classList.toggle('hidden', ro); });
+            if (ro) state.useSaved = true;
             noAccess.classList.add('hidden'); body.classList.remove('hidden');
-            loadIntlFromServer();
+            if (!ro) loadIntlFromServer();
 
             var hasCache = false;
             if (!force && typeof SafeStorage !== 'undefined') {

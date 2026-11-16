@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1116.1040';
+    var APP_VERSION = 'Ver. 2026.1116.1131';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -671,8 +671,7 @@
                         class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
                         <i class="fas fa-bullseye text-xs"></i>
                     </div>
-                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้
-                        (Admin)</span>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้</span>
                 </div>
                 <!-- เป้าหมายการเข้าพบลูกค้าปีถัดไป (เฉพาะ admin) -->
                 <div onclick="switchPage('visit-plan')" id="menu-visit-plan"
@@ -681,8 +680,7 @@
                         class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
                         <i class="fas fa-handshake text-xs"></i>
                     </div>
-                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เป้าหมายการเข้าพบลูกค้า
-                        (Admin)</span>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เป้าหมายการเข้าพบลูกค้า</span>
                 </div>
             </div>
 
@@ -2682,9 +2680,10 @@
 
             // เมนูวางแผนเป้าหมายรายได้: เฉพาะ admin (หน้าเองตรวจซ้ำใน loadTargetPlanPage)
             const elTargetPlan = document.getElementById('menu-target-plan');
-            if (elTargetPlan) elTargetPlan.classList.toggle('hidden', userRole !== 'admin');
+            // ผู้ใช้กำหนด 2026-11-16: ทุกคนเห็นเมนูเป้าหมาย (ดูอย่างเดียว) — บันทึกได้เฉพาะ admin (ตรวจซ้ำที่หลังบ้าน)
+            if (elTargetPlan) elTargetPlan.classList.remove('hidden');
             const elVisitPlan = document.getElementById('menu-visit-plan');
-            if (elVisitPlan) elVisitPlan.classList.toggle('hidden', userRole !== 'admin');
+            if (elVisitPlan) elVisitPlan.classList.remove('hidden');
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();

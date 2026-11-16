@@ -9,7 +9,7 @@
         <div class="flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
             <button type="button" class="thp-btn-secondary" onclick="loadVisitPlanPage(true)"><i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
             <button type="button" class="thp-btn-secondary" id="vpExcelBtn" onclick="exportVisitPlanExcel()" disabled><i class="fas fa-file-excel"></i> Excel</button>
-            <button type="button" class="thp-btn-secondary" id="vpSaveBtn" onclick="saveVisitPlanYear()" disabled title="บันทึกเป้าปีถัดไปลงชีต เป้าหมายการเข้าพบลูกค้า"><i class="fas fa-save"></i> <span>บันทึกเป้า <span class="vpYearText">2570</span></span></button>
+            <button type="button" class="thp-btn-secondary hidden" id="vpSaveBtn" onclick="saveVisitPlanYear()" disabled title="บันทึกเป้าปีถัดไปลงชีต เป้าหมายการเข้าพบลูกค้า"><i class="fas fa-save"></i> <span>บันทึกเป้า <span class="vpYearText">2570</span></span></button>
         </div>
     </div>
 
@@ -254,12 +254,14 @@
                 el.className = 'flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border px-4 py-3 text-sm ' + tones[tone];
                 el.innerHTML = '<span class="flex-1 leading-relaxed"><i class="fas ' + icon + ' mr-1.5"></i>' + html + '</span>' + (action || '');
             };
-            var saveBtn = function (label) { return '<button type="button" class="vp-btn-primary shrink-0 self-start sm:self-auto" onclick="saveVisitPlanYear()"><i class="fas fa-save"></i> ' + label + '</button>'; };
+            var saveBtn = function (label) { if (!isAdmin()) return ''; return '<button type="button" class="vp-btn-primary shrink-0 self-start sm:self-auto" onclick="saveVisitPlanYear()"><i class="fas fa-save"></i> ' + label + '</button>'; };
             var retryBtn = '<button type="button" class="thp-btn-secondary shrink-0 self-start sm:self-auto" onclick="loadVisitPlanPage(true)"><i class="fas fa-sync-alt"></i> ลองใหม่</button>';
             if (state.error) { bar('err', 'fa-exclamation-triangle', 'โหลดข้อมูลไม่สำเร็จ' + (p ? ' (แสดงข้อมูลล่าสุดที่มี)' : '') + ': ' + esc(state.error), retryBtn); return; }
             if (!p) { el.className = 'hidden'; el.innerHTML = ''; return; }
             if (!p.offices.length) { bar('warn', 'fa-exclamation-circle', 'ไม่พบเป้าการเข้าพบปี <b>' + p.baseYear + '</b> ในชีต เป้าหมายการเข้าพบลูกค้า จึงยังสร้างเป้าปี ' + p.planYear + ' ไม่ได้', retryBtn); return; }
-            if (!p.savedRows) {
+            if (!isAdmin()) {
+                bar(p.savedRows ? 'ok' : 'warn', p.savedRows ? 'fa-eye' : 'fa-info-circle', p.savedRows ? 'แสดง<b>เป้าปี ' + p.planYear + ' ที่บันทึกแล้ว</b> (ดูอย่างเดียว · บันทึก/แก้ไขได้เฉพาะผู้ดูแลระบบ)' : 'ยังไม่มีเป้าปี ' + p.planYear + ' ที่ผู้ดูแลระบบบันทึกไว้ ตัวเลขด้านล่างเป็นค่าเริ่มต้น (เท่าเป้าปี ' + p.baseYear + ')');
+            } else if (!p.savedRows) {
                 bar('warn', 'fa-exclamation-circle', '<b>ยังไม่ได้บันทึกเป้าปี ' + p.planYear + ' ลงชีต</b> — หน้าหลักและหน้าอื่นจะยังไม่มีเป้าการเข้าพบปี ' + p.planYear, saveBtn('บันทึกเป้า ' + p.planYear));
             } else if (p.diffCells) {
                 bar('warn', 'fa-exclamation-circle', '<b>เป้าปี ' + p.planYear + ' ในชีตไม่ตรงกับเป้าปี ' + p.baseYear + '</b> (ต่างกัน ' + fmt(p.diffCells) + ' ช่อง · ในชีต ' + fmt(p.savedTotal) + ' ครั้ง) — บันทึกใหม่เพื่อให้ตรงกัน', saveBtn('บันทึกใหม่'));
@@ -351,6 +353,7 @@
             var p = state.plan;
             $('vpExcelBtn').disabled = !(p && p.offices.length);
             $('vpSaveBtn').disabled = !(p && p.offices.length);
+            $('vpSaveBtn').classList.toggle('hidden', !isAdmin());
             if (!p) return;
             setYearTexts();
             if (!p.offices.length) {
@@ -429,6 +432,7 @@
 
         // ===== บันทึกเป้าปีถัดไปลงชีต (เซิร์ฟเวอร์คัดลอกเป้าปีฐานเอง แทนแถวปีเป้าหมายเดิม) =====
         window.saveVisitPlanYear = function () {
+            if (!isAdmin()) return;
             var p = state.plan;
             if (!p || !p.offices.length) return;
             var total = p.offices.reduce(function (a, o) { return a + o.total; }, 0);
@@ -476,8 +480,7 @@
 
         window.loadVisitPlanPage = function (force) {
             var noAccess = $('visitPlanNoAccess'), body = $('visitPlanBody');
-            if (!isAdmin()) { noAccess.classList.remove('hidden'); body.classList.add('hidden'); return; }
-            noAccess.classList.add('hidden'); body.classList.remove('hidden');
+            noAccess.classList.add('hidden'); body.classList.remove('hidden'); // ทุกคนดูได้ บันทึกได้เฉพาะ admin
             state.error = '';
             var cached = window.globalVisitTargets;
             if (!force && Array.isArray(cached) && cached.length > 1) { state.plan = buildPlan(cached); renderTeamOptions(); renderVisitPlan(); }
