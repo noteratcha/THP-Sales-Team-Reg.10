@@ -1,0 +1,217 @@
+<!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้าปีถัดไป (เฉพาะ admin) — include จาก Module_Core ใน #page-visit-plan
+     ผู้ใช้กำหนด 2026-11-16: เป้าปี 2570 = เป้าปี 2569 รายที่ทำการ-รายเดือน (คัดลอก) · ปุ่มบันทึกลงชีต (saveVisitTargetsCopyYear) ให้หน้าอื่นใช้
+     ข้อมูล: getVisitTargets (ชีต เป้าหมายการเข้าพบลูกค้า: ปี | เดือน | รหัสไปรษณีย์ | ที่ทำการ | เป้าหมายการเข้าพบลูกค้า | ทีม | จังหวัด) -->
+<div class="bg-white custom-radius shadow-xl overflow-hidden w-full max-w-none mx-auto mt-4 mb-8">
+    <div class="thp-page-intro">
+        <p class="thp-page-intro-text">เป้าหมายการเข้าพบลูกค้าปี <span class="vpYearText">2570</span> ของแต่ละที่ทำการ (ใช้เป้าปี <span class="vpBaseYearText">2569</span> รายเดือน)</p>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" class="thp-btn-secondary" onclick="loadVisitPlanPage(true)"><i class="fas fa-sync-alt"></i> รีเฟรชข้อมูล</button>
+            <button type="button" class="thp-btn-secondary" onclick="exportVisitPlanExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+            <button type="button" class="thp-btn-secondary" onclick="saveVisitPlanYear()" title="บันทึกเป้าปีถัดไปลงชีต เป้าหมายการเข้าพบลูกค้า ให้หน้าอื่นใช้"><i class="fas fa-save"></i> บันทึกเป้า <span class="vpYearText">2570</span></button>
+        </div>
+    </div>
+
+    <div id="visitPlanNoAccess" class="hidden p-10 text-center text-gray-500">
+        <i class="fas fa-lock text-3xl mb-3 text-gray-300"></i>
+        <p>หน้านี้ใช้ได้เฉพาะผู้ดูแลระบบ (admin)</p>
+    </div>
+
+    <div id="visitPlanBody" class="p-3 md:p-5 flex flex-col gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3" id="vpSummary"></div>
+
+        <div class="flex flex-col md:flex-row gap-3 md:items-center">
+            <input id="vpSearch" type="text" oninput="renderVisitPlan()" placeholder="ค้นหา รหัส / ที่ทำการ"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm md:w-72 focus:border-orange-500 outline-none">
+            <select id="vpTeam" onchange="renderVisitPlan()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm md:w-64 outline-none">
+                <option value="">ทุกทีม</option>
+            </select>
+            <span class="text-xs text-gray-500 md:ml-auto" id="vpNote"></span>
+        </div>
+
+        <!-- สรุปรายทีม -->
+        <div class="rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 text-sm font-bold text-gray-800">สรุปแยกทีม</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-theme-black text-white text-xs"><tr id="vpTeamHead"></tr></thead>
+                    <tbody id="vpTeamBody" class="divide-y divide-gray-100"></tbody>
+                    <tfoot id="vpTeamFoot" class="bg-gray-50 font-bold"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- รายที่ทำการ-รายเดือน -->
+        <div class="rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 py-2.5 bg-gray-50 text-sm font-bold text-gray-800">เป้ารายที่ทำการ-รายเดือน</div>
+            <div class="overflow-x-auto" style="max-height:70vh">
+                <table class="w-full text-sm">
+                    <thead class="bg-theme-black text-white text-xs sticky top-0 z-10"><tr id="vpHead"></tr></thead>
+                    <tbody id="vpBody" class="divide-y divide-gray-100"></tbody>
+                    <tfoot id="vpFoot" class="bg-gray-50 font-bold sticky bottom-0"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var VP_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        var VP_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        var state = { rows: null, plan: null, loading: false };
+        var fmt = function (n) { return Math.round(n || 0).toLocaleString('th-TH'); };
+        var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+        var isAdmin = function () {
+            try { return String(currentUserInfo.user || '').toLowerCase() === 'admin'; } catch (e) { return false; }
+        };
+        var beYear = function (v) { var y = parseInt(v, 10); return y < 2500 ? y + 543 : y; };
+
+        // เป้าปีเป้าหมาย (ปีปัจจุบัน+1) = เป้าปีฐาน (ปีปัจจุบัน) รายที่ทำการ-รายเดือน
+        var buildPlan = function (rows) {
+            var nowBE = new Date().getFullYear() + 543;
+            var years = {};
+            (rows || []).forEach(function (r, i) { if (i > 0 && r) years[beYear(r[0])] = 1; });
+            var baseYear = years[nowBE] ? nowBE : Math.max.apply(null, Object.keys(years).map(Number).concat([nowBE]));
+            var planYear = baseYear + 1;
+            var offices = {}, prevTotal = 0, savedRows = 0, savedTotal = 0;
+            (rows || []).forEach(function (r, i) {
+                if (i === 0 || !r) return;
+                var y = beYear(r[0]);
+                var m = VP_MONTHS.indexOf(String(r[1]).trim());
+                var zip = String(r[2] || '').trim();
+                if (m < 0 || !zip) return;
+                var v = parseFloat(String(r[4]).replace(/,/g, '')) || 0;
+                if (y === baseYear - 1) { prevTotal += v; return; }
+                if (y === baseYear + 1) { savedRows++; savedTotal += v; return; }
+                if (y !== baseYear) return;
+                var o = offices[zip] || (offices[zip] = { zip: zip, name: String(r[3] || '').trim(), team: String(r[5] || '').trim(), prov: String(r[6] || '').trim(), m: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], total: 0 });
+                o.m[m] += v; o.total += v;
+            });
+            var list = Object.keys(offices).map(function (z) { return offices[z]; }).sort(function (a, b) { return a.zip.localeCompare(b.zip); });
+            return { baseYear: baseYear, planYear: planYear, prevTotal: prevTotal, savedRows: savedRows, savedTotal: savedTotal, offices: list };
+        };
+
+        var filtered = function () {
+            var q = (document.getElementById('vpSearch').value || '').trim().toLowerCase();
+            var team = document.getElementById('vpTeam').value;
+            return state.plan.offices.filter(function (o) {
+                if (team && o.team !== team) return false;
+                return !q || (o.zip + ' ' + o.name).toLowerCase().indexOf(q) !== -1;
+            });
+        };
+
+        window.renderVisitPlan = function () {
+            var p = state.plan;
+            if (!p) return;
+            Array.prototype.forEach.call(document.querySelectorAll('.vpYearText'), function (el) { el.textContent = p.planYear; });
+            Array.prototype.forEach.call(document.querySelectorAll('.vpBaseYearText'), function (el) { el.textContent = p.baseYear; });
+            var all = p.offices, list = filtered();
+            var total = all.reduce(function (a, o) { return a + o.total; }, 0);
+            var teams = {};
+            all.forEach(function (o) { var t = teams[o.team || 'ไม่ระบุทีม'] || (teams[o.team || 'ไม่ระบุทีม'] = { team: o.team || 'ไม่ระบุทีม', n: 0, m: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], total: 0 }); t.n++; o.m.forEach(function (v, i) { t.m[i] += v; }); t.total += o.total; });
+            var teamList = Object.keys(teams).map(function (k) { return teams[k]; });
+            if (typeof window.sortRevenueTeams === 'function') teamList.sort(function (a, b) { return window.sortRevenueTeams(a.team, b.team); });
+            else teamList.sort(function (a, b) { return a.team.localeCompare(b.team, 'th'); });
+
+            // ตัวเลือกทีม
+            var sel = document.getElementById('vpTeam'), cur = sel.value;
+            sel.innerHTML = '<option value="">ทุกทีม</option>' + teamList.map(function (t) { return '<option value="' + esc(t.team) + '">' + esc(t.team) + '</option>'; }).join('');
+            sel.value = cur;
+
+            var card = function (label, val, sub, cls) {
+                return '<div class="rounded-xl border border-gray-200 bg-white p-4"><div class="text-xs text-gray-500 mb-1">' + label + '</div><div class="text-2xl font-bold ' + (cls || 'text-gray-900') + '">' + val + '</div><div class="text-xs text-gray-500 mt-1">' + sub + '</div></div>';
+            };
+            document.getElementById('vpSummary').innerHTML =
+                card('เป้าการเข้าพบปี ' + p.planYear, fmt(total), 'ครั้ง/ปี (เท่าเป้าปี ' + p.baseYear + ')', 'text-orange-700') +
+                card('เฉลี่ยต่อเดือน', fmt(total / 12), 'ครั้ง/เดือน ทั้งภาค') +
+                card('จำนวนที่ทำการ', fmt(all.length), teamList.length + ' ทีม') +
+                card('เป้าปี ' + (p.baseYear - 1), fmt(p.prevTotal), 'ครั้ง/ปี (ใช้เทียบ)');
+
+            var th = function (t, al) { return '<th class="py-2.5 px-2 ' + (al || 'text-right') + ' whitespace-nowrap">' + t + '</th>'; };
+            var td = function (v, cls) { return '<td class="py-2 px-2 text-right ' + (cls || '') + '">' + v + '</td>'; };
+            var monthHead = VP_SHORT.map(function (s) { return th(s); }).join('');
+
+            document.getElementById('vpTeamHead').innerHTML = th('ทีม', 'text-left') + th('ที่ทำการ') + monthHead + th('รวมทั้งปี');
+            document.getElementById('vpTeamBody').innerHTML = teamList.map(function (t) {
+                return '<tr class="hover:bg-orange-50/40"><td class="py-2 px-2 text-left whitespace-nowrap">' + esc(t.team) + '</td>' + td(t.n) + t.m.map(function (v) { return td(fmt(v)); }).join('') + td(fmt(t.total), 'font-bold text-orange-700') + '</tr>';
+            }).join('');
+            var mTot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            all.forEach(function (o) { o.m.forEach(function (v, i) { mTot[i] += v; }); });
+            document.getElementById('vpTeamFoot').innerHTML = '<tr><td class="py-2 px-2 text-left">รวม</td>' + td(all.length) + mTot.map(function (v) { return td(fmt(v)); }).join('') + td(fmt(total), 'text-orange-700') + '</tr>';
+
+            document.getElementById('vpHead').innerHTML = th('รหัส', 'text-left') + th('ที่ทำการ', 'text-left') + th('ทีม', 'text-left') + monthHead + th('รวมทั้งปี');
+            document.getElementById('vpBody').innerHTML = list.length ? list.map(function (o) {
+                return '<tr class="hover:bg-orange-50/40"><td class="py-2 px-2 text-left">' + esc(o.zip) + '</td><td class="py-2 px-2 text-left whitespace-nowrap">' + esc(o.name) + '</td><td class="py-2 px-2 text-left whitespace-nowrap text-gray-600">' + esc(o.team || '-') + '</td>' +
+                    o.m.map(function (v) { return td(fmt(v)); }).join('') + td(fmt(o.total), 'font-bold text-orange-700') + '</tr>';
+            }).join('') : '<tr><td colspan="16" class="py-8 text-center text-gray-400">ไม่พบที่ทำการตามเงื่อนไข</td></tr>';
+            var fm = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ft = 0;
+            list.forEach(function (o) { o.m.forEach(function (v, i) { fm[i] += v; }); ft += o.total; });
+            document.getElementById('vpFoot').innerHTML = '<tr><td class="py-2 px-2 text-left" colspan="3">รวม ' + list.length + ' ที่ทำการ</td>' + fm.map(function (v) { return td(fmt(v)); }).join('') + td(fmt(ft), 'text-orange-700') + '</tr>';
+            document.getElementById('vpNote').textContent = 'เป้าปี ' + p.planYear + ' = เป้าปี ' + p.baseYear + ' รายที่ทำการ-รายเดือน · ' + (p.savedRows ? '✔ บันทึกในชีตแล้ว (' + fmt(p.savedTotal) + ' ครั้ง) หน้าอื่นใช้เป้านี้' : 'ยังไม่บันทึกลงชีต — กด "บันทึกเป้า ' + p.planYear + '" ให้หน้าอื่นใช้');
+        };
+
+        window.exportVisitPlanExcel = function () {
+            var p = state.plan;
+            if (!p || typeof XLSX === 'undefined') return;
+            var head = ['รหัสไปรษณีย์', 'ที่ทำการ', 'ทีม', 'จังหวัด'].concat(VP_SHORT, ['รวมทั้งปี']);
+            var aoa = [head].concat(p.offices.map(function (o) { return [o.zip, o.name, o.team, o.prov].concat(o.m, [o.total]); }));
+            var ws = XLSX.utils.aoa_to_sheet(aoa);
+            ws['!cols'] = [{ wch: 12 }, { wch: 26 }, { wch: 22 }, { wch: 14 }].concat(VP_SHORT.map(function () { return { wch: 7 }; }), [{ wch: 10 }]);
+            // รูปแบบเดียวกับชีต เป้าหมายการเข้าพบลูกค้า (ปี | เดือน | รหัส | ที่ทำการ | เป้า | ทีม | จังหวัด) เผื่อนำเข้า
+            var longA = [['ปี', 'เดือน', 'รหัสไปรษณีย์', 'ที่ทำการ', 'เป้าหมายการเข้าพบลูกค้า', 'ทีม', 'จังหวัด']];
+            VP_MONTHS.forEach(function (mn, i) { p.offices.forEach(function (o) { longA.push([p.planYear, mn, o.zip, o.name, o.m[i], o.team, o.prov]); }); });
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'เป้า ' + p.planYear + ' รายที่ทำการ');
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(longA), 'รูปแบบชีตเป้าหมาย');
+            XLSX.writeFile(wb, 'เป้าหมายการเข้าพบลูกค้า_' + p.planYear + '.xlsx');
+        };
+
+        // บันทึกเป้าปีถัดไปลงชีต (เซิร์ฟเวอร์คัดลอกเป้าปีฐานเอง แทนแถวปีเป้าหมายเดิม)
+        window.saveVisitPlanYear = function () {
+            var p = state.plan;
+            if (!p) return;
+            var total = p.offices.reduce(function (a, o) { return a + o.total; }, 0);
+            Swal.fire({
+                title: 'บันทึกเป้าการเข้าพบปี ' + p.planYear + '?',
+                html: 'คัดลอกเป้าปี ' + p.baseYear + ' รายที่ทำการ-รายเดือน (' + p.offices.length + ' ที่ทำการ · ' + fmt(total) + ' ครั้ง/ปี) ลงชีต เป้าหมายการเข้าพบลูกค้า' +
+                    (p.savedRows ? '<br><span style="color:#b45309">แทนเป้าปี ' + p.planYear + ' เดิม ' + p.savedRows + ' แถว</span>' : ''),
+                icon: 'question', showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก'
+            }).then(function (ans) {
+                if (!ans.isConfirmed) return;
+                if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังบันทึกเป้าการเข้าพบ...');
+                google.script.run.withSuccessHandler(function (res) {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                    // ล้างแคชเป้าการเข้าพบ ให้หน้าอื่นโหลดใหม่
+                    window.globalVisitTargets = undefined;
+                    try { if (typeof SafeStorage !== 'undefined') SafeStorage.removeItem('thp_cache_visit_targets'); } catch (e) {}
+                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', text: fmt(res.rows) + ' แถว · ' + fmt(res.total) + ' ครั้ง/ปี', timer: 2000, showConfirmButton: false });
+                    window.loadVisitPlanPage(true);
+                }).withFailureHandler(function (err) {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                }).saveVisitTargetsCopyYear({ fromYear: p.baseYear, toYear: p.planYear });
+            });
+        };
+
+        window.loadVisitPlanPage = function (force) {
+            var noAccess = document.getElementById('visitPlanNoAccess'), body = document.getElementById('visitPlanBody');
+            if (!isAdmin()) { noAccess.classList.remove('hidden'); body.classList.add('hidden'); return; }
+            noAccess.classList.add('hidden'); body.classList.remove('hidden');
+            var cached = window.globalVisitTargets;
+            if (!force && Array.isArray(cached) && cached.length > 1) { state.plan = buildPlan(cached); renderVisitPlan(); }
+            else if (typeof window.thpSkeletonCards === 'function') { try { document.getElementById('vpSummary').innerHTML = ''; window.thpSkeletonCards(document.getElementById('vpSummary'), 4); } catch (e) {} }
+            if (state.loading) return;
+            state.loading = true;
+            google.script.run.withSuccessHandler(function (res) {
+                state.loading = false;
+                if (!(res && res.status === 'success' && Array.isArray(res.data))) { Swal.fire('โหลดไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                state.plan = buildPlan(res.data);
+                renderVisitPlan();
+            }).withFailureHandler(function (err) {
+                state.loading = false;
+                Swal.fire('โหลดไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).getVisitTargets();
+        };
+    })();
+</script>

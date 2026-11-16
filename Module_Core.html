@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1112.1557';
+    var APP_VERSION = 'Ver. 2026.1116.1022';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -672,6 +672,16 @@
                         <i class="fas fa-bullseye text-xs"></i>
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้
+                        (Admin)</span>
+                </div>
+                <!-- เป้าหมายการเข้าพบลูกค้าปีถัดไป (เฉพาะ admin) -->
+                <div onclick="switchPage('visit-plan')" id="menu-visit-plan"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-handshake text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เป้าหมายการเข้าพบลูกค้า
                         (Admin)</span>
                 </div>
             </div>
@@ -1394,6 +1404,11 @@
             <!-- 🎯 PAGE: วางแผนเป้าหมายรายได้ (เฉพาะ admin) -->
             <div id="page-target-plan" class="hidden animate-fade-in w-full pb-10">
                 <?!= include('Module_TargetPlan'); ?>
+            </div>
+
+            <!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้า (เฉพาะ admin) -->
+            <div id="page-visit-plan" class="hidden animate-fade-in w-full pb-10">
+                <?!= include('Module_VisitPlan'); ?>
             </div>
 
             <!-- PAGE: SETTINGS -->
@@ -2280,7 +2295,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -2339,6 +2354,7 @@
                 },
                 'revenue': { page: 'page-revenue', menu: 'menu-revenue', title: 'นำเข้าข้อมูลรายได้' },
                 'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'สรุปการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
+                'visit-plan': { page: 'page-visit-plan', menu: 'menu-visit-plan', title: 'เป้าหมายการเข้าพบลูกค้า', action: () => typeof window.loadVisitPlanPage === 'function' && window.loadVisitPlanPage() },
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
@@ -2667,6 +2683,8 @@
             // เมนูวางแผนเป้าหมายรายได้: เฉพาะ admin (หน้าเองตรวจซ้ำใน loadTargetPlanPage)
             const elTargetPlan = document.getElementById('menu-target-plan');
             if (elTargetPlan) elTargetPlan.classList.toggle('hidden', userRole !== 'admin');
+            const elVisitPlan = document.getElementById('menu-visit-plan');
+            if (elVisitPlan) elVisitPlan.classList.toggle('hidden', userRole !== 'admin');
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();

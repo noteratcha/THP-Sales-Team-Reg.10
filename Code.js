@@ -5329,6 +5329,47 @@ function saveTargetPlanIntlData_(payload, actor) {
 // payload = { year: ปี ค.ศ., offices: [{ zip, name, team, province, dom: [12 เดือน], intl: [12 เดือน] }] }
 var TARGET_DOM_COL_HEADER = 'เป้าในประเทศ';
 var TARGET_INTL_COL_HEADER = 'เป้าระหว่างประเทศ';
+// เป้าการเข้าพบลูกค้าปีถัดไป = คัดลอกเป้าปีฐานรายที่ทำการ-รายเดือน (ผู้ใช้กำหนด 2026-11-16) — admin เท่านั้น
+// payload: { fromYear, toYear } (ค.ศ. หรือ พ.ศ.) · แทนแถวของ toYear ที่มีอยู่เดิม · คัดลอกฝั่งเซิร์ฟเวอร์จากชีตโดยตรง
+function saveVisitTargetsCopyYear_(payload, actor) {
+  try {
+    if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
+    var toCE = function (v) { var y = parseInt(v, 10); return y > 2500 ? y - 543 : y; };
+    var fromY = toCE(payload && payload.fromYear), toY = toCE(payload && payload.toYear);
+    if (!(fromY >= 2000 && fromY <= 2100) || toY !== fromY + 1) return { status: 'error', message: 'ปีไม่ถูกต้อง' };
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var sheet = SpreadsheetApp.openById(TARGET_SS_ID).getSheetByName('เป้าหมายการเข้าพบลูกค้า');
+      if (!sheet) return { status: 'error', message: 'ไม่พบชีต เป้าหมายการเข้าพบลูกค้า' };
+      var data = sheet.getDataRange().getValues();
+      var width = data[0].length, src = [], delRows = [];
+      for (var i = 1; i < data.length; i++) {
+        var y = toCE(data[i][0]);
+        if (y === toY) delRows.push(i + 1);
+        else if (y === fromY) src.push(data[i]);
+      }
+      if (!src.length) return { status: 'error', message: 'ไม่พบเป้าปีฐาน ' + (fromY + 543) };
+      // ลบเฉพาะแถวปีเป้าหมายเดิม (จากล่างขึ้นบน) แถวปีอื่นไม่แตะ
+      for (var d = delRows.length - 1; d >= 0; d--) sheet.deleteRow(delRows[d]);
+      var useBE = parseInt(src[0][0], 10) > 2500;
+      var add = src.map(function (r) {
+        var c = r.slice(0, width); c[0] = useBE ? toY + 543 : toY;
+        c[2] = "'" + String(r[2]).replace(/^'/, ''); // คงเลข 0 นำหน้ารหัสไปรษณีย์
+        return c;
+      });
+      sheet.getRange(sheet.getLastRow() + 1, 1, add.length, width).setValues(add);
+      var total = add.reduce(function (a, r) { return a + (parseFloat(r[4]) || 0); }, 0);
+      return { status: 'success', year: toY, rows: add.length, total: total, replaced: delRows.length };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'saveVisitTargetsCopyYear_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 function saveNextYearTargets_(payload, actor) {
   try {
     if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'ใช้ได้เฉพาะผู้ดูแลระบบ (admin)' };
@@ -5439,7 +5480,7 @@ var API_ALLOWED_FUNCTIONS = [
   'sendVisitSummaryImagesToLine', 'setPostNewsTemplateActive', 'submitBigLotOrders',
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
-  'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets'
+  'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear'
 ];
 
 
@@ -5461,7 +5502,8 @@ var AUTH_SESSION_USER_ARG = {
   deleteMultipleBigLotOrders: 1, // (rowIndices, userInfo)
   getTargetPlanIntlData: 0,      // (actor) — admin เท่านั้น
   saveTargetPlanIntlData: 1,     // (payload, actor) — admin เท่านั้น
-  saveNextYearTargets: 1         // (payload, actor) — admin เท่านั้น
+  saveNextYearTargets: 1,        // (payload, actor) — admin เท่านั้น
+  saveVisitTargetsCopyYear: 1    // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
