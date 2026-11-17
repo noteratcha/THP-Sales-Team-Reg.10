@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1116.1131';
+    var APP_VERSION = 'Ver. 2026.1117.0906';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1322,6 +1322,15 @@
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">สร้างภาพข่าว (Post
                         News)</span>
                 </div>
+                <!-- เป้าหมายการเข้าพบลูกค้า (ทุกคนดูได้ บันทึกได้เฉพาะ admin — แสดงในตรรกะสิทธิ์หลังล็อกอิน) -->
+                <div onclick="switchPage('visit-plan')" id="menu-visit-plan"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-bullseye text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เป้าหมายการเข้าพบลูกค้า</span>
+                </div>
             </div>
 
             <!-- Group 2: ข้อมูลรายได้ -->
@@ -1362,15 +1371,6 @@
                         <i class="fas fa-bullseye text-xs"></i>
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้</span>
-                </div>
-                <!-- เป้าหมายการเข้าพบลูกค้าปีถัดไป (เฉพาะ admin) -->
-                <div onclick="switchPage('visit-plan')" id="menu-visit-plan"
-                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
-                    <div
-                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
-                        <i class="fas fa-handshake text-xs"></i>
-                    </div>
-                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เป้าหมายการเข้าพบลูกค้า</span>
                 </div>
             </div>
 
