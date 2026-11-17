@@ -1003,7 +1003,8 @@
                 var teamName = targetTeamMap[lookupKey] || zipToTeamMap[zip] || 'ไม่ระบุทีม';
                 row.push(teamName);
                 return row;
-            });
+            // ผู้ใช้ไม่ต้องการแสดงข้อมูลที่ไม่ระบุทีม: ตัดตั้งแต่ต้น ทุกตาราง/กราฟ/สรุป/Excel ในหน้านี้จึงไม่นับ
+            }).filter(row => row[row.length - 1] !== 'ไม่ระบุทีม');
 
             const currentUserLogin = (typeof currentUserInfo !== 'undefined' && currentUserInfo.user) ? String(currentUserInfo.user).trim().toLowerCase() : '';
             if (currentUserLogin !== 'admin' && currentUserLogin !== 'viewer') {
@@ -1084,7 +1085,8 @@
 
     // 💡 ฟังก์ชันสร้าง Dropdown ทีม (ปรับแสดงผลคอลัมน์ละไม่เกิน 10 ทีม เรียงบนลงล่าง ซ้ายไปขวา)
     function populateTeamDropdown(data) {
-        let uniqueTeams = [...new Set(data.map(row => String(row[10] || 'ไม่ระบุทีม').trim()))].filter(item => item !== "");
+        // ไม่มีตัวเลือก "ไม่ระบุทีม" เพราะข้อมูลที่ไม่ระบุทีมไม่ถูกนำมาแสดง
+        let uniqueTeams = [...new Set(data.map(row => String(row[10] || 'ไม่ระบุทีม').trim()))].filter(item => item !== "" && item !== 'ไม่ระบุทีม');
         // จัดเรียงตามหลักการในฟังก์ชัน sortRevenueTeams
         uniqueTeams.sort(window.sortRevenueTeams);
 
@@ -1276,6 +1278,8 @@
             const rLevel = String(row[3]); const rService = String(row[4]); const rMonthName = String(row[5]); const rYearStr = String(row[6]);
             const rTeam = String(row[10] || 'ไม่ระบุทีม').trim();
 
+            // ผู้ใช้ไม่ต้องการแสดงข้อมูลที่ไม่ระบุทีม (ตัดออกเสมอ แม้เลือกทั้งหมด)
+            if (rTeam === 'ไม่ระบุทีม') return false;
             if (fOffice && !window.thpOfficeMatch(fOffice, rOffice)) return false;
             if (fCustomer && !rCustomer.includes(fCustomer)) return false;
             if (fMember && !rMember.includes(fMember)) return false;
@@ -1361,7 +1365,7 @@
         toggleHighlight('revFilterLevelBtn', !allLvlChecked, true);
 
         const teamCbs = Array.from(document.querySelectorAll('.team-checkbox'));
-        const isTeamActive = teamCbs.some(cb => (cb.value === 'ไม่ระบุทีม' ? cb.checked : !cb.checked));
+        const isTeamActive = teamCbs.some(cb => !cb.checked);
         toggleHighlight('revFilterTeamBtn', isTeamActive, true);
 
         const serviceCbs = Array.from(document.querySelectorAll('.service-checkbox'));
