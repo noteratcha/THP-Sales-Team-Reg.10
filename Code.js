@@ -519,8 +519,31 @@ function deleteVisitData_(rowIndex, expected, actor) {
 /**
  * ฟังก์ชัน: ประมวลผลข้อมูลรายได้แบบ Batch (Tableau ทั่วไป)
  */
-function processRevenueBatch_(csvChunk, selectedYear) {
+// แคชหน้าแรกต้องเปลี่ยนเวอร์ชันทั้ง "ก่อน" และ "หลัง" เขียนข้อมูล ถ้าเปลี่ยนแค่ก่อน (แบบเดิม)
+// หน้าแรกที่โหลดระหว่างนำเข้าจะเก็บยอดที่ยังเขียนไม่ครบไว้ในแคช 30 นาที ทำให้ยอดเดือนนี้ต่ำกว่าหน้าสรุปการใช้บริการ
+function withHomeRevCacheBump_(fn, args) {
   bumpHomeRevCacheVersion_();
+  try {
+    return fn.apply(null, args);
+  } finally {
+    bumpHomeRevCacheVersion_();
+  }
+}
+
+function processRevenueBatch_(csvChunk, selectedYear) {
+  return withHomeRevCacheBump_(processRevenueBatchImpl_, [csvChunk, selectedYear]);
+}
+function processDropOffExcelData_(groupedJsonString) {
+  return withHomeRevCacheBump_(processDropOffExcelDataImpl_, [groupedJsonString]);
+}
+function processLogisticsBatch_(csvChunk, selectedYear) {
+  return withHomeRevCacheBump_(processLogisticsBatchImpl_, [csvChunk, selectedYear]);
+}
+function processAddLogisticsBatch_(jsonStr) {
+  return withHomeRevCacheBump_(processAddLogisticsBatchImpl_, [jsonStr]);
+}
+
+function processRevenueBatchImpl_(csvChunk, selectedYear) {
   try {
     var TARGET_TABLEAU_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
     var TARGET_SHEET_NAME = 'Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)';
@@ -2268,8 +2291,7 @@ function getExpensesData_() {
 // ระบบจัดการอัปโหลดข้อมูล DPost (Tiktok DropOff)
 // ==========================================
 
-function processDropOffExcelData_(groupedJsonString) {
-  bumpHomeRevCacheVersion_();
+function processDropOffExcelDataImpl_(groupedJsonString) {
   try {
     const groupedDataArray = JSON.parse(groupedJsonString);
     if (!groupedDataArray || groupedDataArray.length === 0) return { status: 'error', message: 'ไม่มีข้อมูลให้ประมวลผล' };
@@ -2487,8 +2509,7 @@ function processDropOffExcelData_(groupedJsonString) {
 /**
  * ฟังก์ชัน: ประมวลผลข้อมูล Logistics เฉพาะ A1-A14 ลงชีตเป้าหมายหลัก
  */
-function processLogisticsBatch_(csvChunk, selectedYear) {
-  bumpHomeRevCacheVersion_();
+function processLogisticsBatchImpl_(csvChunk, selectedYear) {
   try {
     var TARGET_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
     var ss = SpreadsheetApp.openById(TARGET_SS_ID);
@@ -2682,8 +2703,7 @@ function processLogisticsBatch_(csvChunk, selectedYear) {
  * 💡 ฟังก์ชัน: ประมวลผลข้อมูลขนส่งและโลจิสติกส์ (เพิ่มเติม) ลงชีต "Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)"
  * รับข้อมูลที่จัดกลุ่มแล้วจาก Client เพื่อลดภาระเซิร์ฟเวอร์
  */
-function processAddLogisticsBatch_(jsonStr) {
-  bumpHomeRevCacheVersion_();
+function processAddLogisticsBatchImpl_(jsonStr) {
   try {
     var data = JSON.parse(jsonStr);
     if (!data || data.length === 0) return { status: 'success', addCount: 0 };
