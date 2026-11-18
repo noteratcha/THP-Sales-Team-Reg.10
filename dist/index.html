@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2236';
+    var APP_VERSION = 'Ver. 2026.1118.2240';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -28459,6 +28459,8 @@
 
             const headerBtns = ['headerContractPdfBtn', 'headerContractWordBtn', 'headerContractResetBtn', 'headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
             headerBtns.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+            // หน้า สร้างสัญญา: เวลาอัปเดตไปอยู่ท้ายต่อจากปุ่ม ล้างฟอร์ม (ผู้ใช้ขอ 2026-11-18)
+            (function () { const si = document.getElementById('headerSyncInfo'); if (si) si.style.order = pageId === 'contract' ? '99' : ''; })();
 
             if (pageId === 'revenue-report') {
                 ['headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
