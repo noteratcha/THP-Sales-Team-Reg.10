@@ -5578,7 +5578,8 @@ function contractXmlEscape_(s) {
 
 // แทนค่าตัวแปรใน word/document.xml ของ .docx → Blob .docx ใหม่
 function fillContractDocx_(templateBlob, values, fileName) {
-  var parts = Utilities.unzip(templateBlob);
+  // Utilities.unzip รับเฉพาะ Blob ชนิด application/zip (.docx เป็น zip แต่ Drive ระบุชนิดเป็น Word)
+  var parts = Utilities.unzip(Utilities.newBlob(templateBlob.getBytes(), 'application/zip', 'template.zip'));
   var out = parts.map(function (b) {
     if (b.getName() !== 'word/document.xml') return b;
     var xml = b.getDataAsString('UTF-8').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) {
