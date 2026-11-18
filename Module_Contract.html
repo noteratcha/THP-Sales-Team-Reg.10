@@ -1,10 +1,10 @@
 <!-- 📄 PAGE: สร้างสัญญาขนส่งภายในประเทศ (ผู้ใช้ขอ 2026-11-18) — include จาก Module_Core ใน #page-contract
      กรอกฟอร์ม → generateTransportContract (Code.js) คัดลอกต้นฉบับ Google Docs แทนค่าตัวแปร → ดาวน์โหลด PDF / Word
      อัตราค่าบริการเติมจากชีต "เรตราคา" (Package A1–A12, 30 ช่วงน้ำหนัก) แก้ได้ทีละช่อง
-     ไม่รับเลขบัตรประชาชน: ช่องนั้นในสัญญาเว้นว่างให้กรอกด้วยมือ (ข้อมูลส่วนบุคคล) -->
+     เลขบัตรประชาชน: กรอกในระบบ (ผู้ใช้กำหนด 2026-11-18 เดิมเว้นว่างให้เขียนมือ) ตรวจหลักตรวจสอบ 13 หลัก — ข้อมูลส่วนบุคคล ห้ามส่งไป LINE/บันทึก log -->
 <div class="bg-white custom-radius shadow-xl max-w-7xl mx-auto mt-4 mb-8">
     <div class="thp-page-intro">
-        <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าและเลือก Package อัตราค่าบริการ ระบบจะสร้างสัญญาขนส่งภายในประเทศ (แบบฟอร์มปี 2570) เป็นไฟล์ PDF และ Word</p>
+        <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าและเลือก Package อัตราค่าบริการ ระบบจะสร้างสัญญาขนส่งภายในประเทศ (แบบฟอร์มปี 2570) เป็นไฟล์ PDF</p>
         <button type="button" class="thp-btn-secondary" onclick="resetContractForm()"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
     </div>
 
@@ -49,27 +49,30 @@
             </div>
             <div id="ctCorp" class="ct-grid hidden">
                 <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
-                <label class="ct-field"><span>ทะเบียนนิติบุคคลเลขที่</span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
-                <label class="ct-field"><span>จดทะเบียน ณ</span><input name="corp_reg_at" class="ct-input"></label>
-                <label class="ct-field"><span>สำนักงานใหญ่ เลขที่</span><input name="corp_no" class="ct-input"></label>
-                <label class="ct-field"><span>อาคาร</span><input name="corp_building" class="ct-input"></label>
-                <label class="ct-field"><span>ถนน</span><input name="corp_road" class="ct-input"></label>
-                <label class="ct-field"><span>ตำบล/แขวง</span><input name="corp_subdistrict" class="ct-input"></label>
-                <label class="ct-field"><span>อำเภอ/เขต</span><input name="corp_district" class="ct-input"></label>
-                <label class="ct-field"><span>จังหวัด</span><input name="corp_province" class="ct-input"></label>
-                <label class="ct-field ct-span-2"><span>ผู้มีอำนาจลงนาม</span><input name="corp_signer" class="ct-input"></label>
-                <label class="ct-field"><span>หนังสือรับรอง ออกให้ ณ วันที่</span><input type="date" name="corp_cert_date" class="ct-input"></label>
+                <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>กรอกทุกช่อง (ยกเว้นวันที่หนังสือมอบอำนาจ ถ้าไม่มีการมอบอำนาจ) ช่องที่ไม่มี (เช่น อาคาร) ให้ใส่ "-"</p>
+                <label class="ct-field"><span>ทะเบียนนิติบุคคลเลขที่ <b class="text-red-600">*</b></span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
+                <label class="ct-field"><span>จดทะเบียน ณ <b class="text-red-600">*</b></span><input name="corp_reg_at" class="ct-input"></label>
+                <label class="ct-field"><span>สำนักงานใหญ่ เลขที่ <b class="text-red-600">*</b></span><input name="corp_no" class="ct-input"></label>
+                <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="corp_building" class="ct-input"></label>
+                <label class="ct-field"><span>ถนน <b class="text-red-600">*</b></span><input name="corp_road" class="ct-input"></label>
+                <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="corp_subdistrict" class="ct-input"></label>
+                <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="corp_district" class="ct-input"></label>
+                <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="corp_province" class="ct-input"></label>
+                <label class="ct-field ct-span-2"><span>ผู้มีอำนาจลงนาม <b class="text-red-600">*</b></span><input name="corp_signer" class="ct-input"></label>
+                <label class="ct-field"><span>หนังสือรับรอง ออกให้ ณ วันที่ <b class="text-red-600">*</b></span><input type="date" name="corp_cert_date" class="ct-input"></label>
                 <label class="ct-field"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
             </div>
             <div id="ctPerson" class="ct-grid">
                 <label class="ct-field ct-span-2"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="person_name" class="ct-input"></label>
-                <label class="ct-field"><span>บ้านเลขที่</span><input name="person_no" class="ct-input"></label>
-                <label class="ct-field"><span>อาคาร</span><input name="person_building" class="ct-input"></label>
-                <label class="ct-field"><span>ถนน</span><input name="person_road" class="ct-input"></label>
-                <label class="ct-field"><span>ตำบล/แขวง</span><input name="person_subdistrict" class="ct-input"></label>
-                <label class="ct-field"><span>อำเภอ/เขต</span><input name="person_district" class="ct-input"></label>
-                <label class="ct-field"><span>จังหวัด</span><input name="person_province" class="ct-input"></label>
-                <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-id-card mr-1"></i>เลขบัตรประชาชนไม่ต้องกรอกในระบบ ช่องนี้ในสัญญาจะเว้นว่างไว้ให้กรอกด้วยลายมือ</p>
+                <label class="ct-field ct-span-2"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
+                    oninput="var d = this.value.replace(/\D/g, '').slice(0, 13), o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0); this.value = o"></label>
+                <label class="ct-field"><span>บ้านเลขที่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
+                <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="person_building" class="ct-input"></label>
+                <label class="ct-field"><span>ถนน <b class="text-red-600">*</b></span><input name="person_road" class="ct-input"></label>
+                <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="person_subdistrict" class="ct-input"></label>
+                <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="person_district" class="ct-input"></label>
+                <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="person_province" class="ct-input"></label>
+                <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>กรอกทุกช่อง ช่องที่ไม่มี (เช่น อาคาร) ให้ใส่ "-"</p>
             </div>
         </fieldset>
 
@@ -151,7 +154,7 @@
                     <li><button type="button" onclick="thpContractGo(5)"><span class="ct-step-dot"></span><span class="ct-step-text">5. ผู้ลงนาม</span><span class="ct-step-sub"></span></button></li>
                 </ol>
                 <button type="submit" class="ct-submit w-full mt-3"><i class="fas fa-file-signature"></i> สร้างสัญญา</button>
-                <p class="text-xs text-gray-500 mt-3 leading-relaxed">ได้ไฟล์ PDF (ตามแบบฟอร์มส่วนกลาง) และ Word · ช่องที่เว้นว่างจะเป็นเส้นประให้กรอกด้วยลายมือ · เก็บสำเนาใน Google Drive โฟลเดอร์ "สัญญาที่สร้างจากระบบ"</p>
+                <p class="text-xs text-gray-500 mt-3 leading-relaxed">ได้ไฟล์ PDF ตามแบบฟอร์มส่วนกลาง · ช่องที่เว้นว่างจะเป็นเส้นประให้กรอกด้วยลายมือ · เก็บสำเนาใน Google Drive โฟลเดอร์ "สัญญาที่สร้างจากระบบ"</p>
             </div>
         </aside>
     </form>
@@ -161,7 +164,7 @@
     #page-contract .ct-fieldset { display: flex; flex-direction: column; gap: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: #fff; padding: 0.75rem 1rem 1rem; min-width: 0; }
     #page-contract .ct-fieldset legend { padding: 0 0.35rem; font-size: 0.9375rem; font-weight: 700; color: #1f2937; display: inline-flex; align-items: center; gap: 0.5rem; }
     #page-contract .ct-num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #fff7ed; color: #c2410c; font-size: 0.8125rem; font-weight: 800; border: 1px solid #fed7aa; }
-    #page-contract .ct-fieldset { scroll-margin-top: 1rem; }
+    #page-contract .ct-fieldset { scroll-margin-top: calc(var(--thp-header-h, 80px) + 1rem); }
     #page-contract .ct-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
     #page-contract .ct-main { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
     #page-contract .ct-aside { display: none; }
@@ -170,7 +173,7 @@
     #page-contract .ct-bottombar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: rgba(255, 255, 255, 0.96); border-top: 1px solid #e5e7eb; margin: 0 -0.75rem -0.75rem; padding: 0.75rem; backdrop-filter: blur(4px); }
     @media (min-width: 1024px) {
         #page-contract .ct-layout { grid-template-columns: minmax(0, 1fr) 17rem; }
-        #page-contract .ct-aside { display: block; position: sticky; top: 1rem; }
+        #page-contract .ct-aside { display: block; position: sticky; top: calc(var(--thp-header-h, 80px) + 1rem); } /* พ้นแถบหัวหน้าที่ติดจอ (ผู้ใช้แจ้ง 2026-11-18) */
         #page-contract .ct-bottombar { display: none; }
     }
     #page-contract .ct-aside-card { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; background: #fff; }
@@ -318,7 +321,14 @@
             } catch (e) { }
         };
 
+        // ความสูงแถบหัวหน้าที่ติดจอ → --thp-header-h (แผงข้าง/การเลื่อนไปส่วนต่าง ๆ ไม่ถูกบัง)
+        var syncHeaderH = function () {
+            var h = document.querySelector('header');
+            if (h) document.documentElement.style.setProperty('--thp-header-h', Math.round(h.getBoundingClientRect().height) + 'px');
+        };
+        window.addEventListener('resize', syncHeaderH);
         window.loadContractPage = function () {
+            syncHeaderH();
             renderPriceTable();
             // เปลี่ยนผู้ใช้ (ออกจากระบบแล้วล็อกอินใหม่โดยไม่รีเฟรช) → ล้างฟอร์มทั้งหมด
             // ไม่ให้เหลือข้อมูลของผู้ใช้ก่อน (รหัสไปรษณีย์/ที่ทำการ/ข้อมูลลูกค้า) ผู้ใช้แจ้ง 2026-11-18
@@ -390,7 +400,7 @@
             corp_no: [0, 183.4, 235.2, 364.5, 'c'], corp_building: [0, 262.9, 373.4, 364.5, 'l'], corp_road: [0, 393.0, 531.2, 364.5, 'l'],
             corp_subdistrict: [0, 122.6, 229.8, 383.5, 'l'], corp_district: [0, 277.2, 394.6, 383.5, 'l'], corp_province: [0, 423.7, 530.8, 383.5, 'l'],
             corp_signer: [0, 87.9, 430.2, 402.5, 'l'], corp_cert_date: [0, 393.0, 536.0, 421.5, 'l'], corp_poa_date: [0, 183.6, 321.5, 440.5, 'c'],
-            person_name: [0, 221.8, 536.0, 459.5, 'l'], person_no: [0, 368.9, 420.7, 478.5, 'c'], person_building: [0, 448.4, 531.5, 478.5, 'l'],
+            person_name: [0, 221.8, 536.0, 459.5, 'l'], person_idcard: [0, 172.4, 346.6, 478.5, 'c'], person_no: [0, 368.9, 420.7, 478.5, 'c'], person_building: [0, 448.4, 531.5, 478.5, 'l'],
             person_road: [0, 91.4, 208.9, 497.5, 'l'], person_subdistrict: [0, 259.6, 377.1, 497.5, 'l'], person_district: [0, 424.5, 531.7, 497.5, 'l'],
             person_province: [0, 101.0, 208.2, 516.5, 'l'],
             cod_pct: [1, 464.8, 480.8, 600.2, 'c'], min_qty: [1, 172.2, 219.1, 798.2, 'c'], goods_type: [2, 204.9, 541.4, 53.2, 'l'],
@@ -553,6 +563,18 @@
             });
         };
 
+        var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
+            ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+            ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
+        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_building', 'อาคาร'],
+            ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
+        // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
+        var thpIdCardOk = function (v) {
+            var d = String(v || '').replace(/\D/g, ''); if (d.length !== 13) return false;
+            var sum = 0; for (var i = 0; i < 12; i++) sum += Number(d.charAt(i)) * (13 - i);
+            return (11 - (sum % 11)) % 10 === Number(d.charAt(12));
+        };
+
         // ===== ความคืบหน้า 5 ส่วน (ส่วน 1–2 มีช่องบังคับ, 3–5 ไม่บังคับ นับช่องที่กรอก) =====
         var REQ1 = ['no_a', 'no_b', 'no_c', 'office', 'sign_date', 'start_date', 'end_date'];
         var filled = function (name) { var el = field(name); return !!(el && String(el.value || '').trim()); };
@@ -565,15 +587,16 @@
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
             var miss1 = REQ1.filter(function (n) { return !filled(n); }).length;
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
+            var miss2 = (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).filter(function (r) { return !filled(r[0]); }).length;
             var st = [
                 miss1 ? ['todo', 'ยังไม่ได้กรอก ' + miss1 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว'],
-                filled(nameKey) ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอกชื่อ']
+                !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอก ' + miss2 + ' ช่องบังคับ']
             ];
             ['ctSec3', 'ctSec4', 'ctSec5'].forEach(function (id) { var c = countIn(id); st.push([c[0] ? 'done' : 'opt', c[0] ? 'กรอกแล้ว ' + c[0] + '/' + c[1] + ' ช่อง' : 'ไม่บังคับ']); });
             steps.forEach(function (li, i) { li.setAttribute('data-state', st[i][0]); li.querySelector('.ct-step-sub').textContent = st[i][1]; });
-            var todo = (miss1 ? 1 : 0) + (filled(nameKey) ? 0 : 1);
+            var todo = miss1 + miss2;
             var mini = document.getElementById('ctProgressMini');
-            if (mini) mini.textContent = todo ? 'ยังขาดช่องบังคับ ' + (miss1 + (filled(nameKey) ? 0 : 1)) + ' ช่อง' : 'ช่องบังคับครบแล้ว';
+            if (mini) mini.textContent = todo ? 'ยังขาดช่องบังคับ ' + todo + ' ช่อง' : 'ช่องบังคับครบแล้ว';
             var pv = document.getElementById('ctNoPreview');
             if (pv) { var v = function (n, d) { var x = String((field(n) || {}).value || '').trim(); return x || d; }; pv.textContent = 'ที่ ปณท ' + v('no_a', '...') + ' (' + v('no_b', '...') + ')/' + v('no_c', '...'); }
             var du = document.getElementById('ctDuration');
@@ -607,7 +630,12 @@
             need('end_date', 'ถึงวันที่');
             var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
-            if (state.customerType === 'corp') need('corp_name', 'ชื่อนิติบุคคล'); else need('person_name', 'ชื่อ-สกุลผู้ใช้บริการ');
+            // ส่วนที่ 2 บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) ยกเว้นวันที่หนังสือมอบอำนาจ
+            (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).forEach(function (r) { need(r[0], r[1]); });
+            if (state.customerType === 'person' && p.person_idcard && !thpIdCardOk(p.person_idcard)) {
+                var ic = field('person_idcard'); if (ic) ic.classList.add('ct-invalid');
+                warnAt('เลขบัตรประชาชนไม่ถูกต้อง', 'กรุณาตรวจเลขบัตรประชาชน 13 หลักอีกครั้ง', ic); return;
+            }
             var badPrice = p.prices.findIndex(function (v) { return v && !/^\d+(\.\d{1,2})?$/.test(v); });
             if (missing.length) { warnAt('กรอกข้อมูลไม่ครบ', 'กรุณากรอก: ' + missing.join(', '), f.querySelector('.ct-invalid')); return; }
             if (p.no_c && !/^(\d{3}|-)$/.test(p.no_c)) { var nc = field('no_c'); if (nc) nc.classList.add('ct-invalid'); warnAt('เลขที่หนังสือไม่ถูกต้อง', 'ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001, 101 หรือขีด - (ยังไม่มีเลข)', nc); return; }
@@ -620,7 +648,7 @@
                     Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
                 };
                 var pdfB64 = '';
-                // 1) สร้าง PDF ในเบราว์เซอร์บนต้นฉบับ  2) ส่งให้หลังบ้านตรวจ + สร้าง Word + เก็บสำเนา  3) ดาวน์โหลด
+                // 1) สร้าง PDF ในเบราว์เซอร์บนต้นฉบับ  2) ส่งให้หลังบ้านตรวจ + เก็บสำเนา PDF  3) ดาวน์โหลด PDF (ไม่สร้าง Word แล้ว)
                 Promise.all([loadContractLibs(), getTemplatePdf()]).then(function (r) {
                     return window.thpBuildContractPdf(r[1], p);
                 }).then(function (bytes) {
@@ -632,9 +660,8 @@
                     Swal.fire({
                         icon: 'success', title: 'สร้างสัญญาแล้ว',
                         html: 'ดาวน์โหลดไฟล์ PDF แล้ว<br><span style="font-size:13px;color:#6b7280">' + esc(res.fileName) + '</span>',
-                        showDenyButton: !!res.docx, denyButtonText: '<i class="fas fa-file-word"></i> ดาวน์โหลด Word (แก้ไขต่อ)',
-                        denyButtonColor: '#2563eb', confirmButtonText: 'ปิด'
-                    }).then(function (ans) { if (ans.isDenied && res.docx) download(res.docx, res.fileName + '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'); });
+                        confirmButtonText: 'ปิด' // ดาวน์โหลดเฉพาะ PDF (ผู้ใช้กำหนด 2026-11-18 — เลิกปุ่มดาวน์โหลด Word)
+                    });
                     }).withFailureHandler(fail).generateTransportContract(Object.assign({}, p, { pdf: pdfB64 }), currentUserInfo);
                 }).catch(fail);
             };

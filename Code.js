@@ -5497,12 +5497,27 @@ var CONTRACT_FIELD_WIDTHS = {
   no_a: 10, no_b: 13, no_c: 17, sign_date: 43, start_date: 29, end_date: 30, office: 48,
   corp_name: 96, corp_reg_no: 41, corp_reg_at: 21, corp_no: 15, corp_building: 32, corp_road: 40,
   corp_subdistrict: 31, corp_district: 34, corp_province: 31, corp_signer: 99, corp_cert_date: 69, corp_poa_date: 21,
-  person_name: 96, person_no: 15, person_building: 24, person_road: 34, person_subdistrict: 34, person_district: 31, person_province: 31,
+  person_name: 96, person_idcard: 45, person_no: 15, person_building: 24, person_road: 34, person_subdistrict: 34, person_district: 31, person_province: 31,
   cod_pct: 4, min_qty: 16, goods_type: 92, label_detail: 43, other_detail: 27,
   contact_name: 65, contact_tel: 38, contact_email: 53, post_family: 37, wallet_tel: 22, wallet_name: 46,
   thp_signer: 50, cus_signer: 46, thp_position: 42, cus_position: 43,
   wit1_name: 50, wit2_name: 46, wit1_position: 42, wit2_position: 43
 };
+  // ส่วนที่ 2 ผู้ใช้บริการ บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) — ยกเว้นวันที่หนังสือมอบอำนาจ (มีเฉพาะกรณีมอบอำนาจ); ช่องที่ไม่มีให้ใส่ "-"
+var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
+  ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+  ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
+var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_building', 'อาคาร'],
+  ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
+// เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ → "1-2345-67890-12-3"
+function contractIdCard_(v) {
+  var d = String(v || '').replace(/\D/g, '');
+  if (d.length !== 13) return null;
+  var sum = 0;
+  for (var i = 0; i < 12; i++) sum += Number(d.charAt(i)) * (13 - i);
+  if ((11 - (sum % 11)) % 10 !== Number(d.charAt(12))) return null;
+  return d.charAt(0) + '-' + d.substr(1, 4) + '-' + d.substr(5, 5) + '-' + d.substr(10, 2) + '-' + d.charAt(12);
+}
 var CONTRACT_CHECKBOXES = ['x_label_yes', 'x_label_no', 'x_capos', 'x_pickup', 'x_dropoff', 'x_other'];
 var CONTRACT_PRICE_COUNT = 30;
 
@@ -5569,6 +5584,13 @@ function buildContractValues_(p) {
     ['office', 'ที่ทำการไปรษณีย์'], ['sign_date', 'วันที่ทำสัญญา'], ['start_date', 'สัญญาเริ่มวันที่'], ['end_date', 'ถึงวันที่']];
   var miss = required.filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss.length) return { error: 'กรุณากรอก: ' + miss.join(', ') };
+  var miss2 = (type === 'corp' ? CONTRACT_REQUIRED_CORP : CONTRACT_REQUIRED_PERSON).filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
+  if (miss2.length) return { error: 'กรุณากรอกข้อมูลผู้ใช้บริการ: ' + miss2.join(', ') };
+  if (type === 'person') {
+    var idc = contractIdCard_(str('person_idcard'));
+    if (!idc) return { error: 'เลขบัตรประชาชนไม่ถูกต้อง (ต้องเป็นตัวเลข 13 หลักที่ถูกต้อง)' };
+    p.person_idcard = idc;
+  }
   if (!/^(\d{3}|-)$/.test(str('no_c'))) return { error: 'เลขที่หนังสือ ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001 หรือขีด -' }; // ผู้ใช้กำหนด 2026-11-18: ใส่ - ได้
   var values = {};
   Object.keys(CONTRACT_FIELD_WIDTHS).forEach(function (k) {
@@ -5623,10 +5645,16 @@ function generateTransportContract_(payload, actor) {
     var fileName = 'สัญญาขนส่ง_' + safeName + '_' + stamp;
     var desc = 'สร้างจากระบบ THP Sales Team Reg.10 โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : '');
     var folder = getContractOutputFolder_(tpl);
-    var docx = fillContractDocx_(tpl.getBlob(), built.values, fileName + '.docx');
-    folder.createFile(docx).setDescription(desc);
-    if (pdfBytes) folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
-    return { status: 'success', fileName: fileName, docx: Utilities.base64Encode(docx.getBytes()) };
+    // ผู้ใช้กำหนด 2026-11-18: ดาวน์โหลดได้เฉพาะ PDF — ไม่สร้าง/ไม่ส่งไฟล์ Word (เปิดได้ด้วย payload.wantDocx ถ้าจะกลับมาใช้)
+    if (!pdfBytes) return { status: 'error', message: 'ไม่มีไฟล์ PDF ที่สร้างจากหน้าเว็บ' };
+    folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
+    var out = { status: 'success', fileName: fileName };
+    if (payload.wantDocx) {
+      var docx = fillContractDocx_(tpl.getBlob(), built.values, fileName + '.docx');
+      folder.createFile(docx).setDescription(desc);
+      out.docx = Utilities.base64Encode(docx.getBytes());
+    }
+    return out;
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'generateTransportContract_');
     return { status: 'error', message: e.toString() };
