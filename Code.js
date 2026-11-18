@@ -5586,6 +5586,8 @@ function buildContractValues_(p) {
   if (miss.length) return { error: 'กรุณากรอก: ' + miss.join(', ') };
   var miss2 = (type === 'corp' ? CONTRACT_REQUIRED_CORP : CONTRACT_REQUIRED_PERSON).filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss2.length) return { error: 'กรุณากรอกข้อมูลผู้ใช้บริการ: ' + miss2.join(', ') };
+  if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
+  if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18
   if (type === 'person') {
     var idc = contractIdCard_(str('person_idcard'));
     if (!idc) return { error: 'เลขบัตรประชาชนไม่ถูกต้อง (ต้องเป็นตัวเลข 13 หลักที่ถูกต้อง)' };

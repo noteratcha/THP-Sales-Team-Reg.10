@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2102';
+    var APP_VERSION = 'Ver. 2026.1118.2105';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18622,19 +18622,31 @@
                 <div class="ct-field">
                     <span>ระบบจ่าหน้า</span>
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 min-h-[40px]">
-                        <label class="ct-check"><input type="radio" name="label_sys" value="yes"> มี</label>
-                        <label class="ct-check"><input type="radio" name="label_sys" value="no"> ไม่มี</label>
+                        <label class="ct-check"><input type="radio" name="label_sys" value="yes" onchange="thpContractLabelSync(true)"> มี</label>
+                        <label class="ct-check"><input type="radio" name="label_sys" value="no" onchange="thpContractLabelSync()" checked> ไม่มี</label>
                     </div>
                 </div>
-                <label class="ct-field"><span>ระบบจ่าหน้าที่ใช้ (ถ้ามี)</span><input name="label_detail" class="ct-input"></label>
+                <!-- เลือก "มี" แล้วต้องระบุ: PrePost / PostOne / อื่นๆ (ค่าจริงอยู่ใน label_detail) -->
+                <div class="ct-field" id="ctLabelWrap">
+                    <span>ระบบจ่าหน้าที่ใช้ <b class="text-red-600 hidden" id="ctLabelReq">*</b></span>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <select id="ctLabelPick" class="ct-input" onchange="thpContractLabelPick()" aria-label="ระบบจ่าหน้าที่ใช้" disabled>
+                            <option value="">— เลือกระบบจ่าหน้า —</option>
+                            <option value="PrePost">PrePost</option>
+                            <option value="PostOne">PostOne</option>
+                            <option value="__other">อื่นๆ (ระบุเอง)</option>
+                        </select>
+                        <input name="label_detail" class="ct-input hidden" placeholder="ระบุระบบจ่าหน้า" aria-label="ระบบจ่าหน้าอื่นๆ โปรดระบุ">
+                    </div>
+                </div>
                 <div class="ct-field ct-span-2">
                     <span>การรับฝาก</span>
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 min-h-[40px]">
                         <label class="ct-check"><input type="checkbox" data-ct-check="x_capos"> CA POS</label>
                         <label class="ct-check"><input type="checkbox" data-ct-check="x_pickup"> Pick Up Service</label>
                         <label class="ct-check"><input type="checkbox" data-ct-check="x_dropoff"> Drop Off</label>
-                        <label class="ct-check"><input type="checkbox" data-ct-check="x_other"> อื่นๆ</label>
-                        <input name="other_detail" class="ct-input flex-1 min-w-[10rem]" placeholder="โปรดระบุ (กรณีอื่นๆ)" aria-label="การรับฝากอื่นๆ โปรดระบุ">
+                        <label class="ct-check"><input type="checkbox" data-ct-check="x_other" onchange="thpContractOtherSync(true)"> อื่นๆ</label>
+                        <input name="other_detail" class="ct-input flex-1 min-w-[10rem]" placeholder="โปรดระบุ (กรณีอื่นๆ)" aria-label="การรับฝากอื่นๆ โปรดระบุ" disabled>
                     </div>
                 </div>
             </div>
@@ -18843,7 +18855,16 @@
             if (field('sign_date') && !field('sign_date').value) field('sign_date').value = today;
             if (field('start_date') && !field('start_date').value) field('start_date').value = y + '-01-01';
             if (field('end_date') && !field('end_date').value) field('end_date').value = y + '-12-31';
-            if (field('cod_pct') && !field('cod_pct').value) field('cod_pct').value = '3'; // ค่าเริ่มต้น COD 3% (ผู้ใช้กำหนด 2026-11-18)
+            if (field('cod_pct') && !field('cod_pct').value) field('cod_pct').value = '3';
+            // การรับฝาก ค่าเริ่มต้น CA POS + Pick Up Service (ผู้ใช้กำหนด 2026-11-18) — ตั้งเฉพาะตอนยังไม่ได้ติ๊กอะไร
+            var acc = document.querySelectorAll('#contractForm [data-ct-check]');
+            if (acc.length && !Array.prototype.some.call(acc, function (c) { return c.checked; })) {
+                Array.prototype.forEach.call(acc, function (c) { if (c.dataset.ctCheck === 'x_capos' || c.dataset.ctCheck === 'x_pickup') c.checked = true; });
+            }
+            if (window.thpContractOtherSync) window.thpContractOtherSync();
+            // ระบบจ่าหน้า ค่าเริ่มต้น "ไม่มี" (ผู้ใช้กำหนด 2026-11-18)
+            var lsf = form(); if (lsf && !lsf.querySelector('input[name="label_sys"]:checked')) { var no = lsf.querySelector('input[name="label_sys"][value="no"]'); if (no) no.checked = true; }
+            if (window.thpContractLabelSync) window.thpContractLabelSync(); // ค่าเริ่มต้น COD 3% (ผู้ใช้กำหนด 2026-11-18)
             if (field('thp_position') && !field('thp_position').value) field('thp_position').value = 'หัวหน้าที่ทำการไปรษณีย์';
             // เลขที่หนังสือ: ช่อง 1 = ปข.10 เสมอ, ช่อง 2 = รหัสไปรษณีย์ของผู้ที่ล็อกอิน (ผู้ใช้กำหนด 2026-11-18)
             if (field('no_a') && !field('no_a').value) field('no_a').value = 'ปข.10';
@@ -19149,6 +19170,37 @@
             if (first && first.offsetParent !== null) setTimeout(function () { try { first.focus({ preventScroll: true }); } catch (e) { } }, 400);
         };
 
+        // ===== ระบบจ่าหน้า =====
+        window.thpContractLabelSync = function (focus) {
+            var f = form(); if (!f) return;
+            var yes = !!f.querySelector('input[name="label_sys"][value="yes"]:checked');
+            var pick = document.getElementById('ctLabelPick'), inp = field('label_detail');
+            if (!pick || !inp) return;
+            pick.disabled = !yes;
+            document.getElementById('ctLabelReq').classList.toggle('hidden', !yes);
+            document.getElementById('ctLabelWrap').classList.toggle('opacity-50', !yes);
+            if (!yes) { pick.value = ''; inp.value = ''; inp.classList.add('hidden'); pick.classList.remove('ct-invalid'); inp.classList.remove('ct-invalid'); }
+            else if (focus) setTimeout(function () { pick.focus(); }, 0);
+            if (window.thpContractProgress) window.thpContractProgress();
+        };
+        window.thpContractLabelPick = function () {
+            var pick = document.getElementById('ctLabelPick'), inp = field('label_detail');
+            pick.classList.remove('ct-invalid');
+            if (pick.value === '__other') { inp.classList.remove('hidden'); inp.value = ''; inp.focus(); }
+            else { inp.classList.add('hidden'); inp.value = pick.value; inp.classList.remove('ct-invalid'); }
+        };
+
+        // ===== การรับฝาก: "อื่นๆ" ต้องระบุ =====
+        window.thpContractOtherSync = function (focus) {
+            var cb = document.querySelector('#contractForm [data-ct-check="x_other"]'), inp = field('other_detail');
+            if (!cb || !inp) return;
+            inp.disabled = !cb.checked;
+            inp.placeholder = cb.checked ? 'โปรดระบุ (จำเป็น)' : 'โปรดระบุ (กรณีอื่นๆ)';
+            if (!cb.checked) { inp.value = ''; inp.classList.remove('ct-invalid'); }
+            else if (focus) setTimeout(function () { inp.focus(); }, 0);
+            if (window.thpContractProgress) window.thpContractProgress();
+        };
+
         window.submitContractForm = function () {
             var f = form();
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -19164,6 +19216,14 @@
             need('end_date', 'ถึงวันที่');
             var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
+            // การรับฝาก "อื่นๆ" ต้องระบุ
+            if (p.checks.x_other && !p.other_detail) { missing.push('การรับฝาก อื่นๆ โปรดระบุ'); var od = field('other_detail'); if (od) od.classList.add('ct-invalid'); }
+            // ระบบจ่าหน้า "มี" ต้องระบุระบบ
+            if (p.checks.x_label_yes && !p.label_detail) {
+                var lp = document.getElementById('ctLabelPick');
+                var target = lp && lp.value === '__other' ? field('label_detail') : lp;
+                missing.push('ระบบจ่าหน้าที่ใช้'); if (target) target.classList.add('ct-invalid');
+            }
             // ส่วนที่ 2 บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) ยกเว้นวันที่หนังสือมอบอำนาจ
             (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).forEach(function (r) { need(r[0], r[1]); });
             if (state.customerType === 'person' && p.person_idcard && !thpIdCardOk(p.person_idcard)) {
