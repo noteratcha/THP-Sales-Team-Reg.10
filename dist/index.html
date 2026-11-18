@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.1656';
+    var APP_VERSION = 'Ver. 2026.1118.1719';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18569,10 +18569,11 @@
         <fieldset class="ct-fieldset">
             <legend>2. ผู้ใช้บริการ</legend>
             <div class="ct-seg" role="radiogroup" aria-label="ประเภทผู้ใช้บริการ">
-                <button type="button" role="radio" data-ct-type="corp" aria-checked="true" onclick="setContractCustomerType('corp')">นิติบุคคล</button>
-                <button type="button" role="radio" data-ct-type="person" aria-checked="false" onclick="setContractCustomerType('person')">บุคคลธรรมดา</button>
+                <!-- ค่าเริ่มต้น = บุคคลธรรมดา (ผู้ใช้กำหนด 2026-11-18) -->
+                <button type="button" role="radio" data-ct-type="corp" aria-checked="false" onclick="setContractCustomerType('corp')">นิติบุคคล</button>
+                <button type="button" role="radio" data-ct-type="person" aria-checked="true" onclick="setContractCustomerType('person')">บุคคลธรรมดา</button>
             </div>
-            <div id="ctCorp" class="ct-grid">
+            <div id="ctCorp" class="ct-grid hidden">
                 <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
                 <label class="ct-field"><span>ทะเบียนนิติบุคคลเลขที่</span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
                 <label class="ct-field"><span>จดทะเบียน ณ</span><input name="corp_reg_at" class="ct-input"></label>
@@ -18586,7 +18587,7 @@
                 <label class="ct-field"><span>หนังสือรับรอง ออกให้ ณ วันที่</span><input type="date" name="corp_cert_date" class="ct-input"></label>
                 <label class="ct-field"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
             </div>
-            <div id="ctPerson" class="ct-grid hidden">
+            <div id="ctPerson" class="ct-grid">
                 <label class="ct-field ct-span-2"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="person_name" class="ct-input"></label>
                 <label class="ct-field"><span>บ้านเลขที่</span><input name="person_no" class="ct-input"></label>
                 <label class="ct-field"><span>อาคาร</span><input name="person_building" class="ct-input"></label>
@@ -18605,12 +18606,8 @@
                     <select id="ctPackage" class="ct-input" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select></label>
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)</span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-gray-200">
-                <table class="w-full text-sm ct-price-table">
-                    <thead class="bg-gray-50 text-gray-600"><tr><th class="text-left">พิกัดน้ำหนัก</th><th class="text-right">อัตรา (บาท/ชิ้น)</th><th class="text-left ct-col2">พิกัดน้ำหนัก</th><th class="text-right">อัตรา (บาท/ชิ้น)</th></tr></thead>
-                    <tbody id="ctPriceBody"></tbody>
-                </table>
-            </div>
+            <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
+            <div id="ctPriceBody" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
             <div class="ct-grid">
                 <label class="ct-field"><span>COD คิดในอัตรา (%)</span><input name="cod_pct" class="ct-input" inputmode="decimal"></label>
                 <label class="ct-field"><span>ประเภทสิ่งของที่ฝากส่ง</span><input name="goods_type" class="ct-input"></label>
@@ -18688,21 +18685,19 @@
     #page-contract .ct-seg > button:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
     #page-contract .ct-price-table th, #page-contract .ct-price-table td { padding: 0.3rem 0.75rem; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
     #page-contract .ct-price-table th { font-weight: 600; font-size: 0.8125rem; }
-    #page-contract .ct-price-table .ct-col2 { border-left: 1px solid #e5e7eb; }
+    #page-contract .ct-price-caption { caption-side: top; text-align: left; padding: 0.5rem 0.75rem; font-weight: 700; font-size: 0.8125rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; }
     #page-contract .ct-price-input { width: 6rem; text-align: right; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-variant-numeric: tabular-nums; min-height: 32px; }
     #page-contract .ct-price-input:focus { outline: none; border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
     #page-contract .ct-price-input.ct-edited { background: #fff7ed; border-color: #fdba74; }
     #page-contract .ct-submit { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: #c2410c; color: #fff; font-weight: 700; padding: 0.7rem 1.5rem; border-radius: 0.625rem; min-height: 44px; }
     #page-contract .ct-submit:hover { background: #9a3412; }
     #page-contract .ct-submit:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
-    @media (max-width: 639px) { #page-contract .ct-price-table tr.ct-dual td:nth-child(n+3), #page-contract .ct-price-table th:nth-child(n+3) { display: none; } }
-    @media (min-width: 640px) { #page-contract .ct-price-table tr.ct-mobile { display: none; } }
 </style>
 
 <script>
     ;(function () {
         var PRICE_COUNT = 30;
-        var state = { rates: null, customerType: 'corp', loaded: false };
+        var state = { rates: null, customerType: 'person', loaded: false };
         var form = function () { return document.getElementById('contractForm'); };
         var field = function (name) { var f = form(); return f ? f.elements[name] : null; };
         var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s); };
@@ -18739,25 +18734,17 @@
             var body = document.getElementById('ctPriceBody');
             if (!body || body.children.length) return;
             var html = '';
-            var cell = function (i) {
-                return '<td>' + tierLabel(i) + '</td><td class="text-right"><input class="ct-price-input" data-ct-price="' + (i - 1) + '" inputmode="decimal" aria-label="อัตราค่าบริการ ' + tierLabel(i) + '" oninput="this.classList.add(\'ct-edited\')"></td>';
-            };
-            for (var i = 1; i <= 15; i++) html += '<tr class="ct-dual">' + cell(i) + cell(i + 15).replace('<td>', '<td class="ct-col2">') + '</tr>';
-            // จอเล็ก: คอลัมน์ขวาถูกซ่อน จึงต่อแถว 16–30 ไว้ท้ายตาราง
-            for (var j = 16; j <= 30; j++) html += '<tr class="ct-mobile">' + cell(j) + '</tr>';
-            body.innerHTML = html;
-            syncPriceInputs();
-        };
-
-        // ช่องราคาเดียวกันมี 2 ช่อง (จอใหญ่/จอเล็ก) ให้ค่าตรงกันเสมอ
-        var syncPriceInputs = function () {
-            document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (inp) {
-                inp.addEventListener('input', function () {
-                    document.querySelectorAll('#ctPriceBody [data-ct-price="' + inp.dataset.ctPrice + '"]').forEach(function (o) {
-                        if (o !== inp) { o.value = inp.value; o.classList.add('ct-edited'); }
-                    });
-                });
+            [[1, 10], [11, 20], [21, 30]].forEach(function (g) {
+                html += '<div class="overflow-x-auto rounded-xl border border-gray-200"><table class="w-full text-sm ct-price-table">' +
+                    '<caption class="ct-price-caption">น้ำหนัก ' + g[0] + '–' + g[1] + ' กก.</caption>' +
+                    '<thead class="bg-gray-50 text-gray-600"><tr><th class="text-left">พิกัดน้ำหนัก</th><th class="text-right">อัตรา (บาท/ชิ้น)</th></tr></thead><tbody>';
+                for (var i = g[0]; i <= g[1]; i++) {
+                    html += '<tr><td>' + tierLabel(i) + '</td><td class="text-right"><input class="ct-price-input" data-ct-price="' + (i - 1) +
+                        '" inputmode="decimal" aria-label="อัตราค่าบริการ ' + tierLabel(i) + '" oninput="this.classList.add(\'ct-edited\')"></td></tr>';
+                }
+                html += '</tbody></table></div>';
             });
+            body.innerHTML = html;
         };
 
         var setPrice = function (idx, val) {
@@ -18829,7 +18816,7 @@
             f.reset();
             document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (o) { o.value = ''; o.classList.remove('ct-edited'); });
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
-            setContractCustomerType('corp');
+            setContractCustomerType('person');
             setDefaults();
         };
 
@@ -18863,6 +18850,166 @@
             setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
         };
 
+        // ===== สร้าง PDF บน "แบบฟอร์มสัญญาขนส่ง ปี2570.pdf" (ผู้ใช้กำหนด 2026-11-18: ต้องเหมือนต้นฉบับ) =====
+        // พิกัดวัดจากเส้นประในไฟล์ต้นฉบับ (pt, วัดจากบนลงล่าง): [หน้า(0-2), x เริ่ม, x สิ้นสุด, y เส้นประ, จัด l=ชิดซ้าย c=กึ่งกลาง]
+        // ถ้าส่วนกลางออกฟอร์มใหม่ ต้องวัดพิกัดใหม่ (pymupdf get_drawings เส้นประ dash 1.5)
+        var CT_PDF_FIELDS = {
+            no_a: [0, 108.2, 142.8, 82.7, 'c'], no_b: [0, 145.8, 190.6, 82.7, 'c'], no_c: [0, 198.0, 256.8, 82.7, 'c'],
+            sign_date: [0, 382.0, 533.4, 118.7, 'c'], start_date: [0, 240.9, 345.0, 136.6, 'c'], end_date: [0, 375.4, 487.6, 136.6, 'c'],
+            office: [0, 365.0, 530.8, 244.6, 'l'],
+            corp_name: [0, 201.4, 533.2, 280.6, 'l'], corp_reg_no: [0, 176.1, 338.4, 298.6, 'l'], corp_reg_at: [0, 447.4, 530.4, 298.6, 'l'],
+            corp_no: [0, 183.4, 235.2, 316.6, 'c'], corp_building: [0, 262.9, 373.4, 316.6, 'l'], corp_road: [0, 393.0, 531.2, 316.6, 'l'],
+            corp_subdistrict: [0, 122.6, 229.8, 334.6, 'l'], corp_district: [0, 277.2, 394.6, 334.6, 'l'], corp_province: [0, 423.7, 530.8, 334.6, 'l'],
+            corp_signer: [0, 87.9, 430.2, 352.6, 'l'], corp_cert_date: [0, 399.2, 536.0, 370.6, 'l'], corp_poa_date: [0, 183.6, 321.5, 388.6, 'c'],
+            person_name: [0, 221.8, 536.0, 406.6, 'l'], person_no: [0, 368.9, 420.7, 424.6, 'c'], person_building: [0, 448.4, 531.5, 424.6, 'l'],
+            person_road: [0, 91.4, 208.9, 442.6, 'l'], person_subdistrict: [0, 259.6, 377.1, 442.6, 'l'], person_district: [0, 424.5, 531.7, 442.6, 'l'],
+            person_province: [0, 101.0, 208.2, 460.6, 'l'],
+            cod_pct: [1, 464.8, 480.8, 343.0, 'c'], min_qty: [1, 172.2, 219.1, 541.0, 'c'], goods_type: [1, 204.9, 541.4, 577.0, 'l'],
+            label_detail: [1, 231.9, 389.1, 595.0, 'l'], other_detail: [1, 439.2, 537.8, 613.0, 'l'],
+            contact_name: [2, 116.4, 354.1, 477.8, 'l'], contact_tel: [2, 392.8, 531.6, 477.8, 'l'],
+            contact_email: [2, 99.2, 292.9, 495.8, 'l'], post_family: [2, 395.6, 531.0, 495.8, 'l'],
+            wallet_tel: [2, 253.1, 337.2, 513.8, 'l'], wallet_name: [2, 355.6, 527.6, 513.8, 'l'],
+            thp_signer: [2, 78.4, 251.2, 702.8, 'c'], cus_signer: [2, 371.4, 530.4, 702.8, 'c'],
+            thp_position: [2, 107.6, 252.7, 720.8, 'c'], cus_position: [2, 381.6, 530.2, 720.8, 'c'],
+            wit1_name: [2, 78.4, 251.2, 778.3, 'c'], wit2_name: [2, 371.4, 530.4, 778.3, 'c'],
+            wit1_position: [2, 107.6, 252.7, 796.3, 'c'], wit2_position: [2, 381.6, 530.2, 796.3, 'c']
+        };
+        // ช่องติ๊ก (สี่เหลี่ยม Wingdings): [หน้า, x ซ้ายของตัวอักษร, y baseline]
+        var CT_PDF_CHECKS = {
+            x_label_yes: [1, 159.8, 594.3], x_label_no: [1, 399.7, 594.3], x_capos: [1, 145.2, 612.3],
+            x_pickup: [1, 202.1, 612.3], x_dropoff: [1, 296.9, 612.3], x_other: [1, 359.0, 612.3]
+        };
+        // ตารางราคา: คอลัมน์อัตรา x 381.0–499.1, เส้นแบ่งแถว (หน้า 1 = 1–14 กก., หน้า 2 = 15–30 กก.)
+        var CT_PRICE_COL = [381.0, 499.1];
+        var CT_PRICE_ROWS = [
+            [0, [591.0, 607.4, 623.7, 640.0, 656.3, 672.6, 689.0, 705.3, 721.6, 737.9, 754.2, 770.6, 786.9, 803.2, 819.5]],
+            [1, [52.6, 68.9, 85.2, 101.5, 117.9, 134.2, 150.5, 166.8, 183.1, 199.5, 215.8, 232.1, 248.4, 264.7, 281.1, 297.4, 313.7]]
+        ];
+        // ต้นฉบับใช้ TH SarabunPSK 16pt; Sarabun (Google Fonts) รูปตัวอักษรเดียวกันแต่ใหญ่และหนากว่า จึงใช้ขนาดเล็กลง + น้ำหนัก 300
+        var CT_TEXT_PT = 10.8, CT_PRICE_PT = 9.8, CT_SCALE = 5, CT_WEIGHT = '300';
+
+        var loadScript = function (src) {
+            return new Promise(function (resolve, reject) {
+                var s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = function () { reject(new Error('โหลดไลบรารีไม่สำเร็จ: ' + src)); };
+                document.head.appendChild(s);
+            });
+        };
+        var libsPromise = null;
+        var loadContractLibs = function () {
+            if (!libsPromise) {
+                // ฟอนต์ต้องโหลดเสร็จก่อนวาด ไม่งั้น canvas ใช้ฟอนต์สำรองหน้าตาไม่เหมือนต้นฉบับ
+                var css = new Promise(function (resolve) {
+                    var l = document.createElement('link'); l.rel = 'stylesheet';
+                    l.href = 'https://fonts.googleapis.com/css2?family=Sarabun:wght@300&display=block';
+                    l.onload = resolve; l.onerror = resolve;
+                    document.head.appendChild(l);
+                    setTimeout(resolve, 8000);
+                }).then(function () {
+                    return document.fonts ? document.fonts.load(CT_WEIGHT + ' 40px "Sarabun"', 'สัญญาขนส่ง 0123') : null;
+                }).then(function () {
+                    if (document.fonts && !document.fonts.check(CT_WEIGHT + ' 40px "Sarabun"', 'สัญญา')) throw new Error('โหลดฟอนต์ Sarabun ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่');
+                });
+                libsPromise = Promise.all([
+                    window.PDFLib ? Promise.resolve() : loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'),
+                    css
+                ]).catch(function (e) { libsPromise = null; throw e; });
+            }
+            return libsPromise;
+        };
+        window.thpLoadContractLibs = loadContractLibs;
+        var templatePromise = null;
+        var getTemplatePdf = function () {
+            if (!templatePromise) {
+                templatePromise = new Promise(function (resolve, reject) {
+                    google.script.run.withSuccessHandler(function (res) {
+                        if (res && res.status === 'success' && res.pdf) resolve(b64ToBytes(res.pdf));
+                        else reject(new Error((res && res.message) || 'โหลดไฟล์ต้นฉบับไม่สำเร็จ'));
+                    }).withFailureHandler(reject).getContractTemplatePdf(currentUserInfo);
+                }).catch(function (e) { templatePromise = null; throw e; });
+            }
+            return templatePromise;
+        };
+        var b64ToBytes = function (b64) {
+            var bin = atob(b64), out = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+            return out;
+        };
+        var bytesToB64 = function (bytes) {
+            var s = '';
+            for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            return btoa(s);
+        };
+
+        // วาดข้อความด้วย canvas (เบราว์เซอร์จัดสระ/วรรณยุกต์ไทยถูกต้อง) → PNG
+        var textToPng = function (text, pt) {
+            var px = pt * CT_SCALE;
+            var c = document.createElement('canvas'), ctx = c.getContext('2d');
+            ctx.font = CT_WEIGHT + ' ' + px + 'px "Sarabun"';
+            var m = ctx.measureText(text);
+            var asc = Math.ceil(Math.max(m.actualBoundingBoxAscent || px * 0.9, px * 0.75)) + 2;
+            var desc = Math.ceil(Math.max(m.actualBoundingBoxDescent || px * 0.25, px * 0.2)) + 2;
+            c.width = Math.ceil(m.width) + 4; c.height = asc + desc;
+            ctx.font = CT_WEIGHT + ' ' + px + 'px "Sarabun"';
+            ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText(text, 2, asc);
+            return { dataUrl: c.toDataURL('image/png'), w: c.width / CT_SCALE, asc: asc / CT_SCALE, desc: desc / CT_SCALE, textW: m.width / CT_SCALE };
+        };
+
+        // ค่าที่จะพิมพ์ลง PDF (ไม่เติมช่องว่าง) — ช่องของประเภทผู้ใช้บริการอีกแบบเว้นว่าง
+        var pdfValues = function (p) {
+            var out = {};
+            Object.keys(CT_PDF_FIELDS).forEach(function (k) {
+                var other = (p.customerType === 'corp' && k.indexOf('person_') === 0) || (p.customerType === 'person' && k.indexOf('corp_') === 0);
+                out[k] = other ? '' : String(p[k] || '').replace(/\s+/g, ' ').trim();
+            });
+            return out;
+        };
+
+        // templateBytes = PDF ต้นฉบับ, p = ข้อมูลจาก collect() → Promise<Uint8Array>
+        window.thpBuildContractPdf = function (templateBytes, p) {
+            var PDFLib = window.PDFLib;
+            return PDFLib.PDFDocument.load(templateBytes).then(function (doc) {
+                var pages = doc.getPages();
+                var jobs = [];
+                var place = function (pageIdx, text, x0, x1, yBaseTop, align, pt) {
+                    if (!text) return;
+                    var maxW = x1 - x0 - 4, size = pt;
+                    var img = textToPng(text, size);
+                    while (img.textW > maxW && size > 7) { size = Math.max(7, size * maxW / img.textW * 0.98); img = textToPng(text, size); }
+                    var x = align === 'c' ? (x0 + x1) / 2 - img.w / 2 : x0 + 2;
+                    jobs.push(doc.embedPng(img.dataUrl).then(function (png) {
+                        var page = pages[pageIdx], H = page.getHeight();
+                        page.drawImage(png, { x: x, y: H - (yBaseTop + img.desc), width: img.w, height: img.asc + img.desc });
+                    }));
+                };
+                var vals = pdfValues(p);
+                Object.keys(CT_PDF_FIELDS).forEach(function (k) {
+                    var f = CT_PDF_FIELDS[k];
+                    place(f[0], vals[k], f[1], f[2], f[3] - 2.2, f[4], CT_TEXT_PT);
+                });
+                var tier = 0;
+                CT_PRICE_ROWS.forEach(function (pg) {
+                    var b = pg[1];
+                    for (var i = 1; i < b.length; i++) {
+                        var v = String((p.prices || [])[tier] || '').replace(/,/g, '').trim();
+                        if (v) place(pg[0], Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }), CT_PRICE_COL[0], CT_PRICE_COL[1], b[i] - 4.3, 'c', CT_PRICE_PT);
+                        tier++;
+                    }
+                });
+                // เครื่องหมายถูกในช่องที่เลือก (วาดเป็นเส้น ไม่ขึ้นกับฟอนต์)
+                Object.keys(CT_PDF_CHECKS).forEach(function (k) {
+                    if (!(p.checks || {})[k]) return;
+                    var c = CT_PDF_CHECKS[k], page = pages[c[0]], H = page.getHeight();
+                    var x = c[1], yb = c[2];
+                    var pts = [[x + 2.6, yb - 5.2], [x + 5.2, yb - 2.2], [x + 10.6, yb - 10.4]];
+                    var opt = { thickness: 1.4, color: PDFLib.rgb(0, 0, 0) };
+                    page.drawLine(Object.assign({ start: { x: pts[0][0], y: H - pts[0][1] }, end: { x: pts[1][0], y: H - pts[1][1] } }, opt));
+                    page.drawLine(Object.assign({ start: { x: pts[1][0], y: H - pts[1][1] }, end: { x: pts[2][0], y: H - pts[2][1] } }, opt));
+                });
+                return Promise.all(jobs).then(function () { return doc.save(); });
+            });
+        };
+
         window.submitContractForm = function () {
             var f = form();
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -18886,20 +19033,28 @@
             var emptyPrices = p.prices.filter(function (v) { return !v; }).length;
             var go = function () {
                 if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังสร้างสัญญา...');
-                google.script.run.withSuccessHandler(function (res) {
+                var fail = function (err) {
+                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                    Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                };
+                var pdfB64 = '';
+                // 1) สร้าง PDF ในเบราว์เซอร์บนต้นฉบับ  2) ส่งให้หลังบ้านตรวจ + สร้าง Word + เก็บสำเนา  3) ดาวน์โหลด
+                Promise.all([loadContractLibs(), getTemplatePdf()]).then(function (r) {
+                    return window.thpBuildContractPdf(r[1], p);
+                }).then(function (bytes) {
+                    pdfB64 = bytesToB64(bytes);
+                    google.script.run.withSuccessHandler(function (res) {
                     if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (!(res && res.status === 'success')) { Swal.fire('สร้างสัญญาไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
-                    download(res.pdf, res.fileName + '.pdf', 'application/pdf');
+                    download(pdfB64, res.fileName + '.pdf', 'application/pdf');
                     Swal.fire({
                         icon: 'success', title: 'สร้างสัญญาแล้ว',
                         html: 'ดาวน์โหลดไฟล์ PDF แล้ว<br><span style="font-size:13px;color:#6b7280">' + esc(res.fileName) + '</span>',
                         showDenyButton: !!res.docx, denyButtonText: '<i class="fas fa-file-word"></i> ดาวน์โหลด Word (แก้ไขต่อ)',
                         denyButtonColor: '#2563eb', confirmButtonText: 'ปิด'
                     }).then(function (ans) { if (ans.isDenied && res.docx) download(res.docx, res.fileName + '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'); });
-                }).withFailureHandler(function (err) {
-                    if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
-                    Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
-                }).generateTransportContract(p, currentUserInfo);
+                    }).withFailureHandler(fail).generateTransportContract(Object.assign({}, p, { pdf: pdfB64 }), currentUserInfo);
+                }).catch(fail);
             };
             if (emptyPrices) {
                 Swal.fire({ icon: 'question', title: 'อัตราค่าบริการยังว่าง ' + emptyPrices + ' ช่อง', text: 'ช่องที่ว่างจะเว้นไว้ให้กรอกด้วยลายมือ ต้องการสร้างสัญญาต่อหรือไม่', showCancelButton: true, confirmButtonText: 'สร้างต่อ', cancelButtonText: 'กลับไปกรอก' })

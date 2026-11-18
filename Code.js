@@ -5481,13 +5481,15 @@ function saveNextYearTargets_(payload, actor) {
 // ==========================================
 // 📄 SECTION: สร้างสัญญาขนส่งภายในประเทศ (หน้า Module_Contract, ผู้ใช้ขอ 2026-11-18)
 // ==========================================
-// ต้นฉบับ = .docx ที่ใส่ตัวแปร {{ชื่อช่อง}} ไว้แล้ว (สร้างจาก "แบบฟอร์มสัญญาขนส่ง ปี2570.docx" ของส่วนกลาง)
-// ครั้งแรกที่ใช้: แปลง .docx เป็น Google Docs ในโฟลเดอร์เดียวกัน แล้วจำ ID ไว้ (Script Property CONTRACT_TEMPLATE_ID)
-// แต่ละครั้ง: คัดลอกต้นฉบับไปโฟลเดอร์ "สัญญาที่สร้างจากระบบ" แทนค่าตัวแปร แล้วส่ง PDF + Word กลับให้ดาวน์โหลด
+// PDF ต้องเหมือน "แบบฟอร์มสัญญาขนส่ง ปี2570.pdf" (ผู้ใช้กำหนด 2026-11-18) จึงไม่ผ่าน Google Docs (ไม่มีฟอนต์ TH SarabunPSK บรรทัดเลื่อน 3 → 9 หน้า)
+//   PDF: หน้าเว็บดึง PDF ต้นฉบับ (getContractTemplatePdf) แล้วเขียนข้อความทับบนเส้นประตามพิกัด (pdf-lib) ในเบราว์เซอร์
+//   Word: หลังบ้านแทนค่าตัวแปร {{ชื่อช่อง}} ใน .docx ต้นฉบับใส่ตัวแปร (แก้ XML ตรง ๆ หน้าตาเหมือนต้นฉบับ)
+//   ทั้ง 2 ไฟล์เก็บสำเนาไว้ที่โฟลเดอร์ "สัญญาที่สร้างจากระบบ" ข้างไฟล์ต้นฉบับ
 // ไม่รับ/ไม่บันทึกเลขบัตรประชาชน (ช่องนั้นในสัญญาเว้นว่างให้กรอกด้วยมือ)
-var CONTRACT_TEMPLATE_BASE_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570 A1-A12 (ต้นฉบับระบบ)';
+var CONTRACT_TEMPLATE_BASE_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570 A1-A12 (ต้นฉบับระบบ)'; // .docx ใส่ตัวแปร
+var CONTRACT_TEMPLATE_PDF_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570.pdf';                  // PDF ต้นฉบับส่วนกลาง
 var CONTRACT_OUTPUT_FOLDER_NAME = 'สัญญาที่สร้างจากระบบ';
-// ความยาวช่องว่างเดิมของแต่ละช่อง (จำนวนเว้นวรรค) ใช้เติมช่องว่างให้เส้นประยาวใกล้เดิม
+// ความยาวช่องว่างเดิมของแต่ละช่อง (จำนวนเว้นวรรค) ใช้เติมช่องว่างให้เส้นประยาวใกล้เดิม (เฉพาะไฟล์ Word)
 var CONTRACT_FIELD_WIDTHS = {
   no_a: 10, no_b: 13, no_c: 17, sign_date: 43, start_date: 29, end_date: 30, office: 48,
   corp_name: 96, corp_reg_no: 41, corp_reg_at: 21, corp_no: 15, corp_building: 32, corp_road: 40,
@@ -5501,51 +5503,10 @@ var CONTRACT_FIELD_WIDTHS = {
 var CONTRACT_CHECKBOXES = ['x_label_yes', 'x_label_no', 'x_capos', 'x_pickup', 'x_dropoff', 'x_other'];
 var CONTRACT_PRICE_COUNT = 30;
 
-function getContractTemplateFile_() {
-  var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty('CONTRACT_TEMPLATE_ID');
-  if (id) {
-    try { var f = DriveApp.getFileById(id); if (!f.isTrashed()) return f; } catch (e) { }
-  }
-  var it = DriveApp.getFilesByName(CONTRACT_TEMPLATE_BASE_NAME);
-  while (it.hasNext()) {
-    var g = it.next();
-    if (!g.isTrashed() && g.getMimeType() === MimeType.GOOGLE_DOCS) { props.setProperty('CONTRACT_TEMPLATE_ID', g.getId()); return g; }
-  }
-  var it2 = DriveApp.getFilesByName(CONTRACT_TEMPLATE_BASE_NAME + '.docx');
-  while (it2.hasNext()) {
-    var d = it2.next();
-    if (d.isTrashed()) continue;
-    var parents = d.getParents();
-    var meta = { name: CONTRACT_TEMPLATE_BASE_NAME, mimeType: MimeType.GOOGLE_DOCS };
-    if (parents.hasNext()) meta.parents = [parents.next().getId()];
-    var copied = Drive.Files.copy(meta, d.getId());
-    props.setProperty('CONTRACT_TEMPLATE_ID', copied.id);
-    return DriveApp.getFileById(copied.id);
-  }
+function findDriveFileByName_(name) {
+  var it = DriveApp.getFilesByName(name);
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed()) return f; }
   return null;
-}
-
-// กด Run ครั้งเดียวในหน้า Apps Script: ให้สิทธิ์ Google Docs (สิทธิ์ใหม่) + แปลงต้นฉบับ .docx เป็น Google Docs
-function setupContractTemplate() {
-  var f = getContractTemplateFile_();
-  if (!f) { Logger.log('ไม่พบไฟล์ ' + CONTRACT_TEMPLATE_BASE_NAME + '.docx'); return; }
-  DocumentApp.openById(f.getId()).getBody().getText();
-  Logger.log('พร้อมใช้งาน: ' + f.getName() + ' ' + f.getUrl());
-  // สร้างสัญญาตัวอย่าง (ข้อมูลสมมติ) ไว้ในโฟลเดอร์ "สัญญาที่สร้างจากระบบ" ให้เปิดดูหน้าตา
-  var prices = [];
-  for (var i = 0; i < CONTRACT_PRICE_COUNT; i++) prices.push(String(17 + i * 10));
-  var res = generateTransportContract_({
-    customerType: 'corp', office: 'ศรีสะเกษ', no_a: 'ศก.', no_b: 'ขล.', no_c: '001',
-    sign_date: '18 พฤศจิกายน 2569', start_date: '1 มกราคม 2570', end_date: '31 ธันวาคม 2570',
-    corp_name: 'บริษัท ตัวอย่างทดสอบ จำกัด', corp_reg_no: '0335500000000', corp_reg_at: 'ศรีสะเกษ',
-    corp_no: '99/9', corp_road: 'ขุขันธ์', corp_subdistrict: 'เมืองใต้', corp_district: 'เมืองศรีสะเกษ', corp_province: 'ศรีสะเกษ',
-    corp_signer: 'นายตัวอย่าง ทดสอบ', min_qty: '10,000', cod_pct: '3', goods_type: 'เสื้อผ้า',
-    checks: { x_label_no: true, x_dropoff: true }, prices: prices,
-    contact_name: 'นางสาวประสาน งานดี', contact_tel: '081-000-0000',
-    thp_signer: 'นายหัวหน้า ที่ทำการ', thp_position: 'หัวหน้าที่ทำการไปรษณีย์ศรีสะเกษ', cus_signer: 'นายตัวอย่าง ทดสอบ', cus_position: 'กรรมการผู้จัดการ'
-  }, { user: 'test', name: 'ทดสอบ' });
-  Logger.log(res.status === 'success' ? 'สร้างตัวอย่างแล้ว: ' + res.fileName + ' (โฟลเดอร์ ' + CONTRACT_OUTPUT_FOLDER_NAME + ')' : 'ผิดพลาด: ' + res.message);
 }
 
 function getContractOutputFolder_(templateFile) {
@@ -5553,6 +5514,19 @@ function getContractOutputFolder_(templateFile) {
   var base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
   var it = base.getFoldersByName(CONTRACT_OUTPUT_FOLDER_NAME);
   return it.hasNext() ? it.next() : base.createFolder(CONTRACT_OUTPUT_FOLDER_NAME);
+}
+
+// PDF ต้นฉบับ (base64) ให้หน้าเว็บใช้เป็นพื้นหลัง — ผู้ใช้ที่ล็อกอินทุกคน
+function getContractTemplatePdf_(actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var f = findDriveFileByName_(CONTRACT_TEMPLATE_PDF_NAME);
+    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '" ใน Google Drive' };
+    return { status: 'success', name: f.getName(), pdf: Utilities.base64Encode(f.getBlob().getBytes()) };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractTemplatePdf_');
+    return { status: 'error', message: e.toString() };
+  }
 }
 
 // เติมค่าให้กว้างใกล้ช่องเดิม: สระบน/ล่างและวรรณยุกต์ไม่กินที่ ตัวอักษร 1 ตัว ≈ เว้นวรรค 2 ช่อง
@@ -5566,7 +5540,7 @@ function contractPadValue_(value, width) {
   return new Array(left + 1).join(' ') + v + new Array(pad - left + 1).join(' ');
 }
 
-// คืน { values: {ชื่อช่อง: ข้อความที่จะแทน}, customer } หรือ { error }
+// คืน { values: {ชื่อช่อง: ข้อความที่จะแทนใน Word}, customer } หรือ { error }
 function buildContractValues_(p) {
   if (!p || typeof p !== 'object') return { error: 'ไม่พบข้อมูลสัญญา' };
   var str = function (k, max) {
@@ -5598,32 +5572,46 @@ function buildContractValues_(p) {
   return { values: values, customer: customer };
 }
 
+function contractXmlEscape_(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// แทนค่าตัวแปรใน word/document.xml ของ .docx → Blob .docx ใหม่
+function fillContractDocx_(templateBlob, values, fileName) {
+  var parts = Utilities.unzip(templateBlob);
+  var out = parts.map(function (b) {
+    if (b.getName() !== 'word/document.xml') return b;
+    var xml = b.getDataAsString('UTF-8').replace(/\{\{([a-z0-9_]+)\}\}/g, function (m, k) {
+      return values.hasOwnProperty(k) ? contractXmlEscape_(values[k]) : '';
+    });
+    return Utilities.newBlob(xml, 'application/xml', 'word/document.xml');
+  });
+  return Utilities.zip(out, fileName).setContentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+
+// payload = ข้อมูลฟอร์ม + pdf (base64 ที่หน้าเว็บสร้าง) → ตรวจข้อมูล, สร้าง Word, เก็บ PDF + Word ใน Drive, คืน Word (base64)
 function generateTransportContract_(payload, actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
     var built = buildContractValues_(payload);
     if (built.error) return { status: 'error', message: built.error };
-    var template = getContractTemplateFile_();
-    if (!template) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_BASE_NAME + '" ใน Google Drive' };
-    var folder = getContractOutputFolder_(template);
+    var tpl = findDriveFileByName_(CONTRACT_TEMPLATE_BASE_NAME + '.docx');
+    if (!tpl) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_BASE_NAME + '.docx" ใน Google Drive' };
+    var pdfBytes = null;
+    if (payload.pdf) {
+      pdfBytes = Utilities.base64Decode(String(payload.pdf));
+      if (pdfBytes.length > 8 * 1024 * 1024) return { status: 'error', message: 'ไฟล์ PDF ใหญ่เกินไป' };
+      if (String.fromCharCode(pdfBytes[0], pdfBytes[1], pdfBytes[2], pdfBytes[3]) !== '%PDF') return { status: 'error', message: 'ไฟล์ PDF ไม่ถูกต้อง' };
+    }
     var stamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd_HHmm');
     var safeName = built.customer.replace(/[\\\/:*?"<>|]/g, ' ').substring(0, 80).trim();
     var fileName = 'สัญญาขนส่ง_' + safeName + '_' + stamp;
-    var copy = template.makeCopy(fileName, folder);
-    copy.setDescription('สร้างจากระบบ THP Sales Team Reg.10 โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : ''));
-    var doc = DocumentApp.openById(copy.getId());
-    var body = doc.getBody();
-    Object.keys(built.values).forEach(function (k) {
-      var rep = String(built.values[k]).replace(/\\/g, '\\\\').replace(/\$/g, '\\$');
-      body.replaceText('\\{\\{' + k + '\\}\\}', rep);
-    });
-    doc.saveAndClose();
-    var pdf = copy.getAs(MimeType.PDF).getBytes();
-    var docxResp = UrlFetchApp.fetch('https://docs.google.com/document/d/' + copy.getId() + '/export?format=docx', {
-      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true
-    });
-    var docx = docxResp.getResponseCode() === 200 ? Utilities.base64Encode(docxResp.getContent()) : '';
-    return { status: 'success', fileName: fileName, pdf: Utilities.base64Encode(pdf), docx: docx };
+    var desc = 'สร้างจากระบบ THP Sales Team Reg.10 โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : '');
+    var folder = getContractOutputFolder_(tpl);
+    var docx = fillContractDocx_(tpl.getBlob(), built.values, fileName + '.docx');
+    folder.createFile(docx).setDescription(desc);
+    if (pdfBytes) folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
+    return { status: 'success', fileName: fileName, docx: Utilities.base64Encode(docx.getBytes()) };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'generateTransportContract_');
     return { status: 'error', message: e.toString() };
@@ -5653,7 +5641,7 @@ var API_ALLOWED_FUNCTIONS = [
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
-  'generateTransportContract'
+  'generateTransportContract', 'getContractTemplatePdf'
 ];
 
 
@@ -5677,7 +5665,8 @@ var AUTH_SESSION_USER_ARG = {
   saveTargetPlanIntlData: 1,     // (payload, actor) — admin เท่านั้น
   saveNextYearTargets: 1,        // (payload, actor) — admin เท่านั้น
   saveVisitTargetsCopyYear: 1,   // (payload, actor) — admin เท่านั้น
-  generateTransportContract: 1   // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  generateTransportContract: 1,  // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  getContractTemplatePdf: 0      // (actor) — ผู้ใช้ที่ล็อกอินทุกคน
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
