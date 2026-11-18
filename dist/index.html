@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2023';
+    var APP_VERSION = 'Ver. 2026.1118.2029';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19021,7 +19021,8 @@
 
         // แจ้งเตือน แล้วเลื่อนไปช่องที่มีปัญหา (กึ่งกลางจอ) + โฟกัส + กระพริบกรอบ (ผู้ใช้ขอ 2026-11-18)
         var warnAt = function (title, text, el) {
-            Swal.fire(title, text, 'warning').then(function () {
+            // returnFocus: false — ไม่งั้น SweetAlert คืนโฟกัสให้ปุ่ม "สร้างสัญญา" ท้ายฟอร์ม แล้วหน้าดีดกลับไปที่ปุ่ม (พบ 2026-11-18)
+            Swal.fire({ title: title, text: text, icon: 'warning', returnFocus: false }).then(function () {
                 if (!el) return;
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTimeout(function () {

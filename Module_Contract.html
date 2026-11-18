@@ -490,7 +490,8 @@
 
         // แจ้งเตือน แล้วเลื่อนไปช่องที่มีปัญหา (กึ่งกลางจอ) + โฟกัส + กระพริบกรอบ (ผู้ใช้ขอ 2026-11-18)
         var warnAt = function (title, text, el) {
-            Swal.fire(title, text, 'warning').then(function () {
+            // returnFocus: false — ไม่งั้น SweetAlert คืนโฟกัสให้ปุ่ม "สร้างสัญญา" ท้ายฟอร์ม แล้วหน้าดีดกลับไปที่ปุ่ม (พบ 2026-11-18)
+            Swal.fire({ title: title, text: text, icon: 'warning', returnFocus: false }).then(function () {
                 if (!el) return;
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTimeout(function () {
