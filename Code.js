@@ -5588,6 +5588,10 @@ function buildContractValues_(p) {
   if (!/^\d+$/.test(str('min_qty').replace(/,/g, ''))) return { error: 'กรุณากรอกปริมาณงานขั้นต่ำ (ชิ้น/เดือน) เป็นตัวเลข' };
   if (!/^\d+(\.\d{1,2})?$/.test(str('cod_pct'))) return { error: 'กรุณากรอก COD คิดในอัตรา (%) เป็นตัวเลข' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
   if (!str('goods_type')) return { error: 'กรุณากรอกประเภทสิ่งของที่ฝากส่ง' };
+  // Package A1–A10 + พิเศษเฉพาะราย เฉพาะ admin (ผู้ใช้กำหนด 2026-11-18) — buildContractValues_ รับ actor จาก generateTransportContract_
+  var pkgSel = str('pkg');
+  if (pkgSel && pkgSel !== 'Package A11' && pkgSel !== 'Package A12' && !(p.__actorIsAdmin)) return { error: (pkgSel === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkgSel) + ' เลือกได้เฉพาะผู้ดูแลระบบ (admin)' };
+  if (str('wallet_tel') && !/^\d{10}$/.test(str('wallet_tel'))) return { error: 'เบอร์ Wallet@post ต้องเป็นตัวเลข 10 หลัก' }; // ผู้ใช้กำหนด 2026-11-18
   if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18
@@ -5636,6 +5640,8 @@ function fillContractDocx_(templateBlob, values, fileName) {
 function generateTransportContract_(payload, actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    payload = payload || {};
+    payload.__actorIsAdmin = String(actor.user || '').toLowerCase() === 'admin';
     var built = buildContractValues_(payload);
     if (built.error) return { status: 'error', message: built.error };
     var tpl = findContractFile_(CONTRACT_TEMPLATE_BASE_NAME + '.docx');

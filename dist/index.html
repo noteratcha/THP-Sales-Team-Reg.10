@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2159';
+    var APP_VERSION = 'Ver. 2026.1118.2204';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18545,7 +18545,7 @@
             <legend><span class="ct-num">1</span>ข้อมูลสัญญา</legend>
             <div class="ct-grid">
                 <div class="ct-field ct-span-2">
-                    <span>เลขที่หนังสือ (ที่ ปณท ...(...)/...) <b class="text-red-600">*</b></span>
+                    <span>เลขที่หนังสือ <b class="text-red-600">*</b></span>
                     <div class="flex items-center gap-1.5">
                         <span class="text-sm text-gray-600 shrink-0">ปณท</span>
                         <input name="no_a" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 1">
@@ -18612,17 +18612,21 @@
                 <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="tel"></label>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input"></label>
                 <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตัวเลข 8 หลัก" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"></label>
-                <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="tel" oninput="thpContractMirror()"></label>
+                <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="numeric" maxlength="10" placeholder="ตัวเลข 10 หลัก เช่น 0812345678" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10); thpContractMirror()"></label>
                 <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''" placeholder="กรอกเบอร์ Wallet@post ก่อน" disabled></label>
             </div>
         </fieldset>
 
         <fieldset class="ct-fieldset" id="ctSec3">
             <legend><span class="ct-num">3</span>อัตราค่าบริการและเงื่อนไข</legend>
-            <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
+            <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · A1–A10 และพิเศษเฉพาะราย เลือกได้เฉพาะ admin · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
+            <div class="ct-field">
+                <span id="ctPkgLabel">Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
+                <!-- ค่าจริงอยู่ใน select (ซ่อน) การ์ดด้านล่างเป็นตัวเลือกที่ผู้ใช้กด -->
+                <select id="ctPackage" class="ct-input sr-only" tabindex="-1" aria-hidden="true" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select>
+                <div id="ctPkgCards" class="ct-pkg-cards" role="radiogroup" aria-labelledby="ctPkgLabel"><span class="text-sm text-gray-500">กำลังโหลด Package...</span></div>
+            </div>
             <div class="ct-grid">
-                <label class="ct-field"><span>Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
-                    <select id="ctPackage" class="ct-input" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select></label>
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
             <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
@@ -18700,6 +18704,23 @@
     @media (max-width: 639px) { #page-contract .ct-grid.ct-grid-2m { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract .ct-grid-2m > .ct-span-2, #page-contract .ct-grid-2m > .ct-m-full { grid-column: span 2 / span 2; } }
     /* ช่องบังคับที่กรอกแล้ว: ขอบเขียวอ่อน */
     #page-contract .ct-input.ct-ok:not(:focus):not(.ct-invalid) { border-color: #86efac; background: #f7fef9; }
+    /* การ์ดเลือก Package */
+    #page-contract .ct-pkg-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem; border-radius: 0.75rem; }
+    #page-contract .ct-pkg-cards.ct-invalid { outline: 2px solid #dc2626; outline-offset: 4px; }
+    #page-contract .ct-pkg { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; text-align: left; padding: 0.6rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.625rem; background: #fff; min-height: 76px; transition: border-color .15s, background-color .15s, box-shadow .15s; }
+    #page-contract .ct-pkg:hover { border-color: #fdba74; background: #fffbf5; }
+    #page-contract .ct-pkg:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    #page-contract .ct-pkg[aria-checked="true"] { border-color: #c2410c; background: #fff7ed; box-shadow: 0 0 0 1px #c2410c inset; }
+    #page-contract .ct-pkg-name { font-weight: 800; font-size: 0.9375rem; color: #1f2937; }
+    #page-contract .ct-pkg[aria-checked="true"] .ct-pkg-name { color: #9a3412; }
+    #page-contract .ct-pkg-price { font-size: 0.8125rem; color: #374151; }
+    #page-contract .ct-pkg-price b { color: #c2410c; font-variant-numeric: tabular-nums; }
+    #page-contract .ct-pkg-sub { font-size: 0.75rem; color: #6b7280; }
+    #page-contract .ct-pkg.is-custom { border-style: dashed; }
+    #page-contract .ct-pkg[disabled] { cursor: not-allowed; background: #f9fafb; opacity: .6; }
+    #page-contract .ct-pkg[disabled]:hover { border-color: #e5e7eb; background: #f9fafb; }
+    #page-contract .ct-pkg-lock { margin-top: 0.15rem; font-size: 0.6875rem; font-weight: 600; color: #6b7280; }
+    @media (prefers-reduced-motion: reduce) { #page-contract .ct-pkg { transition: none; } }
     #page-contract .ct-subgroup { border-top: 1px dashed #e5e7eb; padding-top: 0.875rem; }
     #page-contract .ct-num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #fff7ed; color: #c2410c; font-size: 0.8125rem; font-weight: 800; border: 1px solid #fed7aa; }
     #page-contract .ct-fieldset { scroll-margin-top: calc(var(--thp-header-h, 80px) + 1rem); }
@@ -18848,15 +18869,43 @@
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
+        var ctIsAdmin = function () { try { return String((currentUserInfo || {}).user || '').toLowerCase() === 'admin'; } catch (e) { return false; } };
+        // ผู้ใช้ทั่วไปเลือกได้เฉพาะ Package A11, A12
+        var pkgAllowed = function (v) { return ctIsAdmin() || v === 'Package A11' || v === 'Package A12'; };
+        var renderPkgCards = function () {
+            var sel = document.getElementById('ctPackage'), box = document.getElementById('ctPkgCards');
+            if (!sel || !box) return;
+            if (sel.value && !pkgAllowed(sel.value)) sel.value = '';
+            var cur = sel.value;
+            var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; });
+            box.innerHTML = opts.map(function (o) {
+                var on = o.value === cur, p = (state.rates || {})[o.value];
+                var body = o.value === '__custom'
+                    ? '<span class="ct-pkg-name"><i class="fas fa-pen mr-1"></i>พิเศษเฉพาะราย</span><span class="ct-pkg-sub">กรอกอัตราและปริมาณเอง</span>'
+                    : '<span class="ct-pkg-name">' + esc(o.value.replace(/^Package\s*/i, '')) + '</span><span class="ct-pkg-price">เริ่ม <b>' + esc(p && p.prices[0] || '-') + '</b> บาท</span><span class="ct-pkg-sub">ขั้นต่ำ ' + esc(p && p.minItems ? Number(p.minItems).toLocaleString('th-TH') : '-') + ' ชิ้น/เดือน</span>';
+                var ok = pkgAllowed(o.value);
+                if (!ok) body += '<span class="ct-pkg-lock"><i class="fas fa-lock mr-1"></i>เฉพาะ admin</span>';
+                return '<button type="button" role="radio" aria-checked="' + on + '" class="ct-pkg' + (o.value === '__custom' ? ' is-custom' : '') + '" data-pkg="' + esc(o.value) + '"' + (ok ? ' onclick="thpPickPackage(this.dataset.pkg)"' : ' disabled aria-disabled="true" title="เลือกได้เฉพาะผู้ดูแลระบบ (admin)"') + '>' + body + '</button>';
+            }).join('') || '<span class="text-sm text-gray-500">ไม่พบอัตรา Package A1–A12 กรอกราคาเองได้</span>';
+        };
+        window.thpPickPackage = function (v) {
+            var sel = document.getElementById('ctPackage'); if (!sel) return;
+            if (!pkgAllowed(v)) return;
+            sel.value = v; sel.classList.remove('ct-invalid'); document.getElementById('ctPkgCards').classList.remove('ct-invalid');
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            renderPkgCards();
+        };
+
         var fillPackages = function () {
             var sel = document.getElementById('ctPackage');
             if (!sel) return;
             var names = Object.keys(state.rates || {}).sort(function (a, b) { return Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')); });
-            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package A1–A12 (กรอกราคาเอง)</option>' + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>'; return; }
+            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package A1–A12 (กรอกราคาเอง)</option>' + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>'; renderPkgCards(); return; }
             sel.innerHTML = '<option value="">— เลือก Package —</option>' + names.map(function (n) {
                 var p = state.rates[n];
                 return '<option value="' + esc(n) + '">' + esc(n) + ' (เริ่ม ' + esc(p.prices[0] || '-') + ' บาท · ขั้นต่ำ ' + esc(p.minItems ? Number(p.minItems).toLocaleString('en-US') : '-') + ' ชิ้น/เดือน)</option>';
             }).join('') + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>';
+            renderPkgCards();
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
@@ -18904,6 +18953,7 @@
         };
         window.addEventListener('resize', syncHeaderH);
         window.loadContractPage = function () {
+            setTimeout(renderPkgCards, 0); // สิทธิ์เลือก Package ขึ้นกับผู้ล็อกอิน
             syncHeaderH();
             renderPriceTable();
             // เปลี่ยนผู้ใช้ (ออกจากระบบแล้วล็อกอินใหม่โดยไม่รีเฟรช) → ล้างฟอร์มทั้งหมด
@@ -18929,6 +18979,7 @@
             var f = form(); if (!f) return;
             f.reset();
             var ch = document.getElementById('ctCustomHint'); if (ch) ch.classList.add('hidden');
+            setTimeout(renderPkgCards, 0);
             ['contact_name', 'wallet_name'].forEach(function (k) { var el = field(k); if (el) el.dataset.manual = ''; });
             document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (o) { o.value = ''; o.classList.remove('ct-edited'); });
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -18955,6 +19006,7 @@
             }
             if (/^\d{1,3}$/.test(p.no_c || '')) p.no_c = ('000' + p.no_c).slice(-3);
             if (!p.wallet_tel) p.wallet_name = '';
+            p.pkg = (document.getElementById('ctPackage') || {}).value || '';
             // ข้อ 9: ชื่อผู้รับทราบค่าธรรมเนียมราคาน้ำมัน
             p.fuel_name = state.customerType === 'corp' ? (p.corp_signer || '') : (p.person_name || '');
             return p;
@@ -19279,7 +19331,7 @@
             var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
             // หัวข้อ 3: COD + ประเภทสิ่งของ บังคับ (ผู้ใช้กำหนด 2026-11-18)
-            if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPackage').classList.add('ct-invalid'); }
+            if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPkgCards').classList.add('ct-invalid'); }
             need('min_qty', 'ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)');
             // อัตราทั้ง 30 ช่องต้องกรอก
             var emptyIdx = [];
@@ -19306,6 +19358,10 @@
             if (p.cod_pct && !/^\d+(\.\d{1,2})?$/.test(p.cod_pct)) {
                 var cdEl = field('cod_pct'); if (cdEl) cdEl.classList.add('ct-invalid');
                 warnAt('COD ไม่ถูกต้อง', 'กรอกเป็นตัวเลข เช่น 3 หรือ 2.5', cdEl); return;
+            }
+            if (p.wallet_tel && !/^\d{10}$/.test(p.wallet_tel)) {
+                var wtEl = field('wallet_tel'); if (wtEl) wtEl.classList.add('ct-invalid');
+                warnAt('เบอร์ Wallet@post ไม่ถูกต้อง', 'กรอกตัวเลข 10 หลัก เช่น 0812345678 (หรือเว้นว่างถ้าไม่มี)', wtEl); return;
             }
             if (p.post_family && !/^THP-\d{8}$/.test(p.post_family)) {
                 var pfEl = field('post_family'); if (pfEl) pfEl.classList.add('ct-invalid');
