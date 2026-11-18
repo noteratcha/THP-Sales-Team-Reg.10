@@ -5504,9 +5504,9 @@ var CONTRACT_FIELD_WIDTHS = {
   wit1_name: 50, wit2_name: 46, wit1_position: 42, wit2_position: 43
 };
   // ส่วนที่ 2 ผู้ใช้บริการ บังคับ (ผู้ใช้กำหนด 2026-11-18) — ยกเว้นวันที่หนังสือมอบอำนาจ, อาคาร, ถนน (มีเฉพาะกรณีมอบอำนาจ); ช่องที่ไม่มีให้ใส่ "-"
-var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'], ['corp_zip', 'รหัสไปรษณีย์'],
   ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
-var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
+var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์']];
 // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ → "1-2345-67890-12-3"
 function contractIdCard_(v) {
   var d = String(v || '').replace(/\D/g, '');
@@ -5544,6 +5544,22 @@ function getContractOutputFolder_(templateFile) {
 }
 
 // PDF ต้นฉบับ (base64) ให้หน้าเว็บใช้เป็นพื้นหลัง — ผู้ใช้ที่ล็อกอินทุกคน
+// แบบฟอร์มต้นฉบับ (ยังไม่กรอก) ให้ผู้ใช้ดาวน์โหลดไปแก้เอง: payload.kind = 'pdf' | 'docx'
+var CONTRACT_TEMPLATE_DOCX_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570.docx';
+function getContractTemplateFile_(payload, actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var kind = payload && payload.kind === 'docx' ? 'docx' : 'pdf';
+    var name = kind === 'docx' ? CONTRACT_TEMPLATE_DOCX_NAME : CONTRACT_TEMPLATE_PDF_NAME;
+    var f = findContractFile_(name);
+    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + name + '" ในโฟลเดอร์ "' + CONTRACT_TEMPLATE_FOLDER_NAME + '"' };
+    return { status: 'success', name: f.getName(), kind: kind, data: Utilities.base64Encode(f.getBlob().getBytes()) };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractTemplateFile_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 function getContractTemplatePdf_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -5593,6 +5609,7 @@ function buildContractValues_(p) {
   if (pkgSel && pkgSel !== 'Package A11' && pkgSel !== 'Package A12' && !(p.__actorIsAdmin)) return { error: (pkgSel === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkgSel) + ' เลือกได้เฉพาะผู้ดูแลระบบ (admin)' };
   if (str('wallet_tel') && !/^\d{10}$/.test(str('wallet_tel'))) return { error: 'เบอร์ Wallet@post ต้องเป็นตัวเลข 10 หลัก' }; // ผู้ใช้กำหนด 2026-11-18
   if (str('contact_email') && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(str('contact_email'))) return { error: 'Email ไม่ถูกต้อง (รูปแบบ name@example.com)' }; // ผู้ใช้กำหนด 2026-11-18
+  if (!/^\d{5}$/.test(str(type === 'corp' ? 'corp_zip' : 'person_zip'))) return { error: 'รหัสไปรษณีย์ผู้ใช้บริการต้องเป็นตัวเลข 5 หลัก' }; // ผู้ใช้กำหนด 2026-11-18
   if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18
@@ -5697,7 +5714,7 @@ var API_ALLOWED_FUNCTIONS = [
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
-  'generateTransportContract', 'getContractTemplatePdf'
+  'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile'
 ];
 
 
@@ -5722,7 +5739,8 @@ var AUTH_SESSION_USER_ARG = {
   saveNextYearTargets: 1,        // (payload, actor) — admin เท่านั้น
   saveVisitTargetsCopyYear: 1,   // (payload, actor) — admin เท่านั้น
   generateTransportContract: 1,  // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
-  getContractTemplatePdf: 0      // (actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  getContractTemplatePdf: 0,     // (actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  getContractTemplateFile: 1     // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

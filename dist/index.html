@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2206';
+    var APP_VERSION = 'Ver. 2026.1118.2221';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18535,8 +18535,13 @@
      เลขบัตรประชาชน: กรอกในระบบ (ผู้ใช้กำหนด 2026-11-18 เดิมเว้นว่างให้เขียนมือ) ตรวจหลักตรวจสอบ 13 หลัก — ข้อมูลส่วนบุคคล ห้ามส่งไป LINE/บันทึก log -->
 <div class="bg-white custom-radius shadow-xl w-full max-w-[1760px] mx-auto mt-4 mb-8"><!-- จอกว้างขยายตามพื้นที่ (ผู้ใช้ขอ 2026-11-18) -->
     <div class="thp-page-intro">
-        <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าและเลือก Package อัตราค่าบริการ ระบบจะสร้างสัญญาขนส่งภายในประเทศ (แบบฟอร์มปี 2570) เป็นไฟล์ PDF</p>
-        <button type="button" class="thp-btn-secondary" onclick="resetContractForm()"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
+        <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าแล้วกด “สร้างสัญญา” ได้ไฟล์ PDF ตามแบบฟอร์มสัญญาขนส่งภายในประเทศปี 2570</p>
+        <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 shrink-0">
+            <!-- แบบฟอร์มต้นฉบับ (ยังไม่กรอก) ไปแก้ไขเอง — ผู้ใช้ขอ 2026-11-18 -->
+            <button type="button" class="thp-btn-secondary" onclick="thpDownloadContractTemplate('pdf')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น PDF"><i class="fas fa-file-pdf"></i> ต้นฉบับ PDF</button>
+            <button type="button" class="thp-btn-secondary" onclick="thpDownloadContractTemplate('docx')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น Word เพื่อแก้ไขเอง"><i class="fas fa-file-word"></i> ต้นฉบับ Word</button>
+            <button type="button" class="thp-btn-secondary" onclick="resetContractForm()"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
+        </div>
     </div>
 
     <form id="contractForm" class="ct-layout p-3 md:p-5" onsubmit="event.preventDefault(); submitContractForm();" oninput="thpContractProgress()" onchange="thpContractProgress()" novalidate>
@@ -18589,6 +18594,7 @@
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="corp_subdistrict" class="ct-input"></label>
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="corp_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="corp_province" class="ct-input"></label>
+                <label class="ct-field"><span>รหัสไปรษณีย์ <b class="text-red-600">*</b></span><input name="corp_zip" class="ct-input" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 หลัก" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 5)"></label>
                 <label class="ct-field ct-span-2"><span>ผู้มีอำนาจลงนาม <b class="text-red-600">*</b></span><input name="corp_signer" class="ct-input"></label>
                 <label class="ct-field ct-m-full"><span>หนังสือรับรอง ออกให้ ณ วันที่ <b class="text-red-600">*</b></span><input type="date" name="corp_cert_date" class="ct-input"></label>
                 <label class="ct-field ct-m-full"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
@@ -18603,6 +18609,7 @@
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="person_subdistrict" class="ct-input"></label>
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="person_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="person_province" class="ct-input"></label>
+                <label class="ct-field"><span>รหัสไปรษณีย์ <b class="text-red-600">*</b></span><input name="person_zip" class="ct-input" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 หลัก" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 5)"></label>
                 <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน เว้นว่างได้</p>
             </div>
             <!-- ช่องทางติดต่อของผู้ใช้บริการ (ย้ายจากหัวข้อ 4 — ผู้ใช้แจ้ง 2026-11-18) ไม่บังคับ; ในสัญญายังอยู่ข้อ 14 ตำแหน่งเดิม -->
@@ -18622,9 +18629,8 @@
             <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · A1–A10 และพิเศษเฉพาะราย เลือกได้เฉพาะ admin · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
             <div class="ct-field">
                 <span id="ctPkgLabel">Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
-                <!-- ค่าจริงอยู่ใน select (ซ่อน) การ์ดด้านล่างเป็นตัวเลือกที่ผู้ใช้กด -->
-                <select id="ctPackage" class="ct-input sr-only" tabindex="-1" aria-hidden="true" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select>
-                <div id="ctPkgCards" class="ct-pkg-cards" role="radiogroup" aria-labelledby="ctPkgLabel"><span class="text-sm text-gray-500">กำลังโหลด Package...</span></div>
+                <!-- ดรอปดาวน์ (ผู้ใช้ขอกลับจากการ์ด 2026-11-18); ตัวเลือกเฉพาะ admin = disabled -->
+                <select id="ctPackage" class="ct-input ct-pkg-select" aria-labelledby="ctPkgLabel" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select>
             </div>
             <div class="ct-grid">
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
@@ -18721,6 +18727,7 @@
     #page-contract .ct-pkg[disabled]:hover { border-color: #e5e7eb; background: #f9fafb; }
     #page-contract .ct-pkg-lock { margin-top: 0.15rem; font-size: 0.6875rem; font-weight: 600; color: #6b7280; }
     @media (prefers-reduced-motion: reduce) { #page-contract .ct-pkg { transition: none; } }
+    #page-contract .ct-pkg-select option:disabled { color: #9ca3af; }
     #page-contract .ct-subgroup { border-top: 1px dashed #e5e7eb; padding-top: 0.875rem; }
     #page-contract .ct-num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #fff7ed; color: #c2410c; font-size: 0.8125rem; font-weight: 800; border: 1px solid #fed7aa; }
     #page-contract .ct-fieldset { scroll-margin-top: calc(var(--thp-header-h, 80px) + 1rem); }
@@ -18853,6 +18860,7 @@
 
         window.applyContractPackage = function () {
             var sel = document.getElementById('ctPackage');
+            if (sel && sel.value && !pkgAllowed(sel.value)) { sel.value = ''; return; }
             if (sel && sel.value === '__custom') {
                 // พิเศษเฉพาะราย: ล้างค่าที่เติมจาก Package ให้กรอกเองทั้งหมด
                 for (var j = 0; j < PRICE_COUNT; j++) setPrice(j, '');
@@ -18873,25 +18881,21 @@
         // ผู้ใช้ทั่วไปเลือกได้เฉพาะ Package A11, A12
         var pkgAllowed = function (v) { return ctIsAdmin() || v === 'Package A11' || v === 'Package A12'; };
         var renderPkgCards = function () {
-            var sel = document.getElementById('ctPackage'), box = document.getElementById('ctPkgCards');
-            if (!sel || !box) return;
+            var sel = document.getElementById('ctPackage');
+            if (!sel) return;
             if (sel.value && !pkgAllowed(sel.value)) sel.value = '';
-            var cur = sel.value;
-            var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; });
-            box.innerHTML = opts.map(function (o) {
-                var on = o.value === cur, p = (state.rates || {})[o.value];
-                var body = o.value === '__custom'
-                    ? '<span class="ct-pkg-name"><i class="fas fa-pen mr-1"></i>พิเศษเฉพาะราย</span><span class="ct-pkg-sub">กรอกอัตราและปริมาณเอง</span>'
-                    : '<span class="ct-pkg-name">' + esc(o.value.replace(/^Package\s*/i, '')) + '</span><span class="ct-pkg-price">เริ่ม <b>' + esc(p && p.prices[0] || '-') + '</b> บาท</span><span class="ct-pkg-sub">ขั้นต่ำ ' + esc(p && p.minItems ? Number(p.minItems).toLocaleString('th-TH') : '-') + ' ชิ้น/เดือน</span>';
+            Array.prototype.forEach.call(sel.options, function (o) {
+                if (!o.value) return;
+                if (o.dataset.base === undefined) o.dataset.base = o.textContent;
                 var ok = pkgAllowed(o.value);
-                if (!ok) body += '<span class="ct-pkg-lock"><i class="fas fa-lock mr-1"></i>เฉพาะ admin</span>';
-                return '<button type="button" role="radio" aria-checked="' + on + '" class="ct-pkg' + (o.value === '__custom' ? ' is-custom' : '') + '" data-pkg="' + esc(o.value) + '"' + (ok ? ' onclick="thpPickPackage(this.dataset.pkg)"' : ' disabled aria-disabled="true" title="เลือกได้เฉพาะผู้ดูแลระบบ (admin)"') + '>' + body + '</button>';
-            }).join('') || '<span class="text-sm text-gray-500">ไม่พบอัตรา Package A1–A12 กรอกราคาเองได้</span>';
+                o.disabled = !ok;
+                o.textContent = o.dataset.base + (ok ? '' : ' — เฉพาะ admin');
+            });
         };
         window.thpPickPackage = function (v) {
             var sel = document.getElementById('ctPackage'); if (!sel) return;
             if (!pkgAllowed(v)) return;
-            sel.value = v; sel.classList.remove('ct-invalid'); document.getElementById('ctPkgCards').classList.remove('ct-invalid');
+            sel.value = v; sel.classList.remove('ct-invalid');
             sel.dispatchEvent(new Event('change', { bubbles: true }));
             renderPkgCards();
         };
@@ -19006,6 +19010,8 @@
             }
             if (/^\d{1,3}$/.test(p.no_c || '')) p.no_c = ('000' + p.no_c).slice(-3);
             if (!p.wallet_tel) p.wallet_name = '';
+            // จังหวัดในสัญญา = จังหวัด + เว้นวรรค 2 ช่อง + รหัสไปรษณีย์ (ช่องรหัสแยกในฟอร์ม)
+            ['corp', 'person'].forEach(function (t) { if (p[t + '_zip'] && p[t + '_province']) p[t + '_province'] = p[t + '_province'] + '  ' + p[t + '_zip']; });
             p.pkg = (document.getElementById('ctPackage') || {}).value || '';
             // ข้อ 9: ชื่อผู้รับทราบค่าธรรมเนียมราคาน้ำมัน
             p.fuel_name = state.customerType === 'corp' ? (p.corp_signer || '') : (p.person_name || '');
@@ -19196,9 +19202,9 @@
             });
         };
 
-        var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+        var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'], ['corp_zip', 'รหัสไปรษณีย์'],
             ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่'], ['post_family', 'หมายเลข Post Family']];
-        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['post_family', 'หมายเลข Post Family']];
+        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์'], ['post_family', 'หมายเลข Post Family']];
         // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
         var thpIdCardOk = function (v) {
             var d = String(v || '').replace(/\D/g, ''); if (d.length !== 13) return false;
@@ -19242,7 +19248,7 @@
             var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2 + 3 + (pkgNeeded() ? 1 : 0) + priceEls.length, done = total - todo;
             var bar = document.getElementById('ctProgBar'), pt = document.getElementById('ctProgText');
             if (bar) { var pc = Math.round(done / total * 100); bar.firstElementChild.style.width = pc + '%'; bar.setAttribute('aria-valuenow', pc); bar.classList.toggle('is-done', !todo); }
-            if (pt) pt.textContent = 'ช่องบังคับ ' + done + '/' + total;
+            if (pt) pt.textContent = 'ครบ ' + Math.round(done / total * 100) + '%'; // แสดงเป็นเปอร์เซ็นต์ (ผู้ใช้ขอ 2026-11-18)
             var mini = document.getElementById('ctProgressMini');
             if (mini) mini.textContent = todo ? 'ยังขาดช่องบังคับ ' + todo + ' ช่อง' : 'ช่องบังคับครบแล้ว';
             var pv = document.getElementById('ctNoPreview');
@@ -19315,6 +19321,18 @@
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
+        // ดาวน์โหลดแบบฟอร์มต้นฉบับ
+        window.thpDownloadContractTemplate = function (kind) {
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดาวน์โหลดแบบฟอร์มต้นฉบับ...');
+            var done = function () { if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); };
+            google.script.run.withSuccessHandler(function (res) {
+                done();
+                if (!(res && res.status === 'success')) { Swal.fire('ดาวน์โหลดไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                download(res.data, res.name, kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
+            }).withFailureHandler(function (err) { done(); Swal.fire('ดาวน์โหลดไม่สำเร็จ', err && err.message ? err.message : String(err), 'error'); })
+              .getContractTemplateFile({ kind: kind }, currentUserInfo);
+        };
+
         window.submitContractForm = function () {
             var f = form();
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -19331,7 +19349,7 @@
             var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
             // หัวข้อ 3: COD + ประเภทสิ่งของ บังคับ (ผู้ใช้กำหนด 2026-11-18)
-            if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPkgCards').classList.add('ct-invalid'); }
+            if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPackage').classList.add('ct-invalid'); }
             need('min_qty', 'ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)');
             // อัตราทั้ง 30 ช่องต้องกรอก
             var emptyIdx = [];
@@ -19358,6 +19376,11 @@
             if (p.cod_pct && !/^\d+(\.\d{1,2})?$/.test(p.cod_pct)) {
                 var cdEl = field('cod_pct'); if (cdEl) cdEl.classList.add('ct-invalid');
                 warnAt('COD ไม่ถูกต้อง', 'กรอกเป็นตัวเลข เช่น 3 หรือ 2.5', cdEl); return;
+            }
+            var zipKey = state.customerType === 'corp' ? 'corp_zip' : 'person_zip';
+            if (p[zipKey] && !/^\d{5}$/.test(p[zipKey])) {
+                var zEl = field(zipKey); if (zEl) zEl.classList.add('ct-invalid');
+                warnAt('รหัสไปรษณีย์ไม่ถูกต้อง', 'กรอกตัวเลข 5 หลัก', zEl); return;
             }
             if (p.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.contact_email)) {
                 var emEl = field('contact_email'); if (emEl) emEl.classList.add('ct-invalid');
