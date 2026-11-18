@@ -43,6 +43,20 @@
                 <button type="button" role="radio" data-ct-type="corp" aria-checked="false" onclick="setContractCustomerType('corp')">นิติบุคคล</button>
                 <button type="button" role="radio" data-ct-type="person" aria-checked="true" onclick="setContractCustomerType('person')">บุคคลธรรมดา</button>
             </div>
+            <!-- เอกสารที่ต้องแนบ (ตามข้อ 11 ของสัญญา) แสดงตามประเภทผู้ใช้บริการ -->
+            <div class="ct-docs" aria-live="polite">
+                <div class="ct-docs-title"><i class="fas fa-paperclip mr-1.5"></i>เอกสารที่ต้องแนบท้ายสัญญา</div>
+                <ul id="ctDocsCorp" class="hidden">
+                    <li>สำเนาบัตรประจำตัวประชาชนของผู้มีอำนาจ/ผู้มอบอำนาจ และผู้รับมอบอำนาจ</li>
+                    <li>สำเนาทะเบียนบ้าน</li>
+                    <li>หนังสือการจดทะเบียนบริษัท</li>
+                    <li>หนังสือมอบอำนาจ (กรณีมอบอำนาจกระทำการแทน)</li>
+                    <li>ภพ.20 (ถ้ามี)</li>
+                </ul>
+                <ul id="ctDocsPerson">
+                    <li>สำเนาบัตรประจำตัวประชาชน</li>
+                </ul>
+            </div>
             <div id="ctCorp" class="ct-grid ct-grid-2m hidden">
                 <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
                 <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน และวันที่หนังสือมอบอำนาจ เว้นว่างได้</p>
@@ -90,7 +104,8 @@
             <div class="ct-field">
                 <span id="ctPkgLabel">Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
                 <!-- ดรอปดาวน์ (ผู้ใช้ขอกลับจากการ์ด 2026-11-18); ตัวเลือกเฉพาะ admin = disabled -->
-                <select id="ctPackage" class="ct-input ct-pkg-select" aria-labelledby="ctPkgLabel" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select>
+                <select id="ctPackage" class="ct-input ct-pkg-select" aria-labelledby="ctPkgLabel" onchange="applyContractPackage(); var nh = document.getElementById('ctPkgNeedHint'); if (nh && this.value) nh.classList.add('hidden')"><option value="">กำลังโหลด...</option></select>
+                <p id="ctPkgNeedHint" class="hidden text-xs text-red-700"><i class="fas fa-exclamation-circle mr-1"></i>กรุณาเลือก Package ก่อน (อัตราพิเศษเฉพาะรายเลือกได้เฉพาะ admin)</p>
             </div>
             <div class="ct-grid">
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
@@ -187,6 +202,12 @@
     #page-contract .ct-pkg-lock { margin-top: 0.15rem; font-size: 0.6875rem; font-weight: 600; color: #6b7280; }
     @media (prefers-reduced-motion: reduce) { #page-contract .ct-pkg { transition: none; } }
     #page-contract .ct-pkg-select option:disabled { color: #9ca3af; }
+    #page-contract .ct-docs { border: 1px solid #dbeafe; background: #f8fbff; border-radius: 0.625rem; padding: 0.625rem 0.875rem; }
+    #page-contract .ct-docs-title { font-size: 0.8125rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.25rem; }
+    #page-contract .ct-docs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem 1.25rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+    #page-contract .ct-docs ul.hidden { display: none; }
+    #page-contract .ct-docs li { font-size: 0.8125rem; color: #1f2937; padding-left: 1.1rem; position: relative; }
+    #page-contract .ct-docs li::before { content: ""; position: absolute; left: 0.25rem; top: 0.55em; width: 0.35rem; height: 0.35rem; border-radius: 9999px; background: #2563eb; }
     #page-contract .ct-subgroup { border-top: 1px dashed #e5e7eb; padding-top: 0.875rem; }
     #page-contract .ct-num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #fff7ed; color: #c2410c; font-size: 0.8125rem; font-weight: 800; border: 1px solid #fed7aa; }
     #page-contract .ct-fieldset { scroll-margin-top: calc(var(--thp-header-h, 80px) + 1rem); }
@@ -306,7 +327,7 @@
                     '<thead class="bg-gray-50 text-gray-600"><tr><th class="text-left">พิกัดน้ำหนัก</th><th class="text-right">อัตรา</th></tr></thead><tbody>';
                 for (var i = g[0]; i <= g[1]; i++) {
                     html += '<tr><td>' + tierLabel(i) + '</td><td class="text-right"><input class="ct-price-input" data-ct-price="' + (i - 1) +
-                        '" inputmode="decimal" aria-label="อัตราค่าบริการ ' + tierLabel(i) + '" oninput="this.classList.add(\'ct-edited\')"></td></tr>';
+                        '" inputmode="decimal" aria-label="อัตราค่าบริการ ' + tierLabel(i) + '" oninput="thpPriceEdited(this)"></td></tr>';
                 }
                 html += '</tbody></table></div>';
             });
@@ -351,6 +372,20 @@
                 o.textContent = o.dataset.base + (ok ? '' : ' — เฉพาะ admin');
             });
         };
+        window.thpPriceEdited = function (el) {
+            el.classList.add('ct-edited');
+            var sel = document.getElementById('ctPackage');
+            if (!sel || sel.value || !String(el.value || '').trim()) return;
+            if (pkgAllowed('__custom')) {
+                // ไม่ล้างราคาที่กำลังกรอก (ต่างจากการเลือกเองที่ล้างค่าจาก Package)
+                sel.value = '__custom'; sel.classList.remove('ct-invalid');
+                var hint = document.getElementById('ctCustomHint'); if (hint) hint.classList.remove('hidden');
+                renderPkgCards();
+            } else {
+                var nh = document.getElementById('ctPkgNeedHint'); if (nh) nh.classList.remove('hidden');
+            }
+            if (window.thpContractProgress) window.thpContractProgress();
+        };
         window.thpPickPackage = function (v) {
             var sel = document.getElementById('ctPackage'); if (!sel) return;
             if (!pkgAllowed(v)) return;
@@ -377,6 +412,8 @@
             document.querySelectorAll('#page-contract [data-ct-type]').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.ctType === state.customerType ? 'true' : 'false'); });
             document.getElementById('ctCorp').classList.toggle('hidden', state.customerType !== 'corp');
             document.getElementById('ctPerson').classList.toggle('hidden', state.customerType !== 'person');
+            document.getElementById('ctDocsCorp').classList.toggle('hidden', state.customerType !== 'corp');
+            document.getElementById('ctDocsPerson').classList.toggle('hidden', state.customerType !== 'person');
             if (window.thpContractMirror) window.thpContractMirror();
             if (window.thpContractProgress) window.thpContractProgress();
         };
