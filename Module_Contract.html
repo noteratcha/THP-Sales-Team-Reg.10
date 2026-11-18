@@ -76,7 +76,9 @@
             </div>
             <!-- ช่องทางติดต่อของผู้ใช้บริการ (ย้ายจากหัวข้อ 4 — ผู้ใช้แจ้ง 2026-11-18) ไม่บังคับ; ในสัญญายังอยู่ข้อ 14 ตำแหน่งเดิม -->
             <div class="ct-grid ct-subgroup">
-                <div class="ct-span-2 text-sm font-semibold text-gray-700">ช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(บังคับเฉพาะ Post Family)</span></div>
+                <div class="ct-span-2 text-sm font-semibold text-gray-700">ผู้ประสานงานและช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(ในสัญญาข้อ 14)</span></div>
+                <label class="ct-field"><span>ผู้ประสานงาน ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input"></label>
+                <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="tel"></label>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input"></label>
                 <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตามด้วยตัวเลข" maxlength="24" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, ''); this.value = d ? 'THP-' + d : ''" title="ขึ้นต้นด้วย THP- ตามด้วยตัวเลข พิมพ์เฉพาะตัวเลขได้เลย"></label>
                 <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="tel"></label>
@@ -131,14 +133,6 @@
             </div>
         </fieldset>
 
-        <fieldset class="ct-fieldset" id="ctSec4">
-            <legend><span class="ct-num">4</span>ผู้ประสานงาน/ผู้ใช้บริการ</legend>
-            <div class="ct-grid">
-                <label class="ct-field"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input"></label>
-                <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="tel"></label>
-            </div>
-        </fieldset>
-
         <!-- หัวข้อ "ผู้ลงนาม" เอาออก (ผู้ใช้กำหนด 2026-11-18): พิมพ์สัญญาแล้วเซ็น/เขียนชื่อเอง ช่องลงนามในสัญญาเว้นว่าง -->
         <!-- มือถือ/แท็บเล็ต: ปุ่มสร้างติดขอบล่าง (จอคอมใช้แผงข้าง) -->
         <div class="ct-bottombar">
@@ -159,7 +153,6 @@
                     <li><button type="button" onclick="thpContractGo(1)"><span class="ct-step-dot"></span><span class="ct-step-text">1. ข้อมูลสัญญา</span><span class="ct-step-sub"></span></button></li>
                     <li><button type="button" onclick="thpContractGo(2)"><span class="ct-step-dot"></span><span class="ct-step-text">2. ผู้ใช้บริการ</span><span class="ct-step-sub"></span></button></li>
                     <li><button type="button" onclick="thpContractGo(3)"><span class="ct-step-dot"></span><span class="ct-step-text">3. อัตราค่าบริการ</span><span class="ct-step-sub"></span></button></li>
-                    <li><button type="button" onclick="thpContractGo(4)"><span class="ct-step-dot"></span><span class="ct-step-text">4. ผู้ประสานงาน</span><span class="ct-step-sub"></span></button></li>
                 </ol>
                 <button type="submit" class="ct-submit w-full mt-3"><i class="fas fa-file-signature"></i> สร้างสัญญา</button>
                 <p class="text-xs text-gray-500 mt-3 leading-relaxed">ได้ไฟล์ PDF ตามแบบฟอร์มส่วนกลาง · ช่องที่เว้นว่างจะเป็นเส้นประให้กรอกด้วยลายมือ · เก็บสำเนาใน Google Drive โฟลเดอร์ "สัญญาที่สร้างจากระบบ"</p>
@@ -620,18 +613,17 @@
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
             var miss1 = REQ1.filter(function (n) { return !filled(n); }).length;
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
-            var miss2 = (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).filter(function (r) { return !filled(r[0]); }).length;
+            var miss4 = ['contact_name', 'contact_tel'].filter(function (n) { return !filled(n); }).length;
+            var miss2 = (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).filter(function (r) { return !filled(r[0]); }).length + miss4; // รวมผู้ประสานงาน
             var st = [
                 miss1 ? ['todo', 'ยังไม่ได้กรอก ' + miss1 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว'],
                 !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอก ' + miss2 + ' ช่องบังคับ']
             ];
-            var miss4 = ['contact_name', 'contact_tel'].filter(function (n) { return !filled(n); }).length;
-            ['ctSec3', 'ctSec4'].forEach(function (id) {
-                if (id === 'ctSec4') { st.push(miss4 ? ['todo', 'ยังไม่ได้กรอก ' + miss4 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว']); return; }
+            ['ctSec3'].forEach(function (id) {
                 var c = countIn(id); st.push([c[0] ? 'done' : 'opt', c[0] ? 'กรอกแล้ว ' + c[0] + '/' + c[1] + ' ช่อง' : 'ไม่บังคับ']);
             });
             steps.forEach(function (li, i) { li.setAttribute('data-state', st[i][0]); li.querySelector('.ct-step-sub').textContent = st[i][1]; });
-            var todo = miss1 + miss2 + miss4;
+            var todo = miss1 + miss2;
             var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2, done = total - todo;
             var bar = document.getElementById('ctProgBar'), pt = document.getElementById('ctProgText');
             if (bar) { var pc = Math.round(done / total * 100); bar.firstElementChild.style.width = pc + '%'; bar.setAttribute('aria-valuenow', pc); bar.classList.toggle('is-done', !todo); }
