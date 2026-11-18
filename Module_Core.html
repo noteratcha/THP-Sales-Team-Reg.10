@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.1502';
+    var APP_VERSION = 'Ver. 2026.1118.1632';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -682,6 +682,16 @@
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">วางแผนเป้าหมายรายได้</span>
                 </div>
+            </div>
+
+            <!-- 📄 เมนูหลัก สร้างสัญญาขนส่ง (ต่อจาก รายได้ค่าบริการ — ผู้ใช้ขอ 2026-11-18) -->
+            <div onclick="switchPage('contract')" id="menu-contract"
+                class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/10 hover:text-white">
+                <div
+                    class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                    <i class="fas fa-file-signature text-sm"></i>
+                </div>
+                <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">สร้างสัญญาขนส่ง</span>
             </div>
 
             <!-- 💡 เมนู สรุปผลรายได้-รายจ่าย (ตล.) -->
@@ -1402,6 +1412,11 @@
             <!-- 🎯 PAGE: วางแผนเป้าหมายรายได้ (เฉพาะ admin) -->
             <div id="page-target-plan" class="hidden animate-fade-in w-full pb-10">
                 <?!= include('Module_TargetPlan'); ?>
+            </div>
+
+            <!-- 📄 PAGE: สร้างสัญญาขนส่งภายในประเทศ -->
+            <div id="page-contract" class="hidden animate-fade-in w-full pb-10">
+                <?!= include('Module_Contract'); ?>
             </div>
 
             <!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้า (เฉพาะ admin) -->
@@ -2293,7 +2308,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -2354,6 +2369,7 @@
                 'revenue-report': { page: 'page-revenue-report', menu: 'menu-revenue-report', title: 'สรุปการใช้บริการ', action: () => typeof loadRevenueReport === 'function' && loadRevenueReport() },
                 'visit-plan': { page: 'page-visit-plan', menu: 'menu-visit-plan', title: 'เป้าหมายการเข้าพบลูกค้า', action: () => typeof window.loadVisitPlanPage === 'function' && window.loadVisitPlanPage() },
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
+                'contract': { page: 'page-contract', menu: 'menu-contract', title: 'สร้างสัญญาขนส่ง', action: () => typeof window.loadContractPage === 'function' && window.loadContractPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
                     page: 'page-settings',
