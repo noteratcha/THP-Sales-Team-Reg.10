@@ -414,7 +414,7 @@
             try {
                 var u = currentUserInfo || {};
                 var isAdminUser = String(u.user || '').toLowerCase() === 'admin';
-                if (field('no_b') && !field('no_b').value && u.zipcode && !isAdminUser) field('no_b').value = u.zipcode;
+                if (field('no_b') && !field('no_b').value) { if (isAdminUser) field('no_b').value = 'ทข.'; else if (u.zipcode) field('no_b').value = u.zipcode; } // admin = ทข. (ผู้ใช้กำหนด 2026-11-18)
                 if (field('office') && !field('office').value && u.name && !isAdminUser) field('office').value = u.name;
             } catch (e) { }
         };
