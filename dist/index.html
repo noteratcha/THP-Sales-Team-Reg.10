@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2138';
+    var APP_VERSION = 'Ver. 2026.1118.2140';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18611,7 +18611,7 @@
                 <label class="ct-field"><span>ผู้ประสานงาน ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''"></label>
                 <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="tel"></label>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input"></label>
-                <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตามด้วยตัวเลข" maxlength="24" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, ''); this.value = d ? 'THP-' + d : ''" title="ขึ้นต้นด้วย THP- ตามด้วยตัวเลข พิมพ์เฉพาะตัวเลขได้เลย"></label>
+                <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตัวเลข 8 หลัก" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"></label>
                 <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="tel"></label>
                 <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''"></label>
             </div>
@@ -19138,7 +19138,7 @@
 
         // ===== ความคืบหน้า 5 ส่วน (ส่วน 1–2 มีช่องบังคับ, 3–5 ไม่บังคับ นับช่องที่กรอก) =====
         var REQ1 = ['no_a', 'no_b', 'no_c', 'office', 'sign_date', 'start_date', 'end_date'];
-        var filled = function (name) { var el = field(name); return !!(el && String(el.value || '').trim()); };
+        var filled = function (name) { var el = field(name); var v = el ? String(el.value || '').trim() : ''; return name === 'post_family' ? /^THP-\d{8}$/.test(v) : !!v; };
         var countIn = function (secId) {
             var sec = document.getElementById(secId); if (!sec) return [0, 0];
             var els = Array.prototype.filter.call(sec.querySelectorAll('input.ct-input, select.ct-input, input.ct-price-input'), function (el) { return el.offsetParent !== null; });
@@ -19256,6 +19256,10 @@
             }
             // ส่วนที่ 2 บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) ยกเว้นวันที่หนังสือมอบอำนาจ
             (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).forEach(function (r) { need(r[0], r[1]); });
+            if (p.post_family && !/^THP-\d{8}$/.test(p.post_family)) {
+                var pfEl = field('post_family'); if (pfEl) pfEl.classList.add('ct-invalid');
+                warnAt('หมายเลข Post Family ไม่ถูกต้อง', 'ต้องเป็น THP- ตามด้วยตัวเลข 8 หลัก เช่น THP-50010001', pfEl); return;
+            }
             if (state.customerType === 'person' && p.person_idcard && !thpIdCardOk(p.person_idcard)) {
                 var ic = field('person_idcard'); if (ic) ic.classList.add('ct-invalid');
                 warnAt('เลขบัตรประชาชนไม่ถูกต้อง', 'กรุณาตรวจเลขบัตรประชาชน 13 หลักอีกครั้ง', ic); return;
