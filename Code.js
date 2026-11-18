@@ -5592,6 +5592,7 @@ function buildContractValues_(p) {
   var pkgSel = str('pkg');
   if (pkgSel && pkgSel !== 'Package A11' && pkgSel !== 'Package A12' && !(p.__actorIsAdmin)) return { error: (pkgSel === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkgSel) + ' เลือกได้เฉพาะผู้ดูแลระบบ (admin)' };
   if (str('wallet_tel') && !/^\d{10}$/.test(str('wallet_tel'))) return { error: 'เบอร์ Wallet@post ต้องเป็นตัวเลข 10 หลัก' }; // ผู้ใช้กำหนด 2026-11-18
+  if (str('contact_email') && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(str('contact_email'))) return { error: 'Email ไม่ถูกต้อง (รูปแบบ name@example.com)' }; // ผู้ใช้กำหนด 2026-11-18
   if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18

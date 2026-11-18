@@ -79,8 +79,8 @@
                 <div class="ct-span-2 text-sm font-semibold text-gray-700">ผู้ประสานงานและช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(ในสัญญาข้อ 14)</span></div>
                 <label class="ct-field"><span>ผู้ประสานงาน ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''"></label>
                 <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="tel"></label>
-                <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input"></label>
-                <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตัวเลข 8 หลัก" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"></label>
+                <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input" inputmode="email" autocomplete="off" placeholder="เช่น name@example.com"></label>
+                <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="พิมพ์ตัวเลข 8 หลัก เช่น 50010001" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"><small class="text-xs text-gray-500 font-normal">พิมพ์เฉพาะตัวเลข 8 หลัก ระบบเติม "THP-" ให้เอง</small></label>
                 <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="numeric" maxlength="10" placeholder="ตัวเลข 10 หลัก เช่น 0812345678" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10); thpContractMirror()"></label>
                 <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''" placeholder="กรอกเบอร์ Wallet@post ก่อน" disabled></label>
             </div>
@@ -827,6 +827,10 @@
             if (p.cod_pct && !/^\d+(\.\d{1,2})?$/.test(p.cod_pct)) {
                 var cdEl = field('cod_pct'); if (cdEl) cdEl.classList.add('ct-invalid');
                 warnAt('COD ไม่ถูกต้อง', 'กรอกเป็นตัวเลข เช่น 3 หรือ 2.5', cdEl); return;
+            }
+            if (p.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.contact_email)) {
+                var emEl = field('contact_email'); if (emEl) emEl.classList.add('ct-invalid');
+                warnAt('Email ไม่ถูกต้อง', 'กรอกในรูปแบบ name@example.com (หรือเว้นว่างถ้าไม่มี)', emEl); return;
             }
             if (p.wallet_tel && !/^\d{10}$/.test(p.wallet_tel)) {
                 var wtEl = field('wallet_tel'); if (wtEl) wtEl.classList.add('ct-invalid');
