@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.1719';
+    var APP_VERSION = 'Ver. 2026.1118.1726';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18799,6 +18799,12 @@
 
         window.loadContractPage = function () {
             renderPriceTable();
+            // เปลี่ยนผู้ใช้ (ออกจากระบบแล้วล็อกอินใหม่โดยไม่รีเฟรช) → ล้างฟอร์มทั้งหมด
+            // ไม่ให้เหลือข้อมูลของผู้ใช้ก่อน (รหัสไปรษณีย์/ที่ทำการ/ข้อมูลลูกค้า) ผู้ใช้แจ้ง 2026-11-18
+            var who = '';
+            try { who = String((currentUserInfo || {}).user || ''); } catch (e) { }
+            if (state.filledFor !== undefined && state.filledFor !== who) window.resetContractForm();
+            state.filledFor = who;
             setDefaults();
             if (state.loaded) return;
             if (window.globalRateData && window.globalRateData.length) {
