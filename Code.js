@@ -5585,6 +5585,8 @@ function buildContractValues_(p) {
   var miss2 = (type === 'corp' ? CONTRACT_REQUIRED_CORP : CONTRACT_REQUIRED_PERSON).filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss2.length) return { error: 'กรุณากรอกข้อมูลผู้ใช้บริการ: ' + miss2.join(', ') };
   if (!/^THP-\d{8}$/.test(str('post_family'))) return { error: 'หมายเลข Post Family ต้องเป็น THP- ตามด้วยตัวเลข 8 หลัก' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
+  if (!/^\d+(\.\d{1,2})?$/.test(str('cod_pct'))) return { error: 'กรุณากรอก COD คิดในอัตรา (%) เป็นตัวเลข' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
+  if (!str('goods_type')) return { error: 'กรุณากรอกประเภทสิ่งของที่ฝากส่ง' };
   if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18

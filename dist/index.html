@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2142';
+    var APP_VERSION = 'Ver. 2026.1118.2147';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18533,7 +18533,7 @@
      กรอกฟอร์ม → generateTransportContract (Code.js) คัดลอกต้นฉบับ Google Docs แทนค่าตัวแปร → ดาวน์โหลด PDF / Word
      อัตราค่าบริการเติมจากชีต "เรตราคา" (Package A1–A12, 30 ช่วงน้ำหนัก) แก้ได้ทีละช่อง
      เลขบัตรประชาชน: กรอกในระบบ (ผู้ใช้กำหนด 2026-11-18 เดิมเว้นว่างให้เขียนมือ) ตรวจหลักตรวจสอบ 13 หลัก — ข้อมูลส่วนบุคคล ห้ามส่งไป LINE/บันทึก log -->
-<div class="bg-white custom-radius shadow-xl max-w-7xl mx-auto mt-4 mb-8">
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1760px] mx-auto mt-4 mb-8"><!-- จอกว้างขยายตามพื้นที่ (ผู้ใช้ขอ 2026-11-18) -->
     <div class="thp-page-intro">
         <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าและเลือก Package อัตราค่าบริการ ระบบจะสร้างสัญญาขนส่งภายในประเทศ (แบบฟอร์มปี 2570) เป็นไฟล์ PDF</p>
         <button type="button" class="thp-btn-secondary" onclick="resetContractForm()"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
@@ -18621,7 +18621,7 @@
             <legend><span class="ct-num">3</span>อัตราค่าบริการและเงื่อนไข</legend>
             <div class="ct-subtitle">อัตราค่าบริการ <span>เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
             <div class="ct-grid">
-                <label class="ct-field"><span>Package อัตราค่าบริการ</span>
+                <label class="ct-field"><span>Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
                     <select id="ctPackage" class="ct-input" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select></label>
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)</span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
@@ -18629,8 +18629,8 @@
             <div id="ctPriceBody" class="ct-price-grid"></div>
             <div class="ct-subtitle ct-subgroup">เงื่อนไขการให้บริการ</div>
             <div class="ct-grid">
-                <label class="ct-field"><span>COD คิดในอัตรา (%)</span><input name="cod_pct" class="ct-input" inputmode="decimal"></label>
-                <label class="ct-field"><span>ประเภทสิ่งของที่ฝากส่ง</span><input name="goods_type" class="ct-input"></label>
+                <label class="ct-field"><span>COD คิดในอัตรา (%) <b class="text-red-600">*</b></span><input name="cod_pct" class="ct-input" inputmode="decimal"></label>
+                <label class="ct-field"><span>ประเภทสิ่งของที่ฝากส่ง <b class="text-red-600">*</b></span><input name="goods_type" class="ct-input"></label>
                 <div class="ct-field">
                     <span>ระบบจ่าหน้า</span>
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 min-h-[40px]">
@@ -18713,6 +18713,7 @@
         #page-contract .ct-aside { display: block; position: sticky; top: calc(var(--thp-header-h, 80px) + 1rem); } /* พ้นแถบหัวหน้าที่ติดจอ (ผู้ใช้แจ้ง 2026-11-18) */
         #page-contract .ct-bottombar { display: none; }
     }
+    @media (min-width: 1600px) { #page-contract .ct-layout { grid-template-columns: minmax(0, 1fr) 19rem; } }
     #page-contract .ct-aside-card { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; background: #fff; }
     #page-contract .ct-steps { display: flex; flex-direction: column; gap: 0.125rem; }
     #page-contract .ct-steps button { width: 100%; display: grid; grid-template-columns: 1.25rem 1fr; column-gap: 0.5rem; align-items: center; text-align: left; padding: 0.45rem 0.5rem; border-radius: 0.5rem; min-height: 40px; }
@@ -18760,7 +18761,7 @@
     /* หัวคอลัมน์สั้น + หน่วยอยู่ที่หัวตาราง + ช่องกรอกยืดตามคอลัมน์ — ตารางแคบลงหลังมีแผงข้าง (ผู้ใช้แจ้งหัวคอลัมน์ถูกตัด 2026-11-18) */
     #page-contract .ct-price-table th { font-weight: 600; font-size: 0.8125rem; }
     #page-contract .ct-price-caption { caption-side: top; text-align: left; padding: 0.5rem 0.75rem; font-weight: 700; font-size: 0.8125rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; }
-    #page-contract .ct-price-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); } /* พื้นที่แคบ ตารางขึ้นแถวใหม่ 3→2→1 แทนการบีบ */
+    #page-contract .ct-price-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(max(13.5rem, calc((100% - 1.5rem) / 3)), 1fr)); } /* ยืดเต็มแถว สูงสุด 3 ตาราง/แถว, พื้นที่แคบขึ้นแถวใหม่ 3→2→1 */
     #page-contract .ct-price-input { width: 100%; max-width: 7rem; min-width: 0; text-align: right; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-variant-numeric: tabular-nums; min-height: 32px; }
     #page-contract .ct-price-input:focus { outline: none; border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
     #page-contract .ct-price-input.ct-edited { background: #fff7ed; border-color: #fdba74; }
@@ -18845,6 +18846,7 @@
                 var p = state.rates[n];
                 return '<option value="' + esc(n) + '">' + esc(n) + ' (เริ่ม ' + esc(p.prices[0] || '-') + ' บาท · ขั้นต่ำ ' + esc(p.minItems ? Number(p.minItems).toLocaleString('en-US') : '-') + ' ชิ้น/เดือน)</option>';
             }).join('');
+            if (window.thpContractProgress) window.thpContractProgress();
         };
 
         window.setContractCustomerType = function (type) {
@@ -19139,6 +19141,9 @@
 
         // ===== ความคืบหน้า 5 ส่วน (ส่วน 1–2 มีช่องบังคับ, 3–5 ไม่บังคับ นับช่องที่กรอก) =====
         var REQ1 = ['no_a', 'no_b', 'no_c', 'office', 'sign_date', 'start_date', 'end_date'];
+        // มี Package ให้เลือก = ต้องเลือก (โหลดอัตราไม่ได้ → กรอกราคาเอง ไม่บังคับ)
+        var pkgNeeded = function () { var sel = document.getElementById('ctPackage'); return !!(sel && sel.querySelector('option[value]:not([value=""])')); };
+        var pkgMissing = function () { var sel = document.getElementById('ctPackage'); return pkgNeeded() && !sel.value; };
         var filled = function (name) { var el = field(name); var v = el ? String(el.value || '').trim() : ''; return name === 'post_family' ? /^THP-\d{8}$/.test(v) : !!v; };
         var countIn = function (secId) {
             var sec = document.getElementById(secId); if (!sec) return [0, 0];
@@ -19148,7 +19153,7 @@
         window.thpContractProgress = function () {
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
             // ขอบเขียวช่องบังคับที่กรอกแล้ว
-            var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel']);
+            var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel', 'cod_pct', 'goods_type']);
             reqNames.forEach(function (n) { var el = field(n); if (el && el.classList) { var ok = filled(n); el.classList.toggle('ct-ok', ok); if (ok) el.classList.remove('ct-invalid'); } });
             var miss1 = REQ1.filter(function (n) { return !filled(n); }).length;
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
@@ -19158,12 +19163,14 @@
                 miss1 ? ['todo', 'ยังไม่ได้กรอก ' + miss1 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว'],
                 !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอก ' + miss2 + ' ช่องบังคับ']
             ];
-            ['ctSec3'].forEach(function (id) {
-                var c = countIn(id); st.push([c[0] ? 'done' : 'opt', c[0] ? 'กรอกแล้ว ' + c[0] + '/' + c[1] + ' ช่อง' : 'ไม่บังคับ']);
-            });
+            var miss3 = ['cod_pct', 'goods_type'].filter(function (n) { return !filled(n); }).length + (pkgMissing() ? 1 : 0);
+            var pkSel = document.getElementById('ctPackage');
+            if (pkSel) { pkSel.classList.toggle('ct-ok', pkgNeeded() && !!pkSel.value); if (pkSel.value) pkSel.classList.remove('ct-invalid'); }
+            var pkReq = document.getElementById('ctPkgReq'); if (pkReq) pkReq.classList.toggle('hidden', !pkgNeeded());
+            st.push(miss3 ? ['todo', 'ยังไม่ได้กรอก ' + miss3 + ' ช่องบังคับ'] : ['done', 'ช่องบังคับครบแล้ว']);
             steps.forEach(function (li, i) { li.setAttribute('data-state', st[i][0]); li.querySelector('.ct-step-sub').textContent = st[i][1]; });
-            var todo = miss1 + miss2;
-            var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2, done = total - todo;
+            var todo = miss1 + miss2 + miss3;
+            var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2 + 2 + (pkgNeeded() ? 1 : 0), done = total - todo;
             var bar = document.getElementById('ctProgBar'), pt = document.getElementById('ctProgText');
             if (bar) { var pc = Math.round(done / total * 100); bar.firstElementChild.style.width = pc + '%'; bar.setAttribute('aria-valuenow', pc); bar.classList.toggle('is-done', !todo); }
             if (pt) pt.textContent = 'ช่องบังคับ ' + done + '/' + total;
@@ -19254,6 +19261,10 @@
             need('end_date', 'ถึงวันที่');
             var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
+            // หัวข้อ 3: COD + ประเภทสิ่งของ บังคับ (ผู้ใช้กำหนด 2026-11-18)
+            if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPackage').classList.add('ct-invalid'); }
+            need('cod_pct', 'COD คิดในอัตรา (%)');
+            need('goods_type', 'ประเภทสิ่งของที่ฝากส่ง');
             // หัวข้อ 4 ผู้ประสานงาน บังคับชื่อ + เบอร์โทร (ผู้ใช้กำหนด 2026-11-18)
             need('contact_name', 'ผู้ประสานงาน ชื่อ-สกุล');
             need('contact_tel', 'ผู้ประสานงาน เบอร์โทร');
@@ -19267,6 +19278,10 @@
             }
             // ส่วนที่ 2 บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) ยกเว้นวันที่หนังสือมอบอำนาจ
             (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).forEach(function (r) { need(r[0], r[1]); });
+            if (p.cod_pct && !/^\d+(\.\d{1,2})?$/.test(p.cod_pct)) {
+                var cdEl = field('cod_pct'); if (cdEl) cdEl.classList.add('ct-invalid');
+                warnAt('COD ไม่ถูกต้อง', 'กรอกเป็นตัวเลข เช่น 3 หรือ 2.5', cdEl); return;
+            }
             if (p.post_family && !/^THP-\d{8}$/.test(p.post_family)) {
                 var pfEl = field('post_family'); if (pfEl) pfEl.classList.add('ct-invalid');
                 warnAt('หมายเลข Post Family ไม่ถูกต้อง', 'ต้องเป็น THP- ตามด้วยตัวเลข 8 หลัก เช่น THP-50010001', pfEl); return;
