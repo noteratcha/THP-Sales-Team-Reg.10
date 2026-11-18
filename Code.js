@@ -5486,7 +5486,10 @@ function saveNextYearTargets_(payload, actor) {
 //   Word: หลังบ้านแทนค่าตัวแปร {{ชื่อช่อง}} ใน .docx ต้นฉบับใส่ตัวแปร (แก้ XML ตรง ๆ หน้าตาเหมือนต้นฉบับ)
 //   ทั้ง 2 ไฟล์เก็บสำเนาไว้ที่โฟลเดอร์ "สัญญาที่สร้างจากระบบ" ข้างไฟล์ต้นฉบับ
 // ไม่รับ/ไม่บันทึกเลขบัตรประชาชน (ช่องนั้นในสัญญาเว้นว่างให้กรอกด้วยมือ)
-var CONTRACT_TEMPLATE_BASE_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570 A1-A12 (ต้นฉบับระบบ)'; // .docx ใส่ตัวแปร
+// แบบฟอร์มรุ่นใหม่ (ส่วนกลางปรับ 18/11/2569: 4 หน้า, เพิ่มข้อ 2 การคิดค่าบริการตามขนาด) อยู่ในโฟลเดอร์ CONTRACT_TEMPLATE_FOLDER_NAME
+// ชื่อ PDF ซ้ำกับรุ่นเดิมในโฟลเดอร์แม่ จึงหาไฟล์ในโฟลเดอร์นี้ก่อน (findContractFile_)
+var CONTRACT_TEMPLATE_FOLDER_NAME = '3. สัญญาขนส่งปี 2570 New_18112026';
+var CONTRACT_TEMPLATE_BASE_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570 (ต้นฉบับระบบ)'; // .docx ใส่ตัวแปร (สร้างด้วย tools/contract_make_template.py + tools/contract_fields_v2.json)
 var CONTRACT_TEMPLATE_PDF_NAME = 'แบบฟอร์มสัญญาขนส่ง ปี2570.pdf';                  // PDF ต้นฉบับส่วนกลาง
 var CONTRACT_OUTPUT_FOLDER_NAME = 'สัญญาที่สร้างจากระบบ';
 // ความยาวช่องว่างเดิมของแต่ละช่อง (จำนวนเว้นวรรค) ใช้เติมช่องว่างให้เส้นประยาวใกล้เดิม (เฉพาะไฟล์ Word)
@@ -5509,6 +5512,17 @@ function findDriveFileByName_(name) {
   return null;
 }
 
+function findContractFile_(name) {
+  var folders = DriveApp.getFoldersByName(CONTRACT_TEMPLATE_FOLDER_NAME);
+  while (folders.hasNext()) {
+    var fd = folders.next();
+    if (fd.isTrashed()) continue;
+    var it = fd.getFilesByName(name);
+    while (it.hasNext()) { var f = it.next(); if (!f.isTrashed()) return f; }
+  }
+  return null;
+}
+
 function getContractOutputFolder_(templateFile) {
   var parents = templateFile.getParents();
   var base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
@@ -5520,8 +5534,8 @@ function getContractOutputFolder_(templateFile) {
 function getContractTemplatePdf_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
-    var f = findDriveFileByName_(CONTRACT_TEMPLATE_PDF_NAME);
-    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '" ใน Google Drive' };
+    var f = findContractFile_(CONTRACT_TEMPLATE_PDF_NAME);
+    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '" ในโฟลเดอร์ "' + CONTRACT_TEMPLATE_FOLDER_NAME + '"' };
     return { status: 'success', name: f.getName(), pdf: Utilities.base64Encode(f.getBlob().getBytes()) };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractTemplatePdf_');
@@ -5596,8 +5610,8 @@ function generateTransportContract_(payload, actor) {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
     var built = buildContractValues_(payload);
     if (built.error) return { status: 'error', message: built.error };
-    var tpl = findDriveFileByName_(CONTRACT_TEMPLATE_BASE_NAME + '.docx');
-    if (!tpl) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_BASE_NAME + '.docx" ใน Google Drive' };
+    var tpl = findContractFile_(CONTRACT_TEMPLATE_BASE_NAME + '.docx');
+    if (!tpl) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_BASE_NAME + '.docx" ในโฟลเดอร์ "' + CONTRACT_TEMPLATE_FOLDER_NAME + '"' };
     var pdfBytes = null;
     if (payload.pdf) {
       pdfBytes = Utilities.base64Decode(String(payload.pdf));
