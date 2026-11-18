@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2117';
+    var APP_VERSION = 'Ver. 2026.1118.2120';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18607,9 +18607,9 @@
             </div>
             <!-- ช่องทางติดต่อของผู้ใช้บริการ (ย้ายจากหัวข้อ 4 — ผู้ใช้แจ้ง 2026-11-18) ไม่บังคับ; ในสัญญายังอยู่ข้อ 14 ตำแหน่งเดิม -->
             <div class="ct-grid ct-subgroup">
-                <div class="ct-span-2 text-sm font-semibold text-gray-700">ช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(ไม่บังคับ)</span></div>
+                <div class="ct-span-2 text-sm font-semibold text-gray-700">ช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(บังคับเฉพาะ Post Family)</span></div>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input"></label>
-                <label class="ct-field"><span>หมายเลข Post Family</span><input name="post_family" class="ct-input"></label>
+                <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="THP-ตามด้วยตัวเลข" maxlength="24" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, ''); this.value = d ? 'THP-' + d : ''" title="ขึ้นต้นด้วย THP- ตามด้วยตัวเลข พิมพ์เฉพาะตัวเลขได้เลย"></label>
                 <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="tel"></label>
                 <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input"></label>
             </div>
@@ -19129,9 +19129,9 @@
 
         var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
             ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
-            ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
+            ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่'], ['post_family', 'หมายเลข Post Family']];
         var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_building', 'อาคาร'],
-            ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
+            ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['post_family', 'หมายเลข Post Family']];
         // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
         var thpIdCardOk = function (v) {
             var d = String(v || '').replace(/\D/g, ''); if (d.length !== 13) return false;
