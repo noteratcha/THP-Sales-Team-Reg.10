@@ -84,7 +84,7 @@
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)</span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
             <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
-            <div id="ctPriceBody" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+            <div id="ctPriceBody" class="ct-price-grid"></div>
             <div class="ct-grid">
                 <label class="ct-field"><span>COD คิดในอัตรา (%)</span><input name="cod_pct" class="ct-input" inputmode="decimal"></label>
                 <label class="ct-field"><span>ประเภทสิ่งของที่ฝากส่ง</span><input name="goods_type" class="ct-input"></label>
@@ -205,10 +205,12 @@
     #page-contract .ct-seg > button:first-child { border-left: 0; }
     #page-contract .ct-seg > button[aria-checked="true"] { background: #c2410c; color: #fff; }
     #page-contract .ct-seg > button:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
-    #page-contract .ct-price-table th, #page-contract .ct-price-table td { padding: 0.3rem 0.75rem; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
+    #page-contract .ct-price-table th, #page-contract .ct-price-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #f3f4f6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* หัวคอลัมน์สั้น + หน่วยอยู่ที่หัวตาราง + ช่องกรอกยืดตามคอลัมน์ — ตารางแคบลงหลังมีแผงข้าง (ผู้ใช้แจ้งหัวคอลัมน์ถูกตัด 2026-11-18) */
     #page-contract .ct-price-table th { font-weight: 600; font-size: 0.8125rem; }
     #page-contract .ct-price-caption { caption-side: top; text-align: left; padding: 0.5rem 0.75rem; font-weight: 700; font-size: 0.8125rem; color: #1f2937; border-bottom: 1px solid #e5e7eb; }
-    #page-contract .ct-price-input { width: 6rem; text-align: right; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-variant-numeric: tabular-nums; min-height: 32px; }
+    #page-contract .ct-price-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); } /* พื้นที่แคบ ตารางขึ้นแถวใหม่ 3→2→1 แทนการบีบ */
+    #page-contract .ct-price-input { width: 100%; max-width: 7rem; min-width: 0; text-align: right; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-variant-numeric: tabular-nums; min-height: 32px; }
     #page-contract .ct-price-input:focus { outline: none; border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
     #page-contract .ct-price-input.ct-edited { background: #fff7ed; border-color: #fdba74; }
     #page-contract .ct-submit { display: inline-flex; white-space: nowrap; align-items: center; justify-content: center; gap: 0.5rem; background: #c2410c; color: #fff; font-weight: 700; padding: 0.7rem 1.5rem; border-radius: 0.625rem; min-height: 44px; }
@@ -257,9 +259,10 @@
             if (!body || body.children.length) return;
             var html = '';
             [[1, 10], [11, 20], [21, 30]].forEach(function (g) {
-                html += '<div class="overflow-x-auto rounded-xl border border-gray-200"><table class="w-full text-sm ct-price-table">' +
-                    '<caption class="ct-price-caption">น้ำหนัก ' + g[0] + '–' + g[1] + ' กก.</caption>' +
-                    '<thead class="bg-gray-50 text-gray-600"><tr><th class="text-left">พิกัดน้ำหนัก</th><th class="text-right">อัตรา (บาท/ชิ้น)</th></tr></thead><tbody>';
+                html += '<div class="overflow-x-auto rounded-xl border border-gray-200"><table class="w-full text-sm ct-price-table" style="table-layout:fixed">' +
+                    '<caption class="ct-price-caption">น้ำหนัก ' + g[0] + '–' + g[1] + ' กก. <span class="font-normal text-gray-500">· บาท/ชิ้น</span></caption>' +
+                    '<colgroup><col style="width:58%"><col style="width:42%"></colgroup>' +
+                    '<thead class="bg-gray-50 text-gray-600"><tr><th class="text-left">พิกัดน้ำหนัก</th><th class="text-right">อัตรา</th></tr></thead><tbody>';
                 for (var i = g[0]; i <= g[1]; i++) {
                     html += '<tr><td>' + tierLabel(i) + '</td><td class="text-right"><input class="ct-price-input" data-ct-price="' + (i - 1) +
                         '" inputmode="decimal" aria-label="อัตราค่าบริการ ' + tierLabel(i) + '" oninput="this.classList.add(\'ct-edited\')"></td></tr>';
@@ -309,7 +312,7 @@
             if (field('sign_date') && !field('sign_date').value) field('sign_date').value = today;
             if (field('start_date') && !field('start_date').value) field('start_date').value = y + '-01-01';
             if (field('end_date') && !field('end_date').value) field('end_date').value = y + '-12-31';
-            if (field('cod_pct') && !field('cod_pct').value) field('cod_pct').value = '';
+            if (field('cod_pct') && !field('cod_pct').value) field('cod_pct').value = '3'; // ค่าเริ่มต้น COD 3% (ผู้ใช้กำหนด 2026-11-18)
             if (field('thp_position') && !field('thp_position').value) field('thp_position').value = 'หัวหน้าที่ทำการไปรษณีย์';
             // เลขที่หนังสือ: ช่อง 1 = ปข.10 เสมอ, ช่อง 2 = รหัสไปรษณีย์ของผู้ที่ล็อกอิน (ผู้ใช้กำหนด 2026-11-18)
             if (field('no_a') && !field('no_a').value) field('no_a').value = 'ปข.10';
