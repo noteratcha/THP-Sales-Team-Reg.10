@@ -5601,6 +5601,7 @@ function importTableauCsvBatch_(json) {
   if (!isValidTableauSecret_(json.secret)) {
     return { status: 'error', message: 'รหัสลับไม่ถูกต้อง' };
   }
+  ensureTargetReportSyncTrigger_();
   if (!/^20\d{2}$/.test(String(json.year))) {
     return { status: 'error', message: 'ปีไม่ถูกต้อง' };
   }
@@ -5617,6 +5618,165 @@ function importTableauCsvBatch_(json) {
     return processRevenueBatch_(json.csvChunk, String(json.year));
   } finally {
     lock.releaseLock();
+  }
+}
+
+// ==========================================
+// 📊 SECTION: กรอกรายได้จริงลงไฟล์รายงานเป้าหมายส่วนกลาง (Google Sheets "เป้าหมายรายได้_2570_ปข.10")
+// ==========================================
+// ผู้ใช้กำหนด 2026-11-18: ชีต "รายได้ที่ทำการ" ให้ระบบกรอกอัตโนมัติทุกวัน (เขียนทับ ห้ามกรอกเอง)
+// แถวละ 1 ที่ทำการ (รหัสไปรษณีย์คอลัมน์ B ตามชีต "เป้าหมายรายที่ทำการ") เดือนละ 2 ช่อง D–AA: ในประเทศ, ระหว่างประเทศ
+// ระหว่างประเทศ = กลุ่มบริการขึ้นต้น "3." หรือมีคำว่า ระหว่างประเทศ (เกณฑ์เดียวกับหน้า วางแผนเป้าหมายรายได้)
+// เดือนที่ยังไม่มีรายได้ของทั้งเขตเลยเว้นว่าง (ชีตสรุปจะไม่นับเป็น 0)
+var TARGET_REPORT_YEAR_BE = 2570;
+var TARGET_REPORT_FILE_NAME = 'เป้าหมายรายได้_2570_ปข.10';
+var TARGET_REPORT_SHEET = 'รายได้ที่ทำการ';
+var TARGET_REPORT_FIRST_ROW = 6;
+var TARGET_REPORT_LAST_ROW = 605;
+
+function getTargetReportSpreadsheet_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('TARGET_REPORT_SS_ID');
+  if (id) {
+    try { return SpreadsheetApp.openById(id); } catch (e) { props.deleteProperty('TARGET_REPORT_SS_ID'); }
+  }
+  var files = DriveApp.getFilesByName(TARGET_REPORT_FILE_NAME);
+  while (files.hasNext()) {
+    var f = files.next();
+    if (f.getMimeType() === MimeType.GOOGLE_SHEETS && !f.isTrashed()) {
+      props.setProperty('TARGET_REPORT_SS_ID', f.getId());
+      return SpreadsheetApp.openById(f.getId());
+    }
+  }
+  return null;
+}
+
+// เรียกจาก Trigger รายวัน (ชื่อไม่ลงท้าย _ เพราะ Trigger เรียกฟังก์ชัน private ไม่ได้)
+function syncTargetReportActuals() {
+  return syncTargetReportActuals_();
+}
+
+// ทดสอบ (ผู้ใช้ขอ 2026-11-18): กด Run ฟังก์ชันนี้ในหน้า Apps Script เพื่อใส่รายได้ปี 2569 ลงไฟล์รายงานปี 2570
+// ล้างกลับ: Run syncTargetReportActuals (ปี 2570 ยังไม่มีข้อมูล จึงเว้นว่างทั้งหมด) หรือรอรอบ 11:00
+function testTargetReportWith2569() {
+  var res = syncTargetReportActuals_(2569);
+  Logger.log(JSON.stringify(res));
+  return res;
+}
+
+// sourceYearBE = ปีของรายได้ที่นำมาใส่ (ไม่ระบุ = ปีของรายงาน) ใช้ปีอื่นเฉพาะตอนทดสอบ
+function syncTargetReportActuals_(sourceYearBE) {
+  var srcYear = sourceYearBE || TARGET_REPORT_YEAR_BE;
+  try {
+    var ss = getTargetReportSpreadsheet_();
+    if (!ss) return { status: 'error', message: 'ไม่พบไฟล์ ' + TARGET_REPORT_FILE_NAME };
+    var sheet = ss.getSheetByName(TARGET_REPORT_SHEET);
+    if (!sheet) return { status: 'error', message: 'ไม่พบชีต ' + TARGET_REPORT_SHEET };
+
+    var full = getRevenueReportData_({ user: 'admin' });
+    if (!full || full.status !== 'success') return full || { status: 'error', message: 'อ่านข้อมูลรายได้ไม่สำเร็จ' };
+    var MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    var SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    var sums = {}, monthHas = {};
+    full.data.forEach(function (r) {
+      var y = parseInt(r[6], 10);
+      if (y && y < 2500) y += 543;
+      if (y !== srcYear) return;
+      var mName = String(r[5]).trim();
+      var m = MONTHS.indexOf(mName);
+      if (m < 0) m = SHORT.indexOf(mName);
+      if (m < 0) return;
+      var zip = String(r[0] || '').trim().substring(0, 5);
+      if (!/^\d{5}$/.test(zip)) return;
+      var rev = parseFloat(String(r[8]).replace(/,/g, '')) || 0;
+      var col = m * 2 + (/^\s*3\.|ระหว่างประเทศ/.test(String(r[4] || '')) ? 1 : 0);
+      var s = sums[zip] || (sums[zip] = []);
+      s[col] = (s[col] || 0) + rev;
+      monthHas[m] = true;
+    });
+
+    var n = TARGET_REPORT_LAST_ROW - TARGET_REPORT_FIRST_ROW + 1;
+    var zips = sheet.getRange(TARGET_REPORT_FIRST_ROW, 2, n, 1).getValues();
+    var out = [], filled = 0, total = 0, matched = {};
+    // เขียนเฉพาะแถวที่ทำการ (ถึงแถวสุดท้ายที่มีรหัส) แถวถัดไปเป็นแถวรวม
+    var lastIdx = -1;
+    zips.forEach(function (row, i) { if (/^\d{5}$/.test(String(row[0] || '').replace(/^'/, '').trim())) lastIdx = i; });
+    if (lastIdx < 0) return { status: 'error', message: 'ไม่พบรหัสไปรษณีย์ในชีต ' + TARGET_REPORT_SHEET };
+    zips = zips.slice(0, lastIdx + 1);
+    n = zips.length;
+    zips.forEach(function (row) {
+      var zip = String(row[0] || '').replace(/^'/, '').trim();
+      var line = [];
+      for (var c = 0; c < 24; c++) {
+        if (!/^\d{5}$/.test(zip) || !monthHas[Math.floor(c / 2)]) { line.push(''); continue; }
+        var v = Math.round(((sums[zip] || [])[c] || 0) * 100) / 100;
+        line.push(v);
+        total += v;
+      }
+      if (/^\d{5}$/.test(zip)) { filled++; matched[zip] = true; }
+      out.push(line);
+    });
+    sheet.getRange(TARGET_REPORT_FIRST_ROW, 4, n, 24).setValues(out);
+    ensureTargetReportTotals_(ss, TARGET_REPORT_FIRST_ROW + n - 1);
+    // ที่ทำการที่มีรายได้แต่ไม่มีแถวในไฟล์ (ไม่ถูกนับในรายงาน) แจ้งไว้ในผลลัพธ์
+    var missing = Object.keys(sums).filter(function (z) { return !matched[z]; });
+    PropertiesService.getScriptProperties().setProperty('TARGET_REPORT_LAST_SYNC', new Date().toISOString());
+    return { status: 'success', sourceYear: srcYear, offices: filled, months: Object.keys(monthHas).length, total: total, missingZips: missing };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'syncTargetReportActuals_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// แถวรวมต่อท้ายที่ทำการสุดท้าย (ผู้ใช้ขอ 2026-11-18) ในชีตเป้าหมายและรายได้: รวมทุกคอลัมน์ D–AD
+// ชีตสรุปเดิมรวม D6:D605 จะนับแถวรวมซ้ำ จึงเปลี่ยนช่วงให้จบที่แถวที่ทำการสุดท้าย
+function ensureTargetReportTotals_(ss, lastRow) {
+  var col = function (c) { var s = ''; while (c > 0) { var m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
+  var totalRow = lastRow + 1, first = TARGET_REPORT_FIRST_ROW;
+  ['เป้าหมายรายที่ทำการ', TARGET_REPORT_SHEET].forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) return;
+    // สูตรรวมทั้งปีรายที่ทำการ (AB/AC/AD) ของ Template เดิมใช้ SUM(D:Z)/SUM(E:AA) ซึ่งปนสองบริการ: เขียนสูตรที่ถูกทุกแถว
+    var rowsF = [];
+    for (var r = first; r <= lastRow; r++) {
+      var dc = [], ic = [];
+      for (var mm = 0; mm < 12; mm++) { dc.push(col(4 + 2 * mm) + r); ic.push(col(5 + 2 * mm) + r); }
+      rowsF.push(['=IF(COUNTA(' + dc.join(',') + ')=0,"",SUM(' + dc.join(',') + '))',
+        '=IF(COUNTA(' + ic.join(',') + ')=0,"",SUM(' + ic.join(',') + '))',
+        '=IF(COUNTA(AB' + r + ':AC' + r + ')=0,"",SUM(AB' + r + ':AC' + r + '))']);
+    }
+    sh.getRange(first, 28, rowsF.length, 3).setFormulas(rowsF);
+    var row = ['', '', 'รวม'];
+    for (var c = 4; c <= 30; c++) row.push('=SUM(' + col(c) + first + ':' + col(c) + lastRow + ')');
+    var rg = sh.getRange(totalRow, 1, 1, 30);
+    rg.setValues([row]);
+    rg.setFontWeight('bold').setBackground('#fde9d9').setBorder(true, null, true, null, null, null);
+    sh.getRange(totalRow, 4, 1, 27).setNumberFormat('#,##0.00');
+  });
+  var sum = ss.getSheetByName('สรุปผลการดำเนินงาน');
+  if (!sum) return;
+  var f = [];
+  for (var m = 0; m < 12; m++) {
+    var d = col(4 + 2 * m), t = col(5 + 2 * m), rng = function (sheetName, c) { return "=SUM('" + sheetName + "'!" + c + first + ':' + c + lastRow + ')'; };
+    f.push([rng('เป้าหมายรายที่ทำการ', d), rng(TARGET_REPORT_SHEET, d), rng('เป้าหมายรายที่ทำการ', t), rng(TARGET_REPORT_SHEET, t)]);
+  }
+  sum.getRange(5, 2, 12, 4).setFormulas(f);
+}
+
+// ติดตั้ง Trigger รายวัน 11:00 (หลังส่วนขยายนำเข้ารอบ 9:00) ครั้งเดียว เรียกจากการนำเข้าของส่วนขยาย
+// ครั้งแรกตั้งให้กรอกทันทีอีก 1 นาทีด้วย
+function ensureTargetReportSyncTrigger_() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (props.getProperty('TARGET_REPORT_TRIGGER') === '1') return;
+    var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'syncTargetReportActuals'; });
+    if (!has) {
+      ScriptApp.newTrigger('syncTargetReportActuals').timeBased().everyDays(1).atHour(11).create();
+      ScriptApp.newTrigger('syncTargetReportActuals').timeBased().after(60 * 1000).create();
+    }
+    props.setProperty('TARGET_REPORT_TRIGGER', '1');
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'ensureTargetReportSyncTrigger_');
   }
 }
 
