@@ -3,16 +3,7 @@
      อัตราค่าบริการเติมจากชีต "เรตราคา" (Package A1–A12, 30 ช่วงน้ำหนัก) แก้ได้ทีละช่อง
      เลขบัตรประชาชน: กรอกในระบบ (ผู้ใช้กำหนด 2026-11-18 เดิมเว้นว่างให้เขียนมือ) ตรวจหลักตรวจสอบ 13 หลัก — ข้อมูลส่วนบุคคล ห้ามส่งไป LINE/บันทึก log -->
 <div class="bg-white custom-radius shadow-xl w-full max-w-[1760px] mx-auto mt-4 mb-8"><!-- จอกว้างขยายตามพื้นที่ (ผู้ใช้ขอ 2026-11-18) -->
-    <div class="thp-page-intro">
-        <p class="thp-page-intro-text">กรอกข้อมูลลูกค้าแล้วกด “สร้างสัญญา” ได้ไฟล์ PDF ตามแบบฟอร์มสัญญาขนส่งภายในประเทศปี 2570</p>
-        <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 shrink-0">
-            <!-- แบบฟอร์มต้นฉบับ (ยังไม่กรอก) ไปแก้ไขเอง — ผู้ใช้ขอ 2026-11-18 -->
-            <button type="button" class="thp-btn-secondary" onclick="thpDownloadContractTemplate('pdf')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น PDF"><i class="fas fa-file-pdf"></i> ต้นฉบับ PDF</button>
-            <button type="button" class="thp-btn-secondary" onclick="thpDownloadContractTemplate('docx')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น Word เพื่อแก้ไขเอง"><i class="fas fa-file-word"></i> ต้นฉบับ Word</button>
-            <button type="button" class="thp-btn-secondary" onclick="resetContractForm()"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
-        </div>
-    </div>
-
+    <!-- แถวคำอธิบาย + ปุ่ม ย้ายไปแถบบน (Module_Core #headerContract*Btn) ผู้ใช้ขอ 2026-11-18 -->
     <form id="contractForm" class="ct-layout p-3 md:p-5" onsubmit="event.preventDefault(); submitContractForm();" oninput="thpContractProgress()" onchange="thpContractProgress()" novalidate>
         <div class="ct-main">
         <fieldset class="ct-fieldset" id="ctSec1">
@@ -166,7 +157,6 @@
                     <li><button type="button" onclick="thpContractGo(3)"><span class="ct-step-dot"></span><span class="ct-step-text">3. อัตราค่าบริการ</span><span class="ct-step-sub"></span></button></li>
                 </ol>
                 <button type="submit" class="ct-submit w-full mt-3"><i class="fas fa-file-signature"></i> สร้างสัญญา</button>
-                <p class="text-xs text-gray-500 mt-3 leading-relaxed">ได้ไฟล์ PDF ตามแบบฟอร์มส่วนกลาง · ช่องที่เว้นว่างจะเป็นเส้นประให้กรอกด้วยลายมือ · เก็บสำเนาใน Google Drive โฟลเดอร์ "สัญญาที่สร้างจากระบบ"</p>
             </div>
         </aside>
     </form>
@@ -415,7 +405,13 @@
                 var u = currentUserInfo || {};
                 var isAdminUser = String(u.user || '').toLowerCase() === 'admin';
                 if (field('no_b') && !field('no_b').value) { if (isAdminUser) field('no_b').value = 'ทข.'; else if (u.zipcode) field('no_b').value = u.zipcode; } // admin = ทข. (ผู้ใช้กำหนด 2026-11-18)
-                if (field('office') && !field('office').value && u.name && !isAdminUser) field('office').value = u.name;
+                if (field('office') && !field('office').value && u.name && !isAdminUser) {
+                    // คำนำหน้าที่ทำการ (ผู้ใช้กำหนด 2026-11-18): ที่ทำการจังหวัด = ปจ., 34010/47010 = ไม่มี, อื่น ๆ = ปณ.
+                    var zc = String(u.zipcode || '').trim(), nm = String(u.name || '').trim();
+                    var pre = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'].indexOf(zc) !== -1 ? 'ปจ.' : (zc === '34010' || zc === '47010' ? '' : 'ปณ.');
+                    if (pre && nm.indexOf(pre) === 0) pre = '';
+                    field('office').value = pre + nm;
+                }
             } catch (e) { }
         };
 
