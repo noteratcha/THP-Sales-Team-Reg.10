@@ -49,12 +49,12 @@
             </div>
             <div id="ctCorp" class="ct-grid ct-grid-2m hidden">
                 <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
-                <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>กรอกทุกช่อง (ยกเว้นวันที่หนังสือมอบอำนาจ ถ้าไม่มีการมอบอำนาจ) ช่องที่ไม่มี (เช่น อาคาร) ให้ใส่ "-"</p>
+                <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน และวันที่หนังสือมอบอำนาจ เว้นว่างได้</p>
                 <label class="ct-field ct-m-full"><span>ทะเบียนนิติบุคคลเลขที่ <b class="text-red-600">*</b></span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
                 <label class="ct-field"><span>จดทะเบียน ณ <b class="text-red-600">*</b></span><input name="corp_reg_at" class="ct-input"></label>
                 <label class="ct-field"><span>สำนักงานใหญ่ เลขที่ <b class="text-red-600">*</b></span><input name="corp_no" class="ct-input"></label>
-                <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="corp_building" class="ct-input"></label>
-                <label class="ct-field"><span>ถนน <b class="text-red-600">*</b></span><input name="corp_road" class="ct-input"></label>
+                <label class="ct-field"><span>อาคาร</span><input name="corp_building" class="ct-input"></label>
+                <label class="ct-field"><span>ถนน</span><input name="corp_road" class="ct-input"></label>
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="corp_subdistrict" class="ct-input"></label>
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="corp_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="corp_province" class="ct-input"></label>
@@ -67,12 +67,12 @@
                 <label class="ct-field ct-span-2"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
                     oninput="var d = this.value.replace(/\D/g, '').slice(0, 13), o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0); this.value = o"></label>
                 <label class="ct-field"><span>ที่อยู่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
-                <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="person_building" class="ct-input"></label>
-                <label class="ct-field"><span>ถนน <b class="text-red-600">*</b></span><input name="person_road" class="ct-input"></label>
+                <label class="ct-field"><span>อาคาร</span><input name="person_building" class="ct-input"></label>
+                <label class="ct-field"><span>ถนน</span><input name="person_road" class="ct-input"></label>
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="person_subdistrict" class="ct-input"></label>
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="person_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="person_province" class="ct-input"></label>
-                <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>กรอกทุกช่อง ช่องที่ไม่มี (เช่น อาคาร) ให้ใส่ "-"</p>
+                <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน เว้นว่างได้</p>
             </div>
             <!-- ช่องทางติดต่อของผู้ใช้บริการ (ย้ายจากหัวข้อ 4 — ผู้ใช้แจ้ง 2026-11-18) ไม่บังคับ; ในสัญญายังอยู่ข้อ 14 ตำแหน่งเดิม -->
             <div class="ct-grid ct-subgroup">
@@ -595,11 +595,9 @@
             });
         };
 
-        var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
-            ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+        var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
             ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่'], ['post_family', 'หมายเลข Post Family']];
-        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_building', 'อาคาร'],
-            ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['post_family', 'หมายเลข Post Family']];
+        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['post_family', 'หมายเลข Post Family']];
         // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
         var thpIdCardOk = function (v) {
             var d = String(v || '').replace(/\D/g, ''); if (d.length !== 13) return false;

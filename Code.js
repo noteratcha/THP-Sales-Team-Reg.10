@@ -5503,12 +5503,10 @@ var CONTRACT_FIELD_WIDTHS = {
   thp_signer: 50, cus_signer: 46, thp_position: 42, cus_position: 43,
   wit1_name: 50, wit2_name: 46, wit1_position: 42, wit2_position: 43
 };
-  // ส่วนที่ 2 ผู้ใช้บริการ บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18) — ยกเว้นวันที่หนังสือมอบอำนาจ (มีเฉพาะกรณีมอบอำนาจ); ช่องที่ไม่มีให้ใส่ "-"
-var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
-  ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
+  // ส่วนที่ 2 ผู้ใช้บริการ บังคับ (ผู้ใช้กำหนด 2026-11-18) — ยกเว้นวันที่หนังสือมอบอำนาจ, อาคาร, ถนน (มีเฉพาะกรณีมอบอำนาจ); ช่องที่ไม่มีให้ใส่ "-"
+var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
   ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
-var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_building', 'อาคาร'],
-  ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
+var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
 // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ → "1-2345-67890-12-3"
 function contractIdCard_(v) {
   var d = String(v || '').replace(/\D/g, '');
