@@ -5586,6 +5586,7 @@ function buildContractValues_(p) {
   if (miss.length) return { error: 'กรุณากรอก: ' + miss.join(', ') };
   var miss2 = (type === 'corp' ? CONTRACT_REQUIRED_CORP : CONTRACT_REQUIRED_PERSON).filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss2.length) return { error: 'กรุณากรอกข้อมูลผู้ใช้บริการ: ' + miss2.join(', ') };
+  if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_label_yes && !str('label_detail')) return { error: 'เลือกระบบจ่าหน้า "มี" กรุณาระบุระบบจ่าหน้าที่ใช้' }; // ผู้ใช้กำหนด 2026-11-18
   if ((p.checks || {}).x_other && !str('other_detail')) return { error: 'เลือกการรับฝาก "อื่นๆ" กรุณาระบุ' }; // ผู้ใช้กำหนด 2026-11-18
   if (type === 'person') {
