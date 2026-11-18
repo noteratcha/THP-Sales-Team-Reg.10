@@ -5569,7 +5569,7 @@ function buildContractValues_(p) {
     ['office', 'ที่ทำการไปรษณีย์'], ['sign_date', 'วันที่ทำสัญญา'], ['start_date', 'สัญญาเริ่มวันที่'], ['end_date', 'ถึงวันที่']];
   var miss = required.filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss.length) return { error: 'กรุณากรอก: ' + miss.join(', ') };
-  if (!/^\d{3}$/.test(str('no_c'))) return { error: 'เลขที่หนังสือ ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001' };
+  if (!/^(\d{3}|-)$/.test(str('no_c'))) return { error: 'เลขที่หนังสือ ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001 หรือขีด -' }; // ผู้ใช้กำหนด 2026-11-18: ใส่ - ได้
   var values = {};
   Object.keys(CONTRACT_FIELD_WIDTHS).forEach(function (k) {
     var isOtherType = (type === 'corp' && k.indexOf('person_') === 0) || (type === 'person' && k.indexOf('corp_') === 0);

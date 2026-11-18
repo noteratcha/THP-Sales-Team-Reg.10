@@ -21,9 +21,9 @@
                         <input name="no_b" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 2">
                         <span class="text-gray-500">)/</span>
                         <!-- ช่อง 3 = ตัวเลข 3 หลัก เช่น 001, 101 (ผู้ใช้กำหนด 2026-11-18) พิมพ์ 1 → เติมเป็น 001 เมื่อออกจากช่อง -->
-                        <input name="no_c" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 3 (ตัวเลข 3 หลัก)" placeholder="เช่น 001"
-                            inputmode="numeric" maxlength="3" pattern="\d{3}"
-                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 3)"
+                        <input name="no_c" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 3 (ตัวเลข 3 หลัก หรือ -)" placeholder="เช่น 001 หรือ -"
+                            inputmode="tel" maxlength="3" pattern="(\d{3}|-)"
+                            oninput="this.value = /-/.test(this.value) ? '-' : this.value.replace(/\D/g, '').slice(0, 3)"
                             onblur="if (this.value) this.value = ('000' + this.value).slice(-3)">
                     </div>
                 </div>
@@ -520,7 +520,7 @@
             if (state.customerType === 'corp') need('corp_name', 'ชื่อนิติบุคคล'); else need('person_name', 'ชื่อ-สกุลผู้ใช้บริการ');
             var badPrice = p.prices.findIndex(function (v) { return v && !/^\d+(\.\d{1,2})?$/.test(v); });
             if (missing.length) { warnAt('กรอกข้อมูลไม่ครบ', 'กรุณากรอก: ' + missing.join(', '), f.querySelector('.ct-invalid')); return; }
-            if (p.no_c && !/^\d{3}$/.test(p.no_c)) { var nc = field('no_c'); if (nc) nc.classList.add('ct-invalid'); warnAt('เลขที่หนังสือไม่ถูกต้อง', 'ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001, 101', nc); return; }
+            if (p.no_c && !/^(\d{3}|-)$/.test(p.no_c)) { var nc = field('no_c'); if (nc) nc.classList.add('ct-invalid'); warnAt('เลขที่หนังสือไม่ถูกต้อง', 'ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001, 101 หรือขีด - (ยังไม่มีเลข)', nc); return; }
             if (badPrice !== -1) { var bp = document.querySelector('#ctPriceBody .ct-price-input[data-ct-price="' + badPrice + '"]'); if (bp) bp.classList.add('ct-invalid'); warnAt('อัตราค่าบริการไม่ถูกต้อง', tierLabel(badPrice + 1) + ': กรอกเป็นตัวเลขเท่านั้น', bp); return; }
             var emptyPrices = p.prices.filter(function (v) { return !v; }).length;
             var go = function () {
