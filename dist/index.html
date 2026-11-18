@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2155';
+    var APP_VERSION = 'Ver. 2026.1118.2159';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18626,6 +18626,7 @@
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
             <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
+            <p id="ctCustomHint" class="hidden text-sm rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-3 py-2"><i class="fas fa-pen mr-1.5"></i>อัตราค่าบริการพิเศษเฉพาะราย: กรอกปริมาณงานขั้นต่ำและอัตราทุกช่วงน้ำหนักเองให้ครบ 30 ช่อง</p>
             <div id="ctPriceBody" class="ct-price-grid"></div>
             <div class="ct-subtitle ct-subgroup">เงื่อนไขการให้บริการ</div>
             <div class="ct-grid">
@@ -18831,6 +18832,15 @@
 
         window.applyContractPackage = function () {
             var sel = document.getElementById('ctPackage');
+            if (sel && sel.value === '__custom') {
+                // พิเศษเฉพาะราย: ล้างค่าที่เติมจาก Package ให้กรอกเองทั้งหมด
+                for (var j = 0; j < PRICE_COUNT; j++) setPrice(j, '');
+                if (field('min_qty')) { field('min_qty').value = ''; setTimeout(function () { field('min_qty').focus(); }, 0); }
+                var hint = document.getElementById('ctCustomHint'); if (hint) hint.classList.remove('hidden');
+                if (window.thpContractProgress) window.thpContractProgress();
+                return;
+            }
+            var hint2 = document.getElementById('ctCustomHint'); if (hint2) hint2.classList.add('hidden');
             var pkg = state.rates && sel ? state.rates[sel.value] : null;
             if (!pkg) return;
             for (var i = 0; i < PRICE_COUNT; i++) setPrice(i, pkg.prices[i] || '');
@@ -18842,11 +18852,11 @@
             var sel = document.getElementById('ctPackage');
             if (!sel) return;
             var names = Object.keys(state.rates || {}).sort(function (a, b) { return Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')); });
-            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package A1–A12 (กรอกราคาเอง)</option>'; return; }
+            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package A1–A12 (กรอกราคาเอง)</option>' + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>'; return; }
             sel.innerHTML = '<option value="">— เลือก Package —</option>' + names.map(function (n) {
                 var p = state.rates[n];
                 return '<option value="' + esc(n) + '">' + esc(n) + ' (เริ่ม ' + esc(p.prices[0] || '-') + ' บาท · ขั้นต่ำ ' + esc(p.minItems ? Number(p.minItems).toLocaleString('en-US') : '-') + ' ชิ้น/เดือน)</option>';
-            }).join('');
+            }).join('') + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>';
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
@@ -18918,6 +18928,7 @@
         window.resetContractForm = function () {
             var f = form(); if (!f) return;
             f.reset();
+            var ch = document.getElementById('ctCustomHint'); if (ch) ch.classList.add('hidden');
             ['contact_name', 'wallet_name'].forEach(function (k) { var el = field(k); if (el) el.dataset.manual = ''; });
             document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (o) { o.value = ''; o.classList.remove('ct-edited'); });
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -19146,7 +19157,7 @@
         // ===== ความคืบหน้า 5 ส่วน (ส่วน 1–2 มีช่องบังคับ, 3–5 ไม่บังคับ นับช่องที่กรอก) =====
         var REQ1 = ['no_a', 'no_b', 'no_c', 'office', 'sign_date', 'start_date', 'end_date'];
         // มี Package ให้เลือก = ต้องเลือก (โหลดอัตราไม่ได้ → กรอกราคาเอง ไม่บังคับ)
-        var pkgNeeded = function () { var sel = document.getElementById('ctPackage'); return !!(sel && sel.querySelector('option[value]:not([value=""])')); };
+        var pkgNeeded = function () { var sel = document.getElementById('ctPackage'); return !!(sel && sel.querySelector('option[value]:not([value=""]):not([value="__custom"])')); };
         var pkgMissing = function () { var sel = document.getElementById('ctPackage'); return pkgNeeded() && !sel.value; };
         var filled = function (name) { var el = field(name); var v = el ? String(el.value || '').trim() : ''; return name === 'post_family' ? /^THP-\d{8}$/.test(v) : !!v; };
         var countIn = function (secId) {
