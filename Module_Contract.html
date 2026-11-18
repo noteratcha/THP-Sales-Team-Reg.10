@@ -13,7 +13,7 @@
             <legend>1. ข้อมูลสัญญา</legend>
             <div class="ct-grid">
                 <div class="ct-field ct-span-2">
-                    <span>เลขที่หนังสือ (ที่ ปณท ...(...)/...)</span>
+                    <span>เลขที่หนังสือ (ที่ ปณท ...(...)/...) <b class="text-red-600">*</b></span>
                     <div class="flex items-center gap-1.5">
                         <span class="text-sm text-gray-600 shrink-0">ปณท</span>
                         <input name="no_a" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 1">
@@ -28,9 +28,10 @@
                     </div>
                 </div>
                 <label class="ct-field ct-span-2"><span>ที่ทำการไปรษณีย์ <b class="text-red-600">*</b></span><input name="office" class="ct-input" required></label>
-                <label class="ct-field"><span>วันที่ทำสัญญา</span><input type="date" name="sign_date" class="ct-input"></label>
-                <label class="ct-field"><span>สัญญาเริ่มวันที่</span><input type="date" name="start_date" class="ct-input"></label>
-                <label class="ct-field"><span>ถึงวันที่</span><input type="date" name="end_date" class="ct-input"></label>
+                <!-- ทุกช่องในส่วนที่ 1 บังคับกรอก (ผู้ใช้กำหนด 2026-11-18) -->
+                <label class="ct-field"><span>วันที่ทำสัญญา <b class="text-red-600">*</b></span><input type="date" name="sign_date" class="ct-input" required></label>
+                <label class="ct-field"><span>สัญญาเริ่มวันที่ <b class="text-red-600">*</b></span><input type="date" name="start_date" class="ct-input" required></label>
+                <label class="ct-field"><span>ถึงวันที่ <b class="text-red-600">*</b></span><input type="date" name="end_date" class="ct-input" required></label>
             </div>
         </fieldset>
 
@@ -337,7 +338,15 @@
             var p = collect();
             var missing = [];
             var need = function (name, label) { if (!p[name]) { missing.push(label); var el = field(name); if (el) el.classList.add('ct-invalid'); } };
+            need('no_a', 'เลขที่หนังสือ ช่องที่ 1');
+            need('no_b', 'เลขที่หนังสือ ช่องที่ 2');
+            need('no_c', 'เลขที่หนังสือ ช่องที่ 3');
             need('office', 'ที่ทำการไปรษณีย์');
+            need('sign_date', 'วันที่ทำสัญญา');
+            need('start_date', 'สัญญาเริ่มวันที่');
+            need('end_date', 'ถึงวันที่');
+            var sd = field('start_date') ? field('start_date').value : '', ed = field('end_date') ? field('end_date').value : '';
+            if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
             if (state.customerType === 'corp') need('corp_name', 'ชื่อนิติบุคคล'); else need('person_name', 'ชื่อ-สกุลผู้ใช้บริการ');
             var badPrice = p.prices.findIndex(function (v) { return v && !/^\d+(\.\d{1,2})?$/.test(v); });
             if (missing.length) { Swal.fire('กรอกข้อมูลไม่ครบ', 'กรุณากรอก: ' + missing.join(', '), 'warning'); var first = f.querySelector('.ct-invalid'); if (first) first.focus(); return; }

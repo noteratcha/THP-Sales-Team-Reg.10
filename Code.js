@@ -5576,7 +5576,12 @@ function buildContractValues_(p) {
   var type = p.customerType === 'person' ? 'person' : 'corp';
   var customer = type === 'corp' ? str('corp_name') : str('person_name');
   if (!customer) return { error: 'กรุณากรอกชื่อผู้ใช้บริการ' };
-  if (!str('office')) return { error: 'กรุณากรอกที่ทำการไปรษณีย์' };
+  // ส่วนที่ 1 (เลขที่หนังสือ ที่ทำการ วันที่) บังคับทุกช่อง (ผู้ใช้กำหนด 2026-11-18)
+  var required = [['no_a', 'เลขที่หนังสือ ช่องที่ 1'], ['no_b', 'เลขที่หนังสือ ช่องที่ 2'], ['no_c', 'เลขที่หนังสือ ช่องที่ 3'],
+    ['office', 'ที่ทำการไปรษณีย์'], ['sign_date', 'วันที่ทำสัญญา'], ['start_date', 'สัญญาเริ่มวันที่'], ['end_date', 'ถึงวันที่']];
+  var miss = required.filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
+  if (miss.length) return { error: 'กรุณากรอก: ' + miss.join(', ') };
+  if (!/^\d{3}$/.test(str('no_c'))) return { error: 'เลขที่หนังสือ ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001' };
   var values = {};
   Object.keys(CONTRACT_FIELD_WIDTHS).forEach(function (k) {
     var isOtherType = (type === 'corp' && k.indexOf('person_') === 0) || (type === 'person' && k.indexOf('corp_') === 0);
