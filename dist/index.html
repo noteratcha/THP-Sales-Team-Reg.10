@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2123';
+    var APP_VERSION = 'Ver. 2026.1118.2129';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18578,10 +18578,10 @@
                 <button type="button" role="radio" data-ct-type="corp" aria-checked="false" onclick="setContractCustomerType('corp')">นิติบุคคล</button>
                 <button type="button" role="radio" data-ct-type="person" aria-checked="true" onclick="setContractCustomerType('person')">บุคคลธรรมดา</button>
             </div>
-            <div id="ctCorp" class="ct-grid hidden">
+            <div id="ctCorp" class="ct-grid ct-grid-2m hidden">
                 <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
                 <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>กรอกทุกช่อง (ยกเว้นวันที่หนังสือมอบอำนาจ ถ้าไม่มีการมอบอำนาจ) ช่องที่ไม่มี (เช่น อาคาร) ให้ใส่ "-"</p>
-                <label class="ct-field"><span>ทะเบียนนิติบุคคลเลขที่ <b class="text-red-600">*</b></span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
+                <label class="ct-field ct-m-full"><span>ทะเบียนนิติบุคคลเลขที่ <b class="text-red-600">*</b></span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
                 <label class="ct-field"><span>จดทะเบียน ณ <b class="text-red-600">*</b></span><input name="corp_reg_at" class="ct-input"></label>
                 <label class="ct-field"><span>สำนักงานใหญ่ เลขที่ <b class="text-red-600">*</b></span><input name="corp_no" class="ct-input"></label>
                 <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="corp_building" class="ct-input"></label>
@@ -18590,10 +18590,10 @@
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="corp_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="corp_province" class="ct-input"></label>
                 <label class="ct-field ct-span-2"><span>ผู้มีอำนาจลงนาม <b class="text-red-600">*</b></span><input name="corp_signer" class="ct-input"></label>
-                <label class="ct-field"><span>หนังสือรับรอง ออกให้ ณ วันที่ <b class="text-red-600">*</b></span><input type="date" name="corp_cert_date" class="ct-input"></label>
-                <label class="ct-field"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
+                <label class="ct-field ct-m-full"><span>หนังสือรับรอง ออกให้ ณ วันที่ <b class="text-red-600">*</b></span><input type="date" name="corp_cert_date" class="ct-input"></label>
+                <label class="ct-field ct-m-full"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
             </div>
-            <div id="ctPerson" class="ct-grid">
+            <div id="ctPerson" class="ct-grid ct-grid-2m">
                 <label class="ct-field ct-span-2"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="person_name" class="ct-input" oninput="thpContractMirror()"></label>
                 <label class="ct-field ct-span-2"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
                     oninput="var d = this.value.replace(/\D/g, '').slice(0, 13), o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0); this.value = o"></label>
@@ -18695,6 +18695,10 @@
 <style>
     #page-contract .ct-fieldset { display: flex; flex-direction: column; gap: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: #fff; padding: 0.75rem 1rem 1rem; min-width: 0; }
     #page-contract .ct-fieldset legend { padding: 0 0.35rem; font-size: 0.9375rem; font-weight: 700; color: #1f2937; display: inline-flex; align-items: center; gap: 0.5rem; }
+    /* มือถือ: ช่องที่อยู่สั้น ๆ 2 คอลัมน์ (ช่องยาว ct-span-2 เต็มแถว) */
+    @media (max-width: 639px) { #page-contract .ct-grid.ct-grid-2m { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract .ct-grid-2m > .ct-span-2, #page-contract .ct-grid-2m > .ct-m-full { grid-column: span 2 / span 2; } }
+    /* ช่องบังคับที่กรอกแล้ว: ขอบเขียวอ่อน */
+    #page-contract .ct-input.ct-ok:not(:focus):not(.ct-invalid) { border-color: #86efac; background: #f7fef9; }
     #page-contract .ct-subgroup { border-top: 1px dashed #e5e7eb; padding-top: 0.875rem; }
     #page-contract .ct-num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: #fff7ed; color: #c2410c; font-size: 0.8125rem; font-weight: 800; border: 1px solid #fed7aa; }
     #page-contract .ct-fieldset { scroll-margin-top: calc(var(--thp-header-h, 80px) + 1rem); }
@@ -19144,6 +19148,9 @@
         };
         window.thpContractProgress = function () {
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
+            // ขอบเขียวช่องบังคับที่กรอกแล้ว
+            var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel']);
+            reqNames.forEach(function (n) { var el = field(n); if (el && el.classList) { var ok = filled(n); el.classList.toggle('ct-ok', ok); if (ok) el.classList.remove('ct-invalid'); } });
             var miss1 = REQ1.filter(function (n) { return !filled(n); }).length;
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
             var miss4 = ['contact_name', 'contact_tel'].filter(function (n) { return !filled(n); }).length;
