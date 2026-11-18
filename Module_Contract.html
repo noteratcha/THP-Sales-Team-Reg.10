@@ -66,7 +66,7 @@
                 <label class="ct-field ct-span-2"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="person_name" class="ct-input" oninput="thpContractMirror()"></label>
                 <label class="ct-field ct-span-2"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
                     oninput="var d = this.value.replace(/\D/g, '').slice(0, 13), o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0); this.value = o"></label>
-                <label class="ct-field"><span>บ้านเลขที่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
+                <label class="ct-field"><span>ที่อยู่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
                 <label class="ct-field"><span>อาคาร <b class="text-red-600">*</b></span><input name="person_building" class="ct-input"></label>
                 <label class="ct-field"><span>ถนน <b class="text-red-600">*</b></span><input name="person_road" class="ct-input"></label>
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="person_subdistrict" class="ct-input"></label>
@@ -598,7 +598,7 @@
         var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
             ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
             ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่'], ['post_family', 'หมายเลข Post Family']];
-        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_building', 'อาคาร'],
+        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_building', 'อาคาร'],
             ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['post_family', 'หมายเลข Post Family']];
         // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
         var thpIdCardOk = function (v) {

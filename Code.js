@@ -5507,7 +5507,7 @@ var CONTRACT_FIELD_WIDTHS = {
 var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'],
   ['corp_building', 'อาคาร'], ['corp_road', 'ถนน'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'],
   ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
-var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_building', 'อาคาร'],
+var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_building', 'อาคาร'],
   ['person_road', 'ถนน'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด']];
 // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ → "1-2345-67890-12-3"
 function contractIdCard_(v) {
