@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2147';
+    var APP_VERSION = 'Ver. 2026.1118.2155';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18619,11 +18619,11 @@
 
         <fieldset class="ct-fieldset" id="ctSec3">
             <legend><span class="ct-num">3</span>อัตราค่าบริการและเงื่อนไข</legend>
-            <div class="ct-subtitle">อัตราค่าบริการ <span>เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
+            <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
             <div class="ct-grid">
                 <label class="ct-field"><span>Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
                     <select id="ctPackage" class="ct-input" onchange="applyContractPackage()"><option value="">กำลังโหลด...</option></select></label>
-                <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)</span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
+                <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
             </div>
             <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
             <div id="ctPriceBody" class="ct-price-grid"></div>
@@ -18634,8 +18634,8 @@
                 <div class="ct-field">
                     <span>ระบบจ่าหน้า</span>
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 min-h-[40px]">
-                        <label class="ct-check"><input type="radio" name="label_sys" value="yes" onchange="thpContractLabelSync(true)"> มี</label>
                         <label class="ct-check"><input type="radio" name="label_sys" value="no" onchange="thpContractLabelSync()" checked> ไม่มี</label>
+                        <label class="ct-check"><input type="radio" name="label_sys" value="yes" onchange="thpContractLabelSync(true)"> มี</label>
                     </div>
                 </div>
                 <!-- เลือก "มี" แล้วต้องระบุ: PrePost / PostOne / อื่นๆ (ค่าจริงอยู่ใน label_detail) -->
@@ -18764,6 +18764,7 @@
     #page-contract .ct-price-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(max(13.5rem, calc((100% - 1.5rem) / 3)), 1fr)); } /* ยืดเต็มแถว สูงสุด 3 ตาราง/แถว, พื้นที่แคบขึ้นแถวใหม่ 3→2→1 */
     #page-contract .ct-price-input { width: 100%; max-width: 7rem; min-width: 0; text-align: right; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 0.25rem 0.5rem; font-variant-numeric: tabular-nums; min-height: 32px; }
     #page-contract .ct-price-input:focus { outline: none; border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
+    #page-contract .ct-price-input.ct-ok:not(:focus):not(.ct-invalid):not(.ct-edited) { border-color: #86efac; background: #f7fef9; }
     #page-contract .ct-price-input.ct-edited { background: #fff7ed; border-color: #fdba74; }
     #page-contract .ct-submit { display: inline-flex; white-space: nowrap; align-items: center; justify-content: center; gap: 0.5rem; background: #c2410c; color: #fff; font-weight: 700; padding: 0.7rem 1.5rem; border-radius: 0.625rem; min-height: 44px; }
     #page-contract .ct-submit:hover { background: #9a3412; }
@@ -18943,6 +18944,8 @@
             }
             if (/^\d{1,3}$/.test(p.no_c || '')) p.no_c = ('000' + p.no_c).slice(-3);
             if (!p.wallet_tel) p.wallet_name = '';
+            // ข้อ 9: ชื่อผู้รับทราบค่าธรรมเนียมราคาน้ำมัน
+            p.fuel_name = state.customerType === 'corp' ? (p.corp_signer || '') : (p.person_name || '');
             return p;
         };
 
@@ -18971,6 +18974,7 @@
             person_province: [0, 101.0, 208.2, 516.5, 'l'],
             cod_pct: [1, 464.8, 480.8, 600.2, 'c'], min_qty: [1, 172.2, 219.1, 798.2, 'c'], goods_type: [2, 204.9, 541.4, 53.2, 'l'],
             label_detail: [2, 231.9, 389.1, 72.7, 'l'], other_detail: [2, 439.2, 537.8, 92.8, 'l'],
+            fuel_name: [2, 268.6, 432.4, 112.7, 'c'], // ข้อ 9 ค่าธรรมเนียมราคาน้ำมัน (เส้นประก่อน "ยินดีและรับทราบเงื่อนไข")
             contact_name: [3, 116.4, 354.1, 74.8, 'l'], contact_tel: [3, 392.8, 531.6, 74.8, 'l'],
             contact_email: [3, 99.2, 292.9, 94.7, 'l'], post_family: [3, 395.6, 531.0, 94.7, 'l'],
             wallet_tel: [3, 253.1, 337.2, 114.7, 'l'], wallet_name: [3, 355.6, 527.6, 114.7, 'l'],
@@ -19153,7 +19157,7 @@
         window.thpContractProgress = function () {
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
             // ขอบเขียวช่องบังคับที่กรอกแล้ว
-            var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel', 'cod_pct', 'goods_type']);
+            var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel', 'min_qty', 'cod_pct', 'goods_type']);
             reqNames.forEach(function (n) { var el = field(n); if (el && el.classList) { var ok = filled(n); el.classList.toggle('ct-ok', ok); if (ok) el.classList.remove('ct-invalid'); } });
             var miss1 = REQ1.filter(function (n) { return !filled(n); }).length;
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
@@ -19163,14 +19167,16 @@
                 miss1 ? ['todo', 'ยังไม่ได้กรอก ' + miss1 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว'],
                 !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอก ' + miss2 + ' ช่องบังคับ']
             ];
-            var miss3 = ['cod_pct', 'goods_type'].filter(function (n) { return !filled(n); }).length + (pkgMissing() ? 1 : 0);
+            var priceEls = document.querySelectorAll('#ctPriceBody .ct-price-input');
+            var emptyPx = Array.prototype.filter.call(priceEls, function (el) { var e = !String(el.value || '').trim(); el.classList.toggle('ct-ok', !e); if (!e) el.classList.remove('ct-invalid'); return e; }).length;
+            var miss3 = ['min_qty', 'cod_pct', 'goods_type'].filter(function (n) { return !filled(n); }).length + (pkgMissing() ? 1 : 0) + emptyPx;
             var pkSel = document.getElementById('ctPackage');
             if (pkSel) { pkSel.classList.toggle('ct-ok', pkgNeeded() && !!pkSel.value); if (pkSel.value) pkSel.classList.remove('ct-invalid'); }
             var pkReq = document.getElementById('ctPkgReq'); if (pkReq) pkReq.classList.toggle('hidden', !pkgNeeded());
             st.push(miss3 ? ['todo', 'ยังไม่ได้กรอก ' + miss3 + ' ช่องบังคับ'] : ['done', 'ช่องบังคับครบแล้ว']);
             steps.forEach(function (li, i) { li.setAttribute('data-state', st[i][0]); li.querySelector('.ct-step-sub').textContent = st[i][1]; });
             var todo = miss1 + miss2 + miss3;
-            var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2 + 2 + (pkgNeeded() ? 1 : 0), done = total - todo;
+            var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2 + 3 + (pkgNeeded() ? 1 : 0) + priceEls.length, done = total - todo;
             var bar = document.getElementById('ctProgBar'), pt = document.getElementById('ctProgText');
             if (bar) { var pc = Math.round(done / total * 100); bar.firstElementChild.style.width = pc + '%'; bar.setAttribute('aria-valuenow', pc); bar.classList.toggle('is-done', !todo); }
             if (pt) pt.textContent = 'ช่องบังคับ ' + done + '/' + total;
@@ -19263,6 +19269,14 @@
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
             // หัวข้อ 3: COD + ประเภทสิ่งของ บังคับ (ผู้ใช้กำหนด 2026-11-18)
             if (pkgMissing()) { missing.push('Package อัตราค่าบริการ'); document.getElementById('ctPackage').classList.add('ct-invalid'); }
+            need('min_qty', 'ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)');
+            // อัตราทั้ง 30 ช่องต้องกรอก
+            var emptyIdx = [];
+            p.prices.forEach(function (v, i) { if (!v) emptyIdx.push(i); });
+            if (emptyIdx.length) {
+                missing.push('อัตราค่าบริการ ' + emptyIdx.length + ' ช่อง');
+                emptyIdx.forEach(function (i) { var pe = document.querySelector('#ctPriceBody .ct-price-input[data-ct-price="' + i + '"]'); if (pe) pe.classList.add('ct-invalid'); });
+            }
             need('cod_pct', 'COD คิดในอัตรา (%)');
             need('goods_type', 'ประเภทสิ่งของที่ฝากส่ง');
             // หัวข้อ 4 ผู้ประสานงาน บังคับชื่อ + เบอร์โทร (ผู้ใช้กำหนด 2026-11-18)
@@ -19319,7 +19333,7 @@
                     }).withFailureHandler(fail).generateTransportContract(Object.assign({}, p, { pdf: pdfB64 }), currentUserInfo);
                 }).catch(fail);
             };
-            if (emptyPrices) {
+            if (false) { // ราคาว่างไม่อนุญาตแล้ว (ตรวจในรายการช่องบังคับด้านบน)
                 Swal.fire({ icon: 'question', title: 'อัตราค่าบริการยังว่าง ' + emptyPrices + ' ช่อง', text: 'ช่องที่ว่างจะเว้นไว้ให้กรอกด้วยลายมือ ต้องการสร้างสัญญาต่อหรือไม่', showCancelButton: true, confirmButtonText: 'สร้างต่อ', cancelButtonText: 'กลับไปกรอก' })
                     .then(function (a) { if (a.isConfirmed) go(); });
             } else go();

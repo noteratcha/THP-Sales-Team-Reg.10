@@ -5585,6 +5585,7 @@ function buildContractValues_(p) {
   var miss2 = (type === 'corp' ? CONTRACT_REQUIRED_CORP : CONTRACT_REQUIRED_PERSON).filter(function (r) { return !str(r[0]); }).map(function (r) { return r[1]; });
   if (miss2.length) return { error: 'กรุณากรอกข้อมูลผู้ใช้บริการ: ' + miss2.join(', ') };
   if (!/^THP-\d{8}$/.test(str('post_family'))) return { error: 'หมายเลข Post Family ต้องเป็น THP- ตามด้วยตัวเลข 8 หลัก' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
+  if (!/^\d+$/.test(str('min_qty').replace(/,/g, ''))) return { error: 'กรุณากรอกปริมาณงานขั้นต่ำ (ชิ้น/เดือน) เป็นตัวเลข' };
   if (!/^\d+(\.\d{1,2})?$/.test(str('cod_pct'))) return { error: 'กรุณากรอก COD คิดในอัตรา (%) เป็นตัวเลข' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
   if (!str('goods_type')) return { error: 'กรุณากรอกประเภทสิ่งของที่ฝากส่ง' };
   if (!str('contact_name') || !str('contact_tel')) return { error: 'กรุณากรอกผู้ประสานงาน ชื่อ-สกุล และเบอร์โทร' }; // ผู้ใช้กำหนด 2026-11-18
@@ -5606,6 +5607,7 @@ function buildContractValues_(p) {
   var prices = Array.isArray(p.prices) ? p.prices : [];
   for (var i = 0; i < CONTRACT_PRICE_COUNT; i++) {
     var raw = String(prices[i] == null ? '' : prices[i]).replace(/,/g, '').trim();
+    if (!raw) return { error: 'กรุณากรอกอัตราค่าบริการให้ครบ 30 ช่อง (ช่องที่ ' + (i + 1) + ' ว่าง)' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
     if (raw && !/^\d+(\.\d{1,2})?$/.test(raw)) return { error: 'อัตราค่าบริการช่องที่ ' + (i + 1) + ' ไม่ใช่ตัวเลข' };
     values['p' + (i + 1)] = raw ? Number(raw).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
   }
