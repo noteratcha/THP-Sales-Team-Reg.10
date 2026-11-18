@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2002';
+    var APP_VERSION = 'Ver. 2026.1118.2023';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18552,7 +18552,7 @@
                         <input name="no_b" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 2">
                         <span class="text-gray-500">)/</span>
                         <!-- ช่อง 3 = ตัวเลข 3 หลัก เช่น 001, 101 (ผู้ใช้กำหนด 2026-11-18) พิมพ์ 1 → เติมเป็น 001 เมื่อออกจากช่อง -->
-                        <input name="no_c" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 3 (ตัวเลข 3 หลัก)" placeholder="001"
+                        <input name="no_c" class="ct-input min-w-0" aria-label="เลขที่ ส่วนที่ 3 (ตัวเลข 3 หลัก)" placeholder="เช่น 001"
                             inputmode="numeric" maxlength="3" pattern="\d{3}"
                             oninput="this.value = this.value.replace(/\D/g, '').slice(0, 3)"
                             onblur="if (this.value) this.value = ('000' + this.value).slice(-3)">
@@ -18675,7 +18675,10 @@
     #page-contract .ct-field > span:first-child { font-size: 0.8125rem; color: #4b5563; font-weight: 600; }
     #page-contract .ct-input { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; outline: none; min-height: 40px; width: 100%; }
     #page-contract .ct-input:focus { border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
-    #page-contract .ct-input.ct-invalid { border-color: #dc2626; }
+    #page-contract .ct-input.ct-invalid, #page-contract .ct-price-input.ct-invalid { border-color: #dc2626; }
+    #page-contract .ct-flash { animation: ctFlash 0.5s ease-in-out 3; }
+    @keyframes ctFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } 50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.35); } }
+    @media (prefers-reduced-motion: reduce) { #page-contract .ct-flash { animation: none; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.35); } }
     #page-contract .ct-check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; color: #374151; cursor: pointer; min-height: 32px; }
     #page-contract .ct-check input { width: 1.05rem; height: 1.05rem; accent-color: #c2410c; }
     #page-contract .ct-seg { display: inline-flex; border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; background: #fff; align-self: flex-start; }
@@ -19016,6 +19019,19 @@
             });
         };
 
+        // แจ้งเตือน แล้วเลื่อนไปช่องที่มีปัญหา (กึ่งกลางจอ) + โฟกัส + กระพริบกรอบ (ผู้ใช้ขอ 2026-11-18)
+        var warnAt = function (title, text, el) {
+            Swal.fire(title, text, 'warning').then(function () {
+                if (!el) return;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(function () {
+                    try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+                    el.classList.add('ct-flash');
+                    setTimeout(function () { el.classList.remove('ct-flash'); }, 1600);
+                }, 350);
+            });
+        };
+
         window.submitContractForm = function () {
             var f = form();
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
@@ -19033,9 +19049,9 @@
             if (sd && ed && ed < sd) { missing.push('ถึงวันที่ ต้องไม่ก่อนวันเริ่มสัญญา'); field('end_date').classList.add('ct-invalid'); }
             if (state.customerType === 'corp') need('corp_name', 'ชื่อนิติบุคคล'); else need('person_name', 'ชื่อ-สกุลผู้ใช้บริการ');
             var badPrice = p.prices.findIndex(function (v) { return v && !/^\d+(\.\d{1,2})?$/.test(v); });
-            if (missing.length) { Swal.fire('กรอกข้อมูลไม่ครบ', 'กรุณากรอก: ' + missing.join(', '), 'warning'); var first = f.querySelector('.ct-invalid'); if (first) first.focus(); return; }
-            if (p.no_c && !/^\d{3}$/.test(p.no_c)) { var nc = field('no_c'); if (nc) { nc.classList.add('ct-invalid'); nc.focus(); } Swal.fire('เลขที่หนังสือไม่ถูกต้อง', 'ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001, 101', 'warning'); return; }
-            if (badPrice !== -1) { Swal.fire('อัตราค่าบริการไม่ถูกต้อง', tierLabel(badPrice + 1) + ': กรอกเป็นตัวเลขเท่านั้น', 'warning'); return; }
+            if (missing.length) { warnAt('กรอกข้อมูลไม่ครบ', 'กรุณากรอก: ' + missing.join(', '), f.querySelector('.ct-invalid')); return; }
+            if (p.no_c && !/^\d{3}$/.test(p.no_c)) { var nc = field('no_c'); if (nc) nc.classList.add('ct-invalid'); warnAt('เลขที่หนังสือไม่ถูกต้อง', 'ช่องที่ 3 ต้องเป็นตัวเลข 3 หลัก เช่น 001, 101', nc); return; }
+            if (badPrice !== -1) { var bp = document.querySelector('#ctPriceBody .ct-price-input[data-ct-price="' + badPrice + '"]'); if (bp) bp.classList.add('ct-invalid'); warnAt('อัตราค่าบริการไม่ถูกต้อง', tierLabel(badPrice + 1) + ': กรอกเป็นตัวเลขเท่านั้น', bp); return; }
             var emptyPrices = p.prices.filter(function (v) { return !v; }).length;
             var go = function () {
                 if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังสร้างสัญญา...');
