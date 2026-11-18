@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1118.2111';
+    var APP_VERSION = 'Ver. 2026.1118.2117';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18733,6 +18733,10 @@
     #page-contract .ct-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
     #page-contract .ct-field > span:first-child { font-size: 0.8125rem; color: #4b5563; font-weight: 600; }
     #page-contract .ct-input { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: #fff; outline: none; min-height: 40px; width: 100%; }
+    /* ข้อความที่กรอกแล้วเป็นสีเขียวเข้ม (ผู้ใช้กำหนด 2026-11-18) — ตัวอย่าง (placeholder) ยังเป็นสีเทา */
+    #page-contract .ct-input, #page-contract .ct-price-input { color: #14532d; font-weight: 500; }
+    #page-contract .ct-input::placeholder, #page-contract .ct-price-input::placeholder { color: #9ca3af; font-weight: 400; }
+    #page-contract select.ct-input option { color: #111827; }
     #page-contract .ct-input:focus { border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
     #page-contract .ct-input.ct-invalid, #page-contract .ct-price-input.ct-invalid { border-color: #dc2626; }
     #page-contract .ct-flash { animation: ctFlash 0.5s ease-in-out 3; }
