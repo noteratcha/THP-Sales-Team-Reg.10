@@ -5868,7 +5868,7 @@ function syncRenewalArchiveCore_() {
     lock.waitLock(30000);
     var info = renewalArchiveInfo_();
     if (renewalArchiveFrozen_()) {
-      return info ? { status: 'success', frozen: true, archive: { at: info.at, rows: info.rows, frozen: true } }
+      return info ? { status: 'success', frozen: true, archive: { at: info.at, rows: info.rows, frozen: true, url: 'https://docs.google.com/spreadsheets/d/' + info.id + '/edit' } }
         : { status: 'error', message: 'เลยวันที่ 31 ธ.ค. 2569 แล้ว สร้างสำเนาข้อมูลปี 2569 ไม่ได้ (ชีตต้นทางอาจเป็นข้อมูลปี 2570)' };
     }
     var src = renewalSheet_();
@@ -5913,7 +5913,7 @@ function syncRenewalArchiveCore_() {
       out.getRange(1, 1, A.length, Ha.length).setNumberFormat('@').setValues(A); // ข้อความล้วน เลขบัตร/เบอร์ไม่ถูกแปลง
     }
     PropertiesService.getScriptProperties().setProperties({ RENEWAL_ARCHIVE_SS_ID: ss.getId(), RENEWAL_ARCHIVE_AT: now, RENEWAL_ARCHIVE_ROWS: String(A.length - 1) });
-    return { status: 'success', archive: { at: now, rows: A.length - 1 }, added: added, updated: updated, skipped2570: skipped2570 };
+    return { status: 'success', archive: { at: now, rows: A.length - 1, url: 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/edit' }, added: added, updated: updated, skipped2570: skipped2570 };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'syncRenewalArchiveCore_');
     return { status: 'error', message: e.toString() };
@@ -5972,7 +5972,8 @@ function getRenewalCustomers_(actor) {
     out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
     renewalArchiveAuto_(); // เริ่มเก็บ/ดูแลสำเนาปี 2569 อัตโนมัติ
     var arc = isAdmin ? renewalArchiveInfo_() : null;
-    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_() } : null };
+    // url ส่งเฉพาะ admin (ผู้ใช้ขอ 2026-11-19: มีช่องทางเปิดดูสำเนา เฉพาะ admin) — ไฟล์ไม่แชร์ เปิดได้เฉพาะบัญชี Google ที่มีสิทธิ์
+    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_(), url: 'https://docs.google.com/spreadsheets/d/' + arc.id + '/edit' } : null };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomers_');
     return { status: 'error', message: e.toString() };

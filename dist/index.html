@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1345';
+    var APP_VERSION = 'Ver. 2026.1119.1359';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18589,6 +18589,8 @@
                     <span id="ctRenewToggleText">ปิดให้ผู้ใช้</span>
                 </label>
             </div>
+            <!-- ป้ายตัวกรองบริการอยู่เหนือช่องค้นหา (รายชื่อที่เปิดอยู่จะไม่บัง) -->
+            <div id="ctRenewLegend" class="ct-renew-legend ct-renew-legend-top hidden"></div>
             <div class="ct-renew-box">
                 <i class="fas fa-search ct-renew-ic" aria-hidden="true"></i>
                 <input id="ctRenewSearch" type="search" class="ct-input" autocomplete="off" placeholder="พิมพ์ชื่อลูกค้า หรือรหัส/ชื่อที่ทำการ" role="combobox" aria-expanded="false" aria-controls="ctRenewList" aria-label="ค้นหาลูกค้าที่จะต่อสัญญา"
@@ -18596,7 +18598,6 @@
                 <ul id="ctRenewList" class="ct-renew-list hidden" role="listbox"></ul>
             </div>
             <p id="ctRenewStatus" class="ct-renew-status" aria-live="polite"></p>
-            <div id="ctRenewLegend" class="ct-renew-legend hidden"></div>
             <!-- ข้อมูลเดิมปี 2569 จากสำเนาถาวร (แสดงหลังเลือกลูกค้า) -->
             <div id="ctRenewPrev" class="ct-renew-prev hidden"></div>
             <!-- admin: สร้างสำเนาถาวรข้อมูลปี 2569 (ครั้งเดียว) -->
@@ -18928,10 +18929,19 @@
     #page-contract .ct-pk-a14 { --ct-pk: #9333ea; --ct-pk-bg: #f3e8ff; --ct-pk-fg: #7e22ce; }
     #page-contract .ct-pk-other { --ct-pk: #9ca3af; --ct-pk-bg: #f3f4f6; --ct-pk-fg: #4b5563; }
     #page-contract .ct-renew-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 12px; color: #6b7280; align-items: center; }
-    #page-contract .ct-renew-legend .ct-rn-badge { font-weight: 600; padding: 1px 8px; }
+    #page-contract .ct-renew-legend-top { margin: 0 0 10px; }
+    #page-contract .ct-rn-lg-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
+    #page-contract .ct-rn-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; background: var(--ct-pk-bg, #f3f4f6); color: var(--ct-pk-fg, #374151); cursor: pointer; transition: background .15s, box-shadow .15s; }
+    #page-contract .ct-rn-chip:hover { box-shadow: inset 0 0 0 1px var(--ct-pk, #9ca3af); }
+    #page-contract .ct-rn-chip.is-on { background: var(--ct-pk, #6b7280); color: #fff; border-color: var(--ct-pk, #6b7280); }
+    #page-contract .ct-rn-chip:focus-visible, #page-contract .ct-rn-chip-clear:focus-visible { outline: 2px solid #EA580C; outline-offset: 2px; }
+    #page-contract .ct-rn-chip-clear { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; background: none; border: 0; padding: 3px 6px; cursor: pointer; text-decoration: underline; }
     #page-contract .ct-renew-list li[aria-selected="true"], #page-contract .ct-renew-list li:hover { background: #fff7ed; }
     #page-contract .ct-renew-list li b { display: block; font-weight: 600; color: #111827; font-size: 14px; }
     #page-contract .ct-renew-list li small { display: block; color: #6b7280; font-size: 12px; }
+    #page-contract .ct-renew-list li.ct-renew-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; cursor: default; background: #fff7ed; font-size: 13px; color: #6b7280; position: sticky; bottom: -4px; }
+    #page-contract .ct-renew-more button { border: 1px solid #EA580C; color: #c2410c; background: #fff; border-radius: 8px; padding: 4px 10px; font-weight: 600; font-size: 13px; }
+    #page-contract .ct-renew-more button:hover { background: #ffedd5; }
     #page-contract .ct-renew-list li.ct-renew-empty { cursor: default; color: #6b7280; font-size: 13px; }
     #page-contract .ct-renew-switch { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer; font-size: 12.5px; color: #374151; white-space: nowrap; user-select: none; }
     #page-contract .ct-renew-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -18956,6 +18966,8 @@
     #page-contract .ct-renew-archive { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fdba74; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12.5px; color: #4b5563; }
     #page-contract .ct-renew-archive button { border: 1px solid #EA580C; color: #c2410c; background: #fff; border-radius: 8px; padding: 5px 10px; font-weight: 600; }
     #page-contract .ct-renew-archive button:disabled { opacity: .6; cursor: wait; }
+    #page-contract .ct-renew-open { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #16a34a; color: #15803d; background: #fff; border-radius: 8px; padding: 5px 10px; font-weight: 600; text-decoration: none; }
+    #page-contract .ct-renew-open:hover { background: #f0fdf4; }
     #page-contract .ct-renew-status { font-size: 12.5px; color: #6b7280; margin-top: 8px; min-height: 1em; }
     #page-contract .ct-renew-status.is-ok { color: #15803d; }
     #page-contract .ct-locked, #page-contract .ct-locked:not(:focus) { background: #f3f4f6 !important; border-color: #e5e7eb !important; color: #4b5563; cursor: not-allowed; }
@@ -19761,24 +19773,27 @@
             if (arc) {
                 arc.classList.toggle('hidden', !isAdm || renew.archive === undefined);
                 var a = renew.archive, n = a ? Number(a.rows || 0).toLocaleString('th-TH') : '';
+                // ลิงก์เปิดไฟล์สำเนา (admin เท่านั้น — แถวนี้แสดงเฉพาะ admin และหลังบ้านส่ง url ให้เฉพาะ admin)
+                var link = a && /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+\/edit$/.test(a.url || '')
+                    ? '<a class="ct-renew-open" href="' + esc(a.url) + '" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i>เปิดดูสำเนา (Google Sheets)</a>' : '';
                 arc.innerHTML = !a
-                    ? '<i class="fas fa-exclamation-triangle text-amber-500"></i><span>ระบบเริ่มเก็บสำเนาข้อมูลลูกค้าปี 2569 อัตโนมัติไม่สำเร็จ (ลองใหม่เองทุก 10 นาทีที่มีคนเปิดหน้านี้)</span><button type="button" onclick="thpRenewArchive(this)">เก็บสำเนาตอนนี้</button>'
+                    ? '<i class="fas fa-exclamation-triangle text-amber-500"></i><span>ระบบเริ่มเก็บสำเนาข้อมูลลูกค้าปี 2569 อัตโนมัติไม่สำเร็จ (ลองใหม่เองทุก 10 นาทีที่มีคนเปิดหน้านี้)</span><button type="button" onclick="thpRenewArchive(this)"><i class="fas fa-save"></i> สำรองข้อมูลตอนนี้</button>'
                     : a.frozen
-                        ? '<i class="fas fa-lock text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569 ล็อกถาวรแล้ว (' + n + ' แถว, อัปเดตครั้งสุดท้าย ' + esc(a.at) + ')</span>'
-                        : '<i class="fas fa-archive text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569: ' + n + ' แถว · อัปเดตล่าสุด ' + esc(a.at) + ' · อัปเดตอัตโนมัติทุกวันจนถึง 31 ธ.ค. 2569 แล้วล็อกถาวร</span><button type="button" onclick="thpRenewArchive(this)">อัปเดตตอนนี้</button>';
+                        ? '<i class="fas fa-lock text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569 ล็อกถาวรแล้ว (' + n + ' แถว, อัปเดตครั้งสุดท้าย ' + esc(a.at) + ')</span>' + link
+                        : '<i class="fas fa-archive text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569: ' + n + ' แถว · อัปเดตล่าสุด ' + esc(a.at) + ' · อัปเดตอัตโนมัติทุกวันจนถึง 31 ธ.ค. 2569 แล้วล็อกถาวร</span>' + link + '<button type="button" onclick="thpRenewArchive(this)"><i class="fas fa-save"></i> สำรองข้อมูลตอนนี้</button>';
             }
         };
         window.thpRenewArchive = function (btn) {
-            var label = btn.textContent;
-            btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+            var label = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังสำรองข้อมูล...';
             google.script.run.withSuccessHandler(function (res) {
-                if (!(res && res.status === 'success')) { btn.disabled = false; btn.textContent = label; Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                if (!(res && res.status === 'success')) { btn.disabled = false; btn.innerHTML = label; Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
                 renew.archive = res.archive; renewUi();
                 var detail = res.frozen ? 'ล็อกถาวรแล้ว ไม่อัปเดตเพิ่ม'
                     : 'เพิ่ม ' + (res.added || 0).toLocaleString('th-TH') + ' · อัปเดต ' + (res.updated || 0).toLocaleString('th-TH') + ' แถว' + (res.skipped2570 ? ' · ข้าม ' + res.skipped2570.toLocaleString('th-TH') + ' แถวที่เป็นสัญญาปี 2570 แล้ว' : '');
                 Swal.fire({ icon: 'success', title: res.existed ? 'อัปเดตสำเนาแล้ว' : 'เริ่มเก็บสำเนาแล้ว', html: esc(detail) + '<br><span style="font-size:13px;color:#6b7280">รวม ' + Number(res.archive.rows || 0).toLocaleString('th-TH') + ' แถว (' + esc(res.archive.at) + ')' + (res.triggerError ? '<br>⚠ ตั้งอัปเดตอัตโนมัติไม่สำเร็จ: ' + esc(res.triggerError) : '') + '</span>' });
             }).withFailureHandler(function (err) {
-                btn.disabled = false; btn.textContent = label;
+                btn.disabled = false; btn.innerHTML = label;
                 Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
             }).createRenewalArchive({}, currentUserInfo);
         };
@@ -19836,15 +19851,7 @@
                 if (!renew.enabled && !renewAdmin()) { renew.list = null; renewStatus(''); return; }
                 renew.list = res.data || [];
                 renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้');
-                // จำนวนลูกค้าแยกตามบริการ (สีเดียวกับรายการ)
-                var lg = document.getElementById('ctRenewLegend');
-                if (lg) {
-                    var cnt = {}, order = [];
-                    renew.list.forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
-                    order.sort(function (a, b) { var na = Number(a.replace(/\D/g, '')) || 99, nb = Number(b.replace(/\D/g, '')) || 99; return na - nb; });
-                    lg.innerHTML = order.map(function (l) { return '<span class="' + cnt[l].cls + '"><span class="ct-rn-badge">' + esc(l) + ' · ' + cnt[l].n.toLocaleString('th-TH') + ' ราย</span></span>'; }).join('');
-                    lg.classList.toggle('hidden', !order.length);
-                }
+                renew.pkgSel = {}; renewLegend();
                 var si = document.getElementById('ctRenewSearch'); if (si && document.activeElement === si) window.thpRenewFilter();
             }).withFailureHandler(function (err) {
                 if (stale()) return;
@@ -19863,21 +19870,64 @@
             if (n) return { cls: 'ct-pk-other', label: 'A' + n, other: false };
             return { cls: 'ct-pk-other', label: 'อัตราพิเศษ', other: true };
         };
-        window.thpRenewFilter = function () {
+        // ป้ายจำนวนลูกค้าแยกตามบริการ = ตัวกรอง กดเลือกได้หลายแบบ (ผู้ใช้ขอ 2026-11-19); ไม่เลือก = ทั้งหมด
+        var renewLegend = function () {
+            var lg = document.getElementById('ctRenewLegend'); if (!lg) return;
+            var cnt = {}, order = [], sel = renew.pkgSel || {};
+            (renew.list || []).forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
+            order.sort(function (a, b) { var na = Number(a.replace(/\D/g, '')) || 99, nb = Number(b.replace(/\D/g, '')) || 99; return na - nb; });
+            var any = Object.keys(sel).some(function (k) { return sel[k]; });
+            lg.innerHTML = '<span class="ct-rn-lg-label">กรองตามบริการ:</span>' + order.map(function (l) {
+                var on = !!sel[l];
+                return '<button type="button" class="ct-rn-chip ' + cnt[l].cls + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-pk="' + esc(l) + '" onclick="thpRenewPick(this)">' +
+                    (on ? '<i class="fas fa-check"></i>' : '') + esc(l) + ' · ' + cnt[l].n.toLocaleString('th-TH') + ' ราย</button>';
+            }).join('') + (any ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewPick(null)"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '');
+            lg.classList.toggle('hidden', !order.length);
+        };
+        window.thpRenewPick = function (btn) {
+            renew.pkgSel = renew.pkgSel || {};
+            if (!btn) renew.pkgSel = {};
+            else { var l = btn.getAttribute('data-pk'); renew.pkgSel[l] = !renew.pkgSel[l]; }
+            renewLegend();
+            var si = document.getElementById('ctRenewSearch'); if (si) si.focus({ preventScroll: true });
+            window.thpRenewFilter();
+        };
+        // more = true: แสดงเพิ่มอีก 50 รายการ (ปุ่มท้ายรายการ หรือเลื่อนถึงท้าย — ผู้ใช้ขอ 2026-11-19 ดูเกิน 50 รายการ)
+        var RENEW_PAGE = 50;
+        window.thpRenewFilter = function (more) {
             var si = document.getElementById('ctRenewSearch'), ul = document.getElementById('ctRenewList'); if (!si || !ul) return;
             if (!renew.list) { renewLoad(); return; }
             var q = si.value.trim().toLowerCase().replace(/\s+/g, ' ');
-            var hits = renew.list.filter(function (c) { return !q || (c.name + ' ' + c.zip + ' ' + c.office + ' ' + c.svc).toLowerCase().indexOf(q) !== -1; });
-            renew.shown = hits.slice(0, 50); renew.active = -1;
+            var sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
+            var hits = renew.list.filter(function (c) {
+                if (useSel && !sel[renewPkgClass(c).label]) return false;
+                return !q || (c.name + ' ' + c.zip + ' ' + c.office + ' ' + c.svc).toLowerCase().indexOf(q) !== -1;
+            });
+            var keepScroll = more === true ? ul.scrollTop : 0, keepActive = more === true ? renew.active : -1;
+            renew.limit = more === true ? (renew.limit || RENEW_PAGE) + RENEW_PAGE : RENEW_PAGE;
+            renew.shown = hits.slice(0, renew.limit); renew.active = keepActive;
+            var rest = hits.length - renew.shown.length;
             ul.innerHTML = renew.shown.length ? renew.shown.map(function (c, i) {
                 var k = renewPkgClass(c);
                 return '<li role="option" class="' + k.cls + '" id="ctRenewOpt' + i + '" data-i="' + i + '" aria-selected="false"><div class="ct-rn-main"><b>' + esc(c.name) + '</b>' +
                     '<div class="ct-rn-meta"><span><i class="fas fa-store"></i>' + esc(c.zip + (c.office ? ' ' + c.office : '')) + '</span>' +
                     (c.end ? '<span><i class="far fa-calendar"></i>สิ้นสุด ' + esc(c.end) + '</span>' : '') + (k.other ? '<span>' + esc(c.svc) + '</span>' : '') + '</div></div>' +
                     '<span class="ct-rn-badge" title="' + esc(c.svc) + '">' + esc(k.label) + '</span></li>';
-            }).join('') + (hits.length > 50 ? '<li class="ct-renew-empty">แสดง 50 จาก ' + hits.length.toLocaleString('th-TH') + ' ราย พิมพ์ชื่อเพิ่มเพื่อค้นหา</li>' : '')
-                : '<li class="ct-renew-empty">ไม่พบลูกค้าที่ตรงกับ "' + esc(si.value.trim()) + '"</li>';
+            }).join('') + (rest > 0
+                ? '<li class="ct-renew-more" role="presentation"><span>แสดง ' + renew.shown.length.toLocaleString('th-TH') + ' จาก ' + hits.length.toLocaleString('th-TH') + ' ราย</span>' +
+                  '<button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="thpRenewFilter(true)"><i class="fas fa-chevron-down"></i> แสดงเพิ่มอีก ' + Math.min(RENEW_PAGE, rest).toLocaleString('th-TH') + ' ราย</button></li>'
+                : (hits.length > RENEW_PAGE ? '<li class="ct-renew-empty">แสดงครบ ' + hits.length.toLocaleString('th-TH') + ' ราย</li>' : ''))
+                : '<li class="ct-renew-empty">' + (q ? 'ไม่พบลูกค้าที่ตรงกับ "' + esc(si.value.trim()) + '"' : 'ไม่พบลูกค้า') + (useSel ? ' ในบริการที่เลือก' : '') + '</li>';
             ul.classList.remove('hidden'); si.setAttribute('aria-expanded', 'true');
+            ul.scrollTop = keepScroll;
+            if (keepActive >= 0) renewMark(keepActive);
+            // เลื่อนถึงท้ายรายการ → แสดงเพิ่มเอง
+            if (!ul.dataset.moreBound) {
+                ul.dataset.moreBound = '1';
+                ul.addEventListener('scroll', function () {
+                    if (ul.querySelector('.ct-renew-more') && ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 24) window.thpRenewFilter(true);
+                });
+            }
         };
         var renewMark = function (i) {
             var ul = document.getElementById('ctRenewList'), si = document.getElementById('ctRenewSearch');
@@ -19891,7 +19941,11 @@
             if (e.key === 'Enter') e.preventDefault(); // ช่องค้นหาอยู่ในฟอร์ม: Enter ต้องไม่ส่งฟอร์มสร้างสัญญา
             if (e.key === 'Escape') { renewClose(); return; }
             if (!ul || ul.classList.contains('hidden') || !renew.shown.length) { if (e.key === 'ArrowDown') window.thpRenewFilter(); return; }
-            if (e.key === 'ArrowDown') { e.preventDefault(); renewMark(Math.min(renew.active + 1, renew.shown.length - 1)); }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (renew.active >= renew.shown.length - 1 && ul.querySelector('.ct-renew-more')) window.thpRenewFilter(true); // ท้ายรายการ → โหลดเพิ่ม
+                renewMark(Math.min(renew.active + 1, renew.shown.length - 1));
+            }
             else if (e.key === 'ArrowUp') { e.preventDefault(); renewMark(Math.max(renew.active - 1, 0)); }
             else if (e.key === 'Enter') { e.preventDefault(); if (renew.active >= 0) renewPick(renew.shown[renew.active]); }
         };
