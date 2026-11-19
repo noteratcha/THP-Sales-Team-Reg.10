@@ -887,7 +887,13 @@
             return Promise.all([ratesReady(), loadContractLibs(), getTemplatePdf()]).then(function (r) {
                 var pkg = r[0][pkgName];
                 if (!pkg || !pkg.prices || !pkg.prices.length) throw new Error('ไม่พบอัตราค่าบริการ ' + pkgName + ' ในชีต "เรตราคา"');
-                var p = { customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT), min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '' };
+                // ใส่เพิ่ม (ผู้ใช้ขอ 2026-11-19): ถึงวันที่ = 31 ธ.ค. ของปีสัญญา (ต.ค.–ธ.ค. = ปีถัดไป เหมือนค่าเริ่มต้นในฟอร์ม), COD 3%
+                var now = new Date(), cy = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+                var p = {
+                    customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT),
+                    min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '',
+                    end_date: window.thpContractThaiDate(cy + '-12-31'), cod_pct: '3'
+                };
                 return window.thpBuildContractPdf(r[2], p);
             }).then(function (bytes) {
                 var name = 'แบบฟอร์มสัญญาขนส่ง ปี2570_' + pkgName.replace(/\s+/g, '_') + '.pdf';

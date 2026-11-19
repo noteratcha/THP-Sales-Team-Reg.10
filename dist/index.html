@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.0855';
+    var APP_VERSION = 'Ver. 2026.1119.0901';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19446,7 +19446,13 @@
             return Promise.all([ratesReady(), loadContractLibs(), getTemplatePdf()]).then(function (r) {
                 var pkg = r[0][pkgName];
                 if (!pkg || !pkg.prices || !pkg.prices.length) throw new Error('ไม่พบอัตราค่าบริการ ' + pkgName + ' ในชีต "เรตราคา"');
-                var p = { customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT), min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '' };
+                // ใส่เพิ่ม (ผู้ใช้ขอ 2026-11-19): ถึงวันที่ = 31 ธ.ค. ของปีสัญญา (ต.ค.–ธ.ค. = ปีถัดไป เหมือนค่าเริ่มต้นในฟอร์ม), COD 3%
+                var now = new Date(), cy = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+                var p = {
+                    customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT),
+                    min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '',
+                    end_date: window.thpContractThaiDate(cy + '-12-31'), cod_pct: '3'
+                };
                 return window.thpBuildContractPdf(r[2], p);
             }).then(function (bytes) {
                 var name = 'แบบฟอร์มสัญญาขนส่ง ปี2570_' + pkgName.replace(/\s+/g, '_') + '.pdf';
