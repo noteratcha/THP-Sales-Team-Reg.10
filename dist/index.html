@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.0828';
+    var APP_VERSION = 'Ver. 2026.1119.0855';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1792,11 +1792,20 @@
                 <a href="https://drive.google.com/file/d/1yYi7KNIFR64ODi1fQw7xUG89QrnjoFqz/view?usp=drive_link" target="_blank" id="headerFuzeAgentDownloadBtn"
                     class="hidden text-[10px] sm:text-xs bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0 no-underline"><i
                         class="fas fa-folder-open"></i> โหลดเอกสารสัญญา FUZE</a>
-                <!-- หน้า สร้างสัญญาขนส่ง: แบบฟอร์มต้นฉบับ + ล้างฟอร์ม (ย้ายจากในหน้า 2026-11-18) -->
-                <button type="button" id="headerContractPdfBtn" onclick="window.thpDownloadContractTemplate && thpDownloadContractTemplate('pdf')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น PDF"
-                    class="hidden text-[10px] sm:text-xs bg-white text-orange-700 border border-orange-200 hover:bg-orange-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition items-center gap-1.5 whitespace-nowrap"><i class="fas fa-file-pdf"></i> ต้นฉบับ PDF</button>
-                <button type="button" id="headerContractWordBtn" onclick="window.thpDownloadContractTemplate && thpDownloadContractTemplate('docx')" title="ดาวน์โหลดแบบฟอร์มสัญญาต้นฉบับ (ยังไม่กรอก) เป็น Word เพื่อแก้ไขเอง"
-                    class="hidden text-[10px] sm:text-xs bg-white text-orange-700 border border-orange-200 hover:bg-orange-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition items-center gap-1.5 whitespace-nowrap"><i class="fas fa-file-word"></i> ต้นฉบับ Word</button>
+                <!-- หน้า สร้างสัญญาขนส่ง: ปุ่มเดียว "ดาวน์โหลดแบบฟอร์ม" + เมนู (ต้นฉบับเปล่า PDF/Word, ใส่อัตรา A11/A12) — ปรับ UX 2026-11-19
+                     เมนูใช้ position:fixed (แถบบนตัดส่วนเกิน) ตำแหน่งคำนวณใน thpContractDlToggle (Module_Contract) -->
+                <div id="headerContractDlWrap" class="hidden relative shrink-0">
+                    <button type="button" id="headerContractDlBtn" onclick="window.thpContractDlToggle && thpContractDlToggle()" aria-haspopup="menu" aria-expanded="false" aria-controls="headerContractDlMenu"
+                        class="flex text-[10px] sm:text-xs bg-white text-orange-700 border border-orange-200 hover:bg-orange-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition items-center gap-1.5 whitespace-nowrap"><i class="fas fa-download"></i> ดาวน์โหลดแบบฟอร์ม <i class="fas fa-chevron-down text-[9px] opacity-70"></i></button>
+                    <div id="headerContractDlMenu" role="menu" aria-label="ดาวน์โหลดแบบฟอร์มสัญญา" class="ct-dl-menu hidden">
+                        <div class="ct-dl-group">แบบฟอร์มเปล่า (ยังไม่กรอก)</div>
+                        <button type="button" role="menuitem" data-ct-dl="pdf"><i class="fas fa-file-pdf ct-dl-ic text-red-600"></i><span><b>ต้นฉบับ PDF</b><small>พิมพ์แล้วกรอกด้วยมือ</small></span></button>
+                        <button type="button" role="menuitem" data-ct-dl="docx"><i class="fas fa-file-word ct-dl-ic text-blue-600"></i><span><b>ต้นฉบับ Word</b><small>แก้ไขเองในคอมพิวเตอร์</small></span></button>
+                        <div class="ct-dl-group">ใส่อัตราค่าบริการไว้แล้ว (PDF)</div>
+                        <button type="button" role="menuitem" data-ct-dl="Package A11"><i class="fas fa-file-invoice ct-dl-ic text-orange-600"></i><span><b>Package A11</b><small data-ct-dl-sub="Package A11">ราคา 30 ช่วงน้ำหนัก + ปริมาณงานขั้นต่ำ</small></span></button>
+                        <button type="button" role="menuitem" data-ct-dl="Package A12"><i class="fas fa-file-invoice ct-dl-ic text-orange-600"></i><span><b>Package A12</b><small data-ct-dl-sub="Package A12">ราคา 30 ช่วงน้ำหนัก + ปริมาณงานขั้นต่ำ</small></span></button>
+                    </div>
+                </div>
                 <button type="button" id="headerContractResetBtn" onclick="window.resetContractForm && resetContractForm()" title="ล้างข้อมูลที่กรอกในฟอร์มทั้งหมด"
                     class="hidden text-[10px] sm:text-xs bg-white text-orange-700 border border-orange-200 hover:bg-orange-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition items-center gap-1.5 whitespace-nowrap"><i class="fas fa-eraser"></i> ล้างฟอร์ม</button>
                 <button type="button" id="headerFuzeAgentReloadBtn" onclick="window.loadFuzeAgentData(true)"
@@ -18730,6 +18739,19 @@
 </div>
 
 <style>
+    /* เมนู "ดาวน์โหลดแบบฟอร์ม" บนแถบบน (อยู่นอก #page-contract จึงไม่ใส่ prefix) */
+    .ct-dl-menu { position: fixed; z-index: 70; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.875rem; box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16); padding: 0.375rem; }
+    .ct-dl-menu.hidden { display: none; }
+    .ct-dl-group { font-size: 0.6875rem; font-weight: 700; color: #6b7280; letter-spacing: 0.02em; padding: 0.5rem 0.625rem 0.25rem; }
+    .ct-dl-group:not(:first-child) { border-top: 1px solid #f3f4f6; margin-top: 0.25rem; padding-top: 0.625rem; }
+    .ct-dl-menu [role="menuitem"] { display: flex; align-items: flex-start; gap: 0.625rem; width: 100%; text-align: left; padding: 0.5rem 0.625rem; border-radius: 0.5rem; min-height: 44px; color: #1f2937; }
+    .ct-dl-menu [role="menuitem"]:hover, .ct-dl-menu [role="menuitem"]:focus-visible { background: #fff7ed; outline: none; }
+    .ct-dl-menu [role="menuitem"]:focus-visible { box-shadow: inset 0 0 0 2px #fdba74; }
+    .ct-dl-menu [role="menuitem"][disabled] { opacity: 0.7; cursor: progress; }
+    .ct-dl-menu .ct-dl-ic { width: 1.25rem; text-align: center; font-size: 1rem; margin-top: 0.15rem; flex-shrink: 0; }
+    .ct-dl-menu [role="menuitem"] span { display: flex; flex-direction: column; min-width: 0; }
+    .ct-dl-menu [role="menuitem"] b { font-size: 0.8125rem; font-weight: 600; }
+    .ct-dl-menu [role="menuitem"] small { font-size: 0.71875rem; color: #6b7280; }
     #page-contract .ct-fieldset { display: flex; flex-direction: column; gap: 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: #fff; padding: 0.75rem 1rem 1rem; min-width: 0; }
     #page-contract .ct-fieldset legend { padding: 0 0.35rem; font-size: 0.9375rem; font-weight: 700; color: #1f2937; display: inline-flex; align-items: center; gap: 0.5rem; }
     /* มือถือ: ช่องที่อยู่สั้น ๆ 2 คอลัมน์ (ช่องยาว ct-span-2 เต็มแถว) */
@@ -19398,16 +19420,108 @@
         };
 
         // ดาวน์โหลดแบบฟอร์มต้นฉบับ
+        // คืน Promise<ชื่อไฟล์> (สถานะกำลังโหลดแสดงที่รายการในเมนู ไม่บังทั้งจอ)
         window.thpDownloadContractTemplate = function (kind) {
-            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังดาวน์โหลดแบบฟอร์มต้นฉบับ...');
-            var done = function () { if (typeof hideGlobalLoader === 'function') hideGlobalLoader(); };
-            google.script.run.withSuccessHandler(function (res) {
-                done();
-                if (!(res && res.status === 'success')) { Swal.fire('ดาวน์โหลดไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
-                download(res.data, res.name, kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
-            }).withFailureHandler(function (err) { done(); Swal.fire('ดาวน์โหลดไม่สำเร็จ', err && err.message ? err.message : String(err), 'error'); })
-              .getContractTemplateFile({ kind: kind }, currentUserInfo);
+            return new Promise(function (resolve, reject) {
+                google.script.run.withSuccessHandler(function (res) {
+                    if (!(res && res.status === 'success')) { reject(new Error((res && res.message) || 'ไม่ทราบสาเหตุ')); return; }
+                    download(res.data, res.name, kind === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf');
+                    resolve(res.name);
+                }).withFailureHandler(reject).getContractTemplateFile({ kind: kind }, currentUserInfo);
+            });
         };
+
+        // ต้นฉบับ PDF ที่ใส่อัตรา Package ไว้แล้ว (ราคา 30 ช่วงน้ำหนัก + ปริมาณงานขั้นต่ำ) ช่องอื่นว่างให้กรอกด้วยมือ
+        // ปุ่ม "ต้นฉบับ A11" / "ต้นฉบับ A12" บนแถบบน (ผู้ใช้ขอ 2026-11-19)
+        var ratesReady = function () {
+            if (state.rates && Object.keys(state.rates).length) return Promise.resolve(state.rates);
+            return new Promise(function (resolve, reject) {
+                google.script.run.withSuccessHandler(function (res) {
+                    if (res && res.status === 'success') { window.globalRateData = res.data; state.rates = window.thpContractPackages(res.data); resolve(state.rates); }
+                    else reject(new Error((res && res.message) || 'โหลดอัตราค่าบริการไม่สำเร็จ'));
+                }).withFailureHandler(reject).getRatePriceData();
+            });
+        };
+        window.thpDownloadPackageTemplate = function (pkgName) {
+            return Promise.all([ratesReady(), loadContractLibs(), getTemplatePdf()]).then(function (r) {
+                var pkg = r[0][pkgName];
+                if (!pkg || !pkg.prices || !pkg.prices.length) throw new Error('ไม่พบอัตราค่าบริการ ' + pkgName + ' ในชีต "เรตราคา"');
+                var p = { customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT), min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '' };
+                return window.thpBuildContractPdf(r[2], p);
+            }).then(function (bytes) {
+                var name = 'แบบฟอร์มสัญญาขนส่ง ปี2570_' + pkgName.replace(/\s+/g, '_') + '.pdf';
+                download(bytesToB64(bytes), name, 'application/pdf');
+                return name;
+            });
+        };
+
+        // ===== เมนู "ดาวน์โหลดแบบฟอร์ม" บนแถบบน (Module_Core #headerContractDl*) =====
+        var dlMenu = function () { return document.getElementById('headerContractDlMenu'); };
+        var dlBtn = function () { return document.getElementById('headerContractDlBtn'); };
+        var dlClose = function (focusBtn) {
+            var m = dlMenu(), b = dlBtn(); if (!m || m.classList.contains('hidden')) return;
+            m.classList.add('hidden'); if (b) { b.setAttribute('aria-expanded', 'false'); if (focusBtn) b.focus(); }
+        };
+        var dlPosition = function () {
+            var m = dlMenu(), b = dlBtn(); if (!m || !b) return;
+            var r = b.getBoundingClientRect(), w = Math.min(304, window.innerWidth - 16);
+            m.style.width = w + 'px';
+            m.style.top = Math.round(r.bottom + 6) + 'px';
+            m.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + 'px';
+        };
+        // รายละเอียดใต้ชื่อ Package: ราคาเริ่มต้น + ปริมาณงานขั้นต่ำ (จากชีต เรตราคา)
+        var dlFillSubs = function () {
+            ratesReady().then(function (rates) {
+                document.querySelectorAll('[data-ct-dl-sub]').forEach(function (el) {
+                    var pk = rates[el.getAttribute('data-ct-dl-sub')];
+                    if (pk && pk.prices && pk.prices[0]) el.textContent = 'เริ่ม ' + pk.prices[0] + ' บาท · ขั้นต่ำ ' + (pk.minItems ? Number(pk.minItems).toLocaleString('en-US') : '-') + ' ชิ้น/เดือน';
+                });
+            }).catch(function () { });
+        };
+        window.thpContractDlToggle = function () {
+            var m = dlMenu(), b = dlBtn(); if (!m || !b) return;
+            if (!m.classList.contains('hidden')) { dlClose(false); return; }
+            // ย้ายเมนูไปไว้ใต้ body: แถบบนตัดส่วนที่ล้นออก (overflow/backdrop-filter) ทำให้เมนูไม่แสดง
+            if (m.parentNode !== document.body) document.body.appendChild(m);
+            dlPosition(); m.classList.remove('hidden'); b.setAttribute('aria-expanded', 'true');
+            var first = m.querySelector('[role="menuitem"]:not([disabled])'); if (first) first.focus();
+            dlFillSubs();
+            loadContractLibs().catch(function () { }); // โหลดล่วงหน้า ให้กดแล้วเร็วขึ้น
+        };
+        var dlRun = function (item) {
+            if (item.disabled) return;
+            var key = item.getAttribute('data-ct-dl');
+            var icon = item.querySelector('.ct-dl-ic'), oldIcon = icon ? icon.className : '';
+            item.disabled = true; item.setAttribute('aria-busy', 'true');
+            if (icon) icon.className = 'fas fa-circle-notch fa-spin ct-dl-ic text-gray-500';
+            var job = (key === 'pdf' || key === 'docx') ? window.thpDownloadContractTemplate(key) : window.thpDownloadPackageTemplate(key);
+            job.then(function (name) {
+                dlClose(false);
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'ดาวน์โหลดแล้ว', text: name, showConfirmButton: false, timer: 2500, timerProgressBar: true });
+            }).catch(function (err) {
+                Swal.fire('ดาวน์โหลดไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).then(function () {
+                item.disabled = false; item.removeAttribute('aria-busy'); if (icon) icon.className = oldIcon;
+            });
+        };
+        document.addEventListener('click', function (e) {
+            var m = dlMenu(); if (!m || m.classList.contains('hidden')) return;
+            var item = e.target.closest && e.target.closest('#headerContractDlMenu [data-ct-dl]');
+            if (item) { dlRun(item); return; }
+            if (!e.target.closest('#headerContractDlWrap') && !e.target.closest('#headerContractDlMenu')) dlClose(false);
+        });
+        document.addEventListener('keydown', function (e) {
+            var m = dlMenu(); if (!m || m.classList.contains('hidden')) return;
+            if (e.key === 'Escape') { dlClose(true); return; }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                var items = Array.prototype.slice.call(m.querySelectorAll('[role="menuitem"]'));
+                var i = items.indexOf(document.activeElement);
+                var n = e.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+                items[n].focus(); e.preventDefault();
+            }
+        });
+        window.addEventListener('resize', function () { dlClose(false); });
+        window.addEventListener('scroll', function () { dlClose(false); }, true);
 
         window.submitContractForm = function () {
             var f = form();
@@ -28493,7 +28607,7 @@
                 if (target.action) target.action();
             }
 
-            const headerBtns = ['headerContractPdfBtn', 'headerContractWordBtn', 'headerContractResetBtn', 'headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
+            const headerBtns = ['headerContractDlWrap', 'headerContractResetBtn', 'headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
             headerBtns.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
             // หน้า สร้างสัญญา: เวลาอัปเดตไปอยู่ท้ายต่อจากปุ่ม ล้างฟอร์ม (ผู้ใช้ขอ 2026-11-18)
             (function () { const si = document.getElementById('headerSyncInfo'); if (si) si.style.order = pageId === 'contract' ? '99' : ''; })();
@@ -28523,7 +28637,7 @@
                 const el = document.getElementById('headerVisitSummaryBtn');
                 if (el) { el.classList.remove('hidden'); }
             } else if (pageId === 'contract') {
-                ['headerContractPdfBtn', 'headerContractWordBtn', 'headerContractResetBtn'].forEach(function (id) { const b = document.getElementById(id); if (b) { b.classList.remove('hidden'); b.classList.add('flex'); } });
+                ['headerContractDlWrap', 'headerContractResetBtn'].forEach(function (id) { const b = document.getElementById(id); if (b) { b.classList.remove('hidden'); b.classList.add('flex'); } });
             } else if (pageId === 'fuze-agent') {
                 const elReload = document.getElementById('headerFuzeAgentReloadBtn');
                 if (elReload) { elReload.classList.remove('hidden'); elReload.classList.add('flex'); }
