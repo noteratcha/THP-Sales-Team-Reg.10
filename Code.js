@@ -5778,6 +5778,93 @@ function renewalWriteBack_(p, actor) {
   }
 }
 
+// ===== ทะเบียนสัญญาปี 2570 (ผู้ใช้กำหนด 2026-11-19) =====
+// ทุกสัญญาที่สร้างจากระบบ (รายใหม่ + ต่อ/เปลี่ยน) → แท็บ "ปี 2570" ในไฟล์สำเนา 1Z0qQ… (สร้างแท็บอัตโนมัติ)
+// หัวคอลัมน์ชื่อเดียวกับชีต "รายชื่อ/สัญญา A1-A12" (renewalCols_ อ่านได้ → ปีถัดไปใช้ต่อสัญญาได้) + ข้อมูลเฉพาะสัญญา
+// 1 ลูกค้า 1 แถว: สร้างซ้ำ (แก้สัญญา) = แทนแถวเดิม (คีย์ THP 8 หลัก หรือ ชื่อ+รหัสที่ทำการ)
+var CONTRACT_REGISTER_SS_ID = '1Z0qQYRI5czF0p25pquIN8UWVJ8LBFgAYlHJSUX8cPi0';
+var CONTRACT_REGISTER_SHEET = 'ปี 2570';
+var CONTRACT_REGISTER_HEADER = ['ปน./ปข.', 'รหัสที่ทำการ', 'ที่ทำการรับฝาก', 'ชื่อลูกค้า', 'หมายเลขสมาชิก THP-', 'รหัสบริการปัจจุบัน', 'ค่าบริการปัจจุบันเริ่มต้น',
+  'ค่าธรรมเนียม COD(%)', 'วันที่เริ่มต้น', 'วันที่สิ้นสุด', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'เบอร์โทร', 'เลขบัตรประชาชน',
+  'CUSTOMER_ADDRESS', 'CUSTOMER_SUBDISTRICT', 'CUSTOMER_DISTRICT', 'CUSTOMER_PROVINCE', 'CUSTOMER_POSTCODE', 'customer_contact',
+  'ประเภทสิ่งของที่ฝากส่ง', 'Email', 'เบอร์ Wallet@post', 'ชื่อเจ้าของ Wallet@post', 'อาคาร', 'ถนน',
+  'ประเภทผู้ใช้บริการ', 'ทะเบียนนิติบุคคลเลขที่', 'ผู้มีอำนาจลงนาม', 'ประเภทสัญญา', 'เลขที่หนังสือ', 'วันที่ทำสัญญา', 'ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)',
+  'ไฟล์สัญญา PDF', 'สร้างโดย', 'บันทึกเมื่อ'];
+// "1 มกราคม 2570" → "1/1/2027" (รูปแบบวันที่ในชีตเดิม)
+function contractThaiToDmy_(v) {
+  var months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  var m = /^(\d{1,2})\s+(\S+)\s+(\d{4})$/.exec(String(v || '').trim());
+  if (!m || months.indexOf(m[2]) < 0) return String(v || '');
+  return Number(m[1]) + '/' + (months.indexOf(m[2]) + 1) + '/' + (Number(m[3]) - 543);
+}
+function contractRegister_(p, actor, pdfUrl) {
+  var lock = LockService.getScriptLock();
+  try {
+    var s = function (k) { return String(p[k] == null ? '' : p[k]).replace(/\s+/g, ' ').trim(); };
+    var d = function (v) { return String(v || '').replace(/\D/g, ''); };
+    var tel3 = function (t) { return t.length === 10 ? t.slice(0, 3) + '-' + t.slice(3, 6) + '-' + t.slice(6) : (t.length === 9 ? t.slice(0, 2) + '-' + t.slice(2, 5) + '-' + t.slice(5) : t); };
+    var corp = p.customerType === 'corp', t = corp ? 'corp_' : 'person_';
+    var name = corp ? s('corp_name') : s('person_name');
+    var rn = p.renewal || {};
+    var zip = String(rn.zip || '').trim() || (/^\d{5}$/.test(s('no_b')) ? s('no_b') : (/^\d{5}$/.test(String(actor.zipcode || '')) ? String(actor.zipcode) : ''));
+    var pf = d(p.post_family), tel = d(p.contact_tel), id = d(p.person_idcard);
+    var bld = s(t + 'building'), moo = /^(?:หมู่ที่|หมู่|ม\.)\s*(\d+)$/.exec(bld);
+    var pkg = s('pkg'), pm = /^Package A(\d+)$/.exec(pkg);
+    var svc = pm ? (pm[1] === '13' ? 'A13 (EMS ECOM 5013)' : pm[1] === '14' ? 'A14 (EMS ECOM 5014)' : 'A' + pm[1]) : (pkg === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkg);
+    var price0 = String((p.prices || [])[0] || '').replace(/,/g, '').trim();
+    var v = {
+      'ปน./ปข.': 'ปข.10', 'รหัสที่ทำการ': zip, 'ที่ทำการรับฝาก': s('office').replace(/^(ปณ\.|ปจ\.)\s*/, ''), 'ชื่อลูกค้า': name,
+      'หมายเลขสมาชิก THP-': pf.length === 8 ? pf : '', 'รหัสบริการปัจจุบัน': svc, 'ค่าบริการปัจจุบันเริ่มต้น': price0 ? price0 + ' บาท' : '',
+      'ค่าธรรมเนียม COD(%)': s('cod_pct') ? s('cod_pct') + '%' : '', 'วันที่เริ่มต้น': contractThaiToDmy_(s('start_date')), 'วันที่สิ้นสุด': contractThaiToDmy_(s('end_date')),
+      'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน': (p.checks || {}).x_label_yes ? s('label_detail') : '', 'เบอร์โทร': tel3(tel),
+      'เลขบัตรประชาชน': !corp && id.length === 13 ? id.charAt(0) + ' ' + id.substr(1, 4) + ' ' + id.substr(5, 5) + ' ' + id.substr(10, 2) + ' ' + id.charAt(12) : '',
+      'CUSTOMER_ADDRESS': s(t + 'no') + (moo ? ' ม.' + moo[1] : ''), 'CUSTOMER_SUBDISTRICT': s(t + 'subdistrict'), 'CUSTOMER_DISTRICT': s(t + 'district'),
+      'CUSTOMER_PROVINCE': s(t + 'province').replace(/\s+\d{5}$/, ''), 'CUSTOMER_POSTCODE': d(p[t + 'zip']).slice(0, 5),
+      'customer_contact': s('contact_name') + (tel ? ' ' + tel3(tel) : ''), 'ประเภทสิ่งของที่ฝากส่ง': s('goods_type'), 'Email': s('contact_email'),
+      'เบอร์ Wallet@post': d(p.wallet_tel), 'ชื่อเจ้าของ Wallet@post': s('wallet_name'), 'อาคาร': moo ? '' : bld, 'ถนน': s(t + 'road'),
+      'ประเภทผู้ใช้บริการ': corp ? 'นิติบุคคล' : 'บุคคลธรรมดา', 'ทะเบียนนิติบุคคลเลขที่': corp ? s('corp_reg_no') : '', 'ผู้มีอำนาจลงนาม': corp ? s('corp_signer') : '',
+      'ประเภทสัญญา': rn.name ? 'ต่อ/เปลี่ยนสัญญาลูกค้าเดิม' : 'ลูกค้ารายใหม่', 'เลขที่หนังสือ': 'ที่ ปณท ' + s('no_a') + ' (' + s('no_b') + ')/' + s('no_c'),
+      'วันที่ทำสัญญา': contractThaiToDmy_(s('sign_date')), 'ปริมาณงานขั้นต่ำ (ชิ้น/เดือน)': d(p.min_qty), 'ไฟล์สัญญา PDF': pdfUrl || '',
+      'สร้างโดย': actor.user + (actor.name ? ' (' + actor.name + ')' : ''), 'บันทึกเมื่อ': Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm')
+    };
+    lock.waitLock(20000);
+    var ss = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID);
+    var sh = ss.getSheetByName(CONTRACT_REGISTER_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(CONTRACT_REGISTER_SHEET);
+      sh.getRange(1, 1, 1, CONTRACT_REGISTER_HEADER.length).setValues([CONTRACT_REGISTER_HEADER]).setFontWeight('bold');
+      sh.setFrozenRows(1);
+    }
+    var lastCol = Math.max(sh.getLastColumn(), 1);
+    var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var miss = CONTRACT_REGISTER_HEADER.filter(function (h) { return header.indexOf(h) === -1; }); // คอลัมน์ที่เพิ่มภายหลัง
+    if (miss.length) {
+      if (sh.getMaxColumns() < lastCol + miss.length) sh.insertColumnsAfter(sh.getMaxColumns(), lastCol + miss.length - sh.getMaxColumns());
+      sh.getRange(1, lastCol + 1, 1, miss.length).setValues([miss]).setFontWeight('bold');
+      header = header.concat(miss); lastCol = header.length;
+    }
+    var rowVals = header.map(function (h) { return v.hasOwnProperty(h) ? v[h] : ''; });
+    // หาแถวเดิมของลูกค้ารายนี้ (แก้สัญญาแล้วสร้างใหม่ = แทนแถวเดิม)
+    var target = -1, lastRow = sh.getLastRow();
+    if (lastRow > 1) {
+      var data = sh.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
+      var ci = header.indexOf('หมายเลขสมาชิก THP-'), ni = header.indexOf('ชื่อลูกค้า'), zi = header.indexOf('รหัสที่ทำการ');
+      for (var i = 0; i < data.length; i++) {
+        var same = pf.length === 8 ? String(data[i][ci] || '').replace(/\D/g, '') === pf : (String(data[i][ni] || '').trim() === name && String(data[i][zi] || '').trim() === zip);
+        if (same) { target = i + 2; break; }
+      }
+    }
+    var row = target > 0 ? target : lastRow + 1;
+    sh.getRange(row, 1, 1, lastCol).setNumberFormat('@').setValues([rowVals]);
+    return { row: row, updated: target > 0 };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'contractRegister_');
+    return { error: e.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (e2) { }
+  }
+}
+
 // payload = ข้อมูลฟอร์ม + pdf (base64 ที่หน้าเว็บสร้าง) → ตรวจข้อมูล, สร้าง Word, เก็บ PDF + Word ใน Drive, คืน Word (base64)
 function generateTransportContract_(payload, actor) {
   try {
@@ -5801,8 +5888,10 @@ function generateTransportContract_(payload, actor) {
     var folder = getContractOutputFolder_(tpl);
     // ผู้ใช้กำหนด 2026-11-18: ดาวน์โหลดได้เฉพาะ PDF — ไม่สร้าง/ไม่ส่งไฟล์ Word (เปิดได้ด้วย payload.wantDocx ถ้าจะกลับมาใช้)
     if (!pdfBytes) return { status: 'error', message: 'ไม่มีไฟล์ PDF ที่สร้างจากหน้าเว็บ' };
-    folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
+    var pdfFile = folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
     var out = { status: 'success', fileName: fileName };
+    // ทะเบียนสัญญาปี 2570 (ทุกสัญญา) — ล้มเหลวไม่กระทบการสร้างสัญญา
+    out.register = contractRegister_(payload, actor, pdfFile.getUrl());
     // ต่อ/เปลี่ยนสัญญาลูกค้าเดิม: เติมข้อมูลที่ขาดกลับลงชีตต้นทาง + สำเนา (ล้มเหลวไม่กระทบการสร้างสัญญา)
     if (payload.renewal && payload.renewal.name) out.writeBack = renewalWriteBack_(payload, actor);
     if (payload.wantDocx) {

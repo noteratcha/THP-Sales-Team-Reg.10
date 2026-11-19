@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1541';
+    var APP_VERSION = 'Ver. 2026.1119.1614';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20144,6 +20144,10 @@
                         wbNote = nLive || nArc ? '<br><span style="font-size:13px;color:#15803d">เติมข้อมูลลูกค้าที่ขาด: ชีตต้นทาง ' + nLive + ' ช่อง · สำเนาปี 2569 ' + nArc + ' ช่อง</span>'
                             : '<br><span style="font-size:13px;color:#6b7280">ข้อมูลลูกค้าในชีตครบอยู่แล้ว ไม่มีช่องที่ต้องเติม</span>';
                     } else if (wb && wb.error) wbNote = '<br><span style="font-size:13px;color:#b45309">เติมข้อมูลกลับลงชีตไม่สำเร็จ (สัญญาสร้างแล้ว)</span>';
+                    // ทะเบียนสัญญาปี 2570 (ทุกสัญญา — ผู้ใช้กำหนด 2026-11-19)
+                    var rg = res.register;
+                    if (rg && !rg.error) wbNote += '<br><span style="font-size:13px;color:#15803d">' + (rg.updated ? 'อัปเดตข้อมูลลูกค้าในทะเบียนสัญญาปี 2570 แล้ว' : 'บันทึกลงทะเบียนสัญญาปี 2570 แล้ว') + '</span>';
+                    else if (rg && rg.error) wbNote += '<br><span style="font-size:13px;color:#b45309">บันทึกทะเบียนสัญญาปี 2570 ไม่สำเร็จ (สัญญาสร้างแล้ว)</span>';
                     Swal.fire({
                         icon: 'success', title: 'สร้างสัญญาแล้ว',
                         html: 'ดาวน์โหลดไฟล์ PDF แล้ว<br><span style="font-size:13px;color:#6b7280">' + esc(res.fileName) + '</span>' + wbNote,
