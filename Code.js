@@ -5830,6 +5830,30 @@ function renewalArchiveDaily() {
   var r = syncRenewalArchiveCore_();
   if (r.status !== 'success' && typeof sendErrorToLine_ === 'function') sendErrorToLine_(new Error(r.message), 'renewalArchiveDaily');
 }
+// เริ่มเก็บสำเนาอัตโนมัติ (ผู้ใช้ขอ 2026-11-19: ไม่ต้องกดปุ่ม) — เรียกจาก getRenewalCustomers_ ครั้งแรกที่มีคนเปิดหน้า
+// ยังไม่มีสำเนา + ยังไม่ถึงสิ้นปี → สร้าง + ตั้งทริกเกอร์รายวัน; มีสำเนาแล้ว → ตรวจว่าทริกเกอร์ยังอยู่ (ตรวจวันละครั้ง)
+// ล้มเหลวแล้วเว้น 10 นาทีก่อนลองใหม่ (RENEWAL_ARCHIVE_AUTO_TRY) ไม่ให้ทุกคำขอช้า
+function renewalArchiveAuto_() {
+  try {
+    if (renewalArchiveFrozen_()) return;
+    var props = PropertiesService.getScriptProperties();
+    var today = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd');
+    if (renewalArchiveInfo_()) {
+      if (props.getProperty('RENEWAL_ARCHIVE_TRIGGER_CHECK') === today) return;
+      var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === RENEWAL_ARCHIVE_TRIGGER_FN; });
+      if (!has) renewalArchiveTrigger_(true);
+      props.setProperty('RENEWAL_ARCHIVE_TRIGGER_CHECK', today);
+      return;
+    }
+    var last = Number(props.getProperty('RENEWAL_ARCHIVE_AUTO_TRY') || 0);
+    if (Date.now() - last < 10 * 60 * 1000) return;
+    props.setProperty('RENEWAL_ARCHIVE_AUTO_TRY', String(Date.now()));
+    var r = syncRenewalArchiveCore_();
+    if (r.status === 'success') { renewalArchiveTrigger_(true); props.setProperty('RENEWAL_ARCHIVE_TRIGGER_CHECK', today); }
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'renewalArchiveAuto_');
+  }
+}
 function createRenewalArchive_(payload, actor) {
   if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
   var had = !!renewalArchiveInfo_();
@@ -5946,6 +5970,7 @@ function getRenewalCustomers_(actor) {
       });
     }
     out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    renewalArchiveAuto_(); // เริ่มเก็บ/ดูแลสำเนาปี 2569 อัตโนมัติ
     var arc = isAdmin ? renewalArchiveInfo_() : null;
     return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_() } : null };
   } catch (e) {

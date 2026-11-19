@@ -6,15 +6,22 @@
     <!-- แถวคำอธิบาย + ปุ่ม ย้ายไปแถบบน (Module_Core #headerContract*Btn) ผู้ใช้ขอ 2026-11-18 -->
     <form id="contractForm" class="ct-layout p-3 md:p-5" onsubmit="event.preventDefault(); submitContractForm();" oninput="thpContractProgress()" onchange="thpContractProgress()" novalidate>
         <div class="ct-main">
-        <!-- ต่อสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19): เลือกจากชีต "รายชื่อ/สัญญา A1-A12" (getRenewalCustomers) แล้วเติมข้อมูลในฟอร์ม
+        <!-- ต่อ/เปลี่ยนสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19): เลือกจากชีต "รายชื่อ/สัญญา A1-A12" (getRenewalCustomers) แล้วเติมข้อมูลในฟอร์ม
              ช่องค้นหาไม่มี name → ไม่ถูกส่งไปกับข้อมูลสัญญา -->
         <!-- admin เปิด/ปิดได้ (ผู้ใช้กำหนด 2026-11-19): ปิดอยู่ = ผู้ใช้ทั่วไปไม่เห็นกล่องนี้, admin เห็นเสมอพร้อมสวิตช์ -->
         <!-- ผู้ใช้ทั่วไปตอนที่ admin ยังไม่เปิด: แจ้งว่ายังไม่เปิดใช้งาน (ผู้ใช้ขอ 2026-11-19) -->
-        <p id="ctRenewOff" class="ct-renew-off hidden" role="status"><i class="fas fa-info-circle" aria-hidden="true"></i><span><b>ต่อสัญญาลูกค้าเดิม ปี 2570 ยังไม่เปิดใช้งาน</b> ผู้ดูแลระบบกำลังตรวจข้อมูลลูกค้าเดิม เมื่อเปิดแล้วจะเลือกลูกค้าเพื่อเติมข้อมูลได้ที่นี่ ระหว่างนี้กรอกข้อมูลลูกค้าเองได้ตามปกติ</span></p>
+        <!-- โครง skeleton ระหว่างโหลดข้อมูลลูกค้าเดิมครั้งแรก (ผู้ใช้ขอ 2026-11-19) -->
+        <div id="ctRenewSkel" class="ct-renew-skel hidden" aria-busy="true" aria-label="กำลังโหลดข้อมูลลูกค้าเดิม">
+            <div class="ct-sk ct-sk-title"></div>
+            <div class="ct-sk ct-sk-sub"></div>
+            <div class="ct-sk ct-sk-input"></div>
+            <div class="ct-sk ct-sk-line"></div>
+        </div>
+        <p id="ctRenewOff" class="ct-renew-off hidden" role="status"><i class="fas fa-info-circle" aria-hidden="true"></i><span><b>ต่อ/เปลี่ยนสัญญาลูกค้าเดิม ปี 2570 ยังไม่เปิดใช้งาน</b> ผู้ดูแลระบบกำลังตรวจข้อมูลลูกค้าเดิม เมื่อเปิดแล้วจะเลือกลูกค้าเพื่อเติมข้อมูลได้ที่นี่ ระหว่างนี้กรอกข้อมูลลูกค้าเองได้ตามปกติ</span></p>
         <div class="ct-renew hidden" id="ctRenew">
             <div class="ct-renew-head">
                 <i class="fas fa-redo-alt" aria-hidden="true"></i>
-                <div class="flex-1 min-w-0"><b>ต่อสัญญาลูกค้าเดิม ปี 2570</b><span>เลือกลูกค้าที่ใช้งานอยู่ ระบบจะเติมข้อมูลลูกค้าให้ แล้วตรวจสอบ/กรอกช่องที่เหลือ</span></div>
+                <div class="flex-1 min-w-0"><b>ต่อ/เปลี่ยนสัญญาลูกค้าเดิม ปี 2570</b><span>เลือกลูกค้าที่ใช้งานอยู่ ระบบจะเติมข้อมูลลูกค้าให้ แล้วตรวจสอบ/กรอกช่องที่เหลือ</span></div>
                 <label id="ctRenewAdmin" class="ct-renew-switch hidden" title="เฉพาะ admin: เปิด/ปิดฟังก์ชันต่อสัญญาให้ผู้ใช้ทุกคน">
                     <input type="checkbox" id="ctRenewToggle" role="switch" onchange="event.stopPropagation(); thpRenewToggle(this)">
                     <span class="ct-renew-track" aria-hidden="true"></span>
@@ -28,6 +35,7 @@
                 <ul id="ctRenewList" class="ct-renew-list hidden" role="listbox"></ul>
             </div>
             <p id="ctRenewStatus" class="ct-renew-status" aria-live="polite"></p>
+            <div id="ctRenewLegend" class="ct-renew-legend hidden"></div>
             <!-- ข้อมูลเดิมปี 2569 จากสำเนาถาวร (แสดงหลังเลือกลูกค้า) -->
             <div id="ctRenewPrev" class="ct-renew-prev hidden"></div>
             <!-- admin: สร้างสำเนาถาวรข้อมูลปี 2569 (ครั้งเดียว) -->
@@ -335,7 +343,31 @@
     #page-contract .ct-renew-box .ct-input { padding-left: 34px; background: #fff; }
     #page-contract .ct-renew-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px; pointer-events: none; }
     #page-contract .ct-renew-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); max-height: 320px; overflow-y: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 12px 28px rgba(0,0,0,.12); padding: 4px; }
+    #page-contract .ct-renew-skel { border: 1px solid #fed7aa; background: #fff7ed; border-radius: 14px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 9px; }
+    #page-contract .ct-renew-skel.hidden { display: none; }
+    /* คลาสที่กำหนด display เอง ต้องมีกฎ .hidden ของตัวเอง ไม่งั้นทับ .hidden ของ Tailwind (สวิตช์/ปุ่ม admin เคยโผล่ให้ผู้ใช้ทั่วไปเห็น พบ 2026-11-19) */
+    #page-contract .ct-renew-switch.hidden, #page-contract .ct-renew-archive.hidden, #page-contract .ct-renew-legend.hidden, #page-contract .ct-renew-prev.hidden, #page-contract .ct-renew.hidden { display: none !important; }
+    #page-contract .ct-sk { border-radius: 8px; background: linear-gradient(90deg, #fde7d3 25%, #fff3e8 50%, #fde7d3 75%); background-size: 200% 100%; animation: ct-sk-shine 1.2s ease-in-out infinite; }
+    #page-contract .ct-sk-title { height: 16px; width: 220px; max-width: 60%; }
+    #page-contract .ct-sk-sub { height: 11px; width: 420px; max-width: 85%; }
+    #page-contract .ct-sk-input { height: 40px; width: 100%; border-radius: 10px; }
+    #page-contract .ct-sk-line { height: 11px; width: 160px; }
+    @keyframes ct-sk-shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { #page-contract .ct-sk { animation: none; } }
     #page-contract .ct-renew-list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+    /* รายชื่อลูกค้า: แถบสีตามบริการ (ผู้ใช้ขอ 2026-11-19 ให้ดูง่าย แบ่งเป็นสี) */
+    #page-contract .ct-renew-list li[role="option"] { display: flex; align-items: center; gap: 10px; border-left: 4px solid var(--ct-pk, #d1d5db); margin-bottom: 2px; }
+    #page-contract .ct-renew-list li .ct-rn-main { flex: 1; min-width: 0; }
+    #page-contract .ct-renew-list li .ct-rn-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: #6b7280; font-size: 12px; margin-top: 2px; }
+    #page-contract .ct-renew-list li .ct-rn-meta i { margin-right: 3px; color: #9ca3af; }
+    #page-contract .ct-rn-badge { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--ct-pk-bg, #f3f4f6); color: var(--ct-pk-fg, #374151); white-space: nowrap; }
+    #page-contract .ct-pk-a11 { --ct-pk: #3b82f6; --ct-pk-bg: #dbeafe; --ct-pk-fg: #1d4ed8; }
+    #page-contract .ct-pk-a12 { --ct-pk: #16a34a; --ct-pk-bg: #dcfce7; --ct-pk-fg: #15803d; }
+    #page-contract .ct-pk-a13 { --ct-pk: #EA580C; --ct-pk-bg: #ffedd5; --ct-pk-fg: #c2410c; }
+    #page-contract .ct-pk-a14 { --ct-pk: #9333ea; --ct-pk-bg: #f3e8ff; --ct-pk-fg: #7e22ce; }
+    #page-contract .ct-pk-other { --ct-pk: #9ca3af; --ct-pk-bg: #f3f4f6; --ct-pk-fg: #4b5563; }
+    #page-contract .ct-renew-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 12px; color: #6b7280; align-items: center; }
+    #page-contract .ct-renew-legend .ct-rn-badge { font-weight: 600; padding: 1px 8px; }
     #page-contract .ct-renew-list li[aria-selected="true"], #page-contract .ct-renew-list li:hover { background: #fff7ed; }
     #page-contract .ct-renew-list li b { display: block; font-weight: 600; color: #111827; font-size: 14px; }
     #page-contract .ct-renew-list li small { display: block; color: #6b7280; font-size: 12px; }
@@ -1137,8 +1169,11 @@
         window.addEventListener('resize', function () { dlClose(false); });
         window.addEventListener('scroll', function () { dlClose(false); }, true);
 
-        // ===== ต่อสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19) =====
-        var renew = { list: null, loading: false, forUser: null, shown: [], active: -1, enabled: false, isAdmin: false };
+        // ===== ต่อ/เปลี่ยนสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19) =====
+        var renew = { list: null, loading: false, forUser: null, shown: [], active: -1, enabled: false, isAdmin: false, seq: 0 };
+        // ผู้ใช้ที่ล็อกอินอยู่ตอนนี้ — ส่วนของ admin ต้องเป็น admin ทั้งจากหลังบ้านและผู้ล็อกอินปัจจุบัน (กันสถานะค้างหลังสลับผู้ใช้ พบ 2026-11-19)
+        var renewWho = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
+        var renewAdmin = function () { return renew.isAdmin && renewWho().toLowerCase() === 'admin'; };
         var renewStatus = function (text, ok) {
             var s = document.getElementById('ctRenewStatus'); if (!s) return;
             s.textContent = text || ''; s.classList.toggle('is-ok', !!ok);
@@ -1147,23 +1182,26 @@
         var renewUi = function () {
             var box = document.getElementById('ctRenew'), adm = document.getElementById('ctRenewAdmin'), tg = document.getElementById('ctRenewToggle'), tt = document.getElementById('ctRenewToggleText');
             if (!box) return;
-            box.classList.toggle('hidden', !(renew.enabled || renew.isAdmin));
+            var isAdm = renewAdmin();
+            box.classList.toggle('hidden', !(renew.enabled || isAdm));
+            // โครง skeleton ระหว่างโหลดครั้งแรก (ผู้ใช้ขอ 2026-11-19)
+            var sk = document.getElementById('ctRenewSkel'); if (sk) sk.classList.toggle('hidden', !(renew.loading && !renew.checked));
             // แจ้งผู้ใช้ทั่วไปเมื่อยังไม่เปิด — แสดงหลังรู้สถานะจากหลังบ้านแล้วเท่านั้น (ไม่กะพริบตอนโหลด)
             var off = document.getElementById('ctRenewOff');
             if (off) {
                 if (renew.offHtml === undefined) renew.offHtml = off.innerHTML; // ข้อความเดิม (renewFail เขียนทับได้)
                 off.innerHTML = renew.offHtml;
-                off.classList.toggle('hidden', !(renew.checked && !renew.enabled && !renew.isAdmin));
+                off.classList.toggle('hidden', !(renew.checked && !renew.enabled && !isAdm));
             }
-            if (adm) adm.classList.toggle('hidden', !renew.isAdmin);
+            if (adm) adm.classList.toggle('hidden', !isAdm);
             if (tg) { tg.checked = renew.enabled; tg.setAttribute('aria-checked', String(renew.enabled)); }
             if (tt) tt.textContent = renew.enabled ? 'เปิดให้ผู้ใช้ทุกคน' : 'ปิดให้ผู้ใช้ (admin เท่านั้น)';
             var arc = document.getElementById('ctRenewArchive');
             if (arc) {
-                arc.classList.toggle('hidden', !renew.isAdmin || renew.archive === undefined);
+                arc.classList.toggle('hidden', !isAdm || renew.archive === undefined);
                 var a = renew.archive, n = a ? Number(a.rows || 0).toLocaleString('th-TH') : '';
                 arc.innerHTML = !a
-                    ? '<i class="fas fa-exclamation-triangle text-amber-500"></i><span>ยังไม่ได้เก็บสำเนาข้อมูลลูกค้าปี 2569 — เริ่มเก็บแล้วระบบจะอัปเดตให้ทุกวันจนถึง 31 ธ.ค. 2569</span><button type="button" onclick="thpRenewArchive(this)">เริ่มเก็บสำเนาข้อมูลปี 2569</button>'
+                    ? '<i class="fas fa-exclamation-triangle text-amber-500"></i><span>ระบบเริ่มเก็บสำเนาข้อมูลลูกค้าปี 2569 อัตโนมัติไม่สำเร็จ (ลองใหม่เองทุก 10 นาทีที่มีคนเปิดหน้านี้)</span><button type="button" onclick="thpRenewArchive(this)">เก็บสำเนาตอนนี้</button>'
                     : a.frozen
                         ? '<i class="fas fa-lock text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569 ล็อกถาวรแล้ว (' + n + ' แถว, อัปเดตครั้งสุดท้าย ' + esc(a.at) + ')</span>'
                         : '<i class="fas fa-archive text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569: ' + n + ' แถว · อัปเดตล่าสุด ' + esc(a.at) + ' · อัปเดตอัตโนมัติทุกวันจนถึง 31 ธ.ค. 2569 แล้วล็อกถาวร</span><button type="button" onclick="thpRenewArchive(this)">อัปเดตตอนนี้</button>';
@@ -1220,28 +1258,49 @@
             }
         };
         var renewLoad = function () {
-            var who = ''; try { who = String((currentUserInfo || {}).user || ''); } catch (e) { }
-            if (renew.forUser !== who) { renew.list = null; renew.forUser = who; renew.checked = false; renew.enabled = false; renew.isAdmin = false; renew.archive = undefined; renewUi(); renewStatus(''); var si = document.getElementById('ctRenewSearch'); if (si) si.value = ''; }
+            var who = renewWho();
+            // สลับผู้ใช้: ล้างสถานะ + ทิ้งคำขอที่ค้างของผู้ใช้ก่อน (loading = false, seq ใหม่)
+            if (renew.forUser !== who) { renew.list = null; renew.forUser = who; renew.loading = false; renew.seq++; renew.checked = false; renew.enabled = false; renew.isAdmin = false; renew.archive = undefined; renewUi(); renewStatus(''); var si = document.getElementById('ctRenewSearch'); if (si) si.value = ''; var lg0 = document.getElementById('ctRenewLegend'); if (lg0) lg0.classList.add('hidden'); }
             if (renew.loading) return;
             // ผู้ใช้ทั่วไปตรวจสถานะเปิด/ปิดใหม่ทุกครั้งที่เข้าหน้า (admin อาจเพิ่งเปิด); โหลดรายชื่อแล้วไม่โหลดซ้ำ
-            if (renew.list && (renew.enabled || renew.isAdmin)) return;
+            if (renew.list && (renew.enabled || renewAdmin())) return;
             renew.loading = true; if (!renew.list) renewStatus('กำลังโหลดรายชื่อลูกค้า...');
+            var seq = ++renew.seq; renewUi();
+            var stale = function () { return seq !== renew.seq || renewWho() !== who; }; // คำตอบของผู้ใช้/คำขอก่อนหน้า → ทิ้ง
             google.script.run.withSuccessHandler(function (res) {
+                if (stale()) return;
                 renew.loading = false;
                 if (!(res && res.status === 'success')) { renewFail((res && res.message) || 'โหลดรายชื่อลูกค้าไม่สำเร็จ'); return; }
-                renew.checked = true; renew.enabled = !!res.enabled; renew.isAdmin = !!res.isAdmin; renew.archive = res.archive === undefined ? undefined : (res.archive || null); renewUi();
-                if (!renew.enabled && !renew.isAdmin) { renew.list = null; renewStatus(''); return; }
+                renew.checked = true; renew.enabled = !!res.enabled; renew.isAdmin = !!res.isAdmin && who.toLowerCase() === 'admin'; renew.archive = res.archive === undefined ? undefined : (res.archive || null); renewUi();
+                if (!renew.enabled && !renewAdmin()) { renew.list = null; renewStatus(''); return; }
                 renew.list = res.data || [];
                 renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้');
+                // จำนวนลูกค้าแยกตามบริการ (สีเดียวกับรายการ)
+                var lg = document.getElementById('ctRenewLegend');
+                if (lg) {
+                    var cnt = {}, order = [];
+                    renew.list.forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
+                    order.sort(function (a, b) { var na = Number(a.replace(/\D/g, '')) || 99, nb = Number(b.replace(/\D/g, '')) || 99; return na - nb; });
+                    lg.innerHTML = order.map(function (l) { return '<span class="' + cnt[l].cls + '"><span class="ct-rn-badge">' + esc(l) + ' · ' + cnt[l].n.toLocaleString('th-TH') + ' ราย</span></span>'; }).join('');
+                    lg.classList.toggle('hidden', !order.length);
+                }
                 var si = document.getElementById('ctRenewSearch'); if (si && document.activeElement === si) window.thpRenewFilter();
             }).withFailureHandler(function (err) {
-                renew.loading = false; renewFail('โหลดรายชื่อลูกค้าไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+                if (stale()) return;
+                renew.loading = false; renewUi(); renewFail('โหลดรายชื่อลูกค้าไม่สำเร็จ: ' + (err && err.message ? err.message : err));
             }).getRenewalCustomers(currentUserInfo);
         };
         window.thpRenewLoad = renewLoad;
         var renewClose = function () {
             var ul = document.getElementById('ctRenewList'), si = document.getElementById('ctRenewSearch');
             if (ul) ul.classList.add('hidden'); if (si) si.setAttribute('aria-expanded', 'false'); renew.active = -1;
+        };
+        // สีตามบริการเดิม: A11 ฟ้า, A12 เขียว, A13 ส้ม, A14 ม่วง, อื่น ๆ เทา (มีข้อความกำกับเสมอ ไม่พึ่งสีอย่างเดียว)
+        var renewPkgClass = function (c) {
+            var m = /^Package A(\d+)$/.exec(c.pkg || ''), n = m ? Number(m[1]) : 0;
+            if (n >= 11 && n <= 14) return { cls: 'ct-pk-a' + n, label: 'A' + n, other: false };
+            if (n) return { cls: 'ct-pk-other', label: 'A' + n, other: false };
+            return { cls: 'ct-pk-other', label: 'อัตราพิเศษ', other: true };
         };
         window.thpRenewFilter = function () {
             var si = document.getElementById('ctRenewSearch'), ul = document.getElementById('ctRenewList'); if (!si || !ul) return;
@@ -1250,8 +1309,11 @@
             var hits = renew.list.filter(function (c) { return !q || (c.name + ' ' + c.zip + ' ' + c.office + ' ' + c.svc).toLowerCase().indexOf(q) !== -1; });
             renew.shown = hits.slice(0, 50); renew.active = -1;
             ul.innerHTML = renew.shown.length ? renew.shown.map(function (c, i) {
-                return '<li role="option" id="ctRenewOpt' + i + '" data-i="' + i + '" aria-selected="false"><b>' + esc(c.name) + '</b><small>' +
-                    esc([c.zip + (c.office ? ' ' + c.office : ''), c.svc, c.end ? 'สิ้นสุด ' + c.end : ''].filter(Boolean).join(' · ')) + '</small></li>';
+                var k = renewPkgClass(c);
+                return '<li role="option" class="' + k.cls + '" id="ctRenewOpt' + i + '" data-i="' + i + '" aria-selected="false"><div class="ct-rn-main"><b>' + esc(c.name) + '</b>' +
+                    '<div class="ct-rn-meta"><span><i class="fas fa-store"></i>' + esc(c.zip + (c.office ? ' ' + c.office : '')) + '</span>' +
+                    (c.end ? '<span><i class="far fa-calendar"></i>สิ้นสุด ' + esc(c.end) + '</span>' : '') + (k.other ? '<span>' + esc(c.svc) + '</span>' : '') + '</div></div>' +
+                    '<span class="ct-rn-badge" title="' + esc(c.svc) + '">' + esc(k.label) + '</span></li>';
             }).join('') + (hits.length > 50 ? '<li class="ct-renew-empty">แสดง 50 จาก ' + hits.length.toLocaleString('th-TH') + ' ราย พิมพ์ชื่อเพิ่มเพื่อค้นหา</li>' : '')
                 : '<li class="ct-renew-empty">ไม่พบลูกค้าที่ตรงกับ "' + esc(si.value.trim()) + '"</li>';
             ul.classList.remove('hidden'); si.setAttribute('aria-expanded', 'true');
