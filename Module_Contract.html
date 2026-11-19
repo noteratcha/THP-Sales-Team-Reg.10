@@ -43,8 +43,10 @@
                 <button type="button" role="radio" data-ct-type="corp" aria-checked="false" onclick="setContractCustomerType('corp')">นิติบุคคล</button>
                 <button type="button" role="radio" data-ct-type="person" aria-checked="true" onclick="setContractCustomerType('person')">บุคคลธรรมดา</button>
             </div>
-            <!-- เอกสารที่ต้องแนบ (ตามข้อ 11 ของสัญญา) แสดงตามประเภทผู้ใช้บริการ -->
-            <div class="ct-docs" aria-live="polite">
+            <!-- เอกสารที่ต้องแนบ (ตามข้อ 11 ของสัญญา) แสดงตามประเภทผู้ใช้บริการ
+                 จอกว้างที่มีแผงความคืบหน้าด้านขวา: ย้ายไปเป็นกรอบใต้แผงความคืบหน้า (ผู้ใช้ขอ 2026-11-19) — placeContractDocs() -->
+            <span id="ctDocsHome" hidden></span>
+            <div class="ct-docs" id="ctDocs" aria-live="polite">
                 <div class="ct-docs-title"><i class="fas fa-paperclip mr-1.5"></i>เอกสารที่ต้องแนบท้ายสัญญา</div>
                 <ul id="ctDocsCorp" class="hidden">
                     <li>สำเนาบัตรประจำตัวประชาชนของผู้มีอำนาจ/ผู้มอบอำนาจ และผู้รับมอบอำนาจ</li>
@@ -206,6 +208,9 @@
     #page-contract .ct-docs-title { font-size: 0.8125rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.25rem; }
     #page-contract .ct-docs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem 1.25rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
     #page-contract .ct-docs ul.hidden { display: none; }
+    /* อยู่ในแผงด้านขวา: กรอบแยกใต้แผงความคืบหน้า รายการเรียง 1 คอลัมน์ */
+    #page-contract .ct-aside .ct-docs { margin-top: 0.75rem; padding: 0.875rem 1rem; border-radius: 0.75rem; }
+    #page-contract .ct-aside .ct-docs ul { grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
     #page-contract .ct-docs li { font-size: 0.8125rem; color: #1f2937; padding-left: 1.1rem; position: relative; }
     #page-contract .ct-docs li::before { content: ""; position: absolute; left: 0.25rem; top: 0.55em; width: 0.35rem; height: 0.35rem; border-radius: 9999px; background: #2563eb; }
     #page-contract .ct-subgroup { border-top: 1px dashed #e5e7eb; padding-top: 0.875rem; }
@@ -714,6 +719,21 @@
             return (11 - (sum % 11)) % 10 === Number(d.charAt(12));
         };
 
+        // ===== กรอบ "เอกสารที่ต้องแนบท้ายสัญญา": จอ ≥1024px (มีแผงด้านขวา) ไปอยู่ใต้แผงความคืบหน้า, จอเล็กอยู่ในส่วนที่ 2 =====
+        var placeContractDocs = function () {
+            var docs = document.getElementById('ctDocs'), home = document.getElementById('ctDocsHome');
+            var aside = document.querySelector('#page-contract .ct-aside');
+            if (!docs || !home || !aside) return;
+            var wide = window.matchMedia('(min-width: 1024px)').matches; // ตรงกับ @media ที่แสดง .ct-aside
+            if (wide && docs.parentNode !== aside) aside.appendChild(docs);
+            else if (!wide && docs.previousElementSibling !== home) home.parentNode.insertBefore(docs, home.nextSibling);
+        };
+        try {
+            var ctMq = window.matchMedia('(min-width: 1024px)');
+            if (ctMq.addEventListener) ctMq.addEventListener('change', placeContractDocs); else if (ctMq.addListener) ctMq.addListener(placeContractDocs);
+        } catch (e) { }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', placeContractDocs); else placeContractDocs();
+
         // ===== ความคืบหน้า 5 ส่วน (ส่วน 1–2 มีช่องบังคับ, 3–5 ไม่บังคับ นับช่องที่กรอก) =====
         var REQ1 = ['no_a', 'no_b', 'no_c', 'office', 'sign_date', 'start_date', 'end_date'];
         // มี Package ให้เลือก = ต้องเลือก (โหลดอัตราไม่ได้ → กรอกราคาเอง ไม่บังคับ)
@@ -734,9 +754,12 @@
             var nameKey = state.customerType === 'corp' ? 'corp_name' : 'person_name';
             var miss4 = ['contact_name', 'contact_tel'].filter(function (n) { return !filled(n); }).length;
             var miss2 = (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).filter(function (r) { return !filled(r[0]); }).length + miss4; // รวมผู้ประสานงาน
+            // สถานะรายส่วนแสดงเป็นเปอร์เซ็นต์ช่องบังคับที่กรอกแล้ว (ผู้ใช้ขอ 2026-11-19)
+            var pctText = function (miss, total) { return 'กรอกแล้ว ' + (total ? Math.floor((total - miss) / total * 100) : 100) + '%'; };
+            var total1 = REQ1.length, total2 = (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2;
             var st = [
-                miss1 ? ['todo', 'ยังไม่ได้กรอก ' + miss1 + ' ช่องบังคับ'] : ['done', 'ครบแล้ว'],
-                !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', 'ยังไม่ได้กรอก ' + miss2 + ' ช่องบังคับ']
+                miss1 ? ['todo', pctText(miss1, total1)] : ['done', 'ครบ 100%'],
+                !miss2 ? ['done', (state.customerType === 'corp' ? 'นิติบุคคล' : 'บุคคลธรรมดา') + ' · ' + field(nameKey).value.trim().slice(0, 18)] : ['todo', pctText(miss2, total2)]
             ];
             var priceEls = document.querySelectorAll('#ctPriceBody .ct-price-input');
             var emptyPx = Array.prototype.filter.call(priceEls, function (el) { var e = !String(el.value || '').trim(); el.classList.toggle('ct-ok', !e); if (!e) el.classList.remove('ct-invalid'); return e; }).length;
@@ -744,15 +767,16 @@
             var pkSel = document.getElementById('ctPackage');
             if (pkSel) { pkSel.classList.toggle('ct-ok', pkgNeeded() && !!pkSel.value); if (pkSel.value) pkSel.classList.remove('ct-invalid'); }
             var pkReq = document.getElementById('ctPkgReq'); if (pkReq) pkReq.classList.toggle('hidden', !pkgNeeded());
-            st.push(miss3 ? ['todo', 'ยังไม่ได้กรอก ' + miss3 + ' ช่องบังคับ'] : ['done', 'ช่องบังคับครบแล้ว']);
+            var total3 = 3 + (pkgNeeded() ? 1 : 0) + priceEls.length;
+            st.push(miss3 ? ['todo', pctText(miss3, total3)] : ['done', 'ครบ 100%']);
             steps.forEach(function (li, i) { li.setAttribute('data-state', st[i][0]); li.querySelector('.ct-step-sub').textContent = st[i][1]; });
             var todo = miss1 + miss2 + miss3;
             var total = REQ1.length + (state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).length + 2 + 3 + (pkgNeeded() ? 1 : 0) + priceEls.length, done = total - todo;
             var bar = document.getElementById('ctProgBar'), pt = document.getElementById('ctProgText');
             if (bar) { var pc = Math.round(done / total * 100); bar.firstElementChild.style.width = pc + '%'; bar.setAttribute('aria-valuenow', pc); bar.classList.toggle('is-done', !todo); }
-            if (pt) pt.textContent = 'ครบ ' + Math.round(done / total * 100) + '%'; // แสดงเป็นเปอร์เซ็นต์ (ผู้ใช้ขอ 2026-11-18)
+            if (pt) pt.textContent = 'ครบ ' + Math.floor(done / total * 100) + '%'; // ปัดลง: 99.6% ไม่ขึ้น 100% ก่อนกรอกครบ // แสดงเป็นเปอร์เซ็นต์ (ผู้ใช้ขอ 2026-11-18)
             var mini = document.getElementById('ctProgressMini');
-            if (mini) mini.textContent = todo ? 'ยังขาดช่องบังคับ ' + todo + ' ช่อง' : 'ช่องบังคับครบแล้ว';
+            if (mini) mini.textContent = todo ? 'กรอกแล้ว ' + Math.floor(done / total * 100) + '%' : 'ครบ 100%';
             var pv = document.getElementById('ctNoPreview');
             if (pv) { var v = function (n, d) { var x = String((field(n) || {}).value || '').trim(); return x || d; }; pv.textContent = 'ที่ ปณท ' + v('no_a', '...') + ' (' + v('no_b', '...') + ')/' + v('no_c', '...'); }
             var du = document.getElementById('ctDuration');
