@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1235';
+    var APP_VERSION = 'Ver. 2026.1119.1241';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18653,10 +18653,10 @@
             <div class="ct-grid ct-subgroup">
                 <div class="ct-span-2 text-sm font-semibold text-gray-700">ผู้ประสานงานและช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(ในสัญญาข้อ 14)</span></div>
                 <label class="ct-field"><span>ผู้ประสานงาน ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''"></label>
-                <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="เช่น 088-1232388" oninput="thpTelInput(this)" onblur="thpTelInput(this, true)"></label>
+                <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="เช่น 0XX-XXXXXXX" oninput="thpTelInput(this)" onblur="thpTelInput(this, true)"></label>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input" inputmode="email" autocomplete="off" placeholder="เช่น name@example.com"></label>
                 <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="พิมพ์ตัวเลข 8 หลัก เช่น 50010001" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"><small class="text-xs text-gray-500 font-normal">พิมพ์เฉพาะตัวเลข 8 หลัก ระบบเติม "THP-" ให้เอง</small></label>
-                <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="ตัวเลข 10 หลัก เช่น 088-1232388" oninput="thpTelInput(this); thpContractMirror()" onblur="thpTelInput(this, true)"></label>
+                <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="ตัวเลข 10 หลัก เช่น 0XX-XXXXXXX" oninput="thpTelInput(this); thpContractMirror()" onblur="thpTelInput(this, true)"></label>
                 <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''" placeholder="กรอกเบอร์ Wallet@post ก่อน" disabled></label>
             </div>
         </fieldset>
@@ -18871,7 +18871,7 @@
 
         // Package ที่มีแบบฟอร์มเฉพาะ (พิมพ์อัตราไว้แล้ว): หน้า 3–5 = A13, หน้า 6–8 = A14 ของ "แนวทางการขยายระยะเวลาการให้บริการ A13 และ A14"
         var ctFixedPkg = function (v) { return v === 'Package A13' || v === 'Package A14'; };
-        // เบอร์โทร / เบอร์ Wallet@post รูปแบบ 088-1232388 (ผู้ใช้กำหนด 2026-11-19): 10 หลัก = 3-7, 9 หลัก = 02-xxxxxxx หรือ 0xx-xxxxxx
+        // เบอร์โทร / เบอร์ Wallet@post รูปแบบ 0XX-XXXXXXX (ผู้ใช้กำหนด 2026-11-19): 10 หลัก = 3-7, 9 หลัก = 02-xxxxxxx หรือ 0xx-xxxxxx
         var telFormat = function (v) {
             var d = String(v || '').replace(/\D/g, '');
             if (d.length === 10) return d.slice(0, 3) + '-' + d.slice(3);
@@ -19290,7 +19290,7 @@
                 var other = (p.customerType === 'corp' && k.indexOf('person_') === 0) || (p.customerType === 'person' && k.indexOf('corp_') === 0);
                 out[k] = other ? '' : String(p[k] || '').replace(/\s+/g, ' ').trim();
             });
-            ['contact_tel', 'wallet_tel'].forEach(function (k) { if (out[k]) out[k] = telFormat(out[k]); }); // 088-1232388
+            ['contact_tel', 'wallet_tel'].forEach(function (k) { if (out[k]) out[k] = telFormat(out[k]); }); // 0XX-XXXXXXX
             return out;
         };
 
@@ -19656,11 +19656,11 @@
             }
             if (p.wallet_tel && !/^\d{10}$/.test(p.wallet_tel)) {
                 var wtEl = field('wallet_tel'); if (wtEl) wtEl.classList.add('ct-invalid');
-                warnAt('เบอร์ Wallet@post ไม่ถูกต้อง', 'กรอกตัวเลข 10 หลัก เช่น 088-1232388 (หรือเว้นว่างถ้าไม่มี)', wtEl); return;
+                warnAt('เบอร์ Wallet@post ไม่ถูกต้อง', 'กรอกตัวเลข 10 หลัก เช่น 0XX-XXXXXXX (หรือเว้นว่างถ้าไม่มี)', wtEl); return;
             }
             if (p.contact_tel && !/^0\d{8,9}$/.test(p.contact_tel)) {
                 var ctEl = field('contact_tel'); if (ctEl) ctEl.classList.add('ct-invalid');
-                warnAt('เบอร์โทรไม่ถูกต้อง', 'กรอกเบอร์โทร 9–10 หลัก ขึ้นต้นด้วย 0 เช่น 088-1232388', ctEl); return;
+                warnAt('เบอร์โทรไม่ถูกต้อง', 'กรอกเบอร์โทร 9–10 หลัก ขึ้นต้นด้วย 0 เช่น 0XX-XXXXXXX', ctEl); return;
             }
             if (p.post_family && !/^THP-\d{8}$/.test(p.post_family)) {
                 var pfEl = field('post_family'); if (pfEl) pfEl.classList.add('ct-invalid');
