@@ -5865,6 +5865,123 @@ function contractRegister_(p, actor, pdfUrl) {
   }
 }
 
+// ===== เพิ่มข้อมูลลูกค้า (เมนูย่อย admin เท่านั้น — ผู้ใช้ขอ 2026-11-19) =====
+// ค้นจากทะเบียนสัญญา "ปี 2570" ด้วยเลขบัตรประชาชน (หรือ THP 8 หลัก) → บันทึกลงไฟล์ 1-avo…:
+//   ชีต "การตอบแบบฟอร์ม 1" คอลัมน์ D ชื่อ-สกุล, H Post family, M รหัสไปรษณีย์ (+ A เวลา) — เพิ่มแถวใหม่ถ้ายังไม่มีลูกค้า
+//   ชีต "รายชื่อ/สัญญา A1-A12" คอลัมน์ H L M Q R T U Z–AD AK–AP ของแถวลูกค้า (แถวมาจากแบบฟอร์มด้วยสูตรในชีต → หาแถวหลังเพิ่ม)
+// ค่าว่างในทะเบียนไม่ลบค่าเดิมในชีต
+var CUSTOMER_FORM_SHEET = 'การตอบแบบฟอร์ม 1';
+// คอลัมน์ชีตรายชื่อ ← หัวคอลัมน์ทะเบียนปี 2570
+var CUSTOMER_LIST_MAP = [
+  ['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
+  ['T', 'เบอร์โทร'], ['U', 'เลขบัตรประชาชน'], ['Z', 'CUSTOMER_ADDRESS'], ['AA', 'CUSTOMER_SUBDISTRICT'], ['AB', 'CUSTOMER_DISTRICT'],
+  ['AC', 'CUSTOMER_PROVINCE'], ['AD', 'CUSTOMER_POSTCODE'], ['AK', 'ประเภทสิ่งของที่ฝากส่ง'], ['AL', 'Email'], ['AM', 'เบอร์ Wallet@post'],
+  ['AN', 'ชื่อเจ้าของ Wallet@post'], ['AO', 'อาคาร'], ['AP', 'ถนน']
+];
+function colIndex_(letters) { var n = 0; for (var i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64); return n; }
+// ค้นทะเบียนปี 2570 → [{ rowNo, v: {หัวคอลัมน์: ค่า} }]
+function customerRegistryFind_(q) {
+  var key = String(q || '').replace(/\D/g, '');
+  if (key.length !== 13 && key.length !== 8) return { error: 'กรอกเลขบัตรประชาชน 13 หลัก (หรือหมายเลข Post Family 8 หลัก)' };
+  var sh = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID).getSheetByName(CONTRACT_REGISTER_SHEET);
+  if (!sh || sh.getLastRow() < 2) return { list: [] };
+  var data = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getDisplayValues(), h = data[0];
+  var col = h.indexOf(key.length === 13 ? 'เลขบัตรประชาชน' : 'หมายเลขสมาชิก THP-');
+  var out = [];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][col] || '').replace(/\D/g, '') !== key) continue;
+    var v = {}; h.forEach(function (name, j) { if (name) v[name] = String(data[i][j] || '').trim(); });
+    out.push({ rowNo: i + 1, v: v });
+  }
+  return { list: out };
+}
+// แถวลูกค้าในชีตรายชื่อ (THP หรือ ชื่อ+รหัสที่ทำการ) / ในแบบฟอร์ม (Post family หรือ ชื่อ)
+function customerListRow_(listSh, v) {
+  var data = listSh.getDataRange().getDisplayValues(), c = renewalCols_(data[0]);
+  var idx = renewalFindRow_(data, c, String(v['หมายเลขสมาชิก THP-'] || '').replace(/\D/g, ''), v['ชื่อลูกค้า'], v['รหัสที่ทำการ']);
+  return idx > 0 ? idx + 1 : -1;
+}
+function customerFormRow_(formSh, v) {
+  var last = formSh.getLastRow(); if (last < 2) return -1;
+  var vals = formSh.getRange(2, 4, last - 1, 5).getDisplayValues(); // D..H
+  var thp = String(v['หมายเลขสมาชิก THP-'] || '').replace(/\D/g, ''), name = v['ชื่อลูกค้า'];
+  for (var i = vals.length - 1; i >= 0; i--) {
+    var t = String(vals[i][4] || '').replace(/\D/g, '');
+    if ((thp.length === 8 && t === thp) || (String(vals[i][0] || '').trim() === name && name)) return i + 2;
+  }
+  return -1;
+}
+function findCustomerForSheet_(payload, actor) {
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    var r = customerRegistryFind_(payload && payload.q);
+    if (r.error) return { status: 'error', message: r.error };
+    var ss = SpreadsheetApp.openById(RENEWAL_SS_ID), listSh = renewalSheet_(), formSh = ss.getSheetByName(CUSTOMER_FORM_SHEET);
+    var items = r.list.map(function (it) {
+      return { rowNo: it.rowNo, v: it.v, listRow: listSh ? customerListRow_(listSh, it.v) : -1, formRow: formSh ? customerFormRow_(formSh, it.v) : -1 };
+    });
+    return { status: 'success', items: items, formSheet: !!formSh };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'findCustomerForSheet_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+function saveCustomerToSheets_(payload, actor) {
+  var lock = LockService.getScriptLock();
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    var r = customerRegistryFind_(payload && payload.q);
+    if (r.error) return { status: 'error', message: r.error };
+    var it = r.list.filter(function (x) { return x.rowNo === Number(payload.rowNo); })[0]; // ข้อมูลจากทะเบียน (ไม่เชื่อค่าจากหน้าเว็บ)
+    if (!it) return { status: 'error', message: 'ไม่พบข้อมูลในทะเบียนปี 2570 (อาจถูกแก้ไขแล้ว กรุณาค้นหาใหม่)' };
+    var v = it.v;
+    if (!v['ชื่อลูกค้า']) return { status: 'error', message: 'ข้อมูลในทะเบียนไม่มีชื่อลูกค้า' };
+    lock.waitLock(30000);
+    var ss = SpreadsheetApp.openById(RENEWAL_SS_ID), listSh = renewalSheet_(), formSh = ss.getSheetByName(CUSTOMER_FORM_SHEET);
+    if (!listSh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
+    if (!formSh) return { status: 'error', message: 'ไม่พบชีต "' + CUSTOMER_FORM_SHEET + '"' };
+    var res = { formAdded: false };
+    var listRow = customerListRow_(listSh, v);
+    if (listRow < 0) {
+      // ยังไม่มีลูกค้า → เพิ่มแถวในแบบฟอร์ม (แถวถัดจากแถวสุดท้ายที่มีชื่อในคอลัมน์ D — คอลัมน์สูตรอาจยาวกว่า)
+      var formRow = customerFormRow_(formSh, v);
+      if (formRow < 0) {
+        var last = formSh.getLastRow(), names = last > 1 ? formSh.getRange(2, 4, last - 1, 1).getDisplayValues() : [];
+        var n = names.length; while (n > 0 && !String(names[n - 1][0]).trim()) n--;
+        formRow = n + 2;
+        formSh.getRange(formRow, 1).setValue(new Date());
+        formSh.getRange(formRow, 4).setValue(v['ชื่อลูกค้า']);
+        formSh.getRange(formRow, 8).setValue(String(v['หมายเลขสมาชิก THP-'] || '').replace(/\D/g, ''));
+        formSh.getRange(formRow, 13).setValue(v['รหัสที่ทำการ']);
+        res.formAdded = true;
+      }
+      res.formRow = formRow;
+      // รอสูตรในชีตรายชื่อดึงแถวใหม่
+      for (var k = 0; k < 4 && listRow < 0; k++) { SpreadsheetApp.flush(); if (k) Utilities.sleep(1500); listRow = customerListRow_(listSh, v); }
+      if (listRow < 0) return { status: 'error', message: 'เพิ่มแถวในชีต "' + CUSTOMER_FORM_SHEET + '" แล้ว (แถว ' + formRow + ') แต่ยังไม่พบลูกค้าในชีต "' + RENEWAL_SHEET_NAME + '" — ตรวจสูตรที่ดึงข้อมูลจากแบบฟอร์ม แล้วกดบันทึกอีกครั้ง', formRow: formRow };
+    }
+    // เขียนคอลัมน์ที่กำหนดในแถวลูกค้า (ค่าว่างข้าม)
+    var written = 0;
+    CUSTOMER_LIST_MAP.forEach(function (m) {
+      var val = String(v[m[1]] || '').trim(); if (!val) return;
+      var cell = listSh.getRange(listRow, colIndex_(m[0]));
+      if (m[0] === 'M') { // วันที่เริ่มต้น เก็บเป็นวันที่จริง (สูตรเช็คเดือน/ปีใช้)
+        var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(val);
+        cell.setValue(dm ? new Date(Number(dm[3]), Number(dm[2]) - 1, Number(dm[1])) : val);
+      } else cell.setValue(val);
+      written++;
+    });
+    res.listRow = listRow; res.written = written;
+    res.status = 'success';
+    return res;
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'saveCustomerToSheets_');
+    return { status: 'error', message: e.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (e2) { }
+  }
+}
+
 // payload = ข้อมูลฟอร์ม + pdf (base64 ที่หน้าเว็บสร้าง) → ตรวจข้อมูล, สร้าง Word, เก็บ PDF + Word ใน Drive, คืน Word (base64)
 function generateTransportContract_(payload, actor) {
   try {
@@ -6247,7 +6364,8 @@ var API_ALLOWED_FUNCTIONS = [
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
-  'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive'
+  'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
+  'findCustomerForSheet', 'saveCustomerToSheets'
 ];
 
 
@@ -6277,7 +6395,9 @@ var AUTH_SESSION_USER_ARG = {
   getRenewalCustomers: 0,        // (actor) — admin ทั้งหมด / ที่ทำการ เฉพาะของตน
   getRenewalCustomer: 1,         // (payload, actor) — ตรวจสิทธิ์รายแถว
   setRenewalEnabled: 1,          // (payload, actor) — admin เท่านั้น
-  createRenewalArchive: 1        // (payload, actor) — admin เท่านั้น
+  createRenewalArchive: 1,       // (payload, actor) — admin เท่านั้น
+  findCustomerForSheet: 1,       // (payload, actor) — admin เท่านั้น
+  saveCustomerToSheets: 1        // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

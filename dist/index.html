@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1614';
+    var APP_VERSION = 'Ver. 2026.1119.1631';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1393,6 +1393,15 @@
                         <i class="fas fa-file-signature text-xs"></i>
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">สร้างสัญญาขนส่ง</span>
+                </div>
+                <!-- เพิ่มข้อมูลลูกค้า: เฉพาะ admin (ผู้ใช้ขอ 2026-11-19) — แสดง/ซ่อนตอนล็อกอิน (restoreSession) -->
+                <div onclick="switchPage('contract-customer')" id="menu-contract-customer"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-user-plus text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เพิ่มข้อมูลลูกค้า</span>
                 </div>
             </div>
 
@@ -20166,6 +20175,151 @@
 
             </div>
 
+            <!-- 👤 PAGE: เพิ่มข้อมูลลูกค้า (admin เท่านั้น) -->
+            <div id="page-contract-customer" class="hidden animate-fade-in w-full pb-10">
+                <!-- 👤 PAGE: เพิ่มข้อมูลลูกค้า (เมนูย่อยใต้ สัญญาขนส่ง — admin เท่านั้น, ผู้ใช้ขอ 2026-11-19)
+     ค้นทะเบียนสัญญา "ปี 2570" ด้วยเลขบัตรประชาชน (findCustomerForSheet) → บันทึกลงชีตแบบฟอร์ม/รายชื่อ (saveCustomerToSheets)
+     หลังบ้านตรวจ admin ซ้ำ และอ่านข้อมูลจากทะเบียนเอง (ไม่เชื่อค่าจากหน้าเว็บ) — เลขบัตรประชาชนเป็นข้อมูลส่วนบุคคล ห้ามบันทึก log -->
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
+    <div class="thp-page-intro">
+        <p class="thp-page-intro-text">ค้นข้อมูลลูกค้าจากทะเบียนสัญญาปี 2570 ด้วยเลขบัตรประชาชน แล้วบันทึกลงชีต "การตอบแบบฟอร์ม 1" (D, H, M) และ "รายชื่อ/สัญญา A1-A12" (H, L, M, Q, R, T, U, Z–AD, AK–AP)</p>
+    </div>
+    <form id="ccForm" class="cc-search" onsubmit="event.preventDefault(); thpCcSearch();" novalidate>
+        <label for="ccQuery" class="cc-label">เลขบัตรประชาชน 13 หลัก <span>(หรือหมายเลข Post Family 8 หลัก)</span></label>
+        <div class="cc-row">
+            <input id="ccQuery" class="cc-input" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="x-xxxx-xxxxx-xx-x">
+            <button type="submit" id="ccSearchBtn" class="cc-btn"><i class="fas fa-search"></i> ค้นหา</button>
+        </div>
+    </form>
+    <div id="ccResult" class="cc-result" aria-live="polite"></div>
+</div>
+
+<style>
+    #page-contract-customer .cc-search { margin-top: 12px; }
+    #page-contract-customer .cc-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    #page-contract-customer .cc-label span { font-weight: 400; color: #6b7280; }
+    #page-contract-customer .cc-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    #page-contract-customer .cc-input { flex: 1 1 260px; min-width: 0; height: 42px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 12px; font-size: 15px; letter-spacing: .5px; }
+    #page-contract-customer .cc-input:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-customer .cc-btn { height: 42px; padding: 0 18px; border-radius: 10px; background: #EA580C; color: #fff; font-weight: 600; border: 0; display: inline-flex; align-items: center; gap: 6px; }
+    #page-contract-customer .cc-btn:disabled { opacity: .6; cursor: wait; }
+    #page-contract-customer .cc-btn-2 { background: #fff; color: #c2410c; border: 1px solid #EA580C; }
+    #page-contract-customer .cc-result { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+    #page-contract-customer .cc-empty { font-size: 14px; color: #6b7280; padding: 14px; border: 1px dashed #d1d5db; border-radius: 12px; text-align: center; }
+    #page-contract-customer .cc-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; }
+    #page-contract-customer .cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+    #page-contract-customer .cc-head b { font-size: 16px; color: #111827; }
+    #page-contract-customer .cc-chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: #f3f4f6; color: #374151; }
+    #page-contract-customer .cc-chip.ok { background: #dcfce7; color: #15803d; }
+    #page-contract-customer .cc-chip.new { background: #ffedd5; color: #c2410c; }
+    #page-contract-customer .cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    #page-contract-customer .cc-box { background: #f9fafb; border-radius: 10px; padding: 10px 12px; }
+    #page-contract-customer .cc-box h4 { font-size: 12.5px; font-weight: 700; color: #374151; margin: 0 0 6px; }
+    #page-contract-customer .cc-box dl { display: grid; grid-template-columns: 34px 1fr; gap: 3px 8px; font-size: 12.5px; margin: 0; }
+    #page-contract-customer .cc-box dt { color: #9ca3af; font-weight: 600; }
+    #page-contract-customer .cc-box dd { color: #111827; margin: 0; overflow-wrap: anywhere; }
+    #page-contract-customer .cc-box dd small { color: #6b7280; display: block; }
+    #page-contract-customer .cc-box dd.cc-blank { color: #9ca3af; }
+    /* ชีตรายชื่อมี 18 คอลัมน์: กล่องเต็มแถว แบ่งรายการเป็นหลายคอลัมน์ (จอแคบ 1 คอลัมน์) */
+    #page-contract-customer .cc-box.cc-wide { grid-column: 1 / -1; }
+    @media (min-width: 768px) { #page-contract-customer .cc-wide dl { grid-template-columns: 34px 1fr 34px 1fr; } }
+    @media (min-width: 1200px) { #page-contract-customer .cc-wide dl { grid-template-columns: 34px 1fr 34px 1fr 34px 1fr; } }
+    #page-contract-customer .cc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+    #page-contract-customer .cc-note { font-size: 12.5px; color: #6b7280; }
+</style>
+
+<script>
+    ;(function () {
+        var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+        var isAdmin = function () { try { return String((currentUserInfo || {}).user || '').toLowerCase() === 'admin'; } catch (e) { return false; } };
+        var last = { q: '', items: [] };
+        // คอลัมน์ที่จะบันทึก (ตรงกับ CUSTOMER_LIST_MAP ใน Code.js)
+        var LIST_COLS = [['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
+            ['T', 'เบอร์โทร'], ['U', 'เลขบัตรประชาชน'], ['Z', 'CUSTOMER_ADDRESS'], ['AA', 'CUSTOMER_SUBDISTRICT'], ['AB', 'CUSTOMER_DISTRICT'],
+            ['AC', 'CUSTOMER_PROVINCE'], ['AD', 'CUSTOMER_POSTCODE'], ['AK', 'ประเภทสิ่งของที่ฝากส่ง'], ['AL', 'Email'], ['AM', 'เบอร์ Wallet@post'],
+            ['AN', 'ชื่อเจ้าของ Wallet@post'], ['AO', 'อาคาร'], ['AP', 'ถนน']];
+        var FORM_COLS = [['D', 'ชื่อลูกค้า', 'ชื่อ-สกุล ลูกค้า'], ['H', 'หมายเลขสมาชิก THP-', 'Post family'], ['M', 'รหัสที่ทำการ', 'รหัสไปรษณีย์']];
+
+        var box = function () { return document.getElementById('ccResult'); };
+        var dlRows = function (cols, v, labelIdx) {
+            return cols.map(function (c) {
+                var val = v[c[1]] || '';
+                var label = labelIdx ? c[labelIdx] : c[1];
+                if (c[1] === 'ไฟล์สัญญา PDF' && /^https:\/\/drive\.google\.com\//.test(val)) val = '<a href="' + esc(val) + '" target="_blank" rel="noopener" class="text-blue-700 underline">เปิดไฟล์ PDF</a>';
+                else val = val ? esc(val) : '';
+                return '<dt>' + c[0] + '</dt><dd' + (val ? '' : ' class="cc-blank"') + '>' + (val || '— ว่าง (ไม่เขียน)') + '<small>' + esc(label) + '</small></dd>';
+            }).join('');
+        };
+        var render = function () {
+            var el = box(); if (!el) return;
+            if (!last.items.length) { el.innerHTML = '<div class="cc-empty">ไม่พบข้อมูลในทะเบียนสัญญาปี 2570 — ลูกค้าต้องสร้างสัญญาผ่านหน้า "สร้างสัญญาขนส่ง" ก่อน</div>'; return; }
+            el.innerHTML = last.items.map(function (it, i) {
+                var v = it.v;
+                var st = it.listRow > 0 ? '<span class="cc-chip ok"><i class="fas fa-check"></i> มีในชีตรายชื่อแล้ว (แถว ' + it.listRow + ')</span>'
+                    : '<span class="cc-chip new"><i class="fas fa-plus"></i> ยังไม่มีในชีตรายชื่อ — จะเพิ่มแถวในแบบฟอร์ม</span>';
+                var formBox = it.listRow > 0 ? '' : '<div class="cc-box"><h4>ชีต "การตอบแบบฟอร์ม 1"' + (it.formRow > 0 ? ' · มีแล้ว แถว ' + it.formRow + ' (ไม่เพิ่มซ้ำ)' : ' · เพิ่มแถวใหม่') + '</h4><dl>' + dlRows(FORM_COLS, v, 2) + '</dl></div>';
+                return '<div class="cc-card"><div class="cc-head"><b>' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
+                    '<span class="cc-chip">' + esc(v['รหัสบริการปัจจุบัน'] || '-') + '</span><span class="cc-chip">' + esc(v['ประเภทสัญญา'] || '') + '</span>' + st + '</div>' +
+                    '<div class="cc-grid">' + formBox + '<div class="cc-box cc-wide"><h4>ชีต "รายชื่อ/สัญญา A1-A12"' + (it.listRow > 0 ? ' · แถว ' + it.listRow : '') + '</h4><dl>' + dlRows(LIST_COLS, v) + '</dl></div></div>' +
+                    '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
+                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่ว่างไม่เขียนทับข้อมูลเดิม</span></div></div>';
+            }).join('');
+        };
+
+        window.thpCcSearch = function () {
+            if (!isAdmin()) { Swal.fire('เฉพาะผู้ดูแลระบบ', 'หน้านี้ใช้ได้เฉพาะ admin', 'warning'); return; }
+            var inp = document.getElementById('ccQuery'), q = String(inp.value || '').replace(/\D/g, '');
+            if (q.length !== 13 && q.length !== 8) { Swal.fire({ title: 'กรอกไม่ถูกต้อง', text: 'กรอกเลขบัตรประชาชน 13 หลัก หรือหมายเลข Post Family 8 หลัก', icon: 'warning', returnFocus: false }).then(function () { inp.focus(); }); return; }
+            var btn = document.getElementById('ccSearchBtn'); btn.disabled = true;
+            box().innerHTML = '<div class="cc-empty"><i class="fas fa-circle-notch fa-spin"></i> กำลังค้นหา...</div>';
+            google.script.run.withSuccessHandler(function (res) {
+                btn.disabled = false;
+                if (!(res && res.status === 'success')) { box().innerHTML = ''; Swal.fire('ค้นหาไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                last = { q: q, items: res.items || [] }; render();
+            }).withFailureHandler(function (err) {
+                btn.disabled = false; box().innerHTML = '';
+                Swal.fire('ค้นหาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).findCustomerForSheet({ q: q }, currentUserInfo);
+        };
+
+        window.thpCcSave = function (btn) {
+            var it = last.items[Number(btn.getAttribute('data-i'))]; if (!it) return;
+            var what = it.listRow > 0 ? 'อัปเดตแถว ' + it.listRow + ' ในชีต "รายชื่อ/สัญญา A1-A12"' : 'เพิ่มแถวในชีต "การตอบแบบฟอร์ม 1" แล้วบันทึกข้อมูลลงชีต "รายชื่อ/สัญญา A1-A12"';
+            Swal.fire({ icon: 'question', title: 'บันทึกข้อมูล ' + (it.v['ชื่อลูกค้า'] || ''), text: what, showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', returnFocus: false }).then(function (a) {
+                if (!a.isConfirmed) return;
+                var html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+                google.script.run.withSuccessHandler(function (res) {
+                    btn.disabled = false; btn.innerHTML = html;
+                    if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : '') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow });
+                    window.thpCcSearch(); // แสดงสถานะล่าสุด
+                }).withFailureHandler(function (err) {
+                    btn.disabled = false; btn.innerHTML = html;
+                    Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                }).saveCustomerToSheets({ q: last.q, rowNo: it.rowNo }, currentUserInfo);
+            });
+        };
+
+        // ช่องค้นหา: จัดรูปแบบเลขบัตร x-xxxx-xxxxx-xx-x ระหว่างพิมพ์ (8 หลัก = Post Family ไม่จัด)
+        document.addEventListener('input', function (e) {
+            if (!e.target || e.target.id !== 'ccQuery') return;
+            var d = e.target.value.replace(/\D/g, '').slice(0, 13);
+            if (d.length <= 8) { e.target.value = d; return; }
+            var o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0);
+            e.target.value = o;
+        });
+
+        window.loadContractCustomerPage = function () {
+            if (!isAdmin()) { Swal.fire('เฉพาะผู้ดูแลระบบ', 'หน้านี้ใช้ได้เฉพาะ admin', 'warning'); if (typeof switchPage === 'function') switchPage('home'); return; }
+            var inp = document.getElementById('ccQuery'); if (inp) setTimeout(function () { inp.focus(); }, 50);
+        };
+        // ออกจากระบบ/สลับผู้ใช้: ล้างผลค้นหา (มีข้อมูลส่วนบุคคล)
+        window.thpCcClear = function () { last = { q: '', items: [] }; var el = box(); if (el) el.innerHTML = ''; var i = document.getElementById('ccQuery'); if (i) i.value = ''; };
+    })();
+</script>
+
+            </div>
+
             <!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้า (เฉพาะ admin) -->
             <div id="page-visit-plan" class="hidden animate-fade-in w-full pb-10">
                 <!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้าปีถัดไป (เฉพาะ admin) — include จาก Module_Core ใน #page-visit-plan
@@ -29006,7 +29160,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-contract-customer', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -29068,6 +29222,7 @@
                 'visit-plan': { page: 'page-visit-plan', menu: 'menu-visit-plan', title: 'เป้าหมายการเข้าพบลูกค้า', action: () => typeof window.loadVisitPlanPage === 'function' && window.loadVisitPlanPage() },
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'contract': { page: 'page-contract', menu: 'menu-contract', title: 'สร้างสัญญาขนส่ง', action: () => typeof window.loadContractPage === 'function' && window.loadContractPage() },
+                'contract-customer': { page: 'page-contract-customer', menu: 'menu-contract-customer', title: 'เพิ่มข้อมูลลูกค้า', action: () => typeof window.loadContractCustomerPage === 'function' && window.loadContractCustomerPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
                     page: 'page-settings',
@@ -29402,6 +29557,9 @@
             if (elTargetPlan) elTargetPlan.classList.remove('hidden');
             const elVisitPlan = document.getElementById('menu-visit-plan');
             if (elVisitPlan) elVisitPlan.classList.remove('hidden');
+            // เมนู เพิ่มข้อมูลลูกค้า: เฉพาะ admin (ผู้ใช้กำหนด 2026-11-19; หลังบ้านตรวจซ้ำ)
+            const elCc = document.getElementById('menu-contract-customer');
+            if (elCc) elCc.classList.toggle('hidden', String((currentUserInfo || {}).user || '').trim().toLowerCase() !== 'admin');
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();
@@ -29423,6 +29581,8 @@
         SafeStorage.removeItem('thp_user_session');
         currentUserInfo = { user: '', zipcode: '', name: '', team: '' };
         window.postNewsInitialized = false;
+        if (typeof window.thpCcClear === 'function') window.thpCcClear(); // ล้างผลค้นหาข้อมูลลูกค้า (ข้อมูลส่วนบุคคล)
+        { const elCc = document.getElementById('menu-contract-customer'); if (elCc) elCc.classList.add('hidden'); }
         
         // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
         if (typeof window !== 'undefined') {
