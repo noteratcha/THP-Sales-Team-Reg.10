@@ -5726,6 +5726,147 @@ function generateTransportContract_(payload, actor) {
   }
 }
 
+// ==========================================
+// 🔁 ต่อสัญญาขนส่ง ปี 2570 (ผู้ใช้ขอ 2026-11-19): เลือกลูกค้าที่ใช้งานอยู่จากชีต "รายชื่อ/สัญญา A1-A12" แล้วเติมข้อมูลในหน้าสร้างสัญญา
+// ==========================================
+// ลูกค้าที่ใช้งานอยู่ = มีรหัสที่ทำการ และ "รหัสบริการปัจจุบัน" ไม่ว่าง/ไม่ใช่ "ยกเลิกสัญญา"
+// สิทธิ์: admin เห็นทั้งหมด, ผู้ใช้ที่ทำการเห็นเฉพาะรหัสที่ทำการตรงกับรหัสไปรษณีย์ของตน, viewer/prepost ไม่มีสิทธิ์
+// รายชื่อ (getRenewalCustomers) ส่งเฉพาะชื่อ/ที่ทำการ/บริการ — ข้อมูลส่วนบุคคล (เลขบัตร ที่อยู่ เบอร์) ส่งเฉพาะลูกค้าที่เลือก (getRenewalCustomer)
+var RENEWAL_SS_ID = '1-avo189b2ReVHbRRs3kUVK9ylCp8t8h9d-Z9zv8UaKk';
+var RENEWAL_SHEET_NAME = 'รายชื่อ/สัญญา A1-A12';
+var RENEWAL_SHEET_GID = 1308320501;
+
+function renewalSheet_() {
+  var ss = SpreadsheetApp.openById(RENEWAL_SS_ID);
+  var sh = ss.getSheetByName(RENEWAL_SHEET_NAME);
+  if (!sh) sh = ss.getSheets().filter(function (s) { return s.getSheetId() === RENEWAL_SHEET_GID; })[0] || null;
+  return sh;
+}
+
+// หาคอลัมน์จากข้อความหัวตาราง (ขึ้นต้นด้วย) — ทนต่อการแทรก/ย้ายคอลัมน์
+function renewalCols_(header) {
+  var find = function (prefix) {
+    for (var i = 0; i < header.length; i++) if (String(header[i]).trim().indexOf(prefix) === 0) return i;
+    return -1;
+  };
+  return {
+    zip: find('รหัสที่ทำการ'), office: find('ที่ทำการรับฝาก'), province: find('จังหวัด'), name: find('ชื่อลูกค้า'),
+    thp: find('หมายเลขสมาชิก'), svc: find('รหัสบริการปัจจุบัน'), cod: find('ค่าธรรมเนียม COD'), end: find('วันที่สิ้นสุด'),
+    label: find('ชื่อโปรแกรมจ่าหน้า'), tel: find('เบอร์โทร'), idcard: find('เลขบัตรประชาชน'),
+    addr: find('CUSTOMER_ADDRESS'), sub: find('CUSTOMER_SUBDISTRICT'), dist: find('CUSTOMER_DISTRICT'),
+    prov: find('CUSTOMER_PROVINCE'), post: find('CUSTOMER_POSTCODE'), contact: find('customer_contact')
+  };
+}
+
+function renewalCanUse_(actor) {
+  var u = String((actor && actor.user) || '').toLowerCase();
+  return !!u && u !== 'viewer' && u !== 'prepost';
+}
+function renewalInScope_(actor, zip) {
+  if (String(actor.user || '').toLowerCase() === 'admin') return true;
+  return !!zip && String(zip).trim() === String(actor.zipcode || actor.user || '').trim();
+}
+function renewalActive_(svc, zip) {
+  var s = String(svc || '').trim();
+  return !!String(zip || '').trim() && !!s && s !== 'ยกเลิกสัญญา';
+}
+// "A12" / "A13 (EMS ECOM 5013)" → "Package A12" / "Package A13"; อัตราพิเศษอื่น → ''
+function renewalPackage_(svc) {
+  var m = /^A(\d{1,2})\b/.exec(String(svc || '').trim());
+  return m && Number(m[1]) >= 1 && Number(m[1]) <= 14 ? 'Package A' + Number(m[1]) : '';
+}
+
+// สวิตช์เปิด/ปิดฟังก์ชันต่อสัญญา (ผู้ใช้กำหนด 2026-11-19: admin เปิดปิดได้) — Script Property RENEWAL_ENABLED ('true' = เปิด, ค่าเริ่มต้นปิด)
+// ปิดอยู่: ผู้ใช้ทั่วไปไม่เห็นกล่องต่อสัญญาและเรียกข้อมูลไม่ได้, admin ยังใช้/ทดสอบได้เสมอ
+function renewalEnabled_() {
+  return PropertiesService.getScriptProperties().getProperty('RENEWAL_ENABLED') === 'true';
+}
+function renewalIsAdmin_(actor) { return String((actor && actor.user) || '').toLowerCase() === 'admin'; }
+function setRenewalEnabled_(payload, actor) {
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    var on = !!(payload && payload.enabled === true);
+    PropertiesService.getScriptProperties().setProperty('RENEWAL_ENABLED', on ? 'true' : 'false');
+    return { status: 'success', enabled: on };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'setRenewalEnabled_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+function getRenewalCustomers_(actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var enabled = renewalEnabled_(), isAdmin = renewalIsAdmin_(actor);
+    if (!enabled && !isAdmin) return { status: 'success', enabled: false, isAdmin: false, data: [] };
+    if (!renewalCanUse_(actor)) return { status: 'success', enabled: false, isAdmin: false, data: [] };
+    var sh = renewalSheet_();
+    if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
+    var data = sh.getDataRange().getDisplayValues();
+    if (data.length <= 1) return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: [] };
+    var c = renewalCols_(data[0]);
+    if (c.zip < 0 || c.name < 0 || c.svc < 0) return { status: 'error', message: 'หัวตารางในชีต "' + RENEWAL_SHEET_NAME + '" ไม่ตรงรูปแบบ (รหัสที่ทำการ/ชื่อลูกค้า/รหัสบริการปัจจุบัน)' };
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var r = data[i], zip = String(r[c.zip] || '').trim(), name = String(r[c.name] || '').trim();
+      if (!name || !renewalActive_(r[c.svc], zip) || !renewalInScope_(actor, zip)) continue;
+      out.push({
+        row: i + 1, name: name, zip: zip, office: c.office >= 0 ? String(r[c.office] || '').trim() : '',
+        svc: String(r[c.svc] || '').trim(), pkg: renewalPackage_(r[c.svc]), end: c.end >= 0 ? String(r[c.end] || '').trim() : ''
+      });
+    }
+    out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomers_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+function getRenewalCustomer_(payload, actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    if (!renewalCanUse_(actor)) return { status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์ต่อสัญญา' };
+    if (!renewalEnabled_() && !renewalIsAdmin_(actor)) return { status: 'error', message: 'ฟังก์ชันต่อสัญญาปิดอยู่ (ผู้ดูแลระบบปิดไว้)' };
+    var row = Number(payload && payload.row);
+    var sh = renewalSheet_();
+    if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
+    if (!(row >= 2 && row <= sh.getLastRow() && Math.floor(row) === row)) return { status: 'error', message: 'ไม่พบข้อมูลลูกค้า' };
+    var lastCol = sh.getLastColumn();
+    var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var r = sh.getRange(row, 1, 1, lastCol).getDisplayValues()[0];
+    var c = renewalCols_(header);
+    var get = function (k) { return c[k] >= 0 ? String(r[c[k]] || '').replace(/\s+/g, ' ').trim() : ''; };
+    var name = get('name'), zip = get('zip');
+    // ป้องกันแถวเลื่อน (มีคนแทรก/ลบแถวระหว่างเลือก): ชื่อต้องตรงกับที่เลือก
+    if (payload.name && String(payload.name).trim() !== name) return { status: 'error', message: 'ข้อมูลในชีตเปลี่ยนไปแล้ว กรุณาโหลดรายชื่อใหม่' };
+    if (!renewalActive_(get('svc'), zip)) return { status: 'error', message: 'ลูกค้ารายนี้ไม่ได้ใช้งานอยู่ (ยกเลิกสัญญา)' };
+    if (!renewalInScope_(actor, zip)) return { status: 'error', message: 'ไม่มีสิทธิ์ดูข้อมูลลูกค้าของที่ทำการอื่น' };
+    var clean = function (v) { return v === '-' ? '' : v; };
+    var strip = function (v, re) { return clean(v).replace(re, '').trim(); };
+    // customer_contact = "ชื่อ สกุล 0xx-xxx-xxxx" → แยกชื่อกับเบอร์
+    var contact = clean(get('contact')), cTel = '', cName = contact;
+    var tm = /(0[\d\- ]{7,13}\d)\s*$/.exec(contact);
+    if (tm) { cTel = tm[1].replace(/\D/g, ''); cName = contact.slice(0, tm.index).trim(); }
+    var thp = get('thp').replace(/\D/g, '');
+    var cod = (/^(\d+(?:\.\d+)?)\s*%?$/.exec(get('cod')) || [])[1] || '';
+    return {
+      status: 'success',
+      data: {
+        name: name, zip: zip, office: get('office'), svc: get('svc'), pkg: renewalPackage_(get('svc')),
+        thp: thp.length === 8 ? 'THP-' + thp : '', cod: cod ? String(Number(cod)) : '',
+        label: clean(get('label')), tel: clean(get('tel')).replace(/\D/g, ''), idcard: get('idcard').replace(/\D/g, ''),
+        addr: clean(get('addr')), subdistrict: strip(get('sub'), /^(ต\.|ตำบล|แขวง)\s*/), district: strip(get('dist'), /^(อ\.|อำเภอ|เขต)\s*/),
+        province: strip(get('prov'), /^(จ\.|จังหวัด)\s*/), postcode: get('post').replace(/\D/g, '').slice(0, 5),
+        contactName: cName, contactTel: cTel
+      }
+    };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomer_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 var API_ALLOWED_FUNCTIONS = [
   'endSession',
   'getRevenueAnalysisReport',
@@ -5749,7 +5890,8 @@ var API_ALLOWED_FUNCTIONS = [
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
-  'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile'
+  'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
+  'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled'
 ];
 
 
@@ -5775,7 +5917,10 @@ var AUTH_SESSION_USER_ARG = {
   saveVisitTargetsCopyYear: 1,   // (payload, actor) — admin เท่านั้น
   generateTransportContract: 1,  // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
   getContractTemplatePdf: 0,     // (actor) — ผู้ใช้ที่ล็อกอินทุกคน
-  getContractTemplateFile: 1     // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  getContractTemplateFile: 1,    // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
+  getRenewalCustomers: 0,        // (actor) — admin ทั้งหมด / ที่ทำการ เฉพาะของตน
+  getRenewalCustomer: 1,         // (payload, actor) — ตรวจสิทธิ์รายแถว
+  setRenewalEnabled: 1           // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 
