@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.0901';
+    var APP_VERSION = 'Ver. 2026.1119.0909';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18661,12 +18661,12 @@
 
         <fieldset class="ct-fieldset" id="ctSec3">
             <legend><span class="ct-num">3</span>อัตราค่าบริการและเงื่อนไข</legend>
-            <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · A1–A10 และพิเศษเฉพาะราย เลือกได้เฉพาะ admin · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
+            <div class="ct-subtitle">อัตราค่าบริการ <span>ต้องกรอกครบทุกช่อง · เลือก Package แล้วราคาจะเติมให้ แก้ไขได้ทีละช่อง (ช่องที่แก้จะเป็นสีส้ม)</span></div>
             <div class="ct-field">
                 <span id="ctPkgLabel">Package อัตราค่าบริการ <b class="text-red-600" id="ctPkgReq">*</b></span>
-                <!-- ดรอปดาวน์ (ผู้ใช้ขอกลับจากการ์ด 2026-11-18); ตัวเลือกเฉพาะ admin = disabled -->
+                <!-- ดรอปดาวน์ (ผู้ใช้ขอกลับจากการ์ด 2026-11-18); แสดงเฉพาะ Package ที่ผู้ใช้มีสิทธิ์ (ผู้ใช้ทั่วไป A11, A12 · admin ทั้งหมด + พิเศษเฉพาะราย) -->
                 <select id="ctPackage" class="ct-input ct-pkg-select" aria-labelledby="ctPkgLabel" onchange="applyContractPackage(); var nh = document.getElementById('ctPkgNeedHint'); if (nh && this.value) nh.classList.add('hidden')"><option value="">กำลังโหลด...</option></select>
-                <p id="ctPkgNeedHint" class="hidden text-xs text-red-700"><i class="fas fa-exclamation-circle mr-1"></i>กรุณาเลือก Package ก่อน (อัตราพิเศษเฉพาะรายเลือกได้เฉพาะ admin)</p>
+                <p id="ctPkgNeedHint" class="hidden text-xs text-red-700"><i class="fas fa-exclamation-circle mr-1"></i>กรุณาเลือก Package ก่อน แล้วราคาจะเติมให้</p>
             </div>
             <div class="ct-grid">
                 <label class="ct-field"><span>ปริมาณงานขั้นต่ำ (ชิ้น/เดือน) <b class="text-red-600">*</b></span><input name="min_qty" class="ct-input" inputmode="numeric"></label>
@@ -18937,17 +18937,10 @@
         var ctIsAdmin = function () { try { return String((currentUserInfo || {}).user || '').toLowerCase() === 'admin'; } catch (e) { return false; } };
         // ผู้ใช้ทั่วไปเลือกได้เฉพาะ Package A11, A12
         var pkgAllowed = function (v) { return ctIsAdmin() || v === 'Package A11' || v === 'Package A12'; };
+        // ดรอปดาวน์มีเฉพาะ Package ที่ผู้ใช้มีสิทธิ์ (fillPackages กรองแล้ว — ผู้ใช้ขอ 2026-11-19: ไม่มีสิทธิ์ = ไม่แสดง)
         var renderPkgCards = function () {
             var sel = document.getElementById('ctPackage');
-            if (!sel) return;
-            if (sel.value && !pkgAllowed(sel.value)) sel.value = '';
-            Array.prototype.forEach.call(sel.options, function (o) {
-                if (!o.value) return;
-                if (o.dataset.base === undefined) o.dataset.base = o.textContent;
-                var ok = pkgAllowed(o.value);
-                o.disabled = !ok;
-                o.textContent = o.dataset.base + (ok ? '' : ' — เฉพาะ admin');
-            });
+            if (sel && sel.value && !pkgAllowed(sel.value)) sel.value = '';
         };
         window.thpPriceEdited = function (el) {
             el.classList.add('ct-edited');
@@ -18974,12 +18967,15 @@
         var fillPackages = function () {
             var sel = document.getElementById('ctPackage');
             if (!sel) return;
-            var names = Object.keys(state.rates || {}).sort(function (a, b) { return Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')); });
-            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package A1–A12 (กรอกราคาเอง)</option>' + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>'; renderPkgCards(); return; }
+            var prev = sel.value;
+            var names = Object.keys(state.rates || {}).filter(pkgAllowed).sort(function (a, b) { return Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')); });
+            var custom = pkgAllowed('__custom') ? '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>' : '';
+            if (!names.length) { sel.innerHTML = '<option value="">ไม่พบอัตรา Package (กรอกราคาเอง)</option>' + custom; renderPkgCards(); return; }
             sel.innerHTML = '<option value="">— เลือก Package —</option>' + names.map(function (n) {
                 var p = state.rates[n];
                 return '<option value="' + esc(n) + '">' + esc(n) + ' (เริ่ม ' + esc(p.prices[0] || '-') + ' บาท · ขั้นต่ำ ' + esc(p.minItems ? Number(p.minItems).toLocaleString('en-US') : '-') + ' ชิ้น/เดือน)</option>';
-            }).join('') + '<option value="__custom">อัตราค่าบริการพิเศษเฉพาะราย (กรอกเอง)</option>';
+            }).join('') + custom;
+            if (prev && sel.querySelector('option[value="' + prev + '"]')) sel.value = prev;
             renderPkgCards();
             if (window.thpContractProgress) window.thpContractProgress();
         };
@@ -19047,7 +19043,7 @@
             state.filledFor = who;
             setDefaults();
             if (window.thpContractProgress) window.thpContractProgress();
-            if (state.loaded) return;
+            if (state.loaded) { fillPackages(); return; } // สร้างรายการใหม่ตามสิทธิ์ผู้ล็อกอินปัจจุบัน
             if (window.globalRateData && window.globalRateData.length) {
                 state.rates = window.thpContractPackages(window.globalRateData); state.loaded = true; fillPackages(); return;
             }
