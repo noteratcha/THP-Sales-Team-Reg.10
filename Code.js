@@ -5534,7 +5534,7 @@ var CONTRACT_FIELD_WIDTHS = {
   // ส่วนที่ 2 ผู้ใช้บริการ บังคับ (ผู้ใช้กำหนด 2026-11-18) — ยกเว้นวันที่หนังสือมอบอำนาจ, อาคาร, ถนน (มีเฉพาะกรณีมอบอำนาจ); ช่องที่ไม่มีให้ใส่ "-"
 var CONTRACT_REQUIRED_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'], ['corp_zip', 'รหัสไปรษณีย์'],
   ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่']];
-var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์']];
+var CONTRACT_REQUIRED_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์']];
 // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ → "1-2345-67890-12-3"
 function contractIdCard_(v) {
   var d = String(v || '').replace(/\D/g, '');
@@ -5794,6 +5794,136 @@ function setRenewalEnabled_(payload, actor) {
   }
 }
 
+// ===== สำเนาถาวรข้อมูลลูกค้าปี 2569 (ผู้ใช้ขอ 2026-11-19: เก็บข้อมูลเดิมไว้ดู แม้ชีตต้นทางถูกแก้เป็นปี 2570) =====
+// admin กดสร้างครั้งเดียวจากหน้าต่อสัญญา → ไฟล์ Google Sheets ใหม่ใน My Drive ของเจ้าของสคริปต์ (ไม่แชร์ — มีเลขบัตรประชาชน)
+// เก็บทุกแถวทุกคอลัมน์ของชีตต้นทางเป็นข้อความ (getDisplayValues) — ID ไฟล์/เวลาอยู่ใน Script Properties RENEWAL_ARCHIVE_SS_ID / RENEWAL_ARCHIVE_AT
+var RENEWAL_ARCHIVE_NAME = 'สำเนาข้อมูลลูกค้า สัญญา A1-A12 ปี 2569 (ระบบ THP Sales Team Reg.10)';
+var RENEWAL_ARCHIVE_SHEET = 'ปี 2569';
+function renewalArchiveInfo_() {
+  var p = PropertiesService.getScriptProperties();
+  var id = p.getProperty('RENEWAL_ARCHIVE_SS_ID');
+  return id ? { id: id, at: p.getProperty('RENEWAL_ARCHIVE_AT') || '', rows: Number(p.getProperty('RENEWAL_ARCHIVE_ROWS') || 0) } : null;
+}
+// อัปเดตสำเนาจนสิ้นปี 2569 (ผู้ใช้กำหนด 2026-11-19: ยังมีลูกค้าเพิ่มได้ก่อนสิ้นปี) — ทริกเกอร์รายวัน + ปุ่ม admin
+//   เพิ่ม/อัปเดตตามคีย์ (THP 8 หลัก หรือ ชื่อ+รหัสที่ทำการ) ไม่ลบแถวที่หายจากชีตต้นทาง
+//   ข้ามแถวที่วันที่เริ่มต้น/สิ้นสุดเป็นปี ค.ศ. 2027 ขึ้นไป (ต่อสัญญาปี 2570 แล้ว) → ข้อมูลปี 2569 เดิมไม่ถูกเขียนทับ
+//   ตั้งแต่ 1 ม.ค. 2570 (เวลาไทย) ล็อกถาวร ไม่อัปเดต/ไม่สร้างใหม่ และลบทริกเกอร์
+var RENEWAL_ARCHIVE_FREEZE = '20270101'; // yyyyMMdd เวลาไทย
+var RENEWAL_ARCHIVE_TRIGGER_FN = 'renewalArchiveDaily';
+function renewalArchiveFrozen_() {
+  return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd') >= RENEWAL_ARCHIVE_FREEZE;
+}
+function renewalYear_(v) { var m = /(\d{4})\s*$/.exec(String(v || '').trim()); return m ? Number(m[1]) : 0; }
+function renewalKey_(thp, name, zip) {
+  var t = String(thp || '').replace(/\D/g, '');
+  if (t.length === 8) return 'T' + t;
+  name = String(name || '').trim();
+  return name ? 'N' + name + '|' + String(zip || '').trim() : '';
+}
+function renewalArchiveTrigger_(on) {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === RENEWAL_ARCHIVE_TRIGGER_FN) ScriptApp.deleteTrigger(t); });
+  if (on) ScriptApp.newTrigger(RENEWAL_ARCHIVE_TRIGGER_FN).timeBased().everyDays(1).atHour(1).inTimezone('Asia/Bangkok').create();
+}
+// ทริกเกอร์รายวัน (ไม่มีผู้ใช้) — อัปเดตสำเนา หรือหลังสิ้นปีลบทริกเกอร์ตัวเอง
+function renewalArchiveDaily() {
+  if (renewalArchiveFrozen_()) { renewalArchiveTrigger_(false); return; }
+  var r = syncRenewalArchiveCore_();
+  if (r.status !== 'success' && typeof sendErrorToLine_ === 'function') sendErrorToLine_(new Error(r.message), 'renewalArchiveDaily');
+}
+function createRenewalArchive_(payload, actor) {
+  if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+  var had = !!renewalArchiveInfo_();
+  var r = syncRenewalArchiveCore_();
+  if (r.status === 'success' && !r.frozen) { try { renewalArchiveTrigger_(true); } catch (e) { r.triggerError = e.toString(); } }
+  r.existed = had;
+  return r;
+}
+function syncRenewalArchiveCore_() {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+    var info = renewalArchiveInfo_();
+    if (renewalArchiveFrozen_()) {
+      return info ? { status: 'success', frozen: true, archive: { at: info.at, rows: info.rows, frozen: true } }
+        : { status: 'error', message: 'เลยวันที่ 31 ธ.ค. 2569 แล้ว สร้างสำเนาข้อมูลปี 2569 ไม่ได้ (ชีตต้นทางอาจเป็นข้อมูลปี 2570)' };
+    }
+    var src = renewalSheet_();
+    if (!src) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
+    var S = src.getDataRange().getDisplayValues(), Hs = S[0], cs = renewalCols_(Hs);
+    var startCol = -1; for (var h = 0; h < Hs.length; h++) if (String(Hs[h]).trim().indexOf('วันที่เริ่มต้น') === 0) { startCol = h; break; }
+    var ss, out;
+    if (info) { ss = SpreadsheetApp.openById(info.id); out = ss.getSheetByName(RENEWAL_ARCHIVE_SHEET); }
+    if (!out) {
+      ss = ss || SpreadsheetApp.create(RENEWAL_ARCHIVE_NAME);
+      out = ss.getSheetByName(RENEWAL_ARCHIVE_SHEET) || ss.getSheets()[0].setName(RENEWAL_ARCHIVE_SHEET);
+      out.clear();
+      var hdr = Hs.concat(['_key', '_อัปเดตล่าสุด']);
+      out.getRange(1, 1, 1, hdr.length).setNumberFormat('@').setValues([hdr]);
+      out.setFrozenRows(1);
+    }
+    var A = out.getDataRange().getDisplayValues(), Ha = A[0];
+    var kCol = Ha.indexOf('_key'), uCol = Ha.indexOf('_อัปเดตล่าสุด');
+    // คอลัมน์สำเนา ← คอลัมน์ต้นทาง (ตามชื่อหัวตาราง)
+    var map = Ha.map(function (name) { return name === '_key' || name === '_อัปเดตล่าสุด' ? -1 : Hs.indexOf(name); });
+    var idx = {};
+    for (var i = 1; i < A.length; i++) if (A[i][kCol]) idx[A[i][kCol]] = i;
+    var now = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
+    var added = 0, updated = 0, skipped2570 = 0;
+    for (var r = 1; r < S.length; r++) {
+      var row = S[r];
+      // คีย์รวมรหัสบริการ: ลูกค้าคนเดียวมีได้หลายแถว (เช่น ยกเลิกแล้ว + ใช้งานอยู่) ไม่ให้ทับกันเอง
+      var key = renewalKey_(cs.thp >= 0 ? row[cs.thp] : '', row[cs.name], row[cs.zip]);
+      if (!key) continue;
+      key += '|' + String(row[cs.svc] || '').trim();
+      if ((startCol >= 0 && renewalYear_(row[startCol]) >= 2027) || (cs.end >= 0 && renewalYear_(row[cs.end]) >= 2027 && renewalYear_(row[cs.end]) < 2099)) { skipped2570++; continue; }
+      var rec = map.map(function (j) { return j >= 0 ? row[j] : ''; });
+      rec[kCol] = key;
+      if (idx.hasOwnProperty(key)) {
+        var cur = A[idx[key]], same = true;
+        for (var c = 0; c < rec.length; c++) if (c !== uCol && String(cur[c]) !== String(rec[c])) { same = false; break; }
+        if (!same) { rec[uCol] = now; A[idx[key]] = rec; updated++; }
+      } else { rec[uCol] = now; idx[key] = A.length; A.push(rec); added++; }
+    }
+    if (added || updated || !info) {
+      if (out.getMaxRows() < A.length) out.insertRowsAfter(out.getMaxRows(), A.length - out.getMaxRows());
+      out.getRange(1, 1, A.length, Ha.length).setNumberFormat('@').setValues(A); // ข้อความล้วน เลขบัตร/เบอร์ไม่ถูกแปลง
+    }
+    PropertiesService.getScriptProperties().setProperties({ RENEWAL_ARCHIVE_SS_ID: ss.getId(), RENEWAL_ARCHIVE_AT: now, RENEWAL_ARCHIVE_ROWS: String(A.length - 1) });
+    return { status: 'success', archive: { at: now, rows: A.length - 1 }, added: added, updated: updated, skipped2570: skipped2570 };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'syncRenewalArchiveCore_');
+    return { status: 'error', message: e.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (e2) { }
+  }
+}
+// หาข้อมูลเดิมปี 2569 ของลูกค้า: หมายเลข THP ตรงกัน (ถ้ามี) ไม่งั้นชื่อ + รหัสที่ทำการตรงกัน
+function renewalArchiveRecord_(thpDigits, name, zip) {
+  var info = renewalArchiveInfo_();
+  if (!info) return null;
+  var sh = SpreadsheetApp.openById(info.id).getSheetByName(RENEWAL_ARCHIVE_SHEET);
+  if (!sh) return null;
+  var data = sh.getDataRange().getDisplayValues();
+  var c = renewalCols_(data[0]);
+  // หลายแถวตรงกัน → เลือกแถวที่ไม่ใช่ "ยกเลิกสัญญา" ก่อน
+  var hit = null;
+  for (var i = 1; i < data.length; i++) {
+    var r = data[i];
+    var t = c.thp >= 0 ? String(r[c.thp] || '').replace(/\D/g, '') : '';
+    if (!(thpDigits && thpDigits.length === 8 ? t === thpDigits : (String(r[c.name] || '').trim() === name && String(r[c.zip] || '').trim() === zip))) continue;
+    if (!hit || (String(hit[c.svc] || '').trim() === 'ยกเลิกสัญญา' && String(r[c.svc] || '').trim() !== 'ยกเลิกสัญญา')) hit = r;
+  }
+  if (!hit) return { archivedAt: info.at, found: false };
+  var g = function (k) { return c[k] >= 0 ? String(hit[c[k]] || '').replace(/\s+/g, ' ').trim() : ''; };
+  var hdr = function (prefix) { for (var j = 0; j < data[0].length; j++) if (String(data[0][j]).trim().indexOf(prefix) === 0) return String(hit[j] || '').trim(); return ''; };
+  // เลขบัตรประชาชนไม่ส่งซ้ำ (อยู่ในฟอร์มแล้ว)
+  return {
+    archivedAt: info.at, found: true, name: g('name'), office: g('office'), zip: g('zip'), thp: g('thp'), svc: g('svc'),
+    priceStart: hdr('ค่าบริการปัจจุบันเริ่มต้น'), cod: g('cod'), start: hdr('วันที่เริ่มต้น'), end: g('end'), label: g('label'), tel: g('tel'),
+    addr: [g('addr'), g('sub'), g('dist'), g('prov'), g('post')].filter(function (x) { return x && x !== '-'; }).join(' '), contact: g('contact')
+  };
+}
+
 function getRenewalCustomers_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -5816,7 +5946,8 @@ function getRenewalCustomers_(actor) {
       });
     }
     out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
-    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out };
+    var arc = isAdmin ? renewalArchiveInfo_() : null;
+    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_() } : null };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomers_');
     return { status: 'error', message: e.toString() };
@@ -5858,7 +5989,8 @@ function getRenewalCustomer_(payload, actor) {
         label: clean(get('label')), tel: clean(get('tel')).replace(/\D/g, ''), idcard: get('idcard').replace(/\D/g, ''),
         addr: clean(get('addr')), subdistrict: strip(get('sub'), /^(ต\.|ตำบล|แขวง)\s*/), district: strip(get('dist'), /^(อ\.|อำเภอ|เขต)\s*/),
         province: strip(get('prov'), /^(จ\.|จังหวัด)\s*/), postcode: get('post').replace(/\D/g, '').slice(0, 5),
-        contactName: cName, contactTel: cTel
+        contactName: cName, contactTel: cTel,
+        prev: renewalArchiveRecord_(thp, name, zip) // ข้อมูลเดิมปี 2569 จากสำเนาถาวร (null = ยังไม่มีสำเนา)
       }
     };
   } catch (e) {
@@ -5891,7 +6023,7 @@ var API_ALLOWED_FUNCTIONS = [
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
-  'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled'
+  'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive'
 ];
 
 
@@ -5920,7 +6052,8 @@ var AUTH_SESSION_USER_ARG = {
   getContractTemplateFile: 1,    // (payload, actor) — ผู้ใช้ที่ล็อกอินทุกคน
   getRenewalCustomers: 0,        // (actor) — admin ทั้งหมด / ที่ทำการ เฉพาะของตน
   getRenewalCustomer: 1,         // (payload, actor) — ตรวจสิทธิ์รายแถว
-  setRenewalEnabled: 1           // (payload, actor) — admin เท่านั้น
+  setRenewalEnabled: 1,          // (payload, actor) — admin เท่านั้น
+  createRenewalArchive: 1        // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

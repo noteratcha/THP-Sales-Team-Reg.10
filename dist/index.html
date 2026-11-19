@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1312';
+    var APP_VERSION = 'Ver. 2026.1119.1332';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18570,6 +18570,8 @@
         <!-- ต่อสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19): เลือกจากชีต "รายชื่อ/สัญญา A1-A12" (getRenewalCustomers) แล้วเติมข้อมูลในฟอร์ม
              ช่องค้นหาไม่มี name → ไม่ถูกส่งไปกับข้อมูลสัญญา -->
         <!-- admin เปิด/ปิดได้ (ผู้ใช้กำหนด 2026-11-19): ปิดอยู่ = ผู้ใช้ทั่วไปไม่เห็นกล่องนี้, admin เห็นเสมอพร้อมสวิตช์ -->
+        <!-- ผู้ใช้ทั่วไปตอนที่ admin ยังไม่เปิด: แจ้งว่ายังไม่เปิดใช้งาน (ผู้ใช้ขอ 2026-11-19) -->
+        <p id="ctRenewOff" class="ct-renew-off hidden" role="status"><i class="fas fa-info-circle" aria-hidden="true"></i><span><b>ต่อสัญญาลูกค้าเดิม ปี 2570 ยังไม่เปิดใช้งาน</b> ผู้ดูแลระบบกำลังตรวจข้อมูลลูกค้าเดิม เมื่อเปิดแล้วจะเลือกลูกค้าเพื่อเติมข้อมูลได้ที่นี่ ระหว่างนี้กรอกข้อมูลลูกค้าเองได้ตามปกติ</span></p>
         <div class="ct-renew hidden" id="ctRenew">
             <div class="ct-renew-head">
                 <i class="fas fa-redo-alt" aria-hidden="true"></i>
@@ -18587,6 +18589,10 @@
                 <ul id="ctRenewList" class="ct-renew-list hidden" role="listbox"></ul>
             </div>
             <p id="ctRenewStatus" class="ct-renew-status" aria-live="polite"></p>
+            <!-- ข้อมูลเดิมปี 2569 จากสำเนาถาวร (แสดงหลังเลือกลูกค้า) -->
+            <div id="ctRenewPrev" class="ct-renew-prev hidden"></div>
+            <!-- admin: สร้างสำเนาถาวรข้อมูลปี 2569 (ครั้งเดียว) -->
+            <div id="ctRenewArchive" class="ct-renew-archive hidden"></div>
         </div>
         <fieldset class="ct-fieldset" id="ctSec1">
             <legend><span class="ct-num">1</span>ข้อมูลสัญญา</legend>
@@ -18641,9 +18647,9 @@
                     <li>สำเนาบัตรประจำตัวประชาชน</li>
                 </ul>
             </div>
-            <div id="ctCorp" class="ct-grid ct-grid-2m hidden">
-                <label class="ct-field ct-span-2"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
-                <p class="ct-span-2 text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน และวันที่หนังสือมอบอำนาจ เว้นว่างได้</p>
+            <div id="ctCorp" class="ct-grid ct-grid-2m ct-grid-3 hidden">
+                <label class="ct-field ct-span-2 ct-d-full"><span>ชื่อนิติบุคคล <b class="text-red-600">*</b></span><input name="corp_name" class="ct-input"></label>
+                <p class="ct-span-2 ct-d-full text-xs text-gray-500 -mt-1"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน และวันที่หนังสือมอบอำนาจ เว้นว่างได้</p>
                 <label class="ct-field ct-m-full"><span>ทะเบียนนิติบุคคลเลขที่ <b class="text-red-600">*</b></span><input name="corp_reg_no" class="ct-input" inputmode="numeric"></label>
                 <label class="ct-field"><span>จดทะเบียน ณ <b class="text-red-600">*</b></span><input name="corp_reg_at" class="ct-input"></label>
                 <label class="ct-field"><span>สำนักงานใหญ่ เลขที่ <b class="text-red-600">*</b></span><input name="corp_no" class="ct-input"></label>
@@ -18653,32 +18659,35 @@
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="corp_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="corp_province" class="ct-input"></label>
                 <label class="ct-field"><span>รหัสไปรษณีย์ <b class="text-red-600">*</b></span><input name="corp_zip" class="ct-input" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 หลัก" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 5)"></label>
-                <label class="ct-field ct-span-2"><span>ผู้มีอำนาจลงนาม <b class="text-red-600">*</b></span><input name="corp_signer" class="ct-input"></label>
+                <label class="ct-field ct-span-2 ct-d-1"><span>ผู้มีอำนาจลงนาม <b class="text-red-600">*</b></span><input name="corp_signer" class="ct-input"></label>
                 <label class="ct-field ct-m-full"><span>หนังสือรับรอง ออกให้ ณ วันที่ <b class="text-red-600">*</b></span><input type="date" name="corp_cert_date" class="ct-input"></label>
                 <label class="ct-field ct-m-full"><span>หนังสือมอบอำนาจลงวันที่ (ถ้ามี)</span><input type="date" name="corp_poa_date" class="ct-input"></label>
             </div>
-            <div id="ctPerson" class="ct-grid ct-grid-2m">
+            <div id="ctPerson" class="ct-grid ct-grid-2m ct-grid-3">
                 <label class="ct-field ct-span-2"><span>ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="person_name" class="ct-input" oninput="thpContractMirror()"></label>
-                <label class="ct-field ct-span-2"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
+                <label class="ct-field ct-span-2 ct-d-1"><span>เลขบัตรประชาชน (13 หลัก) <b class="text-red-600">*</b></span><input name="person_idcard" class="ct-input" inputmode="numeric" autocomplete="off" maxlength="17" placeholder="x-xxxx-xxxxx-xx-x"
                     oninput="var d = this.value.replace(/\D/g, '').slice(0, 13), o = ''; [1, 4, 5, 2, 1].reduce(function (i, n) { if (d.length > i) o += (o ? '-' : '') + d.substr(i, n); return i + n; }, 0); this.value = o"></label>
-                <label class="ct-field"><span>ที่อยู่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
-                <label class="ct-field"><span>อาคาร</span><input name="person_building" class="ct-input"></label>
+                <!-- ชื่อช่อง (ผู้ใช้กำหนด 2026-11-19): บ้านเลขที่ / อาคาร/หมู่ที่ -->
+                <label class="ct-field"><span>บ้านเลขที่ <b class="text-red-600">*</b></span><input name="person_no" class="ct-input"></label>
+                <label class="ct-field"><span>อาคาร/หมู่ที่</span><input name="person_building" class="ct-input"></label>
                 <label class="ct-field"><span>ถนน</span><input name="person_road" class="ct-input"></label>
                 <label class="ct-field"><span>ตำบล/แขวง <b class="text-red-600">*</b></span><input name="person_subdistrict" class="ct-input"></label>
                 <label class="ct-field"><span>อำเภอ/เขต <b class="text-red-600">*</b></span><input name="person_district" class="ct-input"></label>
                 <label class="ct-field"><span>จังหวัด <b class="text-red-600">*</b></span><input name="person_province" class="ct-input"></label>
                 <label class="ct-field"><span>รหัสไปรษณีย์ <b class="text-red-600">*</b></span><input name="person_zip" class="ct-input" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="5 หลัก" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 5)"></label>
-                <p class="ct-span-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน เว้นว่างได้</p>
+                <p class="ct-span-2 ct-d-full text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>ช่องที่มี * ต้องกรอก ถ้าไม่มีข้อมูลให้ใส่ "-" · อาคาร/ถนน เว้นว่างได้</p>
             </div>
             <!-- ช่องทางติดต่อของผู้ใช้บริการ (ย้ายจากหัวข้อ 4 — ผู้ใช้แจ้ง 2026-11-18) ไม่บังคับ; ในสัญญายังอยู่ข้อ 14 ตำแหน่งเดิม -->
-            <div class="ct-grid ct-subgroup">
-                <div class="ct-span-2 text-sm font-semibold text-gray-700">ผู้ประสานงานและช่องทางติดต่อของผู้ใช้บริการ <span class="font-normal text-gray-500">(ในสัญญาข้อ 14)</span></div>
+            <div class="ct-grid ct-grid-3 ct-subgroup">
+                <div class="ct-span-2 ct-d-full text-sm font-semibold text-gray-700">ผู้ประสานงานและช่องทางติดต่อของผู้ใช้บริการ</div>
                 <label class="ct-field"><span>ผู้ประสานงาน ชื่อ-สกุล <b class="text-red-600">*</b></span><input name="contact_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''"></label>
                 <label class="ct-field"><span>เบอร์โทร <b class="text-red-600">*</b></span><input name="contact_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="เช่น 0XX-XXXXXXX" oninput="thpTelInput(this)" onblur="thpTelInput(this, true)"></label>
                 <label class="ct-field"><span>Email</span><input name="contact_email" type="email" class="ct-input" inputmode="email" autocomplete="off" placeholder="เช่น name@example.com"></label>
                 <label class="ct-field"><span>หมายเลข Post Family <b class="text-red-600">*</b></span><input name="post_family" class="ct-input" inputmode="numeric" autocomplete="off" placeholder="พิมพ์ตัวเลข 8 หลัก เช่น 50010001" maxlength="12" oninput="var d = this.value.replace(/^THP-?/i, '').replace(/\D/g, '').slice(0, 8); this.value = d ? 'THP-' + d : ''" title="THP- ตามด้วยตัวเลข 8 หลัก พิมพ์เฉพาะตัวเลขได้เลย"><small class="text-xs text-gray-500 font-normal">พิมพ์เฉพาะตัวเลข 8 หลัก ระบบเติม "THP-" ให้เอง</small></label>
                 <label class="ct-field"><span>เบอร์ที่ลงทะเบียน Wallet@post</span><input name="wallet_tel" class="ct-input" inputmode="numeric" maxlength="11" placeholder="ตัวเลข 10 หลัก เช่น 0XX-XXXXXXX" oninput="thpTelInput(this); thpContractMirror()" onblur="thpTelInput(this, true)"></label>
-                <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''" placeholder="กรอกเบอร์ Wallet@post ก่อน" disabled></label>
+                <label class="ct-field"><span>ชื่อเจ้าของ Wallet@post</span><input name="wallet_name" class="ct-input" oninput="this.dataset.manual = this.value ? '1' : ''" placeholder="กรอกเบอร์ Wallet@post ก่อน" disabled>
+                    <!-- ชื่อเจ้าของ Wallet@post ต้องตรงกับผู้ใช้บริการ (ผู้ใช้กำหนด 2026-11-19) -->
+                    <small id="ctWalletWarn" class="hidden text-xs text-red-700" role="alert"><i class="fas fa-exclamation-circle mr-1"></i><span></span></small></label>
             </div>
         </fieldset>
 
@@ -18780,6 +18789,8 @@
     #page-contract .ct-fieldset legend { padding: 0 0.35rem; font-size: 0.9375rem; font-weight: 700; color: #1f2937; display: inline-flex; align-items: center; gap: 0.5rem; }
     /* มือถือ: ช่องที่อยู่สั้น ๆ 2 คอลัมน์ (ช่องยาว ct-span-2 เต็มแถว) */
     @media (max-width: 639px) { #page-contract .ct-grid.ct-grid-2m { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract .ct-grid-2m > .ct-span-2, #page-contract .ct-grid-2m > .ct-m-full { grid-column: span 2 / span 2; } }
+    /* หัวข้อ 2 กว้าง ≥820px (จอคอมพิวเตอร์) 3 คอลัมน์ — วัดจากความกว้างกรอบจริง (มีเมนูซ้าย/แผงขวา) (ผู้ใช้กำหนด 2026-11-19); แท็บเล็ต 2 คอลัมน์, มือถือตาม ct-grid-2m */
+    #page-contract #ctSec2 { container-type: inline-size; } @container (min-width: 820px) { #page-contract .ct-grid.ct-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } #page-contract .ct-grid-3 > .ct-d-1 { grid-column: span 1 / span 1; } #page-contract .ct-grid-3 > .ct-d-full { grid-column: 1 / -1; } }
     /* ช่องบังคับที่กรอกแล้ว: ขอบเขียวอ่อน */
     #page-contract .ct-input.ct-ok:not(:focus):not(.ct-invalid) { border-color: #86efac; background: #f7fef9; }
     /* การ์ดเลือก Package */
@@ -18898,6 +18909,21 @@
     #page-contract .ct-renew-switch input:checked + .ct-renew-track::after { transform: translateX(16px); }
     #page-contract .ct-renew-switch input:focus-visible + .ct-renew-track { outline: 2px solid #EA580C; outline-offset: 2px; }
     #page-contract .ct-renew-switch input:disabled + .ct-renew-track { opacity: .5; }
+    #page-contract .ct-input.ct-warn:not(:focus) { border-color: #f87171; background: #fef2f2; }
+    #page-contract .ct-renew-off { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #e5e7eb; background: #f9fafb; color: #4b5563; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+    #page-contract .ct-renew-off.hidden { display: none; }
+    #page-contract .ct-renew-off i { color: #9ca3af; margin-top: 3px; }
+    #page-contract .ct-renew-off b { color: #111827; font-weight: 600; margin-right: 4px; }
+    #page-contract .ct-renew-prev { margin-top: 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
+    #page-contract .ct-renew-prev > b { display: block; font-size: 13px; color: #111827; margin-bottom: 6px; }
+    #page-contract .ct-renew-prev > b small { font-weight: 400; color: #6b7280; }
+    #page-contract .ct-renew-prev dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; font-size: 12.5px; margin: 0; }
+    #page-contract .ct-renew-prev dt { color: #6b7280; }
+    #page-contract .ct-renew-prev dd { color: #111827; margin: 0; overflow-wrap: anywhere; }
+    #page-contract .ct-renew-prev p { font-size: 12.5px; color: #6b7280; margin: 0; }
+    #page-contract .ct-renew-archive { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fdba74; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12.5px; color: #4b5563; }
+    #page-contract .ct-renew-archive button { border: 1px solid #EA580C; color: #c2410c; background: #fff; border-radius: 8px; padding: 5px 10px; font-weight: 600; }
+    #page-contract .ct-renew-archive button:disabled { opacity: .6; cursor: wait; }
     #page-contract .ct-renew-status { font-size: 12.5px; color: #6b7280; margin-top: 8px; min-height: 1em; }
     #page-contract .ct-renew-status.is-ok { color: #15803d; }
     #page-contract .ct-locked, #page-contract .ct-locked:not(:focus) { background: #f3f4f6 !important; border-color: #e5e7eb !important; color: #4b5563; cursor: not-allowed; }
@@ -19143,6 +19169,7 @@
             var f = form(); if (!f) return;
             f.reset();
             if (window.thpRenewUi) window.thpRenewUi(); // reset() คืนสวิตช์ต่อสัญญาเป็นค่าเริ่มต้น → ตั้งตามสถานะจริง
+            if (window.thpRenewPrev) window.thpRenewPrev(null); // ซ่อนข้อมูลเดิมปี 2569 ของลูกค้าก่อน
             var ch = document.getElementById('ctCustomHint'); if (ch) ch.classList.add('hidden');
             setTimeout(renderPkgCards, 0);
             ['contact_name', 'wallet_name'].forEach(function (k) { var el = field(k); if (el) el.dataset.manual = ''; });
@@ -19403,7 +19430,7 @@
 
         var REQ2_CORP = [['corp_name', 'ชื่อนิติบุคคล'], ['corp_reg_no', 'ทะเบียนนิติบุคคลเลขที่'], ['corp_reg_at', 'จดทะเบียน ณ'], ['corp_no', 'สำนักงานใหญ่ เลขที่'], ['corp_subdistrict', 'ตำบล/แขวง'], ['corp_district', 'อำเภอ/เขต'], ['corp_province', 'จังหวัด'], ['corp_zip', 'รหัสไปรษณีย์'],
             ['corp_signer', 'ผู้มีอำนาจลงนาม'], ['corp_cert_date', 'หนังสือรับรอง ออกให้ ณ วันที่'], ['post_family', 'หมายเลข Post Family']];
-        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'ที่อยู่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์'], ['post_family', 'หมายเลข Post Family']];
+        var REQ2_PERSON = [['person_name', 'ชื่อ-สกุล'], ['person_idcard', 'เลขบัตรประชาชน'], ['person_no', 'บ้านเลขที่'], ['person_subdistrict', 'ตำบล/แขวง'], ['person_district', 'อำเภอ/เขต'], ['person_province', 'จังหวัด'], ['person_zip', 'รหัสไปรษณีย์'], ['post_family', 'หมายเลข Post Family']];
         // เลขบัตรประชาชน 13 หลัก + หลักตรวจสอบ
         var thpIdCardOk = function (v) {
             var d = String(v || '').replace(/\D/g, ''); if (d.length !== 13) return false;
@@ -19437,7 +19464,30 @@
             var els = Array.prototype.filter.call(sec.querySelectorAll('input.ct-input, select.ct-input, input.ct-price-input'), function (el) { return el.offsetParent !== null; });
             return [els.filter(function (el) { return String(el.value || '').trim(); }).length, els.length];
         };
+        // ชื่อเจ้าของ Wallet@post ต้องตรงกับผู้ใช้บริการ (ผู้ใช้กำหนด 2026-11-19)
+        // บุคคลธรรมดา = ชื่อ-สกุล, นิติบุคคล = ชื่อนิติบุคคล หรือผู้มีอำนาจลงนาม — เทียบโดยไม่สนคำนำหน้าชื่อและช่องว่าง
+        var nameKey = function (v) {
+            return String(v || '').trim().replace(/^(นางสาว|นาง|นาย|น\.ส\.|นส\.|ด\.ช\.|ด\.ญ\.|mrs\.?|mr\.?|ms\.?|miss)\s*/i, '').replace(/\s+/g, '').toLowerCase();
+        };
+        var walletMismatch = function () {
+            var tel = String((field('wallet_tel') || {}).value || '').trim(), wn = String((field('wallet_name') || {}).value || '').trim();
+            if (!tel || !wn) return '';
+            var owners = state.customerType === 'corp' ? ['corp_name', 'corp_signer'] : ['person_name'];
+            var names = owners.map(function (k) { return String((field(k) || {}).value || '').trim(); }).filter(Boolean);
+            if (!names.length) return '';
+            if (names.some(function (n) { return nameKey(n) === nameKey(wn); })) return '';
+            return 'ชื่อเจ้าของ Wallet@post ไม่ตรงกับผู้ใช้บริการ (' + names.join(' / ') + ') กรุณาแก้ไขข้อมูล';
+        };
+        var walletCheck = function () {
+            var w = document.getElementById('ctWalletWarn'), el = field('wallet_name'); if (!w) return '';
+            var msg = walletMismatch();
+            w.querySelector('span').textContent = msg;
+            w.classList.toggle('hidden', !msg);
+            if (el) { el.classList.toggle('ct-warn', !!msg); el.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
+            return msg;
+        };
         window.thpContractProgress = function () {
+            walletCheck();
             var steps = document.querySelectorAll('#ctSteps li'); if (!steps.length) return;
             // ขอบเขียวช่องบังคับที่กรอกแล้ว
             var reqNames = REQ1.concat((state.customerType === 'corp' ? REQ2_CORP : REQ2_PERSON).map(function (r) { return r[0]; }), ['contact_name', 'contact_tel', 'min_qty', 'cod_pct', 'goods_type']);
@@ -19659,10 +19709,54 @@
             var box = document.getElementById('ctRenew'), adm = document.getElementById('ctRenewAdmin'), tg = document.getElementById('ctRenewToggle'), tt = document.getElementById('ctRenewToggleText');
             if (!box) return;
             box.classList.toggle('hidden', !(renew.enabled || renew.isAdmin));
+            // แจ้งผู้ใช้ทั่วไปเมื่อยังไม่เปิด — แสดงหลังรู้สถานะจากหลังบ้านแล้วเท่านั้น (ไม่กะพริบตอนโหลด)
+            var off = document.getElementById('ctRenewOff');
+            if (off) {
+                if (renew.offHtml === undefined) renew.offHtml = off.innerHTML; // ข้อความเดิม (renewFail เขียนทับได้)
+                off.innerHTML = renew.offHtml;
+                off.classList.toggle('hidden', !(renew.checked && !renew.enabled && !renew.isAdmin));
+            }
             if (adm) adm.classList.toggle('hidden', !renew.isAdmin);
             if (tg) { tg.checked = renew.enabled; tg.setAttribute('aria-checked', String(renew.enabled)); }
             if (tt) tt.textContent = renew.enabled ? 'เปิดให้ผู้ใช้ทุกคน' : 'ปิดให้ผู้ใช้ (admin เท่านั้น)';
+            var arc = document.getElementById('ctRenewArchive');
+            if (arc) {
+                arc.classList.toggle('hidden', !renew.isAdmin || renew.archive === undefined);
+                var a = renew.archive, n = a ? Number(a.rows || 0).toLocaleString('th-TH') : '';
+                arc.innerHTML = !a
+                    ? '<i class="fas fa-exclamation-triangle text-amber-500"></i><span>ยังไม่ได้เก็บสำเนาข้อมูลลูกค้าปี 2569 — เริ่มเก็บแล้วระบบจะอัปเดตให้ทุกวันจนถึง 31 ธ.ค. 2569</span><button type="button" onclick="thpRenewArchive(this)">เริ่มเก็บสำเนาข้อมูลปี 2569</button>'
+                    : a.frozen
+                        ? '<i class="fas fa-lock text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569 ล็อกถาวรแล้ว (' + n + ' แถว, อัปเดตครั้งสุดท้าย ' + esc(a.at) + ')</span>'
+                        : '<i class="fas fa-archive text-gray-400"></i><span>สำเนาข้อมูลลูกค้าปี 2569: ' + n + ' แถว · อัปเดตล่าสุด ' + esc(a.at) + ' · อัปเดตอัตโนมัติทุกวันจนถึง 31 ธ.ค. 2569 แล้วล็อกถาวร</span><button type="button" onclick="thpRenewArchive(this)">อัปเดตตอนนี้</button>';
+            }
         };
+        window.thpRenewArchive = function (btn) {
+            var label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+            google.script.run.withSuccessHandler(function (res) {
+                if (!(res && res.status === 'success')) { btn.disabled = false; btn.textContent = label; Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                renew.archive = res.archive; renewUi();
+                var detail = res.frozen ? 'ล็อกถาวรแล้ว ไม่อัปเดตเพิ่ม'
+                    : 'เพิ่ม ' + (res.added || 0).toLocaleString('th-TH') + ' · อัปเดต ' + (res.updated || 0).toLocaleString('th-TH') + ' แถว' + (res.skipped2570 ? ' · ข้าม ' + res.skipped2570.toLocaleString('th-TH') + ' แถวที่เป็นสัญญาปี 2570 แล้ว' : '');
+                Swal.fire({ icon: 'success', title: res.existed ? 'อัปเดตสำเนาแล้ว' : 'เริ่มเก็บสำเนาแล้ว', html: esc(detail) + '<br><span style="font-size:13px;color:#6b7280">รวม ' + Number(res.archive.rows || 0).toLocaleString('th-TH') + ' แถว (' + esc(res.archive.at) + ')' + (res.triggerError ? '<br>⚠ ตั้งอัปเดตอัตโนมัติไม่สำเร็จ: ' + esc(res.triggerError) : '') + '</span>' });
+            }).withFailureHandler(function (err) {
+                btn.disabled = false; btn.textContent = label;
+                Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).createRenewalArchive({}, currentUserInfo);
+        };
+        // กรอบ "ข้อมูลเดิมปี 2569" หลังเลือกลูกค้า
+        var renewPrev = function (prev) {
+            var box = document.getElementById('ctRenewPrev'); if (!box) return;
+            if (!prev) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            var head = '<b>ข้อมูลเดิมปี 2569 <small>(สำเนาอัปเดตล่าสุด ' + esc(prev.archivedAt || '-') + ')</small></b>';
+            if (!prev.found) { box.innerHTML = head + '<p>ไม่พบลูกค้ารายนี้ในสำเนาปี 2569 (อาจเป็นลูกค้าที่เพิ่มหลังบันทึกสำเนา)</p>'; box.classList.remove('hidden'); return; }
+            var rows = [['ชื่อลูกค้า', prev.name], ['ที่ทำการ', [prev.zip, prev.office].filter(Boolean).join(' ')], ['หมายเลขสมาชิก', prev.thp],
+                ['บริการ', prev.svc], ['ค่าบริการเริ่มต้น', prev.priceStart], ['COD', prev.cod], ['ระยะสัญญา', [prev.start, prev.end].filter(Boolean).join(' – ')],
+                ['ระบบจ่าหน้า', prev.label], ['เบอร์โทร', prev.tel], ['ที่อยู่', prev.addr], ['ผู้ติดต่อ', prev.contact]].filter(function (r) { return r[1]; });
+            box.innerHTML = head + '<dl>' + rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join('') + '</dl>';
+            box.classList.remove('hidden');
+        };
+        window.thpRenewPrev = renewPrev;
         window.thpRenewUi = renewUi;
         window.thpRenewToggle = function (el) {
             var want = !!el.checked;
@@ -19677,23 +19771,32 @@
                 Swal.fire('เปลี่ยนไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
             }).setRenewalEnabled({ enabled: want }, currentUserInfo);
         };
+        // โหลดไม่สำเร็จ: กล่องยังซ่อนอยู่ (ไม่รู้สถานะ) → แจ้งในแถบแจ้งเตือนแทน ไม่ให้ผู้ใช้เห็นหน้าเงียบ ๆ
+        var renewFail = function (msg) {
+            renewStatus(msg);
+            var box = document.getElementById('ctRenew'), off = document.getElementById('ctRenewOff');
+            if (off && box && box.classList.contains('hidden')) {
+                off.innerHTML = '<i class="fas fa-exclamation-circle" aria-hidden="true" style="color:#d97706"></i><span><b>โหลดข้อมูลลูกค้าเดิมไม่สำเร็จ</b> ' + esc(msg) + ' — กด F5 แล้วลองใหม่ หรือกรอกข้อมูลลูกค้าเอง</span>';
+                off.classList.remove('hidden');
+            }
+        };
         var renewLoad = function () {
             var who = ''; try { who = String((currentUserInfo || {}).user || ''); } catch (e) { }
-            if (renew.forUser !== who) { renew.list = null; renew.forUser = who; renew.enabled = false; renew.isAdmin = false; renewUi(); renewStatus(''); var si = document.getElementById('ctRenewSearch'); if (si) si.value = ''; }
+            if (renew.forUser !== who) { renew.list = null; renew.forUser = who; renew.checked = false; renew.enabled = false; renew.isAdmin = false; renew.archive = undefined; renewUi(); renewStatus(''); var si = document.getElementById('ctRenewSearch'); if (si) si.value = ''; }
             if (renew.loading) return;
             // ผู้ใช้ทั่วไปตรวจสถานะเปิด/ปิดใหม่ทุกครั้งที่เข้าหน้า (admin อาจเพิ่งเปิด); โหลดรายชื่อแล้วไม่โหลดซ้ำ
             if (renew.list && (renew.enabled || renew.isAdmin)) return;
             renew.loading = true; if (!renew.list) renewStatus('กำลังโหลดรายชื่อลูกค้า...');
             google.script.run.withSuccessHandler(function (res) {
                 renew.loading = false;
-                if (!(res && res.status === 'success')) { renewStatus((res && res.message) || 'โหลดรายชื่อลูกค้าไม่สำเร็จ'); return; }
-                renew.enabled = !!res.enabled; renew.isAdmin = !!res.isAdmin; renewUi();
+                if (!(res && res.status === 'success')) { renewFail((res && res.message) || 'โหลดรายชื่อลูกค้าไม่สำเร็จ'); return; }
+                renew.checked = true; renew.enabled = !!res.enabled; renew.isAdmin = !!res.isAdmin; renew.archive = res.archive === undefined ? undefined : (res.archive || null); renewUi();
                 if (!renew.enabled && !renew.isAdmin) { renew.list = null; renewStatus(''); return; }
                 renew.list = res.data || [];
                 renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้');
                 var si = document.getElementById('ctRenewSearch'); if (si && document.activeElement === si) window.thpRenewFilter();
             }).withFailureHandler(function (err) {
-                renew.loading = false; renewStatus('โหลดรายชื่อลูกค้าไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+                renew.loading = false; renewFail('โหลดรายชื่อลูกค้าไม่สำเร็จ: ' + (err && err.message ? err.message : err));
             }).getRenewalCustomers(currentUserInfo);
         };
         window.thpRenewLoad = renewLoad;
@@ -19747,7 +19850,10 @@
             if (!corp && /^\d{13}$/.test(d.idcard || '')) {
                 var x = d.idcard; setVal('person_idcard', x.charAt(0) + '-' + x.substr(1, 4) + '-' + x.substr(5, 5) + '-' + x.substr(10, 2) + '-' + x.charAt(12));
             }
-            setVal(t + 'no', d.addr); setVal(t + 'subdistrict', d.subdistrict); setVal(t + 'district', d.district);
+            // บุคคลธรรมดา: แยก "หมู่" ออกจากที่อยู่ไปช่อง อาคาร/หมู่ที่ เช่น "99 ม.9" → บ้านเลขที่ 99 + หมู่ที่ 9
+            var addrNo = d.addr || '', mm = /^(.*?)\s*(?:ม\.|หมู่ที่|หมู่)\s*(\d+)\s*$/.exec(addrNo);
+            if (!corp && mm && mm[1]) { addrNo = mm[1]; setVal('person_building', 'หมู่ที่ ' + mm[2]); }
+            setVal(t + 'no', addrNo); setVal(t + 'subdistrict', d.subdistrict); setVal(t + 'district', d.district);
             setVal(t + 'province', d.province); setVal(t + 'zip', d.postcode);
             setVal('post_family', d.thp);
             var cName = d.contactName || (corp ? '' : d.name);
@@ -19773,6 +19879,7 @@
             else pkgNote = ' — บริการเดิม "' + d.svc + '" เลือก Package เองในส่วนที่ 3';
             if (window.thpContractMirror) window.thpContractMirror();
             if (window.thpContractProgress) window.thpContractProgress();
+            renewPrev(d.prev); // ข้อมูลเดิมปี 2569 (ผู้ใช้ขอ 2026-11-19)
             return pkgNote;
         };
         var renewPick = function (c) {
@@ -19856,6 +19963,8 @@
                 var wtEl = field('wallet_tel'); if (wtEl) wtEl.classList.add('ct-invalid');
                 warnAt('เบอร์ Wallet@post ไม่ถูกต้อง', 'กรอกตัวเลข 10 หลัก เช่น 0XX-XXXXXXX (หรือเว้นว่างถ้าไม่มี)', wtEl); return;
             }
+            var wMsg = walletCheck();
+            if (wMsg) { var wnEl = field('wallet_name'); if (wnEl) wnEl.classList.add('ct-invalid'); warnAt('ชื่อเจ้าของ Wallet@post ไม่ตรงกับผู้ใช้บริการ', wMsg, wnEl); return; }
             if (p.contact_tel && !/^0\d{8,9}$/.test(p.contact_tel)) {
                 var ctEl = field('contact_tel'); if (ctEl) ctEl.classList.add('ct-invalid');
                 warnAt('เบอร์โทรไม่ถูกต้อง', 'กรอกเบอร์โทร 9–10 หลัก ขึ้นต้นด้วย 0 เช่น 0XX-XXXXXXX', ctEl); return;
