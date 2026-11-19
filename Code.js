@@ -5948,32 +5948,50 @@ function renewalArchiveRecord_(thpDigits, name, zip) {
   };
 }
 
+// แหล่งข้อมูลต่อสัญญา (ผู้ใช้กำหนด 2026-11-19): ถึง 31 ธ.ค. 2569 ใช้ชีตต้นทาง; ตั้งแต่ 1 ม.ค. 2570 ใช้ไฟล์สำเนาปี 2569
+// Script Property RENEWAL_SOURCE = 'archive' / 'live' บังคับแหล่งได้ (ใช้ทดสอบ/แก้ปัญหา) — ไม่มีสำเนา → ใช้ชีตต้นทาง
+function renewalSource_() {
+  var force = PropertiesService.getScriptProperties().getProperty('RENEWAL_SOURCE');
+  var useArchive = force === 'archive' || (force !== 'live' && renewalArchiveFrozen_());
+  var info = useArchive ? renewalArchiveInfo_() : null;
+  if (info) {
+    var sh = SpreadsheetApp.openById(info.id).getSheetByName(RENEWAL_ARCHIVE_SHEET);
+    if (sh) return { sheet: sh, archive: true, at: info.at };
+  }
+  return { sheet: renewalSheet_(), archive: false };
+}
+
 function getRenewalCustomers_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
     var enabled = renewalEnabled_(), isAdmin = renewalIsAdmin_(actor);
     if (!enabled && !isAdmin) return { status: 'success', enabled: false, isAdmin: false, data: [] };
     if (!renewalCanUse_(actor)) return { status: 'success', enabled: false, isAdmin: false, data: [] };
-    var sh = renewalSheet_();
+    var src = renewalSource_(), sh = src.sheet; // หลังสิ้นปี 2569 = ไฟล์สำเนา (ผู้ใช้กำหนด 2026-11-19)
     if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
     var data = sh.getDataRange().getDisplayValues();
-    if (data.length <= 1) return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: [] };
+    if (data.length <= 1) return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: [], source: src.archive ? 'archive' : 'live' };
     var c = renewalCols_(data[0]);
     if (c.zip < 0 || c.name < 0 || c.svc < 0) return { status: 'error', message: 'หัวตารางในชีต "' + RENEWAL_SHEET_NAME + '" ไม่ตรงรูปแบบ (รหัสที่ทำการ/ชื่อลูกค้า/รหัสบริการปัจจุบัน)' };
-    var out = [];
+    var out = [], seen = {};
     for (var i = 1; i < data.length; i++) {
       var r = data[i], zip = String(r[c.zip] || '').trim(), name = String(r[c.name] || '').trim();
       if (!name || !renewalActive_(r[c.svc], zip) || !renewalInScope_(actor, zip)) continue;
-      out.push({
+      var item = {
         row: i + 1, name: name, zip: zip, office: c.office >= 0 ? String(r[c.office] || '').trim() : '',
         svc: String(r[c.svc] || '').trim(), pkg: renewalPackage_(r[c.svc]), end: c.end >= 0 ? String(r[c.end] || '').trim() : ''
-      });
+      };
+      // สำเนาเก็บแยกตามบริการ (ลูกค้าเปลี่ยนบริการระหว่างปีมีหลายแถว) → ใช้แถวล่าสุด (อยู่ล่างกว่า) รายเดียว
+      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, zip) : '';
+      if (k && seen.hasOwnProperty(k)) { out[seen[k]] = item; continue; }
+      if (k) seen[k] = out.length;
+      out.push(item);
     }
     out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
     renewalArchiveAuto_(); // เริ่มเก็บ/ดูแลสำเนาปี 2569 อัตโนมัติ
     var arc = isAdmin ? renewalArchiveInfo_() : null;
     // url ส่งเฉพาะ admin (ผู้ใช้ขอ 2026-11-19: มีช่องทางเปิดดูสำเนา เฉพาะ admin) — ไฟล์ไม่แชร์ เปิดได้เฉพาะบัญชี Google ที่มีสิทธิ์
-    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_(), url: 'https://docs.google.com/spreadsheets/d/' + arc.id + '/edit' } : null };
+    return { status: 'success', enabled: enabled, isAdmin: isAdmin, data: out, source: src.archive ? 'archive' : 'live', sourceAt: src.archive ? src.at : '', archive: arc ? { at: arc.at, rows: arc.rows, frozen: renewalArchiveFrozen_(), url: 'https://docs.google.com/spreadsheets/d/' + arc.id + '/edit' } : null };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomers_');
     return { status: 'error', message: e.toString() };
@@ -5986,7 +6004,7 @@ function getRenewalCustomer_(payload, actor) {
     if (!renewalCanUse_(actor)) return { status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์ต่อสัญญา' };
     if (!renewalEnabled_() && !renewalIsAdmin_(actor)) return { status: 'error', message: 'ฟังก์ชันต่อสัญญาปิดอยู่ (ผู้ดูแลระบบปิดไว้)' };
     var row = Number(payload && payload.row);
-    var sh = renewalSheet_();
+    var src = renewalSource_(), sh = src.sheet; // หลังสิ้นปี 2569 = ไฟล์สำเนา (เลขแถวอ้างอิงแหล่งเดียวกับรายชื่อ)
     if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
     if (!(row >= 2 && row <= sh.getLastRow() && Math.floor(row) === row)) return { status: 'error', message: 'ไม่พบข้อมูลลูกค้า' };
     var lastCol = sh.getLastColumn();

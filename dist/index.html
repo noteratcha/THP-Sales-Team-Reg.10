@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1421';
+    var APP_VERSION = 'Ver. 2026.1119.1524';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19868,7 +19868,9 @@
                 renew.checked = true; renew.enabled = !!res.enabled; renew.isAdmin = !!res.isAdmin && who.toLowerCase() === 'admin'; renew.archive = res.archive === undefined ? undefined : (res.archive || null); renewUi();
                 if (!renew.enabled && !renewAdmin()) { renew.list = null; renewStatus(''); return; }
                 renew.list = res.data || [];
-                renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้');
+                // ตั้งแต่ 1 ม.ค. 2570 หลังบ้านดึงจากไฟล์สำเนาปี 2569 (source = 'archive') — บอกผู้ใช้ให้รู้แหล่งข้อมูล
+                var srcNote = res.source === 'archive' ? ' (ข้อมูลจากสำเนาปี 2569' + (res.sourceAt ? ' อัปเดตล่าสุด ' + res.sourceAt : '') + ')' : '';
+                renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' + srcNote : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้' + srcNote);
                 renew.pkgSel = {}; renewLegend();
                 var si = document.getElementById('ctRenewSearch'); if (si && document.activeElement === si) window.thpRenewFilter();
             }).withFailureHandler(function (err) {
