@@ -3274,6 +3274,34 @@ function incrementVisitorCount_() {
 // 📦 SECTION: Code_RatePrice.js
 // ==========================================
 
+// ปรับชีต "เรตราคา" ให้ตรงบันทึก ปณท.ขล.(ตอ.3)/0133 ลว. 18 พ.ย. 2569 (อัตรา EMS Package A1–A12 ปี 2570) — ผู้ใช้สั่ง 2026-11-19
+// กด ▶ Run ครั้งเดียวในหน้า Apps Script (รันซ้ำได้ ค่าเดิมจะไม่เปลี่ยน) ดูผลใน Execution log
+// 1) ปริมาณงานขั้นต่ำ (คอลัมน์ E): A1–A3 7,000 · A4–A5 5,000 · A6–A7 3,000 · A8–A10 2,000 · A11 500 · A12 200
+// 2) ราคา (คอลัมน์ D) 5 ช่องที่เอกสารต่างจากชีตเดิม (ช่วงน้ำหนักระบุด้วยกรัมเริ่มต้น คอลัมน์ B)
+function updateRatePrice0133() {
+  var MIN = { 'Package A1': 7000, 'Package A2': 7000, 'Package A3': 7000, 'Package A4': 5000, 'Package A5': 5000,
+    'Package A6': 3000, 'Package A7': 3000, 'Package A8': 2000, 'Package A9': 2000, 'Package A10': 2000,
+    'Package A11': 500, 'Package A12': 200 };
+  var PRICE = { 'Package A10|20000': 183, 'Package A7|22000': 207, 'Package A10|22000': 212, 'Package A10|24000': 242, 'Package A10|26000': 272 };
+  var sheet = SpreadsheetApp.openById('1q-Jx-irTuftdAKHIWn6I8v4Sun0Wuzv0oSR-MMaTdXw').getSheetByName('เรตราคา');
+  var data = sheet.getDataRange().getValues();
+  var minChanged = 0, priceChanged = [], priceFound = {};
+  for (var i = 1; i < data.length; i++) {
+    var svc = String(data[i][0]).trim();
+    if (!MIN.hasOwnProperty(svc)) continue;
+    if (Number(data[i][4]) !== MIN[svc]) { sheet.getRange(i + 1, 5).setValue(MIN[svc]); minChanged++; }
+    var key = svc + '|' + Number(String(data[i][1]).replace(/,/g, ''));
+    if (PRICE.hasOwnProperty(key)) {
+      priceFound[key] = true;
+      if (Number(data[i][3]) !== PRICE[key]) { sheet.getRange(i + 1, 4).setValue(PRICE[key]); priceChanged.push(key + ': ' + data[i][3] + ' → ' + PRICE[key]); }
+    }
+  }
+  var missing = Object.keys(PRICE).filter(function (k) { return !priceFound[k]; });
+  Logger.log('ปรับปริมาณงานขั้นต่ำ ' + minChanged + ' แถว');
+  Logger.log('ปรับราคา ' + priceChanged.length + ' ช่อง: ' + (priceChanged.join(' | ') || '-'));
+  if (missing.length) Logger.log('⚠ ไม่พบแถว: ' + missing.join(', '));
+}
+
 // ==========================================
 // API ดึงข้อมูลเรตราคาจาก Google Sheet
 // ==========================================
@@ -5560,11 +5588,18 @@ function getContractTemplateFile_(payload, actor) {
   }
 }
 
-function getContractTemplatePdf_(actor) {
+// แบบฟอร์มเฉพาะ Package (ผู้ใช้กำหนด 2026-11-19): แยกจาก "แนวทางการขยายระยะเวลาการให้บริการ A13 และ A14.pdf" หน้า 3–5 = A13, หน้า 6–8 = A14
+// (เฉพาะหน้าแบบฟอร์มสัญญา ไม่รวมบันทึกข้อความลับหน้า 1–2) อยู่ในโฟลเดอร์ CONTRACT_TEMPLATE_FOLDER_NAME
+var CONTRACT_TEMPLATE_PDF_BY_PKG = {
+  A13: 'แบบฟอร์มสัญญาขนส่ง ปี2570 A13.pdf',
+  A14: 'แบบฟอร์มสัญญาขนส่ง ปี2570 A14.pdf'
+};
+function getContractTemplatePdf_(actor, variant) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
-    var f = findContractFile_(CONTRACT_TEMPLATE_PDF_NAME);
-    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '" ในโฟลเดอร์ "' + CONTRACT_TEMPLATE_FOLDER_NAME + '"' };
+    var name = CONTRACT_TEMPLATE_PDF_BY_PKG.hasOwnProperty(String(variant || '')) ? CONTRACT_TEMPLATE_PDF_BY_PKG[variant] : CONTRACT_TEMPLATE_PDF_NAME;
+    var f = findContractFile_(name);
+    if (!f) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + name + '" ในโฟลเดอร์ "' + CONTRACT_TEMPLATE_FOLDER_NAME + '"' };
     return { status: 'success', name: f.getName(), pdf: Utilities.base64Encode(f.getBlob().getBytes()) };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractTemplatePdf_');
@@ -5604,9 +5639,9 @@ function buildContractValues_(p) {
   if (!/^\d+$/.test(str('min_qty').replace(/,/g, ''))) return { error: 'กรุณากรอกปริมาณงานขั้นต่ำ (ชิ้น/เดือน) เป็นตัวเลข' };
   if (!/^\d+(\.\d{1,2})?$/.test(str('cod_pct'))) return { error: 'กรุณากรอก COD คิดในอัตรา (%) เป็นตัวเลข' }; // ผู้ใช้กำหนด 2026-11-18 บังคับ
   if (!str('goods_type')) return { error: 'กรุณากรอกประเภทสิ่งของที่ฝากส่ง' };
-  // Package A1–A10 + พิเศษเฉพาะราย เฉพาะ admin (ผู้ใช้กำหนด 2026-11-18) — buildContractValues_ รับ actor จาก generateTransportContract_
+  // Package A1–A10 + พิเศษเฉพาะราย เฉพาะ admin (ผู้ใช้กำหนด 2026-11-18); A11–A14 ทุกคน (A13/A14 เพิ่ม 2026-11-19) — buildContractValues_ รับ actor จาก generateTransportContract_
   var pkgSel = str('pkg');
-  if (pkgSel && pkgSel !== 'Package A11' && pkgSel !== 'Package A12' && !(p.__actorIsAdmin)) return { error: (pkgSel === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkgSel) + ' เลือกได้เฉพาะผู้ดูแลระบบ (admin)' };
+  if (pkgSel && ['Package A11', 'Package A12', 'Package A13', 'Package A14'].indexOf(pkgSel) === -1 && !(p.__actorIsAdmin)) return { error: (pkgSel === '__custom' ? 'อัตราค่าบริการพิเศษเฉพาะราย' : pkgSel) + ' เลือกได้เฉพาะผู้ดูแลระบบ (admin)' };
   if (str('wallet_tel') && !/^\d{10}$/.test(str('wallet_tel'))) return { error: 'เบอร์ Wallet@post ต้องเป็นตัวเลข 10 หลัก' }; // ผู้ใช้กำหนด 2026-11-18
   if (str('contact_email') && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(str('contact_email'))) return { error: 'Email ไม่ถูกต้อง (รูปแบบ name@example.com)' }; // ผู้ใช้กำหนด 2026-11-18
   if (!/^\d{5}$/.test(str(type === 'corp' ? 'corp_zip' : 'person_zip'))) return { error: 'รหัสไปรษณีย์ผู้ใช้บริการต้องเป็นตัวเลข 5 หลัก' }; // ผู้ใช้กำหนด 2026-11-18

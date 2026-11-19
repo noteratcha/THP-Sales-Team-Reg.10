@@ -114,6 +114,7 @@
             </div>
             <!-- 3 ตาราง: 1–10 / 11–20 / 21–30 กก. (ผู้ใช้กำหนด 2026-11-18) จอเล็กเรียงลงมา -->
             <p id="ctCustomHint" class="hidden text-sm rounded-lg border border-amber-200 bg-amber-50 text-amber-900 px-3 py-2"><i class="fas fa-pen mr-1.5"></i>อัตราค่าบริการพิเศษเฉพาะราย: กรอกปริมาณงานขั้นต่ำและอัตราทุกช่วงน้ำหนักเองให้ครบ 30 ช่อง</p>
+            <p id="ctFixedHint" class="hidden text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-700 px-3 py-2"><i class="fas fa-lock mr-1.5"></i>Package A13/A14 ใช้แบบฟอร์มของส่วนกลางที่พิมพ์อัตราค่าบริการ ปริมาณงานขั้นต่ำ และ COD 3% ไว้แล้ว จึงแก้ไขช่องเหล่านี้ไม่ได้</p>
             <div id="ctPriceBody" class="ct-price-grid"></div>
             <div class="ct-subtitle ct-subgroup">เงื่อนไขการให้บริการ</div>
             <div class="ct-grid">
@@ -293,6 +294,7 @@
     #page-contract .ct-price-input:focus { outline: none; border-color: #c2410c; box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.15); }
     #page-contract .ct-price-input.ct-ok:not(:focus):not(.ct-invalid):not(.ct-edited) { border-color: #86efac; background: #f7fef9; }
     #page-contract .ct-price-input.ct-edited { background: #fff7ed; border-color: #fdba74; }
+    #page-contract .ct-locked, #page-contract .ct-locked:not(:focus) { background: #f3f4f6 !important; border-color: #e5e7eb !important; color: #4b5563; cursor: not-allowed; }
     #page-contract .ct-submit { display: inline-flex; white-space: nowrap; align-items: center; justify-content: center; gap: 0.5rem; background: #c2410c; color: #fff; font-weight: 700; padding: 0.7rem 1.5rem; border-radius: 0.625rem; min-height: 44px; }
     #page-contract .ct-submit:hover { background: #9a3412; }
     #page-contract .ct-submit:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
@@ -306,6 +308,8 @@
         var field = function (name) { var f = form(); return f ? f.elements[name] : null; };
         var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s); };
 
+        // Package ที่มีแบบฟอร์มเฉพาะ (พิมพ์อัตราไว้แล้ว): หน้า 3–5 = A13, หน้า 6–8 = A14 ของ "แนวทางการขยายระยะเวลาการให้บริการ A13 และ A14"
+        var ctFixedPkg = function (v) { return v === 'Package A13' || v === 'Package A14'; };
         var tierLabel = function (i) { return i === 1 ? 'ไม่เกิน 1 กก.' : 'เกิน ' + (i - 1) + ' – ' + i + ' กก.'; };
 
         // วันที่จาก <input type=date> (yyyy-mm-dd) → "1 มกราคม 2570"
@@ -316,12 +320,12 @@
             return Number(m[3]) + ' ' + months[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543);
         };
 
-        // แถวจาก getRatePriceData → { 'Package A1': { prices: [30 ค่า], minItems } } เฉพาะ Package A1–A12
+        // แถวจาก getRatePriceData → { 'Package A1': { prices: [30 ค่า], minItems } } เฉพาะ Package A1–A14
         window.thpContractPackages = function (rows) {
             var out = {};
             (rows || []).forEach(function (r) {
                 var mm = /^Package A(\d+)$/.exec(String(r.service || '').trim());
-                if (!mm || Number(mm[1]) < 1 || Number(mm[1]) > 12) return;
+                if (!mm || Number(mm[1]) < 1 || Number(mm[1]) > 14) return;
                 (out[r.service] = out[r.service] || []).push(r);
             });
             Object.keys(out).forEach(function (k) {
@@ -356,9 +360,17 @@
             document.querySelectorAll('#ctPriceBody [data-ct-price="' + idx + '"]').forEach(function (o) { o.value = val; o.classList.remove('ct-edited'); });
         };
 
+        // A13/A14 (ผู้ใช้กำหนด 2026-11-19): แบบฟอร์มของส่วนกลางพิมพ์อัตรา 30 ช่วง + ปริมาณขั้นต่ำ + COD 3% ไว้แล้ว → ล็อกช่องเหล่านี้ (แก้ไม่ได้)
+        var lockFixedPkg = function (on) {
+            document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (o) { o.readOnly = on; o.classList.toggle('ct-locked', on); });
+            ['min_qty', 'cod_pct'].forEach(function (k) { var el = field(k); if (el) { el.readOnly = on; el.classList.toggle('ct-locked', on); } });
+            var h = document.getElementById('ctFixedHint'); if (h) h.classList.toggle('hidden', !on);
+        };
         window.applyContractPackage = function () {
             var sel = document.getElementById('ctPackage');
             if (sel && sel.value && !pkgAllowed(sel.value)) { sel.value = ''; return; }
+            lockFixedPkg(!!(sel && ctFixedPkg(sel.value)));
+            if (sel && ctFixedPkg(sel.value) && field('cod_pct')) field('cod_pct').value = '3';
             if (sel && sel.value === '__custom') {
                 // พิเศษเฉพาะราย: ล้างค่าที่เติมจาก Package ให้กรอกเองทั้งหมด
                 for (var j = 0; j < PRICE_COUNT; j++) setPrice(j, '');
@@ -376,8 +388,8 @@
         };
 
         var ctIsAdmin = function () { try { return String((currentUserInfo || {}).user || '').toLowerCase() === 'admin'; } catch (e) { return false; } };
-        // ผู้ใช้ทั่วไปเลือกได้เฉพาะ Package A11, A12
-        var pkgAllowed = function (v) { return ctIsAdmin() || v === 'Package A11' || v === 'Package A12'; };
+        // ผู้ใช้ทั่วไปเลือกได้เฉพาะ Package A11–A14 (A13/A14 เพิ่ม 2026-11-19: ใช้ได้ทุกที่ทำการใน ปข.10)
+        var pkgAllowed = function (v) { return ctIsAdmin() || ['Package A11', 'Package A12', 'Package A13', 'Package A14'].indexOf(v) !== -1; };
         // ดรอปดาวน์มีเฉพาะ Package ที่ผู้ใช้มีสิทธิ์ (fillPackages กรองแล้ว — ผู้ใช้ขอ 2026-11-19: ไม่มีสิทธิ์ = ไม่แสดง)
         var renderPkgCards = function () {
             var sel = document.getElementById('ctPackage');
@@ -484,15 +496,28 @@
             state.filledFor = who;
             setDefaults();
             if (window.thpContractProgress) window.thpContractProgress();
-            if (state.loaded) { fillPackages(); return; } // สร้างรายการใหม่ตามสิทธิ์ผู้ล็อกอินปัจจุบัน
-            if (window.globalRateData && window.globalRateData.length) {
-                state.rates = window.thpContractPackages(window.globalRateData); state.loaded = true; fillPackages(); return;
+            // แสดงราคาที่มีอยู่ก่อน (ถ้ามี) แล้วดึงจากชีต "เรตราคา" ใหม่ทุกครั้งที่เปิดหน้า
+            // → แก้ราคาในชีตแล้วมีผลทันทีโดยไม่ต้องรีเฟรชเบราว์เซอร์ (ผู้ใช้ขอ 2026-11-19)
+            if (!state.loaded && window.globalRateData && window.globalRateData.length) {
+                state.rates = window.thpContractPackages(window.globalRateData); state.loaded = true;
             }
-            google.script.run.withSuccessHandler(function (res) {
-                if (res && res.status === 'success') { window.globalRateData = res.data; state.rates = window.thpContractPackages(res.data); state.loaded = true; }
-                else state.rates = {};
+            fillPackages(); // สร้างรายการใหม่ตามสิทธิ์ผู้ล็อกอินปัจจุบัน
+            fetchRates().then(function () {
                 fillPackages();
-            }).withFailureHandler(function () { state.rates = {}; fillPackages(); }).getRatePriceData();
+                // Package ที่เลือกไว้และยังไม่แก้ราคาเอง → เติมราคาล่าสุดให้
+                var sel = document.getElementById('ctPackage');
+                if (sel && sel.value && sel.value !== '__custom' && !document.querySelector('#ctPriceBody .ct-price-input.ct-edited')) window.applyContractPackage();
+            }, function () { if (!state.loaded) { state.rates = {}; fillPackages(); } });
+        };
+
+        // ดึงอัตราค่าบริการล่าสุดจากชีตเสมอ (หลังบ้านอ่านชีตตรง ไม่มีแคช)
+        var fetchRates = function () {
+            return new Promise(function (resolve, reject) {
+                google.script.run.withSuccessHandler(function (res) {
+                    if (res && res.status === 'success') { window.globalRateData = res.data; state.rates = window.thpContractPackages(res.data); state.loaded = true; resolve(state.rates); }
+                    else reject(new Error((res && res.message) || 'โหลดอัตราค่าบริการไม่สำเร็จ'));
+                }).withFailureHandler(reject).getRatePriceData();
+            });
         };
 
         window.resetContractForm = function () {
@@ -502,6 +527,7 @@
             setTimeout(renderPkgCards, 0);
             ['contact_name', 'wallet_name'].forEach(function (k) { var el = field(k); if (el) el.dataset.manual = ''; });
             document.querySelectorAll('#ctPriceBody .ct-price-input').forEach(function (o) { o.value = ''; o.classList.remove('ct-edited'); });
+            lockFixedPkg(false);
             f.querySelectorAll('.ct-invalid').forEach(function (el) { el.classList.remove('ct-invalid'); });
             setContractCustomerType('person');
             setDefaults();
@@ -579,6 +605,37 @@
             [0, [653.0, 669.4, 685.7, 702.0, 718.3, 734.6, 751.0, 767.3, 783.6, 799.9, 816.2]],
             [1, [52.6, 68.9, 85.2, 101.5, 117.9, 134.2, 150.5, 166.8, 183.1, 199.5, 215.8, 232.1, 248.4, 264.7, 281.1, 297.4, 313.7, 330.0, 346.3, 362.7, 379.0]]
         ];
+        // แบบฟอร์ม A13/A14 (3 หน้า, สแกน 200 dpi): พิกัดวัดจากจุดเส้นประในภาพสแกนหน้า 3–5 (A13) — หน้า 6–8 (A14) ต่างกันไม่เกิน 1 pt จึงใช้ชุดเดียวกัน
+        // ไม่มีช่องราคา/ปริมาณขั้นต่ำ/COD (พิมพ์ไว้ในแบบฟอร์มแล้ว) — วัดใหม่ถ้าส่วนกลางออกแบบฟอร์มใหม่ (ผู้ใช้กำหนด 2026-11-19)
+        var CT_PDF_FIELDS_A1314 = {
+            no_a: [0, 114.5, 142.9, 139.3, 'c'], no_b: [0, 148.0, 187.2, 139.3, 'c'], no_c: [0, 194.4, 245.9, 139.3, 'c'],
+            sign_date: [0, 390.2, 539.3, 171.4, 'c'], start_date: [0, 249.1, 351.7, 187.9, 'c'], end_date: [0, 383.4, 494.6, 187.9, 'c'],
+            office: [0, 356.0, 501.8, 283.7, 'l'],
+            corp_name: [0, 208.4, 501.1, 315.0, 'l'], corp_reg_no: [0, 187.6, 346.0, 329.8, 'l'], corp_reg_at: [0, 452.2, 533.9, 329.8, 'l'],
+            corp_no: [0, 186.8, 232.2, 344.9, 'c'], corp_building: [0, 259.2, 355.7, 344.9, 'l'], corp_road: [0, 376.2, 496.8, 344.9, 'l'],
+            corp_subdistrict: [0, 128.5, 221.8, 360.0, 'l'], corp_district: [0, 267.5, 370.4, 360.0, 'l'], corp_province: [0, 400.0, 493.6, 360.0, 'l'],
+            corp_signer: [0, 95.8, 388.1, 375.1, 'l'], corp_cert_date: [0, 391.7, 540.4, 389.5, 'l'], corp_poa_date: [0, 186.5, 308.2, 405.0, 'c'],
+            person_name: [0, 226.4, 519.1, 419.8, 'l'], person_idcard: [0, 176.0, 312.1, 435.2, 'c'], person_no: [0, 352.8, 398.5, 435.2, 'c'], person_building: [0, 424.8, 497.9, 435.2, 'l'],
+            person_road: [0, 99.4, 202.0, 450.0, 'l'], person_subdistrict: [0, 250.9, 353.5, 450.0, 'l'], person_district: [0, 399.6, 493.6, 450.0, 'l'],
+            person_province: [0, 108.7, 242.6, 465.1, 'l'],
+            goods_type: [1, 213.5, 548.6, 338.8, 'l'], label_detail: [1, 240.5, 397.4, 356.8, 'l'], other_detail: [1, 448.2, 546.1, 374.4, 'l'],
+            fuel_name: [1, 268.6, 443.9, 392.8, 'c'],
+            contact_name: [2, 125.3, 355.0, 358.2, 'l'], contact_tel: [2, 394.9, 534.2, 358.2, 'l'],
+            contact_email: [2, 108.0, 297.7, 376.2, 'l'], post_family: [2, 401.8, 535.3, 376.2, 'l'],
+            wallet_tel: [2, 262.4, 344.5, 393.8, 'l'], wallet_name: [2, 380.0, 537.5, 393.8, 'l'],
+            thp_signer: [2, 86.8, 238.3, 583.2, 'c'], cus_signer: [2, 374.4, 513.7, 583.2, 'c'],
+            thp_position: [2, 115.9, 242.6, 601.2, 'c'], cus_position: [2, 385.9, 515.9, 601.2, 'c'],
+            wit1_name: [2, 87.1, 238.7, 658.8, 'c'], wit2_name: [2, 374.4, 514.1, 658.8, 'c'],
+            wit1_position: [2, 115.9, 243.0, 676.8, 'c'], wit2_position: [2, 386.3, 516.2, 676.8, 'c']
+        };
+        var CT_PDF_CHECKS_A1314 = {
+            x_label_yes: [1, 168.6, 356.9], x_label_no: [1, 408.7, 356.2], x_capos: [1, 153.8, 374.9],
+            x_pickup: [1, 211.0, 374.5], x_dropoff: [1, 305.7, 374.5], x_other: [1, 368.4, 374.5]
+        };
+        var ctLayout = function (pkg) {
+            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [] }
+                : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS };
+        };
         // ต้นฉบับใช้ TH SarabunPSK 16pt; Sarabun (Google Fonts) รูปตัวอักษรเดียวกันแต่ใหญ่และหนากว่า จึงใช้ขนาดเล็กลง + น้ำหนัก 300
         var CT_TEXT_PT = 10.8, CT_PRICE_PT = 9.8, CT_SCALE = 5, CT_WEIGHT = '300';
 
@@ -611,17 +668,19 @@
             return libsPromise;
         };
         window.thpLoadContractLibs = loadContractLibs;
-        var templatePromise = null;
-        var getTemplatePdf = function () {
-            if (!templatePromise) {
-                templatePromise = new Promise(function (resolve, reject) {
+        // ต้นฉบับแยกตาม Package: '' = แบบฟอร์มมาตรฐาน, 'A13' / 'A14' = แบบฟอร์มเฉพาะ (เก็บแคชแยกกัน)
+        var templatePromises = {};
+        var getTemplatePdf = function (pkg) {
+            var variant = ctFixedPkg(pkg) ? String(pkg).replace('Package ', '') : '';
+            if (!templatePromises[variant]) {
+                templatePromises[variant] = new Promise(function (resolve, reject) {
                     google.script.run.withSuccessHandler(function (res) {
                         if (res && res.status === 'success' && res.pdf) resolve(b64ToBytes(res.pdf));
                         else reject(new Error((res && res.message) || 'โหลดไฟล์ต้นฉบับไม่สำเร็จ'));
-                    }).withFailureHandler(reject).getContractTemplatePdf(currentUserInfo);
-                }).catch(function (e) { templatePromise = null; throw e; });
+                    }).withFailureHandler(reject).getContractTemplatePdf(currentUserInfo, variant);
+                }).catch(function (e) { delete templatePromises[variant]; throw e; });
             }
-            return templatePromise;
+            return templatePromises[variant];
         };
         var b64ToBytes = function (b64) {
             var bin = atob(b64), out = new Uint8Array(bin.length);
@@ -650,9 +709,9 @@
         };
 
         // ค่าที่จะพิมพ์ลง PDF (ไม่เติมช่องว่าง) — ช่องของประเภทผู้ใช้บริการอีกแบบเว้นว่าง
-        var pdfValues = function (p) {
+        var pdfValues = function (p, fields) {
             var out = {};
-            Object.keys(CT_PDF_FIELDS).forEach(function (k) {
+            Object.keys(fields).forEach(function (k) {
                 var other = (p.customerType === 'corp' && k.indexOf('person_') === 0) || (p.customerType === 'person' && k.indexOf('corp_') === 0);
                 out[k] = other ? '' : String(p[k] || '').replace(/\s+/g, ' ').trim();
             });
@@ -676,13 +735,14 @@
                         page.drawImage(png, { x: x, y: H - (yBaseTop + img.desc), width: img.w, height: img.asc + img.desc });
                     }));
                 };
-                var vals = pdfValues(p);
-                Object.keys(CT_PDF_FIELDS).forEach(function (k) {
-                    var f = CT_PDF_FIELDS[k];
+                var L = ctLayout(p.pkg);
+                var vals = pdfValues(p, L.fields);
+                Object.keys(L.fields).forEach(function (k) {
+                    var f = L.fields[k];
                     place(f[0], vals[k], f[1], f[2], f[3] - 2.2, f[4], CT_TEXT_PT);
                 });
                 var tier = 0;
-                CT_PRICE_ROWS.forEach(function (pg) {
+                L.priceRows.forEach(function (pg) {
                     var b = pg[1];
                     for (var i = 1; i < b.length; i++) {
                         var v = String((p.prices || [])[tier] || '').replace(/,/g, '').trim();
@@ -691,9 +751,9 @@
                     }
                 });
                 // เครื่องหมายถูกในช่องที่เลือก (วาดเป็นเส้น ไม่ขึ้นกับฟอนต์)
-                Object.keys(CT_PDF_CHECKS).forEach(function (k) {
+                Object.keys(L.checks).forEach(function (k) {
                     if (!(p.checks || {})[k]) return;
-                    var c = CT_PDF_CHECKS[k], page = pages[c[0]], H = page.getHeight();
+                    var c = L.checks[k], page = pages[c[0]], H = page.getHeight();
                     var x = c[1], yb = c[2];
                     var pts = [[x + 2.6, yb - 5.2], [x + 5.2, yb - 2.2], [x + 10.6, yb - 10.4]];
                     var opt = { thickness: 1.4, color: PDFLib.rgb(0, 0, 0) };
@@ -870,23 +930,22 @@
 
         // ต้นฉบับ PDF ที่ใส่อัตรา Package ไว้แล้ว (ราคา 30 ช่วงน้ำหนัก + ปริมาณงานขั้นต่ำ) ช่องอื่นว่างให้กรอกด้วยมือ
         // ปุ่ม "ต้นฉบับ A11" / "ต้นฉบับ A12" บนแถบบน (ผู้ใช้ขอ 2026-11-19)
+        // ดาวน์โหลดต้นฉบับ: ดึงราคาล่าสุดจากชีตทุกครั้ง ถ้าดึงไม่ได้ค่อยใช้ราคาที่โหลดไว้
         var ratesReady = function () {
-            if (state.rates && Object.keys(state.rates).length) return Promise.resolve(state.rates);
-            return new Promise(function (resolve, reject) {
-                google.script.run.withSuccessHandler(function (res) {
-                    if (res && res.status === 'success') { window.globalRateData = res.data; state.rates = window.thpContractPackages(res.data); resolve(state.rates); }
-                    else reject(new Error((res && res.message) || 'โหลดอัตราค่าบริการไม่สำเร็จ'));
-                }).withFailureHandler(reject).getRatePriceData();
+            return fetchRates().catch(function (err) {
+                if (state.rates && Object.keys(state.rates).length) return state.rates;
+                throw err;
             });
         };
         window.thpDownloadPackageTemplate = function (pkgName) {
-            return Promise.all([ratesReady(), loadContractLibs(), getTemplatePdf()]).then(function (r) {
+            return Promise.all([ratesReady(), loadContractLibs(), getTemplatePdf(pkgName)]).then(function (r) {
                 var pkg = r[0][pkgName];
                 if (!pkg || !pkg.prices || !pkg.prices.length) throw new Error('ไม่พบอัตราค่าบริการ ' + pkgName + ' ในชีต "เรตราคา"');
                 // ใส่เพิ่ม (ผู้ใช้ขอ 2026-11-19): ถึงวันที่ = 31 ธ.ค. ของปีสัญญา (ต.ค.–ธ.ค. = ปีถัดไป เหมือนค่าเริ่มต้นในฟอร์ม), COD 3%
+                // A13/A14: แบบฟอร์มพิมพ์ราคา/ขั้นต่ำ/COD ไว้แล้ว ใส่แค่ถึงวันที่
                 var now = new Date(), cy = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
                 var p = {
-                    customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT),
+                    pkg: pkgName, customerType: '', checks: {}, prices: pkg.prices.slice(0, PRICE_COUNT),
                     min_qty: pkg.minItems ? Number(pkg.minItems).toLocaleString('en-US') : '',
                     end_date: window.thpContractThaiDate(cy + '-12-31'), cod_pct: '3'
                 };
@@ -1044,7 +1103,7 @@
                 };
                 var pdfB64 = '';
                 // 1) สร้าง PDF ในเบราว์เซอร์บนต้นฉบับ  2) ส่งให้หลังบ้านตรวจ + เก็บสำเนา PDF  3) ดาวน์โหลด PDF (ไม่สร้าง Word แล้ว)
-                Promise.all([loadContractLibs(), getTemplatePdf()]).then(function (r) {
+                Promise.all([loadContractLibs(), getTemplatePdf(p.pkg)]).then(function (r) {
                     return window.thpBuildContractPdf(r[1], p);
                 }).then(function (bytes) {
                     pdfB64 = bytesToB64(bytes);
