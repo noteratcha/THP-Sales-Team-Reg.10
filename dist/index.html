@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1524';
+    var APP_VERSION = 'Ver. 2026.1119.1541';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19214,6 +19214,7 @@
             f.reset();
             if (window.thpRenewUi) window.thpRenewUi(); // reset() คืนสวิตช์ต่อสัญญาเป็นค่าเริ่มต้น → ตั้งตามสถานะจริง
             if (window.thpRenewPrev) window.thpRenewPrev(null); // ซ่อนข้อมูลเดิมปี 2569 ของลูกค้าก่อน
+            if (typeof renew !== 'undefined' && renew) renew.picked = null; // ล้างฟอร์ม = ไม่ใช่การต่อสัญญาลูกค้าเดิมแล้ว
             var ch = document.getElementById('ctCustomHint'); if (ch) ch.classList.add('hidden');
             setTimeout(renderPkgCards, 0);
             ['contact_name', 'wallet_name'].forEach(function (k) { var el = field(k); if (el) el.dataset.manual = ''; });
@@ -20029,6 +20030,8 @@
                     if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (!(res && res.status === 'success')) { Swal.fire('ดึงข้อมูลไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
                     var note = fillFromRenewal(res.data);
+                    // จำลูกค้าที่เลือก → ตอนสร้างสัญญา หลังบ้านเติมข้อมูลที่ขาดกลับลงชีตต้นทาง + สำเนา (ผู้ใช้กำหนด 2026-11-19)
+                    renew.picked = { name: res.data.name, zip: res.data.zip, thp: res.data.thp || '' };
                     if (si) si.value = c.name;
                     renewStatus('ต่อสัญญาจาก: ' + c.name + ' (' + c.svc + (c.end ? ' สิ้นสุด ' + c.end : '') + ')' + note, !note);
                     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'เติมข้อมูลลูกค้าแล้ว', text: 'ตรวจสอบและกรอกช่องที่เหลือให้ครบ', showConfirmButton: false, timer: 3000, timerProgressBar: true });
@@ -20134,12 +20137,19 @@
                     if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
                     if (!(res && res.status === 'success')) { Swal.fire('สร้างสัญญาไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
                     download(pdfB64, res.fileName + '.pdf', 'application/pdf');
+                    // ผลการเติมข้อมูลลูกค้ากลับลงชีต (เฉพาะสัญญาต่อ/เปลี่ยนจากลูกค้าเดิม)
+                    var wb = res.writeBack, wbNote = '';
+                    if (wb && !wb.error && !wb.skipped) {
+                        var nLive = (wb.live && wb.live.filled) || 0, nArc = (wb.archive && wb.archive.filled) || 0;
+                        wbNote = nLive || nArc ? '<br><span style="font-size:13px;color:#15803d">เติมข้อมูลลูกค้าที่ขาด: ชีตต้นทาง ' + nLive + ' ช่อง · สำเนาปี 2569 ' + nArc + ' ช่อง</span>'
+                            : '<br><span style="font-size:13px;color:#6b7280">ข้อมูลลูกค้าในชีตครบอยู่แล้ว ไม่มีช่องที่ต้องเติม</span>';
+                    } else if (wb && wb.error) wbNote = '<br><span style="font-size:13px;color:#b45309">เติมข้อมูลกลับลงชีตไม่สำเร็จ (สัญญาสร้างแล้ว)</span>';
                     Swal.fire({
                         icon: 'success', title: 'สร้างสัญญาแล้ว',
-                        html: 'ดาวน์โหลดไฟล์ PDF แล้ว<br><span style="font-size:13px;color:#6b7280">' + esc(res.fileName) + '</span>',
+                        html: 'ดาวน์โหลดไฟล์ PDF แล้ว<br><span style="font-size:13px;color:#6b7280">' + esc(res.fileName) + '</span>' + wbNote,
                         confirmButtonText: 'ปิด' // ดาวน์โหลดเฉพาะ PDF (ผู้ใช้กำหนด 2026-11-18 — เลิกปุ่มดาวน์โหลด Word)
                     });
-                    }).withFailureHandler(fail).generateTransportContract(Object.assign({}, p, { pdf: pdfB64 }), currentUserInfo);
+                    }).withFailureHandler(fail).generateTransportContract(Object.assign({}, p, { pdf: pdfB64, renewal: renew.picked || null }), currentUserInfo);
                 }).catch(fail);
             };
             if (false) { // ราคาว่างไม่อนุญาตแล้ว (ตรวจในรายการช่องบังคับด้านบน)

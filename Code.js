@@ -5689,6 +5689,95 @@ function fillContractDocx_(templateBlob, values, fileName) {
   return Utilities.zip(out, fileName).setContentType('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 }
 
+// ===== เขียนข้อมูลลูกค้ากลับลงชีตต้นทาง + ไฟล์สำเนา หลังสร้างสัญญาต่อ/เปลี่ยน (ผู้ใช้กำหนด 2026-11-19) =====
+// เติมเฉพาะช่องที่ว่างหรือเป็น "-" (ไม่เขียนทับข้อมูลเดิม); ข้อมูลที่ไม่มีคอลัมน์ → เพิ่มคอลัมน์ท้ายชีต (RENEWAL_EXTRA_COLS)
+// หาแถวลูกค้าจาก THP 8 หลัก หรือ ชื่อ+รหัสที่ทำการ (เลือกแถวที่ไม่ใช่ยกเลิกสัญญา, ล่างสุด) — ทำในแต่ละไฟล์แยกกัน
+var RENEWAL_EXTRA_COLS = ['ประเภทสิ่งของที่ฝากส่ง', 'Email', 'เบอร์ Wallet@post', 'ชื่อเจ้าของ Wallet@post', 'อาคาร', 'ถนน', 'อัปเดตข้อมูลจากระบบสัญญา'];
+function renewalFindRow_(data, c, thpDigits, name, zip) {
+  var hit = -1;
+  for (var i = 1; i < data.length; i++) {
+    var r = data[i], t = c.thp >= 0 ? String(r[c.thp] || '').replace(/\D/g, '') : '';
+    var ok = thpDigits && thpDigits.length === 8 ? t === thpDigits : (String(r[c.name] || '').trim() === name && String(r[c.zip] || '').trim() === zip);
+    if (!ok) continue;
+    if (hit < 0 || String(r[c.svc] || '').trim() !== 'ยกเลิกสัญญา') hit = i;
+  }
+  return hit;
+}
+// values = { หัวคอลัมน์(ขึ้นต้นด้วย): ค่า } → คืนจำนวนช่องที่เติม
+function renewalFillSheet_(sh, thpDigits, name, zip, values, stamp) {
+  var lastCol = sh.getLastColumn();
+  var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  // เพิ่มคอลัมน์ที่ยังไม่มี (ท้ายชีต)
+  var add = RENEWAL_EXTRA_COLS.filter(function (h) { return header.indexOf(h) === -1; });
+  if (add.length) {
+    if (sh.getMaxColumns() < lastCol + add.length) sh.insertColumnsAfter(sh.getMaxColumns(), lastCol + add.length - sh.getMaxColumns());
+    sh.getRange(1, lastCol + 1, 1, add.length).setValues([add]);
+    header = header.concat(add); lastCol = header.length;
+  }
+  var data = sh.getRange(1, 1, sh.getLastRow(), lastCol).getDisplayValues();
+  var c = renewalCols_(header);
+  var idx = renewalFindRow_(data, c, thpDigits, name, zip);
+  if (idx < 0) return { found: false, filled: 0 };
+  var row = data[idx], filled = 0;
+  var findCol = function (prefix) {
+    if (header.indexOf(prefix) !== -1) return header.indexOf(prefix); // ชื่อตรงตัวก่อน (คอลัมน์ที่ระบบเพิ่ม)
+    for (var j = 0; j < header.length; j++) if (String(header[j]).trim().indexOf(prefix) === 0) return j;
+    return -1;
+  };
+  Object.keys(values).forEach(function (h) {
+    var v = String(values[h] == null ? '' : values[h]).trim(); if (!v) return;
+    var j = findCol(h); if (j < 0) return;
+    var cur = String(row[j] || '').trim();
+    if (cur && cur !== '-') return; // มีข้อมูลอยู่แล้ว ไม่เขียนทับ
+    sh.getRange(idx + 1, j + 1).setNumberFormat('@').setValue(v);
+    filled++;
+  });
+  if (filled) { var sj = findCol('อัปเดตข้อมูลจากระบบสัญญา'); if (sj >= 0) sh.getRange(idx + 1, sj + 1).setNumberFormat('@').setValue(stamp); }
+  return { found: true, filled: filled };
+}
+function renewalWriteBack_(p, actor) {
+  var lock = LockService.getScriptLock();
+  try {
+    if (!renewalCanUse_(actor) || (!renewalEnabled_() && !renewalIsAdmin_(actor))) return { skipped: 'ไม่มีสิทธิ์' };
+    var rn = p.renewal || {};
+    var name = String(rn.name || '').trim(), zip = String(rn.zip || '').trim(), thp = String(rn.thp || '').replace(/\D/g, '');
+    if (!name || !renewalInScope_(actor, zip)) return { skipped: 'ไม่มีสิทธิ์' };
+    var s = function (k) { return String(p[k] == null ? '' : p[k]).replace(/\s+/g, ' ').trim(); };
+    var corp = p.customerType === 'corp', t = corp ? 'corp_' : 'person_';
+    var d = function (v) { return String(v || '').replace(/\D/g, ''); };
+    var tel = d(p.contact_tel), id = d(p.person_idcard), pf = d(p.post_family);
+    // บ้านเลขที่ + "หมู่ที่ N" → "99 ม.N" (รูปแบบเดิมในชีต); อาคารอื่น ๆ เก็บคอลัมน์ อาคาร
+    var bld = s(t + 'building'), moo = /^(?:หมู่ที่|หมู่|ม\.)\s*(\d+)$/.exec(bld);
+    var province = s(t + 'province').replace(/\s+\d{5}$/, ''); // หน้าเว็บต่อรหัสไปรษณีย์ท้ายจังหวัด
+    var values = {
+      'หมายเลขสมาชิก': pf.length === 8 ? pf : '',
+      'เบอร์โทร': tel.length === 10 ? tel.slice(0, 3) + '-' + tel.slice(3, 6) + '-' + tel.slice(6) : (tel.length === 9 ? tel.slice(0, 2) + '-' + tel.slice(2, 5) + '-' + tel.slice(5) : ''),
+      'เลขบัตรประชาชน': !corp && id.length === 13 ? id.charAt(0) + ' ' + id.substr(1, 4) + ' ' + id.substr(5, 5) + ' ' + id.substr(10, 2) + ' ' + id.charAt(12) : '',
+      'CUSTOMER_ADDRESS': s(t + 'no') ? s(t + 'no') + (moo ? ' ม.' + moo[1] : '') : '',
+      'CUSTOMER_SUBDISTRICT': s(t + 'subdistrict'), 'CUSTOMER_DISTRICT': s(t + 'district'),
+      'CUSTOMER_PROVINCE': province, 'CUSTOMER_POSTCODE': d(p[t + 'zip']).slice(0, 5),
+      'customer_contact': s('contact_name') ? s('contact_name') + (tel ? ' ' + (tel.length === 10 ? tel.slice(0, 3) + '-' + tel.slice(3, 6) + '-' + tel.slice(6) : tel) : '') : '',
+      'ชื่อโปรแกรมจ่าหน้า': (p.checks || {}).x_label_yes ? s('label_detail') : '',
+      'ประเภทสิ่งของที่ฝากส่ง': s('goods_type'), 'Email': s('contact_email'),
+      'เบอร์ Wallet@post': d(p.wallet_tel), 'ชื่อเจ้าของ Wallet@post': s('wallet_name'),
+      'อาคาร': moo ? '' : bld, 'ถนน': s(t + 'road')
+    };
+    lock.waitLock(20000);
+    var stamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') + ' ' + actor.user;
+    var out = {};
+    var live = renewalSheet_();
+    if (live) out.live = renewalFillSheet_(live, thp, name, zip, values, stamp);
+    var info = renewalArchiveInfo_();
+    if (info) { var arc = SpreadsheetApp.openById(info.id).getSheetByName(RENEWAL_ARCHIVE_SHEET); if (arc) out.archive = renewalFillSheet_(arc, thp, name, zip, values, stamp); }
+    return out;
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'renewalWriteBack_');
+    return { error: e.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (e2) { }
+  }
+}
+
 // payload = ข้อมูลฟอร์ม + pdf (base64 ที่หน้าเว็บสร้าง) → ตรวจข้อมูล, สร้าง Word, เก็บ PDF + Word ใน Drive, คืน Word (base64)
 function generateTransportContract_(payload, actor) {
   try {
@@ -5714,6 +5803,8 @@ function generateTransportContract_(payload, actor) {
     if (!pdfBytes) return { status: 'error', message: 'ไม่มีไฟล์ PDF ที่สร้างจากหน้าเว็บ' };
     folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
     var out = { status: 'success', fileName: fileName };
+    // ต่อ/เปลี่ยนสัญญาลูกค้าเดิม: เติมข้อมูลที่ขาดกลับลงชีตต้นทาง + สำเนา (ล้มเหลวไม่กระทบการสร้างสัญญา)
+    if (payload.renewal && payload.renewal.name) out.writeBack = renewalWriteBack_(payload, actor);
     if (payload.wantDocx) {
       var docx = fillContractDocx_(tpl.getBlob(), built.values, fileName + '.docx');
       folder.createFile(docx).setDescription(desc);
