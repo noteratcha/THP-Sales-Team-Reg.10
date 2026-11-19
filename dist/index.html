@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1359';
+    var APP_VERSION = 'Ver. 2026.1119.1421';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19686,6 +19686,8 @@
             var r = b.getBoundingClientRect(), w = Math.min(304, window.innerWidth - 16);
             m.style.width = w + 'px';
             m.style.top = Math.round(r.bottom + 6) + 'px';
+            // admin มี 14 Package → เมนูยาว: จำกัดความสูงตามจอแล้วเลื่อนในเมนู
+            m.style.maxHeight = Math.max(200, window.innerHeight - r.bottom - 18) + 'px'; m.style.overflowY = 'auto';
             m.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + 'px';
         };
         // รายละเอียดใต้ชื่อ Package: ราคาเริ่มต้น + ปริมาณงานขั้นต่ำ (จากชีต เรตราคา)
@@ -19697,9 +19699,24 @@
                 });
             }).catch(function () { });
         };
+        // ต้นฉบับใส่อัตรา: admin ดาวน์โหลดได้ Package A1–A14, ผู้ใช้อื่น A11–A14 (ผู้ใช้กำหนด 2026-11-19)
+        // A1–A10 สร้างเป็นรายการเพิ่มก่อน A11 เฉพาะตอน admin เปิดเมนู (ผู้ใช้อื่นลบออก)
+        var dlSyncAdminItems = function () {
+            var m = dlMenu(); if (!m) return;
+            var first = m.querySelector('[data-ct-dl="Package A11"]'); if (!first) return;
+            m.querySelectorAll('[data-ct-dl-admin]').forEach(function (el) { el.remove(); });
+            if (!ctIsAdmin()) return;
+            for (var n = 1; n <= 10; n++) {
+                var name = 'Package A' + n, btn = document.createElement('button');
+                btn.type = 'button'; btn.setAttribute('role', 'menuitem'); btn.setAttribute('data-ct-dl', name); btn.setAttribute('data-ct-dl-admin', '1');
+                btn.innerHTML = '<i class="fas fa-file-invoice ct-dl-ic text-orange-600"></i><span><b>' + name + '</b><small data-ct-dl-sub="' + name + '">ราคา 30 ช่วงน้ำหนัก + ปริมาณงานขั้นต่ำ</small></span>';
+                first.parentNode.insertBefore(btn, first);
+            }
+        };
         window.thpContractDlToggle = function () {
             var m = dlMenu(), b = dlBtn(); if (!m || !b) return;
             if (!m.classList.contains('hidden')) { dlClose(false); return; }
+            dlSyncAdminItems();
             // ย้ายเมนูไปไว้ใต้ body: แถบบนตัดส่วนที่ล้นออก (overflow/backdrop-filter) ทำให้เมนูไม่แสดง
             if (m.parentNode !== document.body) document.body.appendChild(m);
             dlPosition(); m.classList.remove('hidden'); b.setAttribute('aria-expanded', 'true');
@@ -19740,7 +19757,8 @@
             }
         });
         window.addEventListener('resize', function () { dlClose(false); });
-        window.addEventListener('scroll', function () { dlClose(false); }, true);
+        // เลื่อนหน้า = ปิดเมนู แต่เลื่อนภายในเมนูเอง (admin มีรายการยาว) ไม่ปิด
+        window.addEventListener('scroll', function (e) { var m = dlMenu(); if (m && e.target && e.target.nodeType === 1 && m.contains(e.target)) return; dlClose(false); }, true);
 
         // ===== ต่อ/เปลี่ยนสัญญาลูกค้าเดิม ปี 2570 (ผู้ใช้ขอ 2026-11-19) =====
         var renew = { list: null, loading: false, forUser: null, shown: [], active: -1, enabled: false, isAdmin: false, seq: 0 };
