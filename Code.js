@@ -6457,6 +6457,43 @@ function getRenewalBulk_(payload, actor) {
   }
 }
 
+// ก่อนสร้างทั้งที่ทำการ: ลูกค้ารายไหนมีไฟล์สัญญาอยู่แล้ว (ผู้ใช้ขอ 2026-11-20 — ให้เลือกข้าม/สร้างทับ)
+// payload.items = [{zip, name}] → { existing: [{zip, name, at, file}] } — ดูจากโฟลเดอร์ จังหวัด/ที่ทำการ (รหัส) ชื่อไฟล์ "[รหัส_]สัญญาขนส่ง_<ชื่อ>[_วันที่_เวลา].pdf"
+function checkContractExisting_(payload, actor) {
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    var items = (payload && Array.isArray(payload.items)) ? payload.items : [];
+    var base = contractOutputBase_(); if (!base) return { status: 'success', existing: [] };
+    var byZip = {}; // zip → { ชื่อลูกค้า(safe): {at, file} }
+    var pit = base.getFolders();
+    while (pit.hasNext()) {
+      var pf = pit.next(); if (pf.isTrashed()) continue;
+      var oit = pf.getFolders();
+      while (oit.hasNext()) {
+        var of = oit.next(); if (of.isTrashed()) continue;
+        var z = contractFolderZip_(of.getName()); if (!z) continue;
+        var m = byZip[z] || (byZip[z] = {}), fit = of.getFiles();
+        while (fit.hasNext()) {
+          var f = fit.next(); if (f.isTrashed()) continue;
+          var mm = /^(?:\d{5}_)?สัญญาขนส่ง_(.+?)(?:_\d{8}_\d{4})?\.pdf$/i.exec(f.getName()); if (!mm) continue;
+          var at = Utilities.formatDate(f.getLastUpdated(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm');
+          if (!m[mm[1]] || at > m[mm[1]].at) m[mm[1]] = { at: at, file: f.getName() };
+        }
+      }
+    }
+    var out = [];
+    items.forEach(function (it) {
+      var z = String(it && it.zip || ''), n = String(it && it.name || '');
+      var hit = (byZip[z] || {})[contractSafeName_(n)];
+      if (hit) out.push({ zip: z, name: n, at: hit.at, file: hit.file });
+    });
+    return { status: 'success', existing: out };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'checkContractExisting_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 // payload = ข้อมูลสัญญา (เหมือนหน้าสร้างสัญญา) + pdf + renewal {name, zip, thp} — ไม่บังคับช่องตามฟอร์ม (ข้อมูลอ้างอิงว่าง = ว่าง)
 // สร้างซ้ำ = แทนไฟล์ชื่อเดิมในโฟลเดอร์ที่ทำการ (ย้ายไฟล์เก่าไปถังขยะ) + อัปเดตแถวเดิมในทะเบียน
 function generateContractBulk_(payload, actor) {
@@ -6636,7 +6673,7 @@ var API_ALLOWED_FUNCTIONS = [
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
   'findCustomerForSheet', 'saveCustomerToSheets', 'getRenewalBulk', 'generateContractBulk',
-  'listContractFiles', 'getContractFileData'
+  'listContractFiles', 'getContractFileData', 'checkContractExisting'
 ];
 
 
@@ -6672,7 +6709,8 @@ var AUTH_SESSION_USER_ARG = {
   getRenewalBulk: 1,             // (payload, actor) — admin เท่านั้น (สร้างสัญญาทั้งที่ทำการ)
   generateContractBulk: 1,       // (payload, actor) — admin เท่านั้น
   listContractFiles: 0,          // (actor) — admin ทั้งหมด / ปจ. ทั้งจังหวัด / ที่ทำการ เฉพาะของตน
-  getContractFileData: 1         // (payload, actor) — ตรวจสิทธิ์จากโฟลเดอร์ของไฟล์
+  getContractFileData: 1,        // (payload, actor) — ตรวจสิทธิ์จากโฟลเดอร์ของไฟล์
+  checkContractExisting: 1       // (payload, actor) — admin เท่านั้น
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

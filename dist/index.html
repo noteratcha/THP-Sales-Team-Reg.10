@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1440';
+    var APP_VERSION = 'Ver. 2026.1120.1620';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18964,6 +18964,15 @@
     #page-contract .ct-rn-total b { font-size: 18px; font-weight: 800; color: #c2410c; line-height: 1; font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-n { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-chip.is-on .ct-rn-n { background: rgba(255,255,255,.25); }
+    /* หน้าต่างเลือกรายที่จะสร้างทับ (SweetAlert อยู่นอก #page-contract) */
+    .ct-bx-list { max-height: 50vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 10px; text-align: left; }
+    .ct-bx-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-top: 1px solid #f3f4f6; cursor: pointer; }
+    .ct-bx-row:first-child { border-top: 0; }
+    .ct-bx-row:hover { background: #fff7ed; }
+    .ct-bx-row input { margin-top: 4px; width: 16px; height: 16px; accent-color: #c2410c; flex-shrink: 0; }
+    .ct-bx-row b { display: block; font-size: 14px; color: #111827; font-weight: 600; }
+    .ct-bx-row small { font-size: 12px; color: #6b7280; }
+    .ct-bx-btn { font-size: 12px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid #fdba74; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
     #page-contract .ct-rn-bulk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #fff; background: #c2410c; border: 0; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
     #page-contract .ct-rn-bulk:hover { background: #9a3412; }
     #page-contract .ct-rn-bulk:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
@@ -20216,7 +20225,67 @@
                     '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (รหัสไปรษณีย์ที่ทำการ)/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (รหัส) และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม' +
                     '<br><b style="color:#b91c1c">• ห้ามปิดหรือรีเฟรชหน้านี้จนกว่าจะเสร็จ (กด "หยุด" ได้ระหว่างทาง)</b></div>',
                 showCancelButton: true, confirmButtonText: 'เริ่มสร้าง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', returnFocus: false
-            }).then(function (a) { if (a.isConfirmed) runBulk(zip, inList, label, offices); });
+            }).then(function (a) {
+                if (!a.isConfirmed) return;
+                bulkChooseExisting(inList).then(function (list) {
+                    if (list && list.length) runBulk(zip, list, label, offices);
+                    else if (list) Swal.fire({ icon: 'info', title: 'ไม่มีรายการที่ต้องสร้าง', text: 'ข้ามลูกค้าที่มีไฟล์สัญญาแล้วทั้งหมด', returnFocus: false });
+                });
+            });
+        };
+        // ลูกค้าที่มีไฟล์สัญญาอยู่แล้ว → ให้เลือก ข้ามทั้งหมด / สร้างทับทั้งหมด / เลือกเอง (ผู้ใช้ขอ 2026-11-20)
+        // คืน Promise<รายการที่จะสร้าง | null = ยกเลิก>
+        var bulkChooseExisting = function (inList) {
+            var key = function (c) { return c.zip + '|' + c.name; };
+            if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังตรวจไฟล์สัญญาที่มีอยู่...');
+            return new Promise(function (resolve, reject) {
+                google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+                    .checkContractExisting({ items: inList.map(function (c) { return { zip: c.zip, name: c.name }; }) }, currentUserInfo);
+            }).then(function (res) {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                if (!(res && res.status === 'success')) throw new Error((res && res.message) || 'ตรวจไฟล์ไม่สำเร็จ');
+                var ex = res.existing || [];
+                if (!ex.length) return inList;
+                var exKey = {}; ex.forEach(function (e) { exKey[key(e)] = e; });
+                var fresh = inList.filter(function (c) { return !exKey[key(c)]; });
+                var fmtN = function (n) { return n.toLocaleString('th-TH'); };
+                var thAt = function (s) { var m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(s || ''); return m ? Number(m[3]) + '/' + Number(m[2]) + '/' + (Number(m[1]) + 543) + ' ' + m[4] : s; };
+                return Swal.fire({
+                    icon: 'question', title: 'มีไฟล์สัญญาเดิม ' + fmtN(ex.length) + ' ราย',
+                    html: '<div style="text-align:left;font-size:14px;line-height:1.7">ลูกค้า <b>' + fmtN(ex.length) + '</b> จาก ' + fmtN(inList.length) + ' ราย มีไฟล์สัญญาอยู่แล้ว<br>ลูกค้าที่ยังไม่มีไฟล์ ' + fmtN(fresh.length) + ' ราย จะสร้างตามปกติ<br>ต้องการทำอย่างไรกับรายที่มีไฟล์แล้ว?</div>',
+                    showDenyButton: true, showCancelButton: true,
+                    confirmButtonText: 'ข้ามทั้งหมด', denyButtonText: 'สร้างทับทั้งหมด', cancelButtonText: 'เลือกเอง',
+                    confirmButtonColor: '#16a34a', denyButtonColor: '#c2410c', cancelButtonColor: '#4b5563',
+                    showCloseButton: true, allowOutsideClick: false, returnFocus: false
+                }).then(function (a) {
+                    if (a.isConfirmed) return fresh;                      // ข้ามทั้งหมด
+                    if (a.isDenied) return inList;                        // สร้างทับทั้งหมด
+                    if (a.dismiss !== Swal.DismissReason.cancel) return null; // ปิดหน้าต่าง = ยกเลิก
+                    // เลือกเอง: ติ๊ก = สร้างทับ
+                    var rows = ex.map(function (e, i) {
+                        return '<label class="ct-bx-row"><input type="checkbox" data-i="' + i + '"><span><b>' + esc(e.name) + '</b><small>' + esc(e.zip) + ' · ไฟล์เดิม ' + esc(thAt(e.at)) + '</small></span></label>';
+                    }).join('');
+                    return Swal.fire({
+                        title: 'เลือกรายที่จะสร้างทับ', width: 640,
+                        html: '<div style="text-align:left;font-size:13px;color:#4b5563;margin-bottom:8px">ติ๊ก = สร้างสัญญาใหม่ทับไฟล์เดิม · ไม่ติ๊ก = ข้าม</div>' +
+                            '<div style="display:flex;gap:8px;margin-bottom:8px"><button type="button" class="ct-bx-btn" onclick="document.querySelectorAll(\'.ct-bx-list input\').forEach(function(x){x.checked=true})">เลือกทั้งหมด</button><button type="button" class="ct-bx-btn" onclick="document.querySelectorAll(\'.ct-bx-list input\').forEach(function(x){x.checked=false})">ไม่เลือกเลย</button></div>' +
+                            '<div class="ct-bx-list">' + rows + '</div>',
+                        showCancelButton: true, confirmButtonText: 'ดำเนินการต่อ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', allowOutsideClick: false, returnFocus: false,
+                        preConfirm: function () {
+                            var pick = {};
+                            document.querySelectorAll('.ct-bx-list input:checked').forEach(function (x) { pick[key(ex[Number(x.getAttribute('data-i'))])] = true; });
+                            return pick;
+                        }
+                    }).then(function (b) {
+                        if (!b.isConfirmed) return null;
+                        return inList.filter(function (c) { return !exKey[key(c)] || b.value[key(c)]; });
+                    });
+                });
+            }).catch(function (err) {
+                if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                Swal.fire('ตรวจไฟล์สัญญาเดิมไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                return null;
+            });
         };
         var runBulk = function (zip, inList, label, offices) {
             var stop = false, done = 0, ok = 0, fails = [], folderUrl = '', started = Date.now();
