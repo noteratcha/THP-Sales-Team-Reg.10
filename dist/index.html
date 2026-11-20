@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1349';
+    var APP_VERSION = 'Ver. 2026.1120.1354';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -29775,10 +29775,11 @@
                     if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
                     if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
                     window.globalRevenueData = undefined;
+                    window.__homeRevFresh = false; // การ์ดสถิติรายได้แสดง skeleton จนกว่าจะได้ข้อมูลล่าสุดจากเซิร์ฟเวอร์
                     window.globalRevenueTargets = undefined;
                     try { if (typeof globalRevenueTargets !== 'undefined') globalRevenueTargets = []; } catch(e) {}
                     window.fuzeAgentData = [];
-                    
+
                     // Clear chart instances to prevent old data rendering
                     if (window.homeVisitChartInstance) {
                         window.homeVisitChartInstance.destroy();
@@ -29966,10 +29967,11 @@
             if (typeof allFetchedRows !== 'undefined') allFetchedRows = [];
             if (typeof globalAllFetchedRows !== 'undefined') globalAllFetchedRows = [];
             window.globalRevenueData = undefined;
+            window.__homeRevFresh = false;
             window.globalRevenueTargets = undefined;
             try { if (typeof globalRevenueTargets !== 'undefined') globalRevenueTargets = []; } catch(e) {}
             window.fuzeAgentData = [];
-            
+
             // เคลียร์ UI DOM เพื่อไม่ให้มีข้อมูลผู้ใช้เก่าค้างอยู่ตอน Login ใหม่
             const tableBody = document.getElementById('tableBody');
             if (tableBody) tableBody.innerHTML = '';
@@ -33575,6 +33577,7 @@
                 if (res && res.status === 'success' && Array.isArray(res.data)) {
                     SafeStorage.setItem('thp_cache_rev_home', JSON.stringify(res.data));
                     window.globalRevenueData = res.data;
+                    window.__homeRevFresh = true;
                 }
                 checkDone();
             }).withFailureHandler(() => checkDone()).getHomeRevenueSummary({
@@ -33629,17 +33632,19 @@
         const missingRevData = typeof window.globalRevenueData === 'undefined' || !window.globalRevenueData;
 
         // ข้อมูลรายได้ไม่บล็อกหน้าจอ: โหลดแยกในเบื้องหลัง การ์ดรายได้แสดงกรอบโหลดจนกว่าข้อมูลจะมา
-        if (missingRevData && !window.isFetchingRevData && typeof google !== 'undefined' && google.script && google.script.run) {
+        // ข้อมูลจากแคชในเครื่อง (ยังไม่ใช่ข้อมูลล่าสุด) ก็ดึงใหม่ด้วย — ระหว่างรอการ์ดแสดง skeleton (ผู้ใช้ขอ 2026-11-20)
+        if ((missingRevData || !window.__homeRevFresh) && !window.isFetchingRevData && typeof google !== 'undefined' && google.script && google.script.run) {
             window.isFetchingRevData = true;
             google.script.run.withSuccessHandler(function(res) {
                 window.isFetchingRevData = false;
+                window.__homeRevFresh = true;
                 if (res && res.status === 'success' && Array.isArray(res.data)) {
                     SafeStorage.setItem('thp_cache_rev_home', JSON.stringify(res.data));
                 }
                 window.__homeRevError = !(res && res.status === 'success');
                 window.globalRevenueData = (res && res.status === 'success') ? res.data : [];
                 updateHomeVisitSummary(true);
-            }).withFailureHandler(() => { window.isFetchingRevData = false; window.__homeRevError = true; window.globalRevenueData = []; updateHomeVisitSummary(true); }).getHomeRevenueSummary({
+            }).withFailureHandler(() => { window.isFetchingRevData = false; window.__homeRevFresh = true; window.__homeRevError = true; window.globalRevenueData = []; updateHomeVisitSummary(true); }).getHomeRevenueSummary({
                 user: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.user : '',
                 zipcode: (typeof currentUserInfo !== 'undefined') ? currentUserInfo.zipcode : ''
             });
@@ -34055,7 +34060,8 @@
                 }
                 revContainer.innerHTML = buildKpiPanel({
                     label: 'รายได้สะสม', icon: 'fa-coins', iconColor: 'text-green-600', unit: 'บาท',
-                    value: actualRevVal, valueText: formatCompactBaht(actualRevVal),
+                    // รายได้สะสมแสดงตัวเลขเต็ม ไม่ย่อเป็น "ล้าน" (ผู้ใช้ขอ 2026-11-20) — ขนาดตัวอักษรปรับเองด้วย autoFitAllKpiValues
+                    value: actualRevVal, valueText: actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                     valueTitle: actualRevVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' บาท',
                     valueColor: 'text-green-600', border: 'border-green-100',
                     target: myRevTarget, targetText: formatCompactBaht(myRevTarget),
@@ -34105,7 +34111,13 @@
                 return sum;
             };
 
-            if (window.globalRevenueData) renderRevUI(calcActualRev(revenueRowsToProcess || []));
+            if (window.globalRevenueData && window.__homeRevFresh) renderRevUI(calcActualRev(revenueRowsToProcess || []));
+            else if (!window.__homeRevFresh) {
+                // ยังไม่ได้ข้อมูลล่าสุด (มีแต่แคชในเครื่อง) → skeleton แทนตัวเลขเก่า
+                revContainer.className = 'flex flex-col items-center justify-center mt-2 w-full px-2';
+                revContainer.innerHTML = '<div class="grid grid-cols-2 xl:grid-cols-3 gap-2 w-full"><div class="col-span-2 xl:col-span-1 thp-skel rounded-xl h-[88px] w-full"></div><div class="thp-skel rounded-xl h-[88px] w-full"></div><div class="thp-skel rounded-xl h-[88px] w-full"></div></div>';
+                if (monthRevSpan) monthRevSpan.textContent = '...';
+            }
         }
 
         const chartSkeleton = document.getElementById('homeVisitChartSkeleton');
@@ -34208,10 +34220,15 @@
         }
 
         // --- Initialize Revenue Chart ---
-        if (!window.globalRevenueData) return; // ยังโหลดรายได้ไม่เสร็จ: คงกรอบโหลดไว้
         const revChartCanvas = document.getElementById('homeRevenueChart');
         const revChartSkeleton = document.getElementById('homeRevenueChartSkeleton');
-        
+        if (!window.globalRevenueData || !window.__homeRevFresh) { // ยังไม่ได้ข้อมูลรายได้ล่าสุด: แสดงกรอบโหลด
+            if (revChartSkeleton) revChartSkeleton.classList.remove('hidden');
+            if (revChartCanvas) revChartCanvas.classList.add('hidden');
+            const revEmpty = document.getElementById('homeRevenueChartEmpty'); if (revEmpty) revEmpty.style.display = 'none';
+            return;
+        }
+
         if (revChartSkeleton) revChartSkeleton.classList.add('hidden');
         if (revChartCanvas) revChartCanvas.classList.remove('hidden');
 
