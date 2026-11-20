@@ -1,0 +1,152 @@
+<!-- 🗂️ PAGE: ไฟล์สัญญา (เมนูย่อยใต้ สัญญาขนส่ง — ผู้ใช้ขอ 2026-11-20)
+     admin เห็นทุกไฟล์ / ที่ทำการจังหวัด (33000 34000 35000 37000 47000 48000 49000) เห็นทั้งจังหวัด / ที่ทำการอื่นเห็นเฉพาะของตน
+     หลังบ้านตรวจสิทธิ์จาก session (listContractFiles / getContractFileData) — ไฟล์ใน Drive ไม่แชร์ให้ผู้ใช้ -->
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
+    <div class="cf-top">
+        <p id="cfScope" class="cf-scope">ไฟล์สัญญาที่สร้างจากระบบ</p>
+        <button type="button" id="cfReload" class="cf-btn-2" onclick="thpCfLoad(true)"><i class="fas fa-sync-alt"></i> โหลดใหม่</button>
+    </div>
+    <div class="cf-filters">
+        <div class="cf-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input id="cfSearch" type="search" autocomplete="off" placeholder="ค้นหาชื่อลูกค้า" aria-label="ค้นหาไฟล์สัญญาตามชื่อลูกค้า" oninput="thpCfRender()">
+        </div>
+        <select id="cfOffice" class="cf-select hidden" onchange="thpCfRender()" aria-label="กรองตามที่ทำการ"></select>
+        <div id="cfTotal" class="cf-total" aria-live="polite"></div>
+    </div>
+    <div id="cfList" class="cf-list"></div>
+</div>
+
+<style>
+    #page-contract-files .cf-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    #page-contract-files .cf-scope { font-size: 14px; color: #4b5563; margin: 0; }
+    #page-contract-files .cf-scope b { color: #c2410c; }
+    #page-contract-files .cf-btn-2 { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid #fdba74; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract-files .cf-btn-2:disabled { opacity: .6; cursor: wait; }
+    #page-contract-files .cf-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 0; }
+    #page-contract-files .cf-search { position: relative; flex: 1 1 260px; min-width: 0; }
+    #page-contract-files .cf-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px; }
+    #page-contract-files .cf-search input { width: 100%; height: 40px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 12px 0 34px; font-size: 14px; }
+    #page-contract-files .cf-search input:focus, #page-contract-files .cf-select:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-files .cf-select { height: 40px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 30px 0 12px; font-size: 14px; background: #fff; flex: 0 1 300px; min-width: 0; }
+    #page-contract-files .cf-select.hidden { display: none; }
+    #page-contract-files .cf-total { font-size: 13px; color: #6b7280; margin-left: auto; white-space: nowrap; }
+    #page-contract-files .cf-total b { font-size: 18px; color: #c2410c; font-weight: 800; }
+    #page-contract-files .cf-list { display: flex; flex-direction: column; gap: 14px; }
+    #page-contract-files .cf-group { border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+    #page-contract-files .cf-group-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff7ed; border-bottom: 1px solid #fde6cf; font-size: 14px; font-weight: 700; color: #9a3412; }
+    #page-contract-files .cf-group-h small { margin-left: auto; font-weight: 600; color: #6b7280; }
+    #page-contract-files .cf-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid #f3f4f6; }
+    #page-contract-files .cf-row:first-of-type { border-top: 0; }
+    #page-contract-files .cf-row:hover { background: #fafafa; }
+    #page-contract-files .cf-ic { color: #dc2626; font-size: 18px; flex-shrink: 0; }
+    #page-contract-files .cf-name { flex: 1; min-width: 0; }
+    #page-contract-files .cf-name b { display: block; font-size: 14px; color: #111827; font-weight: 600; overflow-wrap: anywhere; }
+    #page-contract-files .cf-name small { font-size: 12px; color: #9ca3af; }
+    #page-contract-files .cf-act { display: flex; gap: 6px; flex-shrink: 0; }
+    #page-contract-files .cf-act button { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border-radius: 8px; padding: 5px 10px; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #374151; }
+    #page-contract-files .cf-act button.cf-view { background: #c2410c; border-color: #c2410c; color: #fff; }
+    #page-contract-files .cf-act button:disabled { opacity: .6; cursor: wait; }
+    #page-contract-files .cf-act button:focus-visible, #page-contract-files .cf-btn-2:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    #page-contract-files .cf-empty { font-size: 14px; color: #6b7280; padding: 24px 14px; border: 1px dashed #d1d5db; border-radius: 12px; text-align: center; }
+    #page-contract-files .cf-skel { height: 52px; border-radius: 12px; background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%); background-size: 400% 100%; animation: cfShimmer 1.4s ease infinite; }
+    @keyframes cfShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    @media (max-width: 640px) {
+        #page-contract-files .cf-total { margin-left: 0; }
+        #page-contract-files .cf-row { flex-wrap: wrap; }
+        #page-contract-files .cf-act { width: 100%; justify-content: flex-end; }
+    }
+</style>
+
+<script>
+    ;(function () {
+        var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+        var who = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
+        var st = { list: null, forUser: null, seq: 0, meta: null };
+        var fmt = function (n) { return Number(n).toLocaleString('th-TH'); };
+        var show = function (name) { return String(name || '').replace(/^สัญญาขนส่ง_/, '').replace(/\.pdf$/i, ''); };
+        var thDate = function (s) {
+            var m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(s || ''); if (!m) return s || '';
+            var mo = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            return Number(m[3]) + ' ' + mo[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543) + ' ' + m[4] + ' น.';
+        };
+
+        window.thpCfClear = function () {
+            st.list = null; st.forUser = null; st.meta = null; st.seq++;
+            var l = document.getElementById('cfList'); if (l) l.innerHTML = '';
+            var s = document.getElementById('cfSearch'); if (s) s.value = '';
+        };
+        window.loadContractFilesPage = function () { window.thpCfLoad(false); };
+        window.thpCfLoad = function (force) {
+            var u = who();
+            if (!force && st.list && st.forUser === u) { window.thpCfRender(); return; }
+            if (st.forUser !== u) { window.thpCfClear(); }
+            st.forUser = u;
+            var seq = ++st.seq, list = document.getElementById('cfList'), btn = document.getElementById('cfReload');
+            if (list) list.innerHTML = '<div class="cf-skel"></div><div class="cf-skel"></div><div class="cf-skel"></div>';
+            if (btn) btn.disabled = true;
+            google.script.run.withSuccessHandler(function (res) {
+                if (seq !== st.seq || who() !== u) return;
+                if (btn) btn.disabled = false;
+                if (!(res && res.status === 'success')) { if (list) list.innerHTML = '<div class="cf-empty">' + esc((res && res.message) || 'โหลดรายการไฟล์ไม่สำเร็จ') + '</div>'; return; }
+                st.list = res.data || []; st.meta = res;
+                var sc = document.getElementById('cfScope');
+                if (sc) sc.innerHTML = res.scope === 'all' ? 'ไฟล์สัญญา<b>ทุกที่ทำการ</b> (ผู้ดูแลระบบ)' : res.scope === 'province' ? 'ไฟล์สัญญาของที่ทำการใน<b>จังหวัด' + esc(res.prov) + '</b>' : 'ไฟล์สัญญาของที่ทำการ <b>' + esc(res.zip) + '</b>';
+                // ตัวกรองที่ทำการ (มีมากกว่า 1 ที่ทำการ)
+                var offices = {}, order = [];
+                st.list.forEach(function (f) { var k = f.office; if (!offices[k]) { offices[k] = 0; order.push(k); } offices[k]++; });
+                var sel = document.getElementById('cfOffice');
+                if (sel) {
+                    sel.innerHTML = '<option value="">ทุกที่ทำการ (' + fmt(order.length) + ' แห่ง)</option>' + order.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + ' · ' + fmt(offices[k]) + ' ไฟล์</option>'; }).join('');
+                    sel.classList.toggle('hidden', order.length < 2);
+                }
+                window.thpCfRender();
+            }).withFailureHandler(function (err) {
+                if (seq !== st.seq) return;
+                if (btn) btn.disabled = false;
+                if (list) list.innerHTML = '<div class="cf-empty">โหลดรายการไฟล์ไม่สำเร็จ: ' + esc(err && err.message ? err.message : err) + '</div>';
+            }).listContractFiles(currentUserInfo);
+        };
+        window.thpCfRender = function () {
+            var list = document.getElementById('cfList'), tot = document.getElementById('cfTotal'); if (!list || !st.list) return;
+            var q = String((document.getElementById('cfSearch') || {}).value || '').trim().toLowerCase();
+            var off = String((document.getElementById('cfOffice') || {}).value || '');
+            var hits = st.list.filter(function (f) { return (!off || f.office === off) && (!q || show(f.name).toLowerCase().indexOf(q) !== -1); });
+            if (tot) tot.innerHTML = (q || off ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (q || off ? ' จาก ' + fmt(st.list.length) : '');
+            if (!hits.length) { list.innerHTML = '<div class="cf-empty">' + (st.list.length ? 'ไม่พบไฟล์ที่ตรงกับการค้นหา' : 'ยังไม่มีไฟล์สัญญา') + '</div>'; return; }
+            var groups = {}, order = [];
+            hits.forEach(function (f) { if (!groups[f.office]) { groups[f.office] = []; order.push(f.office); } groups[f.office].push(f); });
+            list.innerHTML = order.map(function (k) {
+                var g = groups[k];
+                return '<section class="cf-group"><div class="cf-group-h"><i class="fas fa-folder"></i>' + esc((g[0].prov ? g[0].prov + ' › ' : '') + k) + '<small>' + fmt(g.length) + ' ไฟล์</small></div>' +
+                    g.map(function (f) {
+                        return '<div class="cf-row"><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><b>' + esc(show(f.name)) + '</b><small>อัปเดต ' + esc(thDate(f.at)) + '</small></div>' +
+                            '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
+                            '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
+                    }).join('') + '</section>';
+            }).join('');
+        };
+        // เปิดดู: เปิดแท็บก่อน (กันเบราว์เซอร์บล็อกป๊อปอัป) แล้วใส่ไฟล์เมื่อโหลดเสร็จ
+        window.thpCfOpen = function (btn, dl) {
+            var id = btn.getAttribute('data-id'); if (!id) return;
+            var w = dl ? null : window.open('', '_blank');
+            if (w) { try { w.document.title = 'กำลังเปิดไฟล์สัญญา...'; w.document.body.innerHTML = '<p style="font-family:sans-serif;padding:24px;color:#6b7280">กำลังเปิดไฟล์สัญญา...</p>'; } catch (e) { } }
+            btn.disabled = true;
+            google.script.run.withSuccessHandler(function (res) {
+                btn.disabled = false;
+                if (!(res && res.status === 'success')) { if (w) w.close(); Swal.fire('เปิดไฟล์ไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                var bin = atob(res.data), u8 = new Uint8Array(bin.length);
+                for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+                var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+                if (dl || !w) {
+                    var a = document.createElement('a'); a.href = url; a.download = res.name || 'สัญญา.pdf';
+                    document.body.appendChild(a); a.click(); a.remove();
+                } else w.location.href = url;
+                setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+            }).withFailureHandler(function (err) {
+                btn.disabled = false; if (w) w.close();
+                Swal.fire('เปิดไฟล์ไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).getContractFileData({ id: id }, currentUserInfo);
+        };
+    })();
+</script>

@@ -6033,7 +6033,10 @@ function generateTransportContract_(payload, actor) {
     var safeName = built.customer.replace(/[\\\/:*?"<>|]/g, ' ').substring(0, 80).trim();
     var fileName = 'สัญญาขนส่ง_' + safeName + '_' + stamp;
     var desc = 'สร้างจากระบบ THP Sales Team Reg.10 โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : '');
-    var folder = getContractOutputFolder_(tpl);
+    // เก็บแยก จังหวัด / ที่ทำการ (รหัสไปรษณีย์) (ผู้ใช้ขอ 2026-11-20): รหัสจากลูกค้าเดิม → เลขที่หนังสือช่อง 2 → รหัสของผู้ล็อกอิน; ไม่มี = โฟลเดอร์หลัก
+    var bZip = String((payload.renewal || {}).zip || '').trim();
+    if (!/^\d{5}$/.test(bZip)) bZip = /^\d{5}$/.test(String(payload.no_b || '').trim()) ? String(payload.no_b).trim() : String(actor.zipcode || '').trim();
+    var folder = contractOfficeFolder_(getContractOutputFolder_(tpl), bZip, payload.office);
     // ผู้ใช้กำหนด 2026-11-18: ดาวน์โหลดได้เฉพาะ PDF — ไม่สร้าง/ไม่ส่งไฟล์ Word (เปิดได้ด้วย payload.wantDocx ถ้าจะกลับมาใช้)
     if (!pdfBytes) return { status: 'error', message: 'ไม่มีไฟล์ PDF ที่สร้างจากหน้าเว็บ' };
     var pdfFile = folder.createFile(Utilities.newBlob(pdfBytes, MimeType.PDF, fileName + '.pdf')).setDescription(desc);
@@ -6345,6 +6348,19 @@ function getRenewalCustomer_(payload, actor) {
     if (payload.name && String(payload.name).trim() !== name) return { status: 'error', message: 'ข้อมูลในชีตเปลี่ยนไปแล้ว กรุณาโหลดรายชื่อใหม่' };
     if (!renewalActive_(get('svc'), zip)) return { status: 'error', message: 'ลูกค้ารายนี้ไม่ได้ใช้งานอยู่ (ยกเลิกสัญญา)' };
     if (!renewalInScope_(actor, zip)) return { status: 'error', message: 'ไม่มีสิทธิ์ดูข้อมูลลูกค้าของที่ทำการอื่น' };
+    var data = renewalRowData_(c, r);
+    data.prev = renewalArchiveRecord_(data.thp.replace(/\D/g, ''), name, zip); // ข้อมูลเดิมปี 2569 จากสำเนาถาวร (null = ยังไม่มีสำเนา)
+    return { status: 'success', data: data };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomer_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// แถวลูกค้าในชีตรายชื่อ → ข้อมูลสำหรับเติมสัญญา (ใช้ทั้งเลือกรายเดียวและสร้างทั้งที่ทำการ)
+function renewalRowData_(c, r) {
+    var get = function (k) { return c[k] >= 0 ? String(r[c[k]] || '').replace(/\s+/g, ' ').trim() : ''; };
+    var name = get('name'), zip = get('zip');
     var clean = function (v) { return v === '-' ? '' : v; };
     var strip = function (v, re) { return clean(v).replace(re, '').trim(); };
     // customer_contact = "ชื่อ สกุล 0xx-xxx-xxxx" → แยกชื่อกับเบอร์
@@ -6354,19 +6370,189 @@ function getRenewalCustomer_(payload, actor) {
     var thp = get('thp').replace(/\D/g, '');
     var cod = (/^(\d+(?:\.\d+)?)\s*%?$/.exec(get('cod')) || [])[1] || '';
     return {
-      status: 'success',
-      data: {
         name: name, zip: zip, office: get('office'), svc: get('svc'), pkg: renewalPackage_(get('svc')),
         thp: thp.length === 8 ? 'THP-' + thp : '', cod: cod ? String(Number(cod)) : '',
         label: clean(get('label')), tel: clean(get('tel')).replace(/\D/g, ''), idcard: get('idcard').replace(/\D/g, ''),
         addr: clean(get('addr')), subdistrict: strip(get('sub'), /^(ต\.|ตำบล|แขวง)\s*/), district: strip(get('dist'), /^(อ\.|อำเภอ|เขต)\s*/),
         province: strip(get('prov'), /^(จ\.|จังหวัด)\s*/), postcode: get('post').replace(/\D/g, '').slice(0, 5),
-        contactName: cName, contactTel: cTel,
-        prev: renewalArchiveRecord_(thp, name, zip) // ข้อมูลเดิมปี 2569 จากสำเนาถาวร (null = ยังไม่มีสำเนา)
-      }
+        contactName: cName, contactTel: cTel
     };
+}
+
+// ==========================================
+// 📦 สร้างสัญญาทั้งที่ทำการ (admin เท่านั้น — ผู้ใช้ขอ 2026-11-20)
+// ==========================================
+// หน้าเว็บ: getRenewalBulk(zip) → สร้าง PDF ทีละราย (เลขที่หนังสือ ช่อง 2 = รหัสไปรษณีย์, ช่อง 3 ว่าง, ที่ทำการตามรหัสไปรษณีย์, ข้อมูลอื่นตามชีต ว่าง = ว่าง)
+//          → generateContractBulk ทีละราย: เก็บ PDF + บันทึก/อัปเดตทะเบียน "ปี 2570"
+// ไฟล์เก็บที่ "สัญญาที่สร้างจากระบบ / จังหวัด / ที่ทำการ (รหัสไปรษณีย์)" (ใช้กับสัญญาที่สร้างรายเดียวด้วย)
+var CONTRACT_PROVINCE_BY_ZIP2 = {
+  '10': 'กรุงเทพมหานคร', '11': 'นนทบุรี', '12': 'ปทุมธานี', '13': 'พระนครศรีอยุธยา', '14': 'อ่างทอง', '15': 'ลพบุรี', '16': 'สิงห์บุรี', '17': 'ชัยนาท', '18': 'สระบุรี',
+  '20': 'ชลบุรี', '21': 'ระยอง', '22': 'จันทบุรี', '23': 'ตราด', '24': 'ฉะเชิงเทรา', '25': 'ปราจีนบุรี', '26': 'นครนายก', '27': 'สระแก้ว',
+  '30': 'นครราชสีมา', '31': 'บุรีรัมย์', '32': 'สุรินทร์', '33': 'ศรีสะเกษ', '34': 'อุบลราชธานี', '35': 'ยโสธร', '36': 'ชัยภูมิ', '37': 'อำนาจเจริญ', '38': 'บึงกาฬ', '39': 'หนองบัวลำภู',
+  '40': 'ขอนแก่น', '41': 'อุดรธานี', '42': 'เลย', '43': 'หนองคาย', '44': 'มหาสารคาม', '45': 'ร้อยเอ็ด', '46': 'กาฬสินธุ์', '47': 'สกลนคร', '48': 'นครพนม', '49': 'มุกดาหาร',
+  '50': 'เชียงใหม่', '51': 'ลำพูน', '52': 'ลำปาง', '53': 'อุตรดิตถ์', '54': 'แพร่', '55': 'น่าน', '56': 'พะเยา', '57': 'เชียงราย', '58': 'แม่ฮ่องสอน',
+  '60': 'นครสวรรค์', '61': 'อุทัยธานี', '62': 'กำแพงเพชร', '63': 'ตาก', '64': 'สุโขทัย', '65': 'พิษณุโลก', '66': 'พิจิตร', '67': 'เพชรบูรณ์',
+  '70': 'ราชบุรี', '71': 'กาญจนบุรี', '72': 'สุพรรณบุรี', '73': 'นครปฐม', '74': 'สมุทรสาคร', '75': 'สมุทรสงคราม', '76': 'เพชรบุรี', '77': 'ประจวบคีรีขันธ์',
+  '80': 'นครศรีธรรมราช', '81': 'กระบี่', '82': 'พังงา', '83': 'ภูเก็ต', '84': 'สุราษฎร์ธานี', '85': 'ระนอง', '86': 'ชุมพร',
+  '90': 'สงขลา', '91': 'สตูล', '92': 'ตรัง', '93': 'พัทลุง', '94': 'ปัตตานี', '95': 'ยะลา', '96': 'นราธิวาส'
+};
+function contractSafeName_(s) { return String(s || '').replace(/[\\\/:*?"<>|\u0000-\u001F]/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 80); }
+// โฟลเดอร์ จังหวัด / ที่ทำการ (รหัสไปรษณีย์) ใต้ base — หาโฟลเดอร์ที่ทำการจาก "(รหัส)" ท้ายชื่อ (ชื่อที่ทำการเขียนต่างกันได้) ไม่มีรหัสที่ถูกต้อง = base
+function contractOfficeFolder_(base, zip, office) {
+  zip = String(zip || '').trim();
+  if (!/^\d{5}$/.test(zip)) return base;
+  var prov = CONTRACT_PROVINCE_BY_ZIP2[zip.substring(0, 2)] || 'จังหวัดอื่น';
+  var pit = base.getFoldersByName(prov), pf = null;
+  while (pit.hasNext()) { var f0 = pit.next(); if (!f0.isTrashed()) { pf = f0; break; } }
+  if (!pf) pf = base.createFolder(prov);
+  var it = pf.getFolders(), tail = '(' + zip + ')';
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed() && f.getName().slice(-tail.length) === tail) return f; }
+  var nm = contractSafeName_(office).replace(/\(\d{5}\)$/, '').trim();
+  return pf.createFolder((nm ? nm + ' ' : '') + tail);
+}
+
+function getRenewalBulk_(payload, actor) {
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    var zip = String(payload && payload.zip || '').trim();
+    if (!/^\d{5}$/.test(zip)) return { status: 'error', message: 'กรุณาเลือกรหัสไปรษณีย์ที่ทำการ' };
+    var src = renewalSource_(), sh = src.sheet;
+    if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
+    var data = sh.getDataRange().getDisplayValues();
+    var c = renewalCols_(data[0]);
+    var out = [], seen = {};
+    for (var i = 1; i < data.length; i++) {
+      var r = data[i], z = String(r[c.zip] || '').trim(), name = String(r[c.name] || '').trim();
+      if (z !== zip || !name || !renewalActive_(r[c.svc], z)) continue;
+      var item = renewalRowData_(c, r); item.row = i + 1;
+      // เหมือนรายชื่อ: สำเนามีหลายแถวต่อลูกค้า → ใช้แถวล่าสุด
+      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, z) : '';
+      if (k && seen.hasOwnProperty(k)) { out[seen[k]] = item; continue; }
+      if (k) seen[k] = out.length;
+      out.push(item);
+    }
+    out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    return { status: 'success', data: out };
   } catch (e) {
-    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalCustomer_');
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalBulk_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// payload = ข้อมูลสัญญา (เหมือนหน้าสร้างสัญญา) + pdf + renewal {name, zip, thp} — ไม่บังคับช่องตามฟอร์ม (ข้อมูลอ้างอิงว่าง = ว่าง)
+// สร้างซ้ำ = แทนไฟล์ชื่อเดิมในโฟลเดอร์ที่ทำการ (ย้ายไฟล์เก่าไปถังขยะ) + อัปเดตแถวเดิมในทะเบียน
+function generateContractBulk_(payload, actor) {
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    payload = payload || {};
+    var rn = payload.renewal || {}, zip = String(rn.zip || '').trim();
+    var name = String((payload.customerType === 'corp' ? payload.corp_name : payload.person_name) || '').trim();
+    if (!name) return { status: 'error', message: 'ไม่มีชื่อลูกค้า' };
+    if (!/^\d{5}$/.test(zip)) return { status: 'error', message: 'รหัสไปรษณีย์ที่ทำการไม่ถูกต้อง' };
+    var bytes = Utilities.base64Decode(String(payload.pdf || ''));
+    if (!bytes.length || bytes.length > 8 * 1024 * 1024 || String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]) !== '%PDF') return { status: 'error', message: 'ไฟล์ PDF ไม่ถูกต้อง' };
+    var tpl = findContractFile_(CONTRACT_TEMPLATE_PDF_NAME);
+    if (!tpl) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '"' };
+    var folder = contractOfficeFolder_(getContractOutputFolder_(tpl), zip, payload.office);
+    var fileName = 'สัญญาขนส่ง_' + contractSafeName_(name) + '.pdf';
+    var old = folder.getFilesByName(fileName);
+    while (old.hasNext()) { var of = old.next(); if (!of.isTrashed()) of.setTrashed(true); }
+    var file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, fileName))
+      .setDescription('สร้างจากระบบ THP Sales Team Reg.10 (สร้างทั้งที่ทำการ) โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : ''));
+    var reg = contractRegister_(payload, actor, file.getUrl());
+    return { status: 'success', fileName: fileName, url: file.getUrl(), folderUrl: folder.getUrl(), register: reg };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'generateContractBulk_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
+// ==========================================
+// 🗂️ ไฟล์สัญญา (เมนู "ไฟล์สัญญา" — ผู้ใช้ขอ 2026-11-20)
+// ==========================================
+// สิทธิ์: admin ทุกไฟล์ / ที่ทำการจังหวัด (CONTRACT_PROVINCE_HQ_ZIPS) ทั้งจังหวัดของตน / ที่ทำการอื่นเฉพาะโฟลเดอร์ (รหัสของตน)
+// อ่านจากโครงสร้าง "สัญญาที่สร้างจากระบบ / จังหวัด / ที่ทำการ (รหัส)" — ไฟล์เก่าที่อยู่ชั้นบนสุด (ก่อนแยกโฟลเดอร์) เห็นเฉพาะ admin
+// ไฟล์ใน Drive ไม่แชร์ให้ผู้ใช้ — หน้าเว็บขอเนื้อไฟล์ผ่าน getContractFileData (ตรวจสิทธิ์จากโฟลเดอร์ของไฟล์ทุกครั้ง)
+var CONTRACT_PROVINCE_HQ_ZIPS = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'];
+function contractFileScope_(actor) {
+  if (renewalIsAdmin_(actor)) return { all: true };
+  if (!renewalCanUse_(actor)) return null;
+  var zip = String(actor.zipcode || actor.user || '').trim();
+  if (!/^\d{5}$/.test(zip)) return null;
+  if (CONTRACT_PROVINCE_HQ_ZIPS.indexOf(zip) !== -1) return { prov: CONTRACT_PROVINCE_BY_ZIP2[zip.substring(0, 2)], zip: zip };
+  return { zip: zip, only: true };
+}
+function contractOutputBase_() {
+  var tpl = findContractFile_(CONTRACT_TEMPLATE_PDF_NAME);
+  return tpl ? getContractOutputFolder_(tpl) : null;
+}
+// โฟลเดอร์ที่ทำการ → รหัสจาก "(12345)" ท้ายชื่อ
+function contractFolderZip_(name) { var m = /\((\d{5})\)\s*$/.exec(String(name || '')); return m ? m[1] : ''; }
+function contractFolderAllowed_(scope, provName, zip) {
+  if (!scope) return false;
+  if (scope.all) return true;
+  if (scope.only) return zip === scope.zip;
+  return provName === scope.prov && !!zip && zip.substring(0, 2) === scope.zip.substring(0, 2);
+}
+function listContractFiles_(actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var scope = contractFileScope_(actor);
+    if (!scope) return { status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์ดูไฟล์สัญญา' };
+    var base = contractOutputBase_();
+    if (!base) return { status: 'error', message: 'ไม่พบโฟลเดอร์เก็บสัญญา' };
+    var out = [];
+    var add = function (f, prov, office, zip) {
+      if (f.isTrashed() || f.getMimeType() !== MimeType.PDF) return;
+      out.push({ id: f.getId(), name: f.getName(), prov: prov, office: office, zip: zip, at: Utilities.formatDate(f.getLastUpdated(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'), size: f.getSize() });
+    };
+    var pit = base.getFolders();
+    while (pit.hasNext()) {
+      var pf = pit.next(); if (pf.isTrashed()) continue;
+      var prov = pf.getName();
+      if (scope.prov && prov !== scope.prov) continue;
+      var oit = pf.getFolders();
+      while (oit.hasNext()) {
+        var of = oit.next(); if (of.isTrashed()) continue;
+        var zip = contractFolderZip_(of.getName());
+        if (!contractFolderAllowed_(scope, prov, zip)) continue;
+        var fit = of.getFiles();
+        while (fit.hasNext()) add(fit.next(), prov, of.getName(), zip);
+      }
+    }
+    if (scope.all) { var rit = base.getFiles(); while (rit.hasNext()) add(rit.next(), '', 'ไฟล์ก่อนแยกโฟลเดอร์', ''); }
+    out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
+    return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'listContractFiles_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+function getContractFileData_(payload, actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var scope = contractFileScope_(actor);
+    if (!scope) return { status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์ดูไฟล์สัญญา' };
+    var id = String(payload && payload.id || '');
+    if (!/^[\w-]{10,}$/.test(id)) return { status: 'error', message: 'ไม่พบไฟล์' };
+    var base = contractOutputBase_(); if (!base) return { status: 'error', message: 'ไม่พบโฟลเดอร์เก็บสัญญา' };
+    var f; try { f = DriveApp.getFileById(id); } catch (e0) { return { status: 'error', message: 'ไม่พบไฟล์' }; }
+    if (f.isTrashed() || f.getMimeType() !== MimeType.PDF) return { status: 'error', message: 'ไม่พบไฟล์' };
+    // ตรวจตำแหน่ง: base/จังหวัด/ที่ทำการ/ไฟล์ (หรือ base/ไฟล์ สำหรับ admin)
+    var baseId = base.getId(), ok = false, parents = f.getParents();
+    while (parents.hasNext() && !ok) {
+      var of = parents.next();
+      if (of.getId() === baseId) { ok = !!scope.all; continue; }
+      var pp = of.getParents();
+      while (pp.hasNext() && !ok) {
+        var pf = pp.next(), bp = pf.getParents();
+        while (bp.hasNext() && !ok) { if (bp.next().getId() === baseId) ok = contractFolderAllowed_(scope, pf.getName(), contractFolderZip_(of.getName())); }
+      }
+    }
+    if (!ok) return { status: 'error', message: 'ไม่มีสิทธิ์ดูไฟล์นี้' };
+    return { status: 'success', name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()) };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractFileData_');
     return { status: 'error', message: e.toString() };
   }
 }
@@ -6396,7 +6582,8 @@ var API_ALLOWED_FUNCTIONS = [
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
-  'findCustomerForSheet', 'saveCustomerToSheets'
+  'findCustomerForSheet', 'saveCustomerToSheets', 'getRenewalBulk', 'generateContractBulk',
+  'listContractFiles', 'getContractFileData'
 ];
 
 
@@ -6428,7 +6615,11 @@ var AUTH_SESSION_USER_ARG = {
   setRenewalEnabled: 1,          // (payload, actor) — admin เท่านั้น
   createRenewalArchive: 1,       // (payload, actor) — admin เท่านั้น
   findCustomerForSheet: 1,       // (payload, actor) — admin เท่านั้น
-  saveCustomerToSheets: 1        // (payload, actor) — admin เท่านั้น
+  saveCustomerToSheets: 1,       // (payload, actor) — admin เท่านั้น
+  getRenewalBulk: 1,             // (payload, actor) — admin เท่านั้น (สร้างสัญญาทั้งที่ทำการ)
+  generateContractBulk: 1,       // (payload, actor) — admin เท่านั้น
+  listContractFiles: 0,          // (actor) — admin ทั้งหมด / ปจ. ทั้งจังหวัด / ที่ทำการ เฉพาะของตน
+  getContractFileData: 1         // (payload, actor) — ตรวจสิทธิ์จากโฟลเดอร์ของไฟล์
 };
 var SESSION_TTL = 21600; // 6 ชั่วโมง (สูงสุดของ CacheService) ต่ออายุทุกครั้งที่ใช้งาน
 

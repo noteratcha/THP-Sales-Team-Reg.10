@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1315';
+    var APP_VERSION = 'Ver. 2026.1120.1349';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -712,6 +712,15 @@
                         <i class="fas fa-user-plus text-xs"></i>
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เพิ่มข้อมูลลูกค้า</span>
+                </div>
+                <!-- ไฟล์สัญญา: ผู้ใช้ที่ล็อกอิน (ยกเว้น viewer/prepost) — เห็นตามสิทธิ์ที่ทำการ/จังหวัด (ผู้ใช้ขอ 2026-11-20; หลังบ้านตรวจซ้ำ) -->
+                <div onclick="switchPage('contract-files')" id="menu-contract-files"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-folder-open text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">ไฟล์สัญญา</span>
                 </div>
             </div>
 
@@ -1460,6 +1469,9 @@
             <!-- 👤 PAGE: เพิ่มข้อมูลลูกค้า (admin เท่านั้น) -->
             <div id="page-contract-customer" class="hidden animate-fade-in w-full pb-10">
                 <?!= include('Module_ContractCustomer'); ?>
+            </div>
+            <div id="page-contract-files" class="hidden animate-fade-in w-full pb-10">
+                <?!= include('Module_ContractFiles'); ?>
             </div>
 
             <!-- 🎯 PAGE: เป้าหมายการเข้าพบลูกค้า (เฉพาะ admin) -->
@@ -2351,7 +2363,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-contract-customer', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-contract-customer', 'page-contract-files', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -2414,6 +2426,7 @@
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'contract': { page: 'page-contract', menu: 'menu-contract', title: 'สร้างสัญญาขนส่ง', action: () => typeof window.loadContractPage === 'function' && window.loadContractPage() },
                 'contract-customer': { page: 'page-contract-customer', menu: 'menu-contract-customer', title: 'เพิ่มข้อมูลลูกค้า', action: () => typeof window.loadContractCustomerPage === 'function' && window.loadContractCustomerPage() },
+                'contract-files': { page: 'page-contract-files', menu: 'menu-contract-files', title: 'ไฟล์สัญญา', action: () => typeof window.loadContractFilesPage === 'function' && window.loadContractFilesPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
                     page: 'page-settings',
@@ -2751,6 +2764,9 @@
             // เมนู เพิ่มข้อมูลลูกค้า: เฉพาะ admin (ผู้ใช้กำหนด 2026-11-19; หลังบ้านตรวจซ้ำ)
             const elCc = document.getElementById('menu-contract-customer');
             if (elCc) elCc.classList.toggle('hidden', String((currentUserInfo || {}).user || '').trim().toLowerCase() !== 'admin');
+            // เมนู ไฟล์สัญญา: ทุกคนที่ล็อกอิน ยกเว้น viewer/prepost (ผู้ใช้กำหนด 2026-11-20; หลังบ้านตรวจสิทธิ์ซ้ำ)
+            const elCf = document.getElementById('menu-contract-files');
+            if (elCf) { const cu = String((currentUserInfo || {}).user || '').trim().toLowerCase(); elCf.classList.toggle('hidden', !cu || cu === 'viewer' || cu === 'prepost'); }
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();
@@ -2774,6 +2790,8 @@
         window.postNewsInitialized = false;
         if (typeof window.thpCcClear === 'function') window.thpCcClear(); // ล้างผลค้นหาข้อมูลลูกค้า (ข้อมูลส่วนบุคคล)
         { const elCc = document.getElementById('menu-contract-customer'); if (elCc) elCc.classList.add('hidden'); }
+        { const elCf = document.getElementById('menu-contract-files'); if (elCf) elCf.classList.add('hidden'); }
+        if (typeof window.thpCfClear === 'function') window.thpCfClear(); // ล้างรายการไฟล์สัญญาของผู้ใช้ก่อน
         
         // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
         if (typeof window !== 'undefined') {

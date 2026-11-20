@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1315';
+    var APP_VERSION = 'Ver. 2026.1120.1349';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1402,6 +1402,15 @@
                         <i class="fas fa-user-plus text-xs"></i>
                     </div>
                     <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">เพิ่มข้อมูลลูกค้า</span>
+                </div>
+                <!-- ไฟล์สัญญา: ผู้ใช้ที่ล็อกอิน (ยกเว้น viewer/prepost) — เห็นตามสิทธิ์ที่ทำการ/จังหวัด (ผู้ใช้ขอ 2026-11-20; หลังบ้านตรวจซ้ำ) -->
+                <div onclick="switchPage('contract-files')" id="menu-contract-files"
+                    class="hidden nav-item group flex items-center px-3 py-2.5 my-0.5 rounded-lg text-[11px] font-medium transition-all duration-300 cursor-pointer text-gray-400 hover:bg-white/5 hover:text-white">
+                    <div
+                        class="w-6 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
+                        <i class="fas fa-folder-open text-xs"></i>
+                    </div>
+                    <span class="tracking-wide ml-2 flex-1 whitespace-nowrap leading-[20px] pt-1">ไฟล์สัญญา</span>
                 </div>
             </div>
 
@@ -18955,6 +18964,9 @@
     #page-contract .ct-rn-total b { font-size: 18px; font-weight: 800; color: #c2410c; line-height: 1; font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-n { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-chip.is-on .ct-rn-n { background: rgba(255,255,255,.25); }
+    #page-contract .ct-rn-bulk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #fff; background: #c2410c; border: 0; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract .ct-rn-bulk:hover { background: #9a3412; }
+    #page-contract .ct-rn-bulk:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
     #page-contract .ct-rn-chip-all { --ct-pk: #c2410c; --ct-pk-bg: #fff7ed; --ct-pk-fg: #9a3412; border-color: #fed7aa; }
     @media (max-width: 640px) {
         #page-contract .ct-rn-row { grid-template-columns: 1fr; gap: 6px; }
@@ -19162,6 +19174,13 @@
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
+        // ชื่อที่ทำการในสัญญา (ผู้ใช้กำหนด 2026-11-18): ที่ทำการจังหวัด = ปจ., 34010/47010 = ไม่มีคำนำหน้า, อื่น ๆ = ปณ.
+        var ctOfficeLabel = function (zip, name) {
+            var zc = String(zip || '').trim(), nm = String(name || '').trim().replace(/^(ปณ\.|ปจ\.)\s*/, '');
+            if (!nm) return '';
+            var pre = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'].indexOf(zc) !== -1 ? 'ปจ.' : (zc === '34010' || zc === '47010' ? '' : 'ปณ.');
+            return pre + nm;
+        };
         var setDefaults = function () {
             var pad = function (n) { return (n < 10 ? '0' : '') + n; };
             var d = new Date();
@@ -19188,10 +19207,7 @@
                 if (field('no_b') && !field('no_b').value) { if (isAdminUser) field('no_b').value = 'ทข.'; else if (u.zipcode) field('no_b').value = u.zipcode; } // admin = ทข. (ผู้ใช้กำหนด 2026-11-18)
                 if (field('office') && !field('office').value && u.name && !isAdminUser) {
                     // คำนำหน้าที่ทำการ (ผู้ใช้กำหนด 2026-11-18): ที่ทำการจังหวัด = ปจ., 34010/47010 = ไม่มี, อื่น ๆ = ปณ.
-                    var zc = String(u.zipcode || '').trim(), nm = String(u.name || '').trim();
-                    var pre = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'].indexOf(zc) !== -1 ? 'ปจ.' : (zc === '34010' || zc === '47010' ? '' : 'ปณ.');
-                    if (pre && nm.indexOf(pre) === 0) pre = '';
-                    field('office').value = pre + nm;
+                    field('office').value = ctOfficeLabel(u.zipcode, u.name);
                 }
             } catch (e) { }
         };
@@ -19983,6 +19999,8 @@
                       return '<option value="' + esc(z) + '"' + (renew.zipSel === z ? ' selected' : '') + '>' + esc(z + (zips[z].office ? ' ' + zips[z].office : '')) + ' · ' + fmt(zips[z].n) + ' ราย</option>';
                   }).join('') + '</select>'
                 : '<span class="ct-rn-zip-one"><i class="fas fa-store"></i>' + esc(zipOrder[0] ? zipOrder[0] + (zips[zipOrder[0]].office ? ' ' + zips[zipOrder[0]].office : '') : '-') + '</span>';
+            // admin: สร้างสัญญาให้ลูกค้าทุกรายของที่ทำการที่เลือก (ตามตัวกรองบริการ) — ผู้ใช้ขอ 2026-11-20
+            if (renewAdmin() && renew.zipSel && shown) zipCtl += '<button type="button" class="ct-rn-bulk" onclick="thpContractBulk()"><i class="fas fa-layer-group"></i>สร้างสัญญาทั้งที่ทำการ (' + fmt(shown) + ' ราย)</button>';
             var filtered = !!renew.zipSel || any;
             var total = '<div class="ct-rn-total" aria-live="polite"><span>' + (filtered ? 'ผลการกรอง' : 'ลูกค้าทั้งหมด') + '</span><b>' + fmt(shown) + '</b><span>ราย' + (filtered ? ' จาก ' + fmt(all) : '') + '</span>' +
                 (filtered ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewClear()"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '') + '</div>';
@@ -20146,6 +20164,106 @@
             if (!has) { go(); return; }
             Swal.fire({ icon: 'question', title: 'แทนที่ข้อมูลในฟอร์ม?', text: 'ข้อมูลลูกค้าที่กรอกไว้จะถูกแทนที่ด้วยข้อมูลของ ' + c.name, showCancelButton: true, confirmButtonText: 'แทนที่', cancelButtonText: 'ยกเลิก', returnFocus: false })
                 .then(function (a) { if (a.isConfirmed) go(); });
+        };
+
+        // ===== สร้างสัญญาทั้งที่ทำการ (admin — ผู้ใช้ขอ 2026-11-20) =====
+        // เลขที่หนังสือ: ปข.10 (รหัสไปรษณีย์ที่ทำการ)/ ช่อง 3 ว่าง, ที่ทำการตามรหัสไปรษณีย์, วันที่ = ค่าเริ่มต้นของฟอร์ม
+        // ข้อมูลอื่นตามชีตรายชื่อ — ช่องที่ชีตว่างปล่อยว่าง (ไม่ใส่ค่าเริ่มต้น COD/การรับฝาก/ระบบจ่าหน้า)
+        var bulkPayload = function (d, rates, officeName) {
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            var now = new Date(), y = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+            var th = window.thpContractThaiDate;
+            var corp = CORP_RE.test(d.name), t = corp ? 'corp_' : 'person_';
+            var p = {
+                customerType: corp ? 'corp' : 'person', checks: {}, prices: [],
+                no_a: 'ปข.10', no_b: d.zip, no_c: '', office: ctOfficeLabel(d.zip, officeName || d.office),
+                sign_date: th(now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())),
+                start_date: th(y + '-01-01'), end_date: th(y + '-12-31'),
+                post_family: d.thp || '', cod_pct: d.cod || '',
+                contact_name: d.contactName || (corp ? '' : d.name), contact_tel: d.tel || d.contactTel || '',
+                renewal: { name: d.name, zip: d.zip, thp: d.thp || '' }
+            };
+            p[corp ? 'corp_name' : 'person_name'] = d.name;
+            if (!corp && /^\d{13}$/.test(d.idcard || '')) { var x = d.idcard; p.person_idcard = x.charAt(0) + '-' + x.substr(1, 4) + '-' + x.substr(5, 5) + '-' + x.substr(10, 2) + '-' + x.charAt(12); }
+            var addrNo = d.addr || '', mm = /^(.*?)\s*(?:ม\.|หมู่ที่|หมู่)\s*(\d+)\s*$/.exec(addrNo);
+            if (!corp && mm && mm[1]) { addrNo = mm[1]; p.person_building = 'หมู่ที่ ' + mm[2]; }
+            p[t + 'no'] = addrNo; p[t + 'subdistrict'] = d.subdistrict || ''; p[t + 'district'] = d.district || '';
+            p[t + 'province'] = d.province || ''; p[t + 'zip'] = d.postcode || '';
+            if (d.label) { p.checks.x_label_yes = true; p.label_detail = d.label; }
+            var pk = d.pkg && rates[d.pkg];
+            if (pk) {
+                p.pkg = d.pkg; p.prices = (pk.prices || []).slice(0, PRICE_COUNT);
+                p.min_qty = pk.minItems ? Number(pk.minItems).toLocaleString('en-US') : '';
+            } else p.pkg = ''; // อัตราพิเศษ / ไม่มีอัตราในชีต → แบบฟอร์ม A1–A12 ช่องราคาว่าง
+            return p;
+        };
+        window.thpContractBulk = function () {
+            if (!renewAdmin() || !renew.zipSel || !renew.list) return;
+            var zip = renew.zipSel, sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
+            var inList = renew.list.filter(function (c) { return c.zip === zip && (!useSel || sel[renewPkgClass(c).label]); });
+            if (!inList.length) return;
+            var officeName = (inList[0] || {}).office || '';
+            var label = zip + (officeName ? ' ' + officeName : '');
+            var svcText = useSel ? Object.keys(sel).filter(function (k) { return sel[k]; }).join(', ') : 'ทุกบริการ';
+            Swal.fire({
+                icon: 'question', title: 'สร้างสัญญาทั้งที่ทำการ?',
+                html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>บริการ: ' + esc(svcText) + '<br>จำนวน <b>' + inList.length.toLocaleString('th-TH') + ' ราย</b>' +
+                    '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (' + esc(zip) + ')/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (' + esc(zip) + ') และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม</div>',
+                showCancelButton: true, confirmButtonText: 'เริ่มสร้าง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', returnFocus: false
+            }).then(function (a) { if (a.isConfirmed) runBulk(zip, inList, label); });
+        };
+        var runBulk = function (zip, inList, label) {
+            var stop = false, done = 0, ok = 0, fails = [], folderUrl = '';
+            var want = {}; inList.forEach(function (c) { want[c.name] = true; });
+            Swal.fire({
+                title: 'กำลังสร้างสัญญา', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'หยุด',
+                html: '<div style="font-size:14px">' + esc(label) + '</div><div style="height:10px;background:#f3f4f6;border-radius:999px;margin:12px 0 8px;overflow:hidden"><div id="ctBulkBar" style="height:100%;width:0;background:#c2410c;transition:width .2s"></div></div>' +
+                    '<div id="ctBulkText" style="font-size:13px;color:#4b5563">กำลังดึงข้อมูลลูกค้า...</div><div id="ctBulkNow" style="font-size:12px;color:#9ca3af;margin-top:4px;min-height:18px"></div>'
+            }).then(function (r) { if (r.dismiss === Swal.DismissReason.cancel) stop = true; });
+            var ui = function (now) {
+                var bar = document.getElementById('ctBulkBar'), tx = document.getElementById('ctBulkText'), nw = document.getElementById('ctBulkNow');
+                if (bar) bar.style.width = Math.round(done / Math.max(1, total) * 100) + '%';
+                if (tx) tx.textContent = 'สร้างแล้ว ' + done.toLocaleString('th-TH') + ' / ' + total.toLocaleString('th-TH') + ' ราย' + (fails.length ? ' (ไม่สำเร็จ ' + fails.length + ')' : '');
+                if (nw) nw.textContent = now || '';
+            };
+            var total = inList.length;
+            var call = function (fn, arg) {
+                return new Promise(function (resolve, reject) {
+                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg, currentUserInfo);
+                });
+            };
+            Promise.all([call('getRenewalBulk', { zip: zip }), ratesReady(), loadContractLibs()]).then(function (r) {
+                var res = r[0], rates = r[1] || {};
+                if (!(res && res.status === 'success')) throw new Error((res && res.message) || 'ดึงข้อมูลลูกค้าไม่สำเร็จ');
+                var list = (res.data || []).filter(function (d) { return want[d.name]; });
+                total = list.length; ui('');
+                var i = 0;
+                var next = function () {
+                    if (stop || i >= list.length) return Promise.resolve();
+                    var d = list[i++];
+                    ui(d.name);
+                    var p = bulkPayload(d, rates, label.replace(/^\d{5}\s*/, ''));
+                    return getTemplatePdf(p.pkg).then(function (tpl) { return window.thpBuildContractPdf(tpl, p); }).then(function (bytes) {
+                        p.pdf = bytesToB64(bytes);
+                        return call('generateContractBulk', p);
+                    }).then(function (g) {
+                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) fails.push(d.name + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); }
+                        else fails.push(d.name + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ'));
+                    }, function (err) { fails.push(d.name + ': ' + (err && err.message ? err.message : err)); })
+                    .then(function () { done++; ui(''); return next(); });
+                };
+                return next();
+            }).then(function () {
+                Swal.fire({
+                    icon: fails.length ? 'warning' : 'success', title: stop ? 'หยุดการสร้างแล้ว' : 'สร้างสัญญาเสร็จแล้ว',
+                    html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>สร้างสำเร็จ <b>' + ok.toLocaleString('th-TH') + '</b> จาก ' + total.toLocaleString('th-TH') + ' ราย' +
+                        (fails.length ? '<div style="margin-top:8px;max-height:180px;overflow:auto;font-size:12px;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:8px">' + fails.map(esc).join('<br>') + '</div>' : '') +
+                        (folderUrl ? '<div style="margin-top:10px"><a href="' + esc(folderUrl) + '" target="_blank" rel="noopener" style="color:#c2410c;font-weight:700"><i class="fas fa-folder-open"></i> เปิดโฟลเดอร์สัญญาของที่ทำการ</a></div>' : '') + '</div>',
+                    confirmButtonText: 'ปิด', returnFocus: false
+                });
+            }).catch(function (err) {
+                Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            });
         };
 
         window.submitContractForm = function () {
@@ -20409,6 +20527,161 @@
         };
         // ออกจากระบบ/สลับผู้ใช้: ล้างผลค้นหา (มีข้อมูลส่วนบุคคล)
         window.thpCcClear = function () { last = { q: '', items: [] }; var el = box(); if (el) el.innerHTML = ''; var i = document.getElementById('ccQuery'); if (i) i.value = ''; };
+    })();
+</script>
+
+            </div>
+            <div id="page-contract-files" class="hidden animate-fade-in w-full pb-10">
+                <!-- 🗂️ PAGE: ไฟล์สัญญา (เมนูย่อยใต้ สัญญาขนส่ง — ผู้ใช้ขอ 2026-11-20)
+     admin เห็นทุกไฟล์ / ที่ทำการจังหวัด (33000 34000 35000 37000 47000 48000 49000) เห็นทั้งจังหวัด / ที่ทำการอื่นเห็นเฉพาะของตน
+     หลังบ้านตรวจสิทธิ์จาก session (listContractFiles / getContractFileData) — ไฟล์ใน Drive ไม่แชร์ให้ผู้ใช้ -->
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
+    <div class="cf-top">
+        <p id="cfScope" class="cf-scope">ไฟล์สัญญาที่สร้างจากระบบ</p>
+        <button type="button" id="cfReload" class="cf-btn-2" onclick="thpCfLoad(true)"><i class="fas fa-sync-alt"></i> โหลดใหม่</button>
+    </div>
+    <div class="cf-filters">
+        <div class="cf-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input id="cfSearch" type="search" autocomplete="off" placeholder="ค้นหาชื่อลูกค้า" aria-label="ค้นหาไฟล์สัญญาตามชื่อลูกค้า" oninput="thpCfRender()">
+        </div>
+        <select id="cfOffice" class="cf-select hidden" onchange="thpCfRender()" aria-label="กรองตามที่ทำการ"></select>
+        <div id="cfTotal" class="cf-total" aria-live="polite"></div>
+    </div>
+    <div id="cfList" class="cf-list"></div>
+</div>
+
+<style>
+    #page-contract-files .cf-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    #page-contract-files .cf-scope { font-size: 14px; color: #4b5563; margin: 0; }
+    #page-contract-files .cf-scope b { color: #c2410c; }
+    #page-contract-files .cf-btn-2 { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid #fdba74; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract-files .cf-btn-2:disabled { opacity: .6; cursor: wait; }
+    #page-contract-files .cf-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 0; }
+    #page-contract-files .cf-search { position: relative; flex: 1 1 260px; min-width: 0; }
+    #page-contract-files .cf-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 13px; }
+    #page-contract-files .cf-search input { width: 100%; height: 40px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 12px 0 34px; font-size: 14px; }
+    #page-contract-files .cf-search input:focus, #page-contract-files .cf-select:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-files .cf-select { height: 40px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 30px 0 12px; font-size: 14px; background: #fff; flex: 0 1 300px; min-width: 0; }
+    #page-contract-files .cf-select.hidden { display: none; }
+    #page-contract-files .cf-total { font-size: 13px; color: #6b7280; margin-left: auto; white-space: nowrap; }
+    #page-contract-files .cf-total b { font-size: 18px; color: #c2410c; font-weight: 800; }
+    #page-contract-files .cf-list { display: flex; flex-direction: column; gap: 14px; }
+    #page-contract-files .cf-group { border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+    #page-contract-files .cf-group-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff7ed; border-bottom: 1px solid #fde6cf; font-size: 14px; font-weight: 700; color: #9a3412; }
+    #page-contract-files .cf-group-h small { margin-left: auto; font-weight: 600; color: #6b7280; }
+    #page-contract-files .cf-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid #f3f4f6; }
+    #page-contract-files .cf-row:first-of-type { border-top: 0; }
+    #page-contract-files .cf-row:hover { background: #fafafa; }
+    #page-contract-files .cf-ic { color: #dc2626; font-size: 18px; flex-shrink: 0; }
+    #page-contract-files .cf-name { flex: 1; min-width: 0; }
+    #page-contract-files .cf-name b { display: block; font-size: 14px; color: #111827; font-weight: 600; overflow-wrap: anywhere; }
+    #page-contract-files .cf-name small { font-size: 12px; color: #9ca3af; }
+    #page-contract-files .cf-act { display: flex; gap: 6px; flex-shrink: 0; }
+    #page-contract-files .cf-act button { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border-radius: 8px; padding: 5px 10px; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #374151; }
+    #page-contract-files .cf-act button.cf-view { background: #c2410c; border-color: #c2410c; color: #fff; }
+    #page-contract-files .cf-act button:disabled { opacity: .6; cursor: wait; }
+    #page-contract-files .cf-act button:focus-visible, #page-contract-files .cf-btn-2:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    #page-contract-files .cf-empty { font-size: 14px; color: #6b7280; padding: 24px 14px; border: 1px dashed #d1d5db; border-radius: 12px; text-align: center; }
+    #page-contract-files .cf-skel { height: 52px; border-radius: 12px; background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%); background-size: 400% 100%; animation: cfShimmer 1.4s ease infinite; }
+    @keyframes cfShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    @media (max-width: 640px) {
+        #page-contract-files .cf-total { margin-left: 0; }
+        #page-contract-files .cf-row { flex-wrap: wrap; }
+        #page-contract-files .cf-act { width: 100%; justify-content: flex-end; }
+    }
+</style>
+
+<script>
+    ;(function () {
+        var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+        var who = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
+        var st = { list: null, forUser: null, seq: 0, meta: null };
+        var fmt = function (n) { return Number(n).toLocaleString('th-TH'); };
+        var show = function (name) { return String(name || '').replace(/^สัญญาขนส่ง_/, '').replace(/\.pdf$/i, ''); };
+        var thDate = function (s) {
+            var m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/.exec(s || ''); if (!m) return s || '';
+            var mo = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            return Number(m[3]) + ' ' + mo[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543) + ' ' + m[4] + ' น.';
+        };
+
+        window.thpCfClear = function () {
+            st.list = null; st.forUser = null; st.meta = null; st.seq++;
+            var l = document.getElementById('cfList'); if (l) l.innerHTML = '';
+            var s = document.getElementById('cfSearch'); if (s) s.value = '';
+        };
+        window.loadContractFilesPage = function () { window.thpCfLoad(false); };
+        window.thpCfLoad = function (force) {
+            var u = who();
+            if (!force && st.list && st.forUser === u) { window.thpCfRender(); return; }
+            if (st.forUser !== u) { window.thpCfClear(); }
+            st.forUser = u;
+            var seq = ++st.seq, list = document.getElementById('cfList'), btn = document.getElementById('cfReload');
+            if (list) list.innerHTML = '<div class="cf-skel"></div><div class="cf-skel"></div><div class="cf-skel"></div>';
+            if (btn) btn.disabled = true;
+            google.script.run.withSuccessHandler(function (res) {
+                if (seq !== st.seq || who() !== u) return;
+                if (btn) btn.disabled = false;
+                if (!(res && res.status === 'success')) { if (list) list.innerHTML = '<div class="cf-empty">' + esc((res && res.message) || 'โหลดรายการไฟล์ไม่สำเร็จ') + '</div>'; return; }
+                st.list = res.data || []; st.meta = res;
+                var sc = document.getElementById('cfScope');
+                if (sc) sc.innerHTML = res.scope === 'all' ? 'ไฟล์สัญญา<b>ทุกที่ทำการ</b> (ผู้ดูแลระบบ)' : res.scope === 'province' ? 'ไฟล์สัญญาของที่ทำการใน<b>จังหวัด' + esc(res.prov) + '</b>' : 'ไฟล์สัญญาของที่ทำการ <b>' + esc(res.zip) + '</b>';
+                // ตัวกรองที่ทำการ (มีมากกว่า 1 ที่ทำการ)
+                var offices = {}, order = [];
+                st.list.forEach(function (f) { var k = f.office; if (!offices[k]) { offices[k] = 0; order.push(k); } offices[k]++; });
+                var sel = document.getElementById('cfOffice');
+                if (sel) {
+                    sel.innerHTML = '<option value="">ทุกที่ทำการ (' + fmt(order.length) + ' แห่ง)</option>' + order.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + ' · ' + fmt(offices[k]) + ' ไฟล์</option>'; }).join('');
+                    sel.classList.toggle('hidden', order.length < 2);
+                }
+                window.thpCfRender();
+            }).withFailureHandler(function (err) {
+                if (seq !== st.seq) return;
+                if (btn) btn.disabled = false;
+                if (list) list.innerHTML = '<div class="cf-empty">โหลดรายการไฟล์ไม่สำเร็จ: ' + esc(err && err.message ? err.message : err) + '</div>';
+            }).listContractFiles(currentUserInfo);
+        };
+        window.thpCfRender = function () {
+            var list = document.getElementById('cfList'), tot = document.getElementById('cfTotal'); if (!list || !st.list) return;
+            var q = String((document.getElementById('cfSearch') || {}).value || '').trim().toLowerCase();
+            var off = String((document.getElementById('cfOffice') || {}).value || '');
+            var hits = st.list.filter(function (f) { return (!off || f.office === off) && (!q || show(f.name).toLowerCase().indexOf(q) !== -1); });
+            if (tot) tot.innerHTML = (q || off ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (q || off ? ' จาก ' + fmt(st.list.length) : '');
+            if (!hits.length) { list.innerHTML = '<div class="cf-empty">' + (st.list.length ? 'ไม่พบไฟล์ที่ตรงกับการค้นหา' : 'ยังไม่มีไฟล์สัญญา') + '</div>'; return; }
+            var groups = {}, order = [];
+            hits.forEach(function (f) { if (!groups[f.office]) { groups[f.office] = []; order.push(f.office); } groups[f.office].push(f); });
+            list.innerHTML = order.map(function (k) {
+                var g = groups[k];
+                return '<section class="cf-group"><div class="cf-group-h"><i class="fas fa-folder"></i>' + esc((g[0].prov ? g[0].prov + ' › ' : '') + k) + '<small>' + fmt(g.length) + ' ไฟล์</small></div>' +
+                    g.map(function (f) {
+                        return '<div class="cf-row"><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><b>' + esc(show(f.name)) + '</b><small>อัปเดต ' + esc(thDate(f.at)) + '</small></div>' +
+                            '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
+                            '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
+                    }).join('') + '</section>';
+            }).join('');
+        };
+        // เปิดดู: เปิดแท็บก่อน (กันเบราว์เซอร์บล็อกป๊อปอัป) แล้วใส่ไฟล์เมื่อโหลดเสร็จ
+        window.thpCfOpen = function (btn, dl) {
+            var id = btn.getAttribute('data-id'); if (!id) return;
+            var w = dl ? null : window.open('', '_blank');
+            if (w) { try { w.document.title = 'กำลังเปิดไฟล์สัญญา...'; w.document.body.innerHTML = '<p style="font-family:sans-serif;padding:24px;color:#6b7280">กำลังเปิดไฟล์สัญญา...</p>'; } catch (e) { } }
+            btn.disabled = true;
+            google.script.run.withSuccessHandler(function (res) {
+                btn.disabled = false;
+                if (!(res && res.status === 'success')) { if (w) w.close(); Swal.fire('เปิดไฟล์ไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                var bin = atob(res.data), u8 = new Uint8Array(bin.length);
+                for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+                var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+                if (dl || !w) {
+                    var a = document.createElement('a'); a.href = url; a.download = res.name || 'สัญญา.pdf';
+                    document.body.appendChild(a); a.click(); a.remove();
+                } else w.location.href = url;
+                setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+            }).withFailureHandler(function (err) {
+                btn.disabled = false; if (w) w.close();
+                Swal.fire('เปิดไฟล์ไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            }).getContractFileData({ id: id }, currentUserInfo);
+        };
     })();
 </script>
 
@@ -29254,7 +29527,7 @@
         } catch(e) {}
         try {
             // 💡 เพิ่ม 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent' และ 'page-manual' ในรายการที่ต้องซ่อนก่อนสลับหน้า
-            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-contract-customer', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
+            const pages = ['page-home', 'page-form', 'page-data', 'page-revenue', 'page-revenue-report', 'page-target-plan', 'page-contract', 'page-contract-customer', 'page-contract-files', 'page-visit-plan', 'page-postnews', 'page-settings', 'page-evaluation', 'page-rateprice', 'page-biglot', 'page-biglot-report', 'page-fuze-agent', 'page-manual'];
             pages.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
             const inactiveClasses = ['text-gray-400', 'hover:bg-white/10', 'hover:text-white', 'border-l-4', 'border-transparent'];
@@ -29317,6 +29590,7 @@
                 'target-plan': { page: 'page-target-plan', menu: 'menu-target-plan', title: 'วางแผนเป้าหมายรายได้', action: () => typeof window.loadTargetPlanPage === 'function' && window.loadTargetPlanPage() },
                 'contract': { page: 'page-contract', menu: 'menu-contract', title: 'สร้างสัญญาขนส่ง', action: () => typeof window.loadContractPage === 'function' && window.loadContractPage() },
                 'contract-customer': { page: 'page-contract-customer', menu: 'menu-contract-customer', title: 'เพิ่มข้อมูลลูกค้า', action: () => typeof window.loadContractCustomerPage === 'function' && window.loadContractCustomerPage() },
+                'contract-files': { page: 'page-contract-files', menu: 'menu-contract-files', title: 'ไฟล์สัญญา', action: () => typeof window.loadContractFilesPage === 'function' && window.loadContractFilesPage() },
                 'evaluation': { page: 'page-evaluation', menu: '', title: 'ประเมินระบบ', action: () => typeof window.loadEvaluationQuestions === 'function' && window.loadEvaluationQuestions() },
                 'settings': {
                     page: 'page-settings',
@@ -29654,6 +29928,9 @@
             // เมนู เพิ่มข้อมูลลูกค้า: เฉพาะ admin (ผู้ใช้กำหนด 2026-11-19; หลังบ้านตรวจซ้ำ)
             const elCc = document.getElementById('menu-contract-customer');
             if (elCc) elCc.classList.toggle('hidden', String((currentUserInfo || {}).user || '').trim().toLowerCase() !== 'admin');
+            // เมนู ไฟล์สัญญา: ทุกคนที่ล็อกอิน ยกเว้น viewer/prepost (ผู้ใช้กำหนด 2026-11-20; หลังบ้านตรวจสิทธิ์ซ้ำ)
+            const elCf = document.getElementById('menu-contract-files');
+            if (elCf) { const cu = String((currentUserInfo || {}).user || '').trim().toLowerCase(); elCf.classList.toggle('hidden', !cu || cu === 'viewer' || cu === 'prepost'); }
 
             switchPage(targetPage);
             if (typeof window.flushPostLoginQueue === 'function') window.flushPostLoginQueue();
@@ -29677,6 +29954,8 @@
         window.postNewsInitialized = false;
         if (typeof window.thpCcClear === 'function') window.thpCcClear(); // ล้างผลค้นหาข้อมูลลูกค้า (ข้อมูลส่วนบุคคล)
         { const elCc = document.getElementById('menu-contract-customer'); if (elCc) elCc.classList.add('hidden'); }
+        { const elCf = document.getElementById('menu-contract-files'); if (elCf) elCf.classList.add('hidden'); }
+        if (typeof window.thpCfClear === 'function') window.thpCfClear(); // ล้างรายการไฟล์สัญญาของผู้ใช้ก่อน
         
         // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
         if (typeof window !== 'undefined') {

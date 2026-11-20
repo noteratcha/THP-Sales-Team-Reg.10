@@ -386,6 +386,9 @@
     #page-contract .ct-rn-total b { font-size: 18px; font-weight: 800; color: #c2410c; line-height: 1; font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-n { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
     #page-contract .ct-rn-chip.is-on .ct-rn-n { background: rgba(255,255,255,.25); }
+    #page-contract .ct-rn-bulk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #fff; background: #c2410c; border: 0; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract .ct-rn-bulk:hover { background: #9a3412; }
+    #page-contract .ct-rn-bulk:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
     #page-contract .ct-rn-chip-all { --ct-pk: #c2410c; --ct-pk-bg: #fff7ed; --ct-pk-fg: #9a3412; border-color: #fed7aa; }
     @media (max-width: 640px) {
         #page-contract .ct-rn-row { grid-template-columns: 1fr; gap: 6px; }
@@ -593,6 +596,13 @@
             if (window.thpContractProgress) window.thpContractProgress();
         };
 
+        // ชื่อที่ทำการในสัญญา (ผู้ใช้กำหนด 2026-11-18): ที่ทำการจังหวัด = ปจ., 34010/47010 = ไม่มีคำนำหน้า, อื่น ๆ = ปณ.
+        var ctOfficeLabel = function (zip, name) {
+            var zc = String(zip || '').trim(), nm = String(name || '').trim().replace(/^(ปณ\.|ปจ\.)\s*/, '');
+            if (!nm) return '';
+            var pre = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'].indexOf(zc) !== -1 ? 'ปจ.' : (zc === '34010' || zc === '47010' ? '' : 'ปณ.');
+            return pre + nm;
+        };
         var setDefaults = function () {
             var pad = function (n) { return (n < 10 ? '0' : '') + n; };
             var d = new Date();
@@ -619,10 +629,7 @@
                 if (field('no_b') && !field('no_b').value) { if (isAdminUser) field('no_b').value = 'ทข.'; else if (u.zipcode) field('no_b').value = u.zipcode; } // admin = ทข. (ผู้ใช้กำหนด 2026-11-18)
                 if (field('office') && !field('office').value && u.name && !isAdminUser) {
                     // คำนำหน้าที่ทำการ (ผู้ใช้กำหนด 2026-11-18): ที่ทำการจังหวัด = ปจ., 34010/47010 = ไม่มี, อื่น ๆ = ปณ.
-                    var zc = String(u.zipcode || '').trim(), nm = String(u.name || '').trim();
-                    var pre = ['33000', '34000', '35000', '37000', '47000', '48000', '49000'].indexOf(zc) !== -1 ? 'ปจ.' : (zc === '34010' || zc === '47010' ? '' : 'ปณ.');
-                    if (pre && nm.indexOf(pre) === 0) pre = '';
-                    field('office').value = pre + nm;
+                    field('office').value = ctOfficeLabel(u.zipcode, u.name);
                 }
             } catch (e) { }
         };
@@ -1414,6 +1421,8 @@
                       return '<option value="' + esc(z) + '"' + (renew.zipSel === z ? ' selected' : '') + '>' + esc(z + (zips[z].office ? ' ' + zips[z].office : '')) + ' · ' + fmt(zips[z].n) + ' ราย</option>';
                   }).join('') + '</select>'
                 : '<span class="ct-rn-zip-one"><i class="fas fa-store"></i>' + esc(zipOrder[0] ? zipOrder[0] + (zips[zipOrder[0]].office ? ' ' + zips[zipOrder[0]].office : '') : '-') + '</span>';
+            // admin: สร้างสัญญาให้ลูกค้าทุกรายของที่ทำการที่เลือก (ตามตัวกรองบริการ) — ผู้ใช้ขอ 2026-11-20
+            if (renewAdmin() && renew.zipSel && shown) zipCtl += '<button type="button" class="ct-rn-bulk" onclick="thpContractBulk()"><i class="fas fa-layer-group"></i>สร้างสัญญาทั้งที่ทำการ (' + fmt(shown) + ' ราย)</button>';
             var filtered = !!renew.zipSel || any;
             var total = '<div class="ct-rn-total" aria-live="polite"><span>' + (filtered ? 'ผลการกรอง' : 'ลูกค้าทั้งหมด') + '</span><b>' + fmt(shown) + '</b><span>ราย' + (filtered ? ' จาก ' + fmt(all) : '') + '</span>' +
                 (filtered ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewClear()"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '') + '</div>';
@@ -1577,6 +1586,106 @@
             if (!has) { go(); return; }
             Swal.fire({ icon: 'question', title: 'แทนที่ข้อมูลในฟอร์ม?', text: 'ข้อมูลลูกค้าที่กรอกไว้จะถูกแทนที่ด้วยข้อมูลของ ' + c.name, showCancelButton: true, confirmButtonText: 'แทนที่', cancelButtonText: 'ยกเลิก', returnFocus: false })
                 .then(function (a) { if (a.isConfirmed) go(); });
+        };
+
+        // ===== สร้างสัญญาทั้งที่ทำการ (admin — ผู้ใช้ขอ 2026-11-20) =====
+        // เลขที่หนังสือ: ปข.10 (รหัสไปรษณีย์ที่ทำการ)/ ช่อง 3 ว่าง, ที่ทำการตามรหัสไปรษณีย์, วันที่ = ค่าเริ่มต้นของฟอร์ม
+        // ข้อมูลอื่นตามชีตรายชื่อ — ช่องที่ชีตว่างปล่อยว่าง (ไม่ใส่ค่าเริ่มต้น COD/การรับฝาก/ระบบจ่าหน้า)
+        var bulkPayload = function (d, rates, officeName) {
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            var now = new Date(), y = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
+            var th = window.thpContractThaiDate;
+            var corp = CORP_RE.test(d.name), t = corp ? 'corp_' : 'person_';
+            var p = {
+                customerType: corp ? 'corp' : 'person', checks: {}, prices: [],
+                no_a: 'ปข.10', no_b: d.zip, no_c: '', office: ctOfficeLabel(d.zip, officeName || d.office),
+                sign_date: th(now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate())),
+                start_date: th(y + '-01-01'), end_date: th(y + '-12-31'),
+                post_family: d.thp || '', cod_pct: d.cod || '',
+                contact_name: d.contactName || (corp ? '' : d.name), contact_tel: d.tel || d.contactTel || '',
+                renewal: { name: d.name, zip: d.zip, thp: d.thp || '' }
+            };
+            p[corp ? 'corp_name' : 'person_name'] = d.name;
+            if (!corp && /^\d{13}$/.test(d.idcard || '')) { var x = d.idcard; p.person_idcard = x.charAt(0) + '-' + x.substr(1, 4) + '-' + x.substr(5, 5) + '-' + x.substr(10, 2) + '-' + x.charAt(12); }
+            var addrNo = d.addr || '', mm = /^(.*?)\s*(?:ม\.|หมู่ที่|หมู่)\s*(\d+)\s*$/.exec(addrNo);
+            if (!corp && mm && mm[1]) { addrNo = mm[1]; p.person_building = 'หมู่ที่ ' + mm[2]; }
+            p[t + 'no'] = addrNo; p[t + 'subdistrict'] = d.subdistrict || ''; p[t + 'district'] = d.district || '';
+            p[t + 'province'] = d.province || ''; p[t + 'zip'] = d.postcode || '';
+            if (d.label) { p.checks.x_label_yes = true; p.label_detail = d.label; }
+            var pk = d.pkg && rates[d.pkg];
+            if (pk) {
+                p.pkg = d.pkg; p.prices = (pk.prices || []).slice(0, PRICE_COUNT);
+                p.min_qty = pk.minItems ? Number(pk.minItems).toLocaleString('en-US') : '';
+            } else p.pkg = ''; // อัตราพิเศษ / ไม่มีอัตราในชีต → แบบฟอร์ม A1–A12 ช่องราคาว่าง
+            return p;
+        };
+        window.thpContractBulk = function () {
+            if (!renewAdmin() || !renew.zipSel || !renew.list) return;
+            var zip = renew.zipSel, sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
+            var inList = renew.list.filter(function (c) { return c.zip === zip && (!useSel || sel[renewPkgClass(c).label]); });
+            if (!inList.length) return;
+            var officeName = (inList[0] || {}).office || '';
+            var label = zip + (officeName ? ' ' + officeName : '');
+            var svcText = useSel ? Object.keys(sel).filter(function (k) { return sel[k]; }).join(', ') : 'ทุกบริการ';
+            Swal.fire({
+                icon: 'question', title: 'สร้างสัญญาทั้งที่ทำการ?',
+                html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>บริการ: ' + esc(svcText) + '<br>จำนวน <b>' + inList.length.toLocaleString('th-TH') + ' ราย</b>' +
+                    '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (' + esc(zip) + ')/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (' + esc(zip) + ') และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม</div>',
+                showCancelButton: true, confirmButtonText: 'เริ่มสร้าง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', returnFocus: false
+            }).then(function (a) { if (a.isConfirmed) runBulk(zip, inList, label); });
+        };
+        var runBulk = function (zip, inList, label) {
+            var stop = false, done = 0, ok = 0, fails = [], folderUrl = '';
+            var want = {}; inList.forEach(function (c) { want[c.name] = true; });
+            Swal.fire({
+                title: 'กำลังสร้างสัญญา', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'หยุด',
+                html: '<div style="font-size:14px">' + esc(label) + '</div><div style="height:10px;background:#f3f4f6;border-radius:999px;margin:12px 0 8px;overflow:hidden"><div id="ctBulkBar" style="height:100%;width:0;background:#c2410c;transition:width .2s"></div></div>' +
+                    '<div id="ctBulkText" style="font-size:13px;color:#4b5563">กำลังดึงข้อมูลลูกค้า...</div><div id="ctBulkNow" style="font-size:12px;color:#9ca3af;margin-top:4px;min-height:18px"></div>'
+            }).then(function (r) { if (r.dismiss === Swal.DismissReason.cancel) stop = true; });
+            var ui = function (now) {
+                var bar = document.getElementById('ctBulkBar'), tx = document.getElementById('ctBulkText'), nw = document.getElementById('ctBulkNow');
+                if (bar) bar.style.width = Math.round(done / Math.max(1, total) * 100) + '%';
+                if (tx) tx.textContent = 'สร้างแล้ว ' + done.toLocaleString('th-TH') + ' / ' + total.toLocaleString('th-TH') + ' ราย' + (fails.length ? ' (ไม่สำเร็จ ' + fails.length + ')' : '');
+                if (nw) nw.textContent = now || '';
+            };
+            var total = inList.length;
+            var call = function (fn, arg) {
+                return new Promise(function (resolve, reject) {
+                    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg, currentUserInfo);
+                });
+            };
+            Promise.all([call('getRenewalBulk', { zip: zip }), ratesReady(), loadContractLibs()]).then(function (r) {
+                var res = r[0], rates = r[1] || {};
+                if (!(res && res.status === 'success')) throw new Error((res && res.message) || 'ดึงข้อมูลลูกค้าไม่สำเร็จ');
+                var list = (res.data || []).filter(function (d) { return want[d.name]; });
+                total = list.length; ui('');
+                var i = 0;
+                var next = function () {
+                    if (stop || i >= list.length) return Promise.resolve();
+                    var d = list[i++];
+                    ui(d.name);
+                    var p = bulkPayload(d, rates, label.replace(/^\d{5}\s*/, ''));
+                    return getTemplatePdf(p.pkg).then(function (tpl) { return window.thpBuildContractPdf(tpl, p); }).then(function (bytes) {
+                        p.pdf = bytesToB64(bytes);
+                        return call('generateContractBulk', p);
+                    }).then(function (g) {
+                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) fails.push(d.name + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); }
+                        else fails.push(d.name + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ'));
+                    }, function (err) { fails.push(d.name + ': ' + (err && err.message ? err.message : err)); })
+                    .then(function () { done++; ui(''); return next(); });
+                };
+                return next();
+            }).then(function () {
+                Swal.fire({
+                    icon: fails.length ? 'warning' : 'success', title: stop ? 'หยุดการสร้างแล้ว' : 'สร้างสัญญาเสร็จแล้ว',
+                    html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>สร้างสำเร็จ <b>' + ok.toLocaleString('th-TH') + '</b> จาก ' + total.toLocaleString('th-TH') + ' ราย' +
+                        (fails.length ? '<div style="margin-top:8px;max-height:180px;overflow:auto;font-size:12px;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:8px">' + fails.map(esc).join('<br>') + '</div>' : '') +
+                        (folderUrl ? '<div style="margin-top:10px"><a href="' + esc(folderUrl) + '" target="_blank" rel="noopener" style="color:#c2410c;font-weight:700"><i class="fas fa-folder-open"></i> เปิดโฟลเดอร์สัญญาของที่ทำการ</a></div>' : '') + '</div>',
+                    confirmButtonText: 'ปิด', returnFocus: false
+                });
+            }).catch(function (err) {
+                Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+            });
         };
 
         window.submitContractForm = function () {
