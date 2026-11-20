@@ -3302,6 +3302,37 @@ function updateRatePrice0133() {
   if (missing.length) Logger.log('⚠ ไม่พบแถว: ' + missing.join(', '));
 }
 
+// ปรับชีต "เรตราคา" ตามบันทึก 0133 ฉบับปรับปรุง (ได้รับ 2026-11-20) — Run ครั้งเดียวในหน้า Apps Script
+// ฉบับปรับปรุงแก้ 5 ช่องที่ฉบับแรกพิมพ์ผิด (A10 20–21/22–23/24–25/26–27 กก., A7 22–23 กก.) กลับเป็นรูปแบบปกติ
+// ตั้งราคาทั้ง 360 ช่อง (A1–A12 × 30 ช่วง) ตามรูปแบบในเอกสาร: A1 ช่วงแรก 17 บาท, +10 ถึง 10 กก., +5 ถึง 20 กก., +15 ถึง 30 กก.;
+// Package ถัดไป +1 บาท (A11 = A10 + 2, A12 = A11 + 2) — ตรวจเทียบภาพเอกสารทุกแถวแล้ว; ขั้นต่ำเท่าเดิม
+function updateRatePrice0133Rev() {
+  var MIN = { 'Package A1': 7000, 'Package A2': 7000, 'Package A3': 7000, 'Package A4': 5000, 'Package A5': 5000,
+    'Package A6': 3000, 'Package A7': 3000, 'Package A8': 2000, 'Package A9': 2000, 'Package A10': 2000,
+    'Package A11': 500, 'Package A12': 200 };
+  // ราคา A1 ต่อช่วง: 17…107 (+10), 112…157 (+5), 172…307 (+15)
+  var base = [], p = 17;
+  for (var w = 1; w <= 30; w++) { base.push(p); p += w < 10 ? 10 : (w < 20 ? 5 : 15); }
+  var offset = function (n) { return n <= 10 ? n - 1 : (n === 11 ? 11 : 13); };
+  var sheet = SpreadsheetApp.openById('1q-Jx-irTuftdAKHIWn6I8v4Sun0Wuzv0oSR-MMaTdXw').getSheetByName('เรตราคา');
+  var data = sheet.getDataRange().getValues();
+  var minChanged = 0, priceChanged = [], seen = 0;
+  for (var i = 1; i < data.length; i++) {
+    var svc = String(data[i][0]).trim(), m = /^Package A(\d+)$/.exec(svc);
+    if (!m || !MIN.hasOwnProperty(svc)) continue;
+    var start = Number(String(data[i][1]).replace(/,/g, ''));
+    var tier = start <= 1 ? 1 : Math.round(start / 1000) + 1; // weightStart 1, 1000, 2000 … 29000
+    if (tier < 1 || tier > 30) continue;
+    seen++;
+    var want = base[tier - 1] + offset(Number(m[1]));
+    if (Number(data[i][4]) !== MIN[svc]) { sheet.getRange(i + 1, 5).setValue(MIN[svc]); minChanged++; }
+    if (Number(data[i][3]) !== want) { sheet.getRange(i + 1, 4).setValue(want); priceChanged.push(svc + '|' + start + ': ' + data[i][3] + ' → ' + want); }
+  }
+  Logger.log('ตรวจ ' + seen + ' แถว (ควรเป็น 360)');
+  Logger.log('ปรับปริมาณงานขั้นต่ำ ' + minChanged + ' แถว');
+  Logger.log('ปรับราคา ' + priceChanged.length + ' ช่อง: ' + (priceChanged.join(' | ') || '-'));
+}
+
 // ==========================================
 // API ดึงข้อมูลเรตราคาจาก Google Sheet
 // ==========================================

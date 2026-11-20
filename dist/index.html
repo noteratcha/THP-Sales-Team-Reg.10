@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1119.1631';
+    var APP_VERSION = 'Ver. 2026.1120.1117';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19335,9 +19335,12 @@
             x_label_yes: [1, 168.6, 356.9], x_label_no: [1, 408.7, 356.2], x_capos: [1, 153.8, 374.9],
             x_pickup: [1, 211.0, 374.5], x_dropoff: [1, 305.7, 374.5], x_other: [1, 368.4, 374.5]
         };
+        // ช่องลงนาม "ผู้อนุมัติ" ต่อท้าย QR code หน้า 4 (ผู้ใช้ขอ 2026-11-20, เฉพาะแบบฟอร์ม A1–A12) — วาดเพิ่มเอง ไม่มีในต้นฉบับ
+        // QR code อยู่ที่ x 62–122, y 473–542 → บล็อกอยู่ใต้ QR (ผู้ใช้ขอ: ไม่ให้อยู่บรรทัดเดียวกัน) แนวเดียวกับช่องพยานฝั่งซ้าย x 72–254, บรรทัดห่าง 18 pt
+        var CT_APPROVER_A112 = { page: 3, x: 72, w: 182, y: [572, 608, 626, 644] }; // หัวข้อ → ลงชื่อ เว้น 1 บรรทัดเปล่า (36 pt = 2 บรรทัด, ผู้ใช้ขอ)
         var ctLayout = function (pkg) {
-            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [] }
-                : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS };
+            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [], approver: null }
+                : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS, approver: CT_APPROVER_A112 };
         };
         // ต้นฉบับใช้ TH SarabunPSK 16pt; Sarabun (Google Fonts) รูปตัวอักษรเดียวกันแต่ใหญ่และหนากว่า จึงใช้ขนาดเล็กลง + น้ำหนัก 300
         var CT_TEXT_PT = 10.8, CT_PRICE_PT = 9.8, CT_SCALE = 5, CT_WEIGHT = '300';
@@ -19464,6 +19467,27 @@
                     page.drawLine(Object.assign({ start: { x: pts[0][0], y: H - pts[0][1] }, end: { x: pts[1][0], y: H - pts[1][1] } }, opt));
                     page.drawLine(Object.assign({ start: { x: pts[1][0], y: H - pts[1][1] }, end: { x: pts[2][0], y: H - pts[2][1] } }, opt));
                 });
+                // ช่องลงนามผู้อนุมัติ: หัวข้อ / ลงชื่อ...... / (......) / ตำแหน่ง...... (เส้นประแบบเดียวกับต้นฉบับ dash 1.5 หนา 0.48)
+                if (L.approver) {
+                    var A = L.approver, ap = pages[A.page], aH = ap.getHeight(), ax1 = A.x + A.w;
+                    var label = function (text, x, yb, center) {
+                        var img = textToPng(text, CT_TEXT_PT);
+                        var lx = center ? x - img.textW / 2 : x;
+                        jobs.push(doc.embedPng(img.dataUrl).then(function (png) {
+                            ap.drawImage(png, { x: lx - 2 / CT_SCALE, y: aH - (yb + img.desc), width: img.w, height: img.asc + img.desc });
+                        }));
+                        return img.textW;
+                    };
+                    var dots = function (x0, x1, yb) {
+                        ap.drawLine({ start: { x: x0, y: aH - (yb + 0.8) }, end: { x: x1, y: aH - (yb + 0.8) }, thickness: 0.48, dashArray: [1.5, 1.5], color: PDFLib.rgb(0, 0, 0) });
+                    };
+                    label('ผู้อนุมัติ', A.x + A.w / 2, A.y[0], true);
+                    dots(A.x + label('ลงชื่อ', A.x, A.y[1]) + 0.5, ax1, A.y[1]);
+                    var pw = label('(', A.x + 3.5, A.y[2]);
+                    label(')', ax1 - 3, A.y[2]);
+                    dots(A.x + 3.5 + pw + 0.5, ax1 - 3 - 0.5, A.y[2]);
+                    dots(A.x + label('ตำแหน่ง', A.x, A.y[3]) + 0.5, ax1, A.y[3]);
+                }
                 return Promise.all(jobs).then(function () { return doc.save(); });
             });
         };
