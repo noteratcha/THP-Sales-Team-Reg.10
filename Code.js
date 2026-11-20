@@ -6031,11 +6031,12 @@ function generateTransportContract_(payload, actor) {
     }
     var stamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyyMMdd_HHmm');
     var safeName = built.customer.replace(/[\\\/:*?"<>|]/g, ' ').substring(0, 80).trim();
-    var fileName = 'สัญญาขนส่ง_' + safeName + '_' + stamp;
     var desc = 'สร้างจากระบบ THP Sales Team Reg.10 โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : '');
     // เก็บแยก จังหวัด / ที่ทำการ (รหัสไปรษณีย์) (ผู้ใช้ขอ 2026-11-20): รหัสจากลูกค้าเดิม → เลขที่หนังสือช่อง 2 → รหัสของผู้ล็อกอิน; ไม่มี = โฟลเดอร์หลัก
     var bZip = String((payload.renewal || {}).zip || '').trim();
     if (!/^\d{5}$/.test(bZip)) bZip = /^\d{5}$/.test(String(payload.no_b || '').trim()) ? String(payload.no_b).trim() : String(actor.zipcode || '').trim();
+    // ชื่อไฟล์ขึ้นต้นด้วยรหัสไปรษณีย์ที่ทำการ (ผู้ใช้ขอ 2026-11-20)
+    var fileName = (/^\d{5}$/.test(bZip) ? bZip + '_' : '') + 'สัญญาขนส่ง_' + safeName + '_' + stamp;
     var folder = contractOfficeFolder_(getContractOutputFolder_(tpl), bZip, payload.office);
     // ผู้ใช้กำหนด 2026-11-18: ดาวน์โหลดได้เฉพาะ PDF — ไม่สร้าง/ไม่ส่งไฟล์ Word (เปิดได้ด้วย payload.wantDocx ถ้าจะกลับมาใช้)
     if (!pdfBytes) return { status: 'error', message: 'ไม่มีไฟล์ PDF ที่สร้างจากหน้าเว็บ' };
@@ -6414,10 +6415,18 @@ function contractOfficeFolder_(base, zip, office) {
   var pit = base.getFoldersByName(prov), pf = null;
   while (pit.hasNext()) { var f0 = pit.next(); if (!f0.isTrashed()) { pf = f0; break; } }
   if (!pf) pf = base.createFolder(prov);
-  var it = pf.getFolders(), tail = '(' + zip + ')';
-  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed() && f.getName().slice(-tail.length) === tail) return f; }
+  var tail = '(' + zip + ')';
   var nm = contractSafeName_(office).replace(/\(\d{5}\)$/, '').trim();
-  return pf.createFolder((nm ? nm + ' ' : '') + tail);
+  if (zip.charAt(0) === '0') nm = nm.replace(/^ปณ\.\s*/, ''); // รหัสขึ้นต้นด้วย 0 ไม่ใส่ ปณ. (ผู้ใช้กำหนด 2026-11-20)
+  var want = (nm ? nm + ' ' : '') + tail;
+  var it = pf.getFolders();
+  while (it.hasNext()) {
+    var f = it.next();
+    if (f.isTrashed() || f.getName().slice(-tail.length) !== tail) continue;
+    if (zip.charAt(0) === '0' && /^ปณ\./.test(f.getName())) f.setName(f.getName().replace(/^ปณ\.\s*/, '')); // โฟลเดอร์เดิมที่มี ปณ. → เอาออก
+    return f;
+  }
+  return pf.createFolder(want);
 }
 
 function getRenewalBulk_(payload, actor) {
@@ -6463,9 +6472,12 @@ function generateContractBulk_(payload, actor) {
     var tpl = findContractFile_(CONTRACT_TEMPLATE_PDF_NAME);
     if (!tpl) return { status: 'error', message: 'ไม่พบไฟล์ต้นฉบับ "' + CONTRACT_TEMPLATE_PDF_NAME + '"' };
     var folder = contractOfficeFolder_(getContractOutputFolder_(tpl), zip, payload.office);
-    var fileName = 'สัญญาขนส่ง_' + contractSafeName_(name) + '.pdf';
-    var old = folder.getFilesByName(fileName);
-    while (old.hasNext()) { var of = old.next(); if (!of.isTrashed()) of.setTrashed(true); }
+    // ชื่อไฟล์ขึ้นต้นด้วยรหัสไปรษณีย์ (ผู้ใช้ขอ 2026-11-20) — ไฟล์เดิมทั้งชื่อใหม่และชื่อแบบเก่า (ไม่มีรหัส) ย้ายไปถังขยะ
+    var fileName = zip + '_สัญญาขนส่ง_' + contractSafeName_(name) + '.pdf';
+    [fileName, 'สัญญาขนส่ง_' + contractSafeName_(name) + '.pdf'].forEach(function (fn) {
+      var old = folder.getFilesByName(fn);
+      while (old.hasNext()) { var of = old.next(); if (!of.isTrashed()) of.setTrashed(true); }
+    });
     var file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, fileName))
       .setDescription('สร้างจากระบบ THP Sales Team Reg.10 (สร้างทั้งที่ทำการ) โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : ''));
     var reg = contractRegister_(payload, actor, file.getUrl());
@@ -6503,6 +6515,31 @@ function contractFolderAllowed_(scope, provName, zip) {
   if (scope.only) return zip === scope.zip;
   return provName === scope.prov && !!zip && contractProvinceOfZip_(zip) === scope.prov;
 }
+// ประวัติเปิดดู/ดาวน์โหลดไฟล์สัญญา (ผู้ใช้ขอ 2026-11-20) → แท็บ "ประวัติไฟล์สัญญา" ในไฟล์ทะเบียน 1Z0qQ… (สร้างอัตโนมัติ)
+var CONTRACT_FILE_LOG_SHEET = 'ประวัติไฟล์สัญญา';
+function contractFileLogSheet_(create) {
+  var ss = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID);
+  var sh = ss.getSheetByName(CONTRACT_FILE_LOG_SHEET);
+  if (!sh && create) {
+    sh = ss.insertSheet(CONTRACT_FILE_LOG_SHEET);
+    sh.getRange(1, 1, 1, 6).setValues([['วันเวลา', 'รหัสไฟล์', 'ชื่อไฟล์', 'การใช้งาน', 'ผู้ใช้', 'ชื่อผู้ใช้']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+// { fileId: { view: {at, by}, dl: {at, by} } } — ล่าสุดของแต่ละแบบ
+function contractFileLogMap_() {
+  var sh = contractFileLogSheet_(false), out = {};
+  if (!sh || sh.getLastRow() < 2) return out;
+  var data = sh.getRange(2, 1, sh.getLastRow() - 1, 5).getDisplayValues();
+  data.forEach(function (r) {
+    var id = r[1], k = r[3] === 'ดาวน์โหลด' ? 'dl' : 'view';
+    if (!id) return;
+    var e = out[id] || (out[id] = {});
+    if (!e[k] || r[0] > e[k].at) e[k] = { at: r[0], by: r[4] };
+  });
+  return out;
+}
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -6530,6 +6567,8 @@ function listContractFiles_(actor) {
       }
     }
     if (scope.all) { var rit = base.getFiles(); while (rit.hasNext()) add(rit.next(), '', 'ไฟล์ก่อนแยกโฟลเดอร์', ''); }
+    var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
+    out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; });
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
     return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
   } catch (e) {
@@ -6559,7 +6598,12 @@ function getContractFileData_(payload, actor) {
       }
     }
     if (!ok) return { status: 'error', message: 'ไม่มีสิทธิ์ดูไฟล์นี้' };
-    return { status: 'success', name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()) };
+    // บันทึกประวัติ (ล้มเหลวไม่กระทบการเปิดไฟล์)
+    var mode = payload.mode === 'download' ? 'ดาวน์โหลด' : 'เปิดดู';
+    var at = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm');
+    // "'" นำหน้า = เก็บวันเวลาเป็นข้อความ (ชีตไม่แปลงเป็นวันที่ — อ่านกลับเทียบลำดับได้)
+    try { contractFileLogSheet_(true).appendRow(["'" + at, id, f.getName(), mode, String(actor.user), String(actor.name || '')]); } catch (eLog) { }
+    return { status: 'success', name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()), log: { kind: mode === 'ดาวน์โหลด' ? 'dl' : 'view', at: at, by: String(actor.user) } };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getContractFileData_');
     return { status: 'error', message: e.toString() };
