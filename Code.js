@@ -6638,6 +6638,8 @@ function getContractFileData_(payload, actor) {
     // บันทึกประวัติ (ล้มเหลวไม่กระทบการเปิดไฟล์)
     var mode = payload.mode === 'download' ? 'ดาวน์โหลด' : 'เปิดดู';
     var at = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm');
+    // admin เปิดดู/ดาวน์โหลด ไม่บันทึกประวัติ (ผู้ใช้กำหนด 2026-11-20)
+    if (scope.all) return { status: 'success', name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()) };
     // "'" นำหน้า = เก็บวันเวลาเป็นข้อความ (ชีตไม่แปลงเป็นวันที่ — อ่านกลับเทียบลำดับได้)
     try { contractFileLogSheet_(true).appendRow(["'" + at, id, f.getName(), mode, String(actor.user), String(actor.name || '')]); } catch (eLog) { }
     return { status: 'success', name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()), log: { kind: mode === 'ดาวน์โหลด' ? 'dl' : 'view', at: at, by: String(actor.user) } };
