@@ -1103,6 +1103,16 @@
         // ดาวน์โหลดแบบฟอร์มต้นฉบับ
         // คืน Promise<ชื่อไฟล์> (สถานะกำลังโหลดแสดงที่รายการในเมนู ไม่บังทั้งจอ)
         window.thpDownloadContractTemplate = function (kind) {
+            // "ต้นฉบับ A1-A12 PDF" (ผู้ใช้ขอ 2026-11-20): ต้นฉบับเปล่า + ช่องลงนามผู้อนุมัติใต้ QR หน้า 4 (เหมือนสัญญาที่สร้าง) ไม่ใส่ข้อมูล/ชื่อ Package
+            if (kind === 'pdf') {
+                return Promise.all([loadContractLibs(), getTemplatePdf('')]).then(function (r) {
+                    return window.thpBuildContractPdf(r[1], { pkg: '', customerType: '', checks: {}, prices: [] });
+                }).then(function (bytes) {
+                    var name = 'แบบฟอร์มสัญญาขนส่ง ปี2570_A1-A12.pdf';
+                    download(bytesToB64(bytes), name, 'application/pdf');
+                    return name;
+                });
+            }
             return new Promise(function (resolve, reject) {
                 google.script.run.withSuccessHandler(function (res) {
                     if (!(res && res.status === 'success')) { reject(new Error((res && res.message) || 'ไม่ทราบสาเหตุ')); return; }
