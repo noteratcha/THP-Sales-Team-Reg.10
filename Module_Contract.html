@@ -370,6 +370,9 @@
     #page-contract .ct-renew-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 12px; color: #6b7280; align-items: center; }
     #page-contract .ct-renew-legend-top { margin: 0 0 10px; }
     #page-contract .ct-rn-lg-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
+    #page-contract .ct-rn-zip { display: inline-flex; align-items: center; gap: 4px; margin-right: 10px; max-width: 100%; }
+    #page-contract .ct-rn-zip select { font-size: 12px; font-weight: 600; color: #374151; padding: 3px 26px 3px 10px; border: 1px solid #d1d5db; border-radius: 999px; background-color: #fff; max-width: 260px; cursor: pointer; }
+    #page-contract .ct-rn-zip select:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
     #page-contract .ct-rn-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; background: var(--ct-pk-bg, #f3f4f6); color: var(--ct-pk-fg, #374151); cursor: pointer; transition: background .15s, box-shadow .15s; }
     #page-contract .ct-rn-chip:hover { box-shadow: inset 0 0 0 1px var(--ct-pk, #9ca3af); }
     #page-contract .ct-rn-chip.is-on { background: var(--ct-pk, #6b7280); color: #fff; border-color: var(--ct-pk, #6b7280); }
@@ -1350,7 +1353,7 @@
                 // ตั้งแต่ 1 ม.ค. 2570 หลังบ้านดึงจากไฟล์สำเนาปี 2569 (source = 'archive') — บอกผู้ใช้ให้รู้แหล่งข้อมูล
                 var srcNote = res.source === 'archive' ? ' (ข้อมูลจากสำเนาปี 2569' + (res.sourceAt ? ' อัปเดตล่าสุด ' + res.sourceAt : '') + ')' : '';
                 renewStatus(renew.list.length ? 'ลูกค้าที่ใช้งานอยู่ ' + renew.list.length.toLocaleString('th-TH') + ' ราย' + srcNote : 'ไม่พบลูกค้าที่ใช้งานอยู่ของที่ทำการนี้' + srcNote);
-                renew.pkgSel = {}; renewLegend();
+                renew.pkgSel = {}; renew.zipSel = ''; renewLegend();
                 var si = document.getElementById('ctRenewSearch'); if (si && document.activeElement === si) window.thpRenewFilter();
             }).withFailureHandler(function (err) {
                 if (stale()) return;
@@ -1373,15 +1376,30 @@
         var renewLegend = function () {
             var lg = document.getElementById('ctRenewLegend'); if (!lg) return;
             var cnt = {}, order = [], sel = renew.pkgSel || {};
-            (renew.list || []).forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
+            // ตัวกรองรหัสไปรษณีย์ (ผู้ใช้ขอ 2026-11-20): แสดงเมื่อมีมากกว่า 1 ที่ทำการ (admin เห็นทุกที่ทำการ) — จำนวนในป้ายบริการนับตามที่ทำการที่เลือก
+            var zips = {}, zipOrder = [];
+            (renew.list || []).forEach(function (c) { var z = String(c.zip || ''); if (!z) return; if (!zips[z]) { zips[z] = { n: 0, office: c.office || '' }; zipOrder.push(z); } zips[z].n++; });
+            zipOrder.sort();
+            if (renew.zipSel && !zips[renew.zipSel]) renew.zipSel = '';
+            var zipHtml = zipOrder.length > 1 ? '<label class="ct-rn-zip"><span class="ct-rn-lg-label">รหัสไปรษณีย์:</span><select onchange="thpRenewZip(this)" aria-label="กรองตามรหัสไปรษณีย์ที่ทำการ">' +
+                '<option value="">ทั้งหมด ' + zipOrder.length.toLocaleString('th-TH') + ' ที่ทำการ</option>' + zipOrder.map(function (z) {
+                    return '<option value="' + esc(z) + '"' + (renew.zipSel === z ? ' selected' : '') + '>' + esc(z + (zips[z].office ? ' ' + zips[z].office : '')) + ' · ' + zips[z].n.toLocaleString('th-TH') + ' ราย</option>';
+                }).join('') + '</select></label>' : '';
+            (renew.list || []).filter(function (c) { return !renew.zipSel || String(c.zip || '') === renew.zipSel; }).forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
             order.sort(function (a, b) { var na = Number(a.replace(/\D/g, '')) || 99, nb = Number(b.replace(/\D/g, '')) || 99; return na - nb; });
             var any = Object.keys(sel).some(function (k) { return sel[k]; });
-            lg.innerHTML = '<span class="ct-rn-lg-label">กรองตามบริการ:</span>' + order.map(function (l) {
+            lg.innerHTML = zipHtml + '<span class="ct-rn-lg-label">กรองตามบริการ:</span>' + order.map(function (l) {
                 var on = !!sel[l];
                 return '<button type="button" class="ct-rn-chip ' + cnt[l].cls + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-pk="' + esc(l) + '" onclick="thpRenewPick(this)">' +
                     (on ? '<i class="fas fa-check"></i>' : '') + esc(l) + ' · ' + cnt[l].n.toLocaleString('th-TH') + ' ราย</button>';
             }).join('') + (any ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewPick(null)"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '');
-            lg.classList.toggle('hidden', !order.length);
+            lg.classList.toggle('hidden', !order.length && !zipHtml);
+        };
+        window.thpRenewZip = function (selEl) {
+            renew.zipSel = selEl.value || '';
+            renew.pkgSel = {}; // ป้ายบริการเปลี่ยนตามที่ทำการ — ล้างที่เลือกไว้ ไม่ให้กรองค้างจากป้ายที่หายไป
+            renewLegend();
+            window.thpRenewFilter();
         };
         window.thpRenewPick = function (btn) {
             renew.pkgSel = renew.pkgSel || {};
@@ -1399,6 +1417,7 @@
             var q = si.value.trim().toLowerCase().replace(/\s+/g, ' ');
             var sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
             var hits = renew.list.filter(function (c) {
+                if (renew.zipSel && String(c.zip || '') !== renew.zipSel) return false;
                 if (useSel && !sel[renewPkgClass(c).label]) return false;
                 return !q || (c.name + ' ' + c.zip + ' ' + c.office + ' ' + c.svc).toLowerCase().indexOf(q) !== -1;
             });
@@ -1416,7 +1435,7 @@
                 ? '<li class="ct-renew-more" role="presentation"><span>แสดง ' + renew.shown.length.toLocaleString('th-TH') + ' จาก ' + hits.length.toLocaleString('th-TH') + ' ราย</span>' +
                   '<button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="thpRenewFilter(true)"><i class="fas fa-chevron-down"></i> แสดงเพิ่มอีก ' + Math.min(RENEW_PAGE, rest).toLocaleString('th-TH') + ' ราย</button></li>'
                 : (hits.length > RENEW_PAGE ? '<li class="ct-renew-empty">แสดงครบ ' + hits.length.toLocaleString('th-TH') + ' ราย</li>' : ''))
-                : '<li class="ct-renew-empty">' + (q ? 'ไม่พบลูกค้าที่ตรงกับ "' + esc(si.value.trim()) + '"' : 'ไม่พบลูกค้า') + (useSel ? ' ในบริการที่เลือก' : '') + '</li>';
+                : '<li class="ct-renew-empty">' + (q ? 'ไม่พบลูกค้าที่ตรงกับ "' + esc(si.value.trim()) + '"' : 'ไม่พบลูกค้า') + (renew.zipSel ? ' ในรหัสไปรษณีย์ ' + esc(renew.zipSel) : '') + (useSel ? ' ในบริการที่เลือก' : '') + '</li>';
             ul.classList.remove('hidden'); si.setAttribute('aria-expanded', 'true');
             ul.scrollTop = keepScroll;
             if (keepActive >= 0) renewMark(keepActive);
