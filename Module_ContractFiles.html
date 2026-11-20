@@ -148,6 +148,14 @@
                 if (!P.offices[f.office]) { P.offices[f.office] = []; P.oOrder.push(f.office); }
                 P.offices[f.office].push(f);
             });
+            // ลำดับจังหวัดตามที่ผู้ใช้กำหนด (2026-11-20) — จังหวัดอื่น/ไม่ระบุ ต่อท้าย
+            var PROV_ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'นครพนม', 'สกลนคร', 'มุกดาหาร'];
+            var provRank = function (p) {
+                var name = String(p).replace(/^จังหวัด\s*|^จ\.\s*/, '').trim();
+                var i = PROV_ORDER.indexOf(name);
+                return i === -1 ? PROV_ORDER.length : i;
+            };
+            pOrder.sort(function (a, b) { return provRank(a) - provRank(b) || String(a).localeCompare(String(b), 'th'); });
             // ค่าเริ่มต้นพับทั้งหมด (ผู้ใช้ขอ 2026-11-20) — เปิดเฉพาะที่ผู้ใช้กดเปิดไว้ในรอบนี้
             var openAll = !!q;
             // ประวัติล่าสุด (ผู้ใช้ขอ 2026-11-20): เปิดดู / ดาวน์โหลด — วันเวลา + ผู้ใช้

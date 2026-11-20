@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1620';
+    var APP_VERSION = 'Ver. 2026.1120.1938';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20765,6 +20765,14 @@
                 if (!P.offices[f.office]) { P.offices[f.office] = []; P.oOrder.push(f.office); }
                 P.offices[f.office].push(f);
             });
+            // ลำดับจังหวัดตามที่ผู้ใช้กำหนด (2026-11-20) — จังหวัดอื่น/ไม่ระบุ ต่อท้าย
+            var PROV_ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'นครพนม', 'สกลนคร', 'มุกดาหาร'];
+            var provRank = function (p) {
+                var name = String(p).replace(/^จังหวัด\s*|^จ\.\s*/, '').trim();
+                var i = PROV_ORDER.indexOf(name);
+                return i === -1 ? PROV_ORDER.length : i;
+            };
+            pOrder.sort(function (a, b) { return provRank(a) - provRank(b) || String(a).localeCompare(String(b), 'th'); });
             // ค่าเริ่มต้นพับทั้งหมด (ผู้ใช้ขอ 2026-11-20) — เปิดเฉพาะที่ผู้ใช้กดเปิดไว้ในรอบนี้
             var openAll = !!q;
             // ประวัติล่าสุด (ผู้ใช้ขอ 2026-11-20): เปิดดู / ดาวน์โหลด — วันเวลา + ผู้ใช้
