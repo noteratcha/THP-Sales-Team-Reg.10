@@ -768,9 +768,11 @@
         // ช่องลงนาม "ผู้อนุมัติ" ต่อท้าย QR code หน้า 4 (ผู้ใช้ขอ 2026-11-20, เฉพาะแบบฟอร์ม A1–A12) — วาดเพิ่มเอง ไม่มีในต้นฉบับ
         // QR code อยู่ที่ x 62–122, y 473–542 → บล็อกอยู่ใต้ QR (ผู้ใช้ขอ: ไม่ให้อยู่บรรทัดเดียวกัน) แนวเดียวกับช่องพยานฝั่งซ้าย x 72–254, บรรทัดห่าง 18 pt
         var CT_APPROVER_A112 = { page: 3, x: 72, w: 182, y: [572, 608, 626, 644] }; // หัวข้อ → ลงชื่อ เว้น 1 บรรทัดเปล่า (36 pt = 2 บรรทัด, ผู้ใช้ขอ)
+        // ชื่อ Package ต่อท้าย "1. อัตราค่าบริการ (ไม่มีภาษีมูลค่าเพิ่ม) :" หน้า 1 (ผู้ใช้ขอ 2026-11-20) — ข้อความต้นฉบับจบที่ x 250.4, baseline 629.8
+        var CT_PKG_AT_A112 = [0, 252, 530, 629.8];
         var ctLayout = function (pkg) {
-            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [], approver: null }
-                : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS, approver: CT_APPROVER_A112 };
+            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [], approver: null, pkgAt: null }
+                : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS, approver: CT_APPROVER_A112, pkgAt: CT_PKG_AT_A112 };
         };
         // ต้นฉบับใช้ TH SarabunPSK 16pt; Sarabun (Google Fonts) รูปตัวอักษรเดียวกันแต่ใหญ่และหนากว่า จึงใช้ขนาดเล็กลง + น้ำหนัก 300
         var CT_TEXT_PT = 10.8, CT_PRICE_PT = 9.8, CT_SCALE = 5, CT_WEIGHT = '300';
@@ -878,6 +880,7 @@
                     var f = L.fields[k];
                     place(f[0], vals[k], f[1], f[2], f[3] - 2.2, f[4], CT_TEXT_PT);
                 });
+                if (L.pkgAt && p.pkg) place(L.pkgAt[0], String(p.pkg).trim(), L.pkgAt[1], L.pkgAt[2], L.pkgAt[3], 'l', CT_TEXT_PT);
                 var tier = 0;
                 L.priceRows.forEach(function (pg) {
                     var b = pg[1];
