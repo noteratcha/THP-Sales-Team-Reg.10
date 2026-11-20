@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1945';
+    var APP_VERSION = 'Ver. 2026.1120.2039';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20675,7 +20675,10 @@
     #page-contract-files .cf-row:hover { background: #fafafa; }
     #page-contract-files .cf-ic { color: #dc2626; font-size: 18px; flex-shrink: 0; }
     #page-contract-files .cf-name { flex: 1; min-width: 0; }
-    #page-contract-files .cf-name b { display: block; font-size: 14px; color: #111827; font-weight: 600; overflow-wrap: anywhere; }
+    /* ลำดับ + ชื่อ-สกุลกับป้าย Package อยู่บรรทัดเดียวกัน (ผู้ใช้ขอ 2026-11-20) */
+    #page-contract-files .cf-no { flex: 0 0 auto; min-width: 1.75rem; text-align: right; font-size: 13px; font-weight: 700; color: #9a3412; font-variant-numeric: tabular-nums; }
+    #page-contract-files .cf-title { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; }
+    #page-contract-files .cf-name b { display: inline; font-size: 14px; color: #111827; font-weight: 600; overflow-wrap: anywhere; }
     #page-contract-files .cf-name small { font-size: 12px; color: #9ca3af; }
     #page-contract-files .cf-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 2px; }
     #page-contract-files .cf-hist { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #4b5563; }
@@ -20787,8 +20790,8 @@
                 var custom = /พิเศษ/.test(p);
                 return ' <span class="cf-pkg' + (custom ? ' is-custom' : '') + '" title="Package อัตราค่าบริการ">' + esc(custom ? 'อัตราพิเศษเฉพาะราย' : 'Package ' + p) + '</span>';
             };
-            var row = function (f) {
-                return '<div class="cf-row"><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
+            var row = function (f, i) {
+                return '<div class="cf-row"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + '</div>' +
                     '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด') + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด') + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
