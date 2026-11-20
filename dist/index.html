@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1138';
+    var APP_VERSION = 'Ver. 2026.1120.1153';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -19337,10 +19337,12 @@
         // ช่องลงนาม "ผู้อนุมัติ" ต่อท้าย QR code หน้า 4 (ผู้ใช้ขอ 2026-11-20, เฉพาะแบบฟอร์ม A1–A12) — วาดเพิ่มเอง ไม่มีในต้นฉบับ
         // QR code อยู่ที่ x 62–122, y 473–542 → บล็อกอยู่ใต้ QR (ผู้ใช้ขอ: ไม่ให้อยู่บรรทัดเดียวกัน) แนวเดียวกับช่องพยานฝั่งซ้าย x 72–254, บรรทัดห่าง 18 pt
         var CT_APPROVER_A112 = { page: 3, x: 72, w: 182, y: [572, 608, 626, 644] }; // หัวข้อ → ลงชื่อ เว้น 1 บรรทัดเปล่า (36 pt = 2 บรรทัด, ผู้ใช้ขอ)
+        // A13/A14 (ผู้ใช้ขอ 2026-11-20): QR code อยู่กลางหน้า 3 ระหว่างช่องพยาน x 266–308, y 622–679 (รวมคำบรรยาย) → บล็อกใต้ QR ชิดซ้าย (ผู้ใช้ขอ) แนวเดียวกับช่องพยานซ้าย x 82–244
+        var CT_APPROVER_A1314 = { page: 2, x: 82, w: 162, y: [712, 748, 766, 784] };
         // ชื่อ Package ต่อท้าย "1. อัตราค่าบริการ (ไม่มีภาษีมูลค่าเพิ่ม) :" หน้า 1 (ผู้ใช้ขอ 2026-11-20) — ข้อความต้นฉบับจบที่ x 250.4, baseline 629.8
         var CT_PKG_AT_A112 = [0, 252, 530, 629.8];
         var ctLayout = function (pkg) {
-            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [], approver: null, pkgAt: null }
+            return ctFixedPkg(pkg) ? { fields: CT_PDF_FIELDS_A1314, checks: CT_PDF_CHECKS_A1314, priceRows: [], approver: CT_APPROVER_A1314, pkgAt: null }
                 : { fields: CT_PDF_FIELDS, checks: CT_PDF_CHECKS, priceRows: CT_PRICE_ROWS, approver: CT_APPROVER_A112, pkgAt: CT_PKG_AT_A112 };
         };
         // ต้นฉบับใช้ TH SarabunPSK 16pt; Sarabun (Google Fonts) รูปตัวอักษรเดียวกันแต่ใหญ่และหนากว่า จึงใช้ขนาดเล็กลง + น้ำหนัก 300
