@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1429';
+    var APP_VERSION = 'Ver. 2026.1120.1432';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20632,7 +20632,8 @@
             var l = document.getElementById('cfList'); if (l) l.innerHTML = '';
             var s = document.getElementById('cfSearch'); if (s) s.value = '';
         };
-        window.loadContractFilesPage = function () { window.thpCfLoad(false); };
+        // เข้าหน้าใหม่ทุกครั้ง = พับทุกจังหวัด/ที่ทำการ
+        window.loadContractFilesPage = function () { st.openProv = null; st.openOffice = null; window.thpCfLoad(false); };
         window.thpCfLoad = function (force) {
             var u = who();
             if (!force && st.list && st.forUser === u) { window.thpCfRender(); return; }
@@ -20682,7 +20683,7 @@
                 if (!P.offices[f.office]) { P.offices[f.office] = []; P.oOrder.push(f.office); }
                 P.offices[f.office].push(f);
             });
-            if (!st.openProv || !provs[st.openProv]) st.openProv = pOrder[0];
+            // ค่าเริ่มต้นพับทั้งหมด (ผู้ใช้ขอ 2026-11-20) — เปิดเฉพาะที่ผู้ใช้กดเปิดไว้ในรอบนี้
             var openAll = !!q;
             // ประวัติล่าสุด (ผู้ใช้ขอ 2026-11-20): เปิดดู / ดาวน์โหลด — วันเวลา + ผู้ใช้
             var hist = function (e, icon, label) {
