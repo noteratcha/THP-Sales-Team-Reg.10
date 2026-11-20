@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1253';
+    var APP_VERSION = 'Ver. 2026.1120.1315';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -18939,9 +18939,28 @@
     #page-contract .ct-renew-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; font-size: 12px; color: #6b7280; align-items: center; }
     #page-contract .ct-renew-legend-top { margin: 0 0 10px; }
     #page-contract .ct-rn-lg-label { font-size: 12px; color: #6b7280; margin-right: 2px; }
-    #page-contract .ct-rn-zip { display: inline-flex; align-items: center; gap: 4px; margin-right: 10px; max-width: 100%; }
-    #page-contract .ct-rn-zip select { font-size: 12px; font-weight: 600; color: #374151; padding: 3px 26px 3px 10px; border: 1px solid #d1d5db; border-radius: 999px; background-color: #fff; max-width: 260px; cursor: pointer; }
-    #page-contract .ct-rn-zip select:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    /* แผงตัวกรอง 2 แถว (ผู้ใช้ขอ 2026-11-20) */
+    #page-contract .ct-renew-legend-top { display: grid; gap: 8px; padding: 10px 12px; background: #fff; border: 1px solid #fde6cf; border-radius: 12px; }
+    #page-contract .ct-rn-row { display: grid; grid-template-columns: 84px 1fr; gap: 8px; align-items: center; }
+    #page-contract .ct-rn-row + .ct-rn-row { padding-top: 8px; border-top: 1px dashed #f3e1cc; }
+    #page-contract .ct-rn-row .ct-rn-lg-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #4b5563; }
+    #page-contract .ct-rn-row .ct-rn-lg-label i { color: #EA580C; width: 12px; text-align: center; }
+    #page-contract .ct-rn-row-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+    #page-contract .ct-rn-row-zip { justify-content: space-between; gap: 8px 12px; }
+    #page-contract .ct-rn-zip-sel { font-size: 13px; font-weight: 600; color: #374151; padding: 5px 30px 5px 12px; border: 1px solid #d1d5db; border-radius: 10px; background-color: #fff; min-width: 0; width: 320px; max-width: 100%; cursor: pointer; }
+    #page-contract .ct-rn-zip-sel:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    #page-contract .ct-rn-zip-one { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; }
+    #page-contract .ct-rn-zip-one i { color: #9ca3af; }
+    #page-contract .ct-rn-total { display: inline-flex; align-items: baseline; gap: 5px; font-size: 12px; color: #6b7280; margin-left: auto; white-space: nowrap; }
+    #page-contract .ct-rn-total b { font-size: 18px; font-weight: 800; color: #c2410c; line-height: 1; font-variant-numeric: tabular-nums; }
+    #page-contract .ct-rn-n { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
+    #page-contract .ct-rn-chip.is-on .ct-rn-n { background: rgba(255,255,255,.25); }
+    #page-contract .ct-rn-chip-all { --ct-pk: #c2410c; --ct-pk-bg: #fff7ed; --ct-pk-fg: #9a3412; border-color: #fed7aa; }
+    @media (max-width: 640px) {
+        #page-contract .ct-rn-row { grid-template-columns: 1fr; gap: 6px; }
+        #page-contract .ct-rn-zip-sel { width: 100%; }
+        #page-contract .ct-rn-total { margin-left: 0; }
+    }
     #page-contract .ct-rn-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid transparent; background: var(--ct-pk-bg, #f3f4f6); color: var(--ct-pk-fg, #374151); cursor: pointer; transition: background .15s, box-shadow .15s; }
     #page-contract .ct-rn-chip:hover { box-shadow: inset 0 0 0 1px var(--ct-pk, #9ca3af); }
     #page-contract .ct-rn-chip.is-on { background: var(--ct-pk, #6b7280); color: #fff; border-color: var(--ct-pk, #6b7280); }
@@ -19950,19 +19969,37 @@
             (renew.list || []).forEach(function (c) { var z = String(c.zip || ''); if (!z) return; if (!zips[z]) { zips[z] = { n: 0, office: c.office || '' }; zipOrder.push(z); } zips[z].n++; });
             zipOrder.sort();
             if (renew.zipSel && !zips[renew.zipSel]) renew.zipSel = '';
-            var zipHtml = zipOrder.length > 1 ? '<label class="ct-rn-zip"><span class="ct-rn-lg-label">รหัสไปรษณีย์:</span><select onchange="thpRenewZip(this)" aria-label="กรองตามรหัสไปรษณีย์ที่ทำการ">' +
-                '<option value="">ทั้งหมด ' + zipOrder.length.toLocaleString('th-TH') + ' ที่ทำการ</option>' + zipOrder.map(function (z) {
-                    return '<option value="' + esc(z) + '"' + (renew.zipSel === z ? ' selected' : '') + '>' + esc(z + (zips[z].office ? ' ' + zips[z].office : '')) + ' · ' + zips[z].n.toLocaleString('th-TH') + ' ราย</option>';
-                }).join('') + '</select></label>' : '';
-            (renew.list || []).filter(function (c) { return !renew.zipSel || String(c.zip || '') === renew.zipSel; }).forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
+            var fmt = function (n) { return n.toLocaleString('th-TH'); };
+            var all = (renew.list || []).length;
+            var inZip = (renew.list || []).filter(function (c) { return !renew.zipSel || String(c.zip || '') === renew.zipSel; });
+            inZip.forEach(function (c) { var k = renewPkgClass(c); if (!cnt[k.label]) { cnt[k.label] = { n: 0, cls: k.cls }; order.push(k.label); } cnt[k.label].n++; });
             order.sort(function (a, b) { var na = Number(a.replace(/\D/g, '')) || 99, nb = Number(b.replace(/\D/g, '')) || 99; return na - nb; });
-            var any = Object.keys(sel).some(function (k) { return sel[k]; });
-            lg.innerHTML = zipHtml + '<span class="ct-rn-lg-label">กรองตามบริการ:</span>' + order.map(function (l) {
-                var on = !!sel[l];
-                return '<button type="button" class="ct-rn-chip ' + cnt[l].cls + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-pk="' + esc(l) + '" onclick="thpRenewPick(this)">' +
-                    (on ? '<i class="fas fa-check"></i>' : '') + esc(l) + ' · ' + cnt[l].n.toLocaleString('th-TH') + ' ราย</button>';
-            }).join('') + (any ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewPick(null)"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '');
-            lg.classList.toggle('hidden', !order.length && !zipHtml);
+            var any = Object.keys(sel).some(function (k) { return sel[k] && cnt[k]; });
+            var shown = any ? order.reduce(function (s, l) { return s + (sel[l] ? cnt[l].n : 0); }, 0) : inZip.length;
+            // UX ใหม่ (ผู้ใช้ขอ 2026-11-20): แผงตัวกรอง 2 แถว (ที่ทำการ / บริการ) + ยอดรวมผลการกรองมุมขวา + ป้าย "ทั้งหมด" ใช้ล้างตัวกรองบริการ
+            var zipCtl = zipOrder.length > 1
+                ? '<select class="ct-rn-zip-sel" onchange="thpRenewZip(this)" aria-label="กรองตามรหัสไปรษณีย์ที่ทำการ">' +
+                  '<option value="">ทุกที่ทำการ (' + fmt(zipOrder.length) + ' แห่ง) · ' + fmt(all) + ' ราย</option>' + zipOrder.map(function (z) {
+                      return '<option value="' + esc(z) + '"' + (renew.zipSel === z ? ' selected' : '') + '>' + esc(z + (zips[z].office ? ' ' + zips[z].office : '')) + ' · ' + fmt(zips[z].n) + ' ราย</option>';
+                  }).join('') + '</select>'
+                : '<span class="ct-rn-zip-one"><i class="fas fa-store"></i>' + esc(zipOrder[0] ? zipOrder[0] + (zips[zipOrder[0]].office ? ' ' + zips[zipOrder[0]].office : '') : '-') + '</span>';
+            var filtered = !!renew.zipSel || any;
+            var total = '<div class="ct-rn-total" aria-live="polite"><span>' + (filtered ? 'ผลการกรอง' : 'ลูกค้าทั้งหมด') + '</span><b>' + fmt(shown) + '</b><span>ราย' + (filtered ? ' จาก ' + fmt(all) : '') + '</span>' +
+                (filtered ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewClear()"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '') + '</div>';
+            lg.innerHTML =
+                '<div class="ct-rn-row"><span class="ct-rn-lg-label"><i class="fas fa-map-marker-alt"></i>ที่ทำการ</span><div class="ct-rn-row-body ct-rn-row-zip">' + zipCtl + total + '</div></div>' +
+                '<div class="ct-rn-row"><span class="ct-rn-lg-label"><i class="fas fa-tags"></i>บริการ</span><div class="ct-rn-row-body">' +
+                '<button type="button" class="ct-rn-chip ct-rn-chip-all' + (any ? '' : ' is-on') + '" aria-pressed="' + !any + '" onclick="thpRenewPick(null)">ทั้งหมด<span class="ct-rn-n">' + fmt(inZip.length) + '</span></button>' +
+                order.map(function (l) {
+                    var on = !!sel[l];
+                    return '<button type="button" class="ct-rn-chip ' + cnt[l].cls + (on ? ' is-on' : '') + '" aria-pressed="' + on + '" data-pk="' + esc(l) + '" onclick="thpRenewPick(this)">' +
+                        (on ? '<i class="fas fa-check"></i>' : '') + esc(l) + '<span class="ct-rn-n">' + fmt(cnt[l].n) + '</span></button>';
+                }).join('') + '</div></div>';
+            lg.classList.toggle('hidden', !all);
+        };
+        window.thpRenewClear = function () {
+            renew.zipSel = ''; renew.pkgSel = {};
+            renewLegend(); window.thpRenewFilter();
         };
         window.thpRenewZip = function (selEl) {
             renew.zipSel = selEl.value || '';
