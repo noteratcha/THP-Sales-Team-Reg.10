@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1938';
+    var APP_VERSION = 'Ver. 2026.1120.1945';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20650,6 +20650,8 @@
     #page-contract-files .cf-total { font-size: 13px; color: #6b7280; margin-left: auto; white-space: nowrap; }
     #page-contract-files .cf-total b { font-size: 18px; color: #c2410c; font-weight: 800; }
     #page-contract-files .cf-list { display: flex; flex-direction: column; gap: 14px; }
+    #page-contract-files .cf-pkg { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; vertical-align: 1px; white-space: nowrap; }
+    #page-contract-files .cf-pkg.is-custom { color: #92400e; background: #fffbeb; border-color: #fde68a; }
     #page-contract-files .cf-prov { border: 1px solid #fed7aa; border-radius: 16px; background: #fff; overflow: hidden; }
     #page-contract-files .cf-prov-h { display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 800; color: #7c2d12; background: #ffedd5; user-select: none; }
     #page-contract-files .cf-prov-h::-webkit-details-marker { display: none; }
@@ -20752,7 +20754,7 @@
             var list = document.getElementById('cfList'), tot = document.getElementById('cfTotal'); if (!list || !st.list) return;
             var q = String((document.getElementById('cfSearch') || {}).value || '').trim().toLowerCase();
             var off = String((document.getElementById('cfOffice') || {}).value || '');
-            var hits = st.list.filter(function (f) { return (!off || f.office === off) && (!q || show(f.name).toLowerCase().indexOf(q) !== -1); });
+            var hits = st.list.filter(function (f) { return (!off || f.office === off) && (!q || (show(f.name) + ' ' + (f.pkg || '')).toLowerCase().indexOf(q) !== -1); });
             if (tot) tot.innerHTML = (q || off ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (q || off ? ' จาก ' + fmt(st.list.length) : '');
             if (!hits.length) { list.innerHTML = '<div class="cf-empty">' + (st.list.length ? 'ไม่พบไฟล์ที่ตรงกับการค้นหา' : 'ยังไม่มีไฟล์สัญญา') + '</div>'; return; }
             // จัดกลุ่ม จังหวัด › ที่ทำการ — จังหวัดเป็นแบบพับได้ เปิดจังหวัดหนึ่งแล้วจังหวัดอื่นพับเอง (ผู้ใช้ขอ 2026-11-20)
@@ -20779,8 +20781,14 @@
             var hist = function (e, icon, label) {
                 return '<span class="cf-hist' + (e ? '' : ' none') + '"><i class="fas ' + icon + '"></i>' + label + (e ? ' ' + esc(thDate(e.at)) + (e.by ? ' <em>(' + esc(e.by) + ')</em>' : '') : ' ยังไม่มี') + '</span>';
             };
+            // ป้าย Package (จากทะเบียนสัญญา) — ไม่มีข้อมูลในทะเบียน = ไม่แสดง
+            var pkgBadge = function (p) {
+                if (!p) return '';
+                var custom = /พิเศษ/.test(p);
+                return ' <span class="cf-pkg' + (custom ? ' is-custom' : '') + '" title="Package อัตราค่าบริการ">' + esc(custom ? 'อัตราพิเศษเฉพาะราย' : 'Package ' + p) + '</span>';
+            };
             var row = function (f) {
-                return '<div class="cf-row"><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><b>' + esc(show(f.name)) + '</b>' +
+                return '<div class="cf-row"><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
                     '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด') + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด') + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';

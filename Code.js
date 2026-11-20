@@ -6577,6 +6577,23 @@ function contractFileLogMap_() {
   });
   return out;
 }
+// Package ของไฟล์สัญญา จากทะเบียน (CONTRACT_REGISTER_SHEET): จับด้วย id ไฟล์ในลิงก์ "ไฟล์สัญญา PDF" ก่อน ไม่พบใช้ รหัสที่ทำการ+ชื่อลูกค้า (แถวล่าสุดชนะ)
+function contractFilePkgMap_() {
+  var out = { byId: {}, byKey: {} };
+  var sh = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID).getSheetByName(CONTRACT_REGISTER_SHEET);
+  if (!sh || sh.getLastRow() < 2) return out;
+  var data = sh.getDataRange().getValues(), h = data[0].map(function (x) { return String(x).trim(); });
+  var iSvc = h.indexOf('รหัสบริการปัจจุบัน'), iUrl = h.indexOf('ไฟล์สัญญา PDF'), iZip = h.indexOf('รหัสที่ทำการ'), iName = h.indexOf('ชื่อลูกค้า');
+  if (iSvc < 0) return out;
+  for (var r = 1; r < data.length; r++) {
+    var svc = String(data[r][iSvc] || '').trim(); if (!svc) continue;
+    var m = iUrl >= 0 ? /\/d\/([\w-]{10,})/.exec(String(data[r][iUrl] || '')) : null;
+    if (m) out.byId[m[1]] = svc;
+    if (iZip >= 0 && iName >= 0) out.byKey[String(data[r][iZip] || '').trim() + '|' + contractSafeName_(data[r][iName])] = svc;
+  }
+  return out;
+}
+
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -6606,6 +6623,11 @@ function listContractFiles_(actor) {
     if (scope.all) { var rit = base.getFiles(); while (rit.hasNext()) add(rit.next(), '', 'ไฟล์ก่อนแยกโฟลเดอร์', ''); }
     var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
     out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; });
+    var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
+    out.forEach(function (f) {
+      var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
+      f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[(f.zip || '') + '|' + contractSafeName_(nm)] || '';
+    });
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
     return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
   } catch (e) {
