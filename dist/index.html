@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.1432';
+    var APP_VERSION = 'Ver. 2026.1120.1440';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20001,7 +20001,8 @@
                   }).join('') + '</select>'
                 : '<span class="ct-rn-zip-one"><i class="fas fa-store"></i>' + esc(zipOrder[0] ? zipOrder[0] + (zips[zipOrder[0]].office ? ' ' + zips[zipOrder[0]].office : '') : '-') + '</span>';
             // admin: สร้างสัญญาให้ลูกค้าทุกรายของที่ทำการที่เลือก (ตามตัวกรองบริการ) — ผู้ใช้ขอ 2026-11-20
-            if (renewAdmin() && renew.zipSel && shown) zipCtl += '<button type="button" class="ct-rn-bulk" onclick="thpContractBulk()"><i class="fas fa-layer-group"></i>สร้างสัญญาทั้งที่ทำการ (' + fmt(shown) + ' ราย)</button>';
+            // ไม่เลือกที่ทำการ = สร้างทุกที่ทำการ (ผู้ใช้ขอ 2026-11-20)
+            if (renewAdmin() && shown) zipCtl += '<button type="button" class="ct-rn-bulk" onclick="thpContractBulk()"><i class="fas fa-layer-group"></i>' + (renew.zipSel ? 'สร้างสัญญาทั้งหมด ที่ทำการ ' + esc(renew.zipSel) : 'สร้างสัญญาทั้งหมดทุกที่ทำการ') + ' (' + fmt(shown) + ' ราย)</button>';
             var filtered = !!renew.zipSel || any;
             var total = '<div class="ct-rn-total" aria-live="polite"><span>' + (filtered ? 'ผลการกรอง' : 'ลูกค้าทั้งหมด') + '</span><b>' + fmt(shown) + '</b><span>ราย' + (filtered ? ' จาก ' + fmt(all) : '') + '</span>' +
                 (filtered ? '<button type="button" class="ct-rn-chip-clear" onclick="thpRenewClear()"><i class="fas fa-times"></i>ล้างตัวกรอง</button>' : '') + '</div>';
@@ -20198,71 +20199,83 @@
             } else p.pkg = ''; // อัตราพิเศษ / ไม่มีอัตราในชีต → แบบฟอร์ม A1–A12 ช่องราคาว่าง
             return p;
         };
+        // zip = '' → ทุกที่ทำการ (ผู้ใช้ขอ 2026-11-20): ดึงข้อมูลครั้งเดียว (getRenewalBulk {all:true}) แล้วสร้างทีละราย เรียงตามรหัสที่ทำการ
         window.thpContractBulk = function () {
-            if (!renewAdmin() || !renew.zipSel || !renew.list) return;
-            var zip = renew.zipSel, sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
-            var inList = renew.list.filter(function (c) { return c.zip === zip && (!useSel || sel[renewPkgClass(c).label]); });
+            if (!renewAdmin() || !renew.list) return;
+            var zip = renew.zipSel || '', sel = renew.pkgSel || {}, useSel = Object.keys(sel).some(function (k) { return sel[k]; });
+            var inList = renew.list.filter(function (c) { return (!zip || c.zip === zip) && /^\d{5}$/.test(c.zip || '') && (!useSel || sel[renewPkgClass(c).label]); });
             if (!inList.length) return;
-            var officeName = (inList[0] || {}).office || '';
-            var label = zip + (officeName ? ' ' + officeName : '');
+            var offices = {}; inList.forEach(function (c) { offices[c.zip] = c.office || ''; });
+            var nOff = Object.keys(offices).length;
+            var label = zip ? zip + (offices[zip] ? ' ' + offices[zip] : '') : 'ทุกที่ทำการ (' + nOff.toLocaleString('th-TH') + ' แห่ง)';
             var svcText = useSel ? Object.keys(sel).filter(function (k) { return sel[k]; }).join(', ') : 'ทุกบริการ';
+            var mins = Math.ceil(inList.length * 4 / 60);
             Swal.fire({
-                icon: 'question', title: 'สร้างสัญญาทั้งที่ทำการ?',
-                html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>บริการ: ' + esc(svcText) + '<br>จำนวน <b>' + inList.length.toLocaleString('th-TH') + ' ราย</b>' +
-                    '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (' + esc(zip) + ')/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (' + esc(zip) + ') และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม</div>',
+                icon: zip ? 'question' : 'warning', title: zip ? 'สร้างสัญญาทั้งหมดของที่ทำการ?' : 'สร้างสัญญาทั้งหมดทุกที่ทำการ?',
+                html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>บริการ: ' + esc(svcText) + '<br>จำนวน <b>' + inList.length.toLocaleString('th-TH') + ' ราย</b> (ใช้เวลาประมาณ ' + mins.toLocaleString('th-TH') + ' นาที)' +
+                    '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (รหัสไปรษณีย์ที่ทำการ)/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (รหัส) และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม' +
+                    '<br><b style="color:#b91c1c">• ห้ามปิดหรือรีเฟรชหน้านี้จนกว่าจะเสร็จ (กด "หยุด" ได้ระหว่างทาง)</b></div>',
                 showCancelButton: true, confirmButtonText: 'เริ่มสร้าง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', returnFocus: false
-            }).then(function (a) { if (a.isConfirmed) runBulk(zip, inList, label); });
+            }).then(function (a) { if (a.isConfirmed) runBulk(zip, inList, label, offices); });
         };
-        var runBulk = function (zip, inList, label) {
-            var stop = false, done = 0, ok = 0, fails = [], folderUrl = '';
-            var want = {}; inList.forEach(function (c) { want[c.name] = true; });
+        var runBulk = function (zip, inList, label, offices) {
+            var stop = false, done = 0, ok = 0, fails = [], folderUrl = '', started = Date.now();
+            var key = function (c) { return c.zip + '|' + c.name; };
+            var want = {}; inList.forEach(function (c) { want[key(c)] = true; });
+            // กันปิดแท็บระหว่างสร้าง
+            var guard = function (e) { e.preventDefault(); e.returnValue = ''; return ''; };
+            window.addEventListener('beforeunload', guard);
             Swal.fire({
                 title: 'กำลังสร้างสัญญา', allowOutsideClick: false, allowEscapeKey: false, showConfirmButton: false, showCancelButton: true, cancelButtonText: 'หยุด',
                 html: '<div style="font-size:14px">' + esc(label) + '</div><div style="height:10px;background:#f3f4f6;border-radius:999px;margin:12px 0 8px;overflow:hidden"><div id="ctBulkBar" style="height:100%;width:0;background:#c2410c;transition:width .2s"></div></div>' +
                     '<div id="ctBulkText" style="font-size:13px;color:#4b5563">กำลังดึงข้อมูลลูกค้า...</div><div id="ctBulkNow" style="font-size:12px;color:#9ca3af;margin-top:4px;min-height:18px"></div>'
             }).then(function (r) { if (r.dismiss === Swal.DismissReason.cancel) stop = true; });
+            var total = inList.length;
             var ui = function (now) {
                 var bar = document.getElementById('ctBulkBar'), tx = document.getElementById('ctBulkText'), nw = document.getElementById('ctBulkNow');
                 if (bar) bar.style.width = Math.round(done / Math.max(1, total) * 100) + '%';
-                if (tx) tx.textContent = 'สร้างแล้ว ' + done.toLocaleString('th-TH') + ' / ' + total.toLocaleString('th-TH') + ' ราย' + (fails.length ? ' (ไม่สำเร็จ ' + fails.length + ')' : '');
+                var left = done ? Math.ceil((Date.now() - started) / done * (total - done) / 60000) : 0;
+                if (tx) tx.textContent = 'สร้างแล้ว ' + done.toLocaleString('th-TH') + ' / ' + total.toLocaleString('th-TH') + ' ราย' + (fails.length ? ' (ไม่สำเร็จ ' + fails.length + ')' : '') + (done && total - done ? ' · เหลืออีกประมาณ ' + left.toLocaleString('th-TH') + ' นาที' : '');
                 if (nw) nw.textContent = now || '';
             };
-            var total = inList.length;
             var call = function (fn, arg) {
                 return new Promise(function (resolve, reject) {
                     google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg, currentUserInfo);
                 });
             };
-            Promise.all([call('getRenewalBulk', { zip: zip }), ratesReady(), loadContractLibs()]).then(function (r) {
+            Promise.all([call('getRenewalBulk', zip ? { zip: zip } : { all: true }), ratesReady(), loadContractLibs()]).then(function (r) {
                 var res = r[0], rates = r[1] || {};
                 if (!(res && res.status === 'success')) throw new Error((res && res.message) || 'ดึงข้อมูลลูกค้าไม่สำเร็จ');
-                var list = (res.data || []).filter(function (d) { return want[d.name]; });
+                var list = (res.data || []).filter(function (d) { return want[key(d)]; });
                 total = list.length; ui('');
                 var i = 0;
                 var next = function () {
                     if (stop || i >= list.length) return Promise.resolve();
-                    var d = list[i++];
-                    ui(d.name);
-                    var p = bulkPayload(d, rates, label.replace(/^\d{5}\s*/, ''));
+                    var d = list[i++], tag = d.zip + ' · ' + d.name;
+                    ui(tag);
+                    var p = bulkPayload(d, rates, offices[d.zip] || d.office);
                     return getTemplatePdf(p.pkg).then(function (tpl) { return window.thpBuildContractPdf(tpl, p); }).then(function (bytes) {
                         p.pdf = bytesToB64(bytes);
                         return call('generateContractBulk', p);
                     }).then(function (g) {
-                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) fails.push(d.name + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); }
-                        else fails.push(d.name + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ'));
-                    }, function (err) { fails.push(d.name + ': ' + (err && err.message ? err.message : err)); })
+                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) fails.push(tag + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); }
+                        else fails.push(tag + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ'));
+                    }, function (err) { fails.push(tag + ': ' + (err && err.message ? err.message : err)); })
                     .then(function () { done++; ui(''); return next(); });
                 };
                 return next();
             }).then(function () {
+                window.removeEventListener('beforeunload', guard);
                 Swal.fire({
                     icon: fails.length ? 'warning' : 'success', title: stop ? 'หยุดการสร้างแล้ว' : 'สร้างสัญญาเสร็จแล้ว',
                     html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>สร้างสำเร็จ <b>' + ok.toLocaleString('th-TH') + '</b> จาก ' + total.toLocaleString('th-TH') + ' ราย' +
                         (fails.length ? '<div style="margin-top:8px;max-height:180px;overflow:auto;font-size:12px;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:8px">' + fails.map(esc).join('<br>') + '</div>' : '') +
-                        (folderUrl ? '<div style="margin-top:10px"><a href="' + esc(folderUrl) + '" target="_blank" rel="noopener" style="color:#c2410c;font-weight:700"><i class="fas fa-folder-open"></i> เปิดโฟลเดอร์สัญญาของที่ทำการ</a></div>' : '') + '</div>',
+                        (zip && folderUrl ? '<div style="margin-top:10px"><a href="' + esc(folderUrl) + '" target="_blank" rel="noopener" style="color:#c2410c;font-weight:700"><i class="fas fa-folder-open"></i> เปิดโฟลเดอร์สัญญาของที่ทำการ</a></div>' : '') +
+                        (zip ? '' : '<div style="margin-top:10px;font-size:13px;color:#4b5563">ดูไฟล์ทั้งหมดได้ที่เมนู สัญญาขนส่ง › ไฟล์สัญญา</div>') + '</div>',
                     confirmButtonText: 'ปิด', returnFocus: false
                 });
             }).catch(function (err) {
+                window.removeEventListener('beforeunload', guard);
                 Swal.fire('สร้างสัญญาไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
             });
         };

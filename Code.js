@@ -6432,8 +6432,8 @@ function contractOfficeFolder_(base, zip, office) {
 function getRenewalBulk_(payload, actor) {
   try {
     if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
-    var zip = String(payload && payload.zip || '').trim();
-    if (!/^\d{5}$/.test(zip)) return { status: 'error', message: 'กรุณาเลือกรหัสไปรษณีย์ที่ทำการ' };
+    var zip = String(payload && payload.zip || '').trim(), all = !!(payload && payload.all === true); // all = ทุกที่ทำการ (ผู้ใช้ขอ 2026-11-20)
+    if (!all && !/^\d{5}$/.test(zip)) return { status: 'error', message: 'กรุณาเลือกรหัสไปรษณีย์ที่ทำการ' };
     var src = renewalSource_(), sh = src.sheet;
     if (!sh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
     var data = sh.getDataRange().getDisplayValues();
@@ -6441,7 +6441,7 @@ function getRenewalBulk_(payload, actor) {
     var out = [], seen = {};
     for (var i = 1; i < data.length; i++) {
       var r = data[i], z = String(r[c.zip] || '').trim(), name = String(r[c.name] || '').trim();
-      if (z !== zip || !name || !renewalActive_(r[c.svc], z)) continue;
+      if ((all ? !/^\d{5}$/.test(z) : z !== zip) || !name || !renewalActive_(r[c.svc], z)) continue;
       var item = renewalRowData_(c, r); item.row = i + 1;
       // เหมือนรายชื่อ: สำเนามีหลายแถวต่อลูกค้า → ใช้แถวล่าสุด
       var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, z) : '';
@@ -6449,7 +6449,7 @@ function getRenewalBulk_(payload, actor) {
       if (k) seen[k] = out.length;
       out.push(item);
     }
-    out.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : a.zip.localeCompare(b.zip); });
     return { status: 'success', data: out };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getRenewalBulk_');
