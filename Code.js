@@ -6396,12 +6396,21 @@ var CONTRACT_PROVINCE_BY_ZIP2 = {
   '80': 'นครศรีธรรมราช', '81': 'กระบี่', '82': 'พังงา', '83': 'ภูเก็ต', '84': 'สุราษฎร์ธานี', '85': 'ระนอง', '86': 'ชุมพร',
   '90': 'สงขลา', '91': 'สตูล', '92': 'ตรัง', '93': 'พัทลุง', '94': 'ปัตตานี', '95': 'ยะลา', '96': 'นราธิวาส'
 };
+// รหัสที่ทำการพิเศษ (ไม่ใช่รหัสไปรษณีย์ปกติ เลข 2 หลักแรกไม่ใช่จังหวัด) — ผู้ใช้กำหนด 2026-11-20
+var CONTRACT_PROVINCE_BY_ZIP_EXACT = {
+  '00074': 'อุบลราชธานี', '00086': 'อุบลราชธานี', '00129': 'อุบลราชธานี', '00166': 'มุกดาหาร', '00181': 'มุกดาหาร',
+  '00320': 'อุบลราชธานี', '00343': 'นครพนม', '00361': 'อุบลราชธานี', '09096': 'อุบลราชธานี', '09237': 'อุบลราชธานี'
+};
+function contractProvinceOfZip_(zip) {
+  zip = String(zip || '').trim();
+  return CONTRACT_PROVINCE_BY_ZIP_EXACT[zip] || CONTRACT_PROVINCE_BY_ZIP2[zip.substring(0, 2)] || '';
+}
 function contractSafeName_(s) { return String(s || '').replace(/[\\\/:*?"<>|\u0000-\u001F]/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 80); }
 // โฟลเดอร์ จังหวัด / ที่ทำการ (รหัสไปรษณีย์) ใต้ base — หาโฟลเดอร์ที่ทำการจาก "(รหัส)" ท้ายชื่อ (ชื่อที่ทำการเขียนต่างกันได้) ไม่มีรหัสที่ถูกต้อง = base
 function contractOfficeFolder_(base, zip, office) {
   zip = String(zip || '').trim();
   if (!/^\d{5}$/.test(zip)) return base;
-  var prov = CONTRACT_PROVINCE_BY_ZIP2[zip.substring(0, 2)] || 'จังหวัดอื่น';
+  var prov = contractProvinceOfZip_(zip) || 'จังหวัดอื่น';
   var pit = base.getFoldersByName(prov), pf = null;
   while (pit.hasNext()) { var f0 = pit.next(); if (!f0.isTrashed()) { pf = f0; break; } }
   if (!pf) pf = base.createFolder(prov);
@@ -6479,7 +6488,7 @@ function contractFileScope_(actor) {
   if (!renewalCanUse_(actor)) return null;
   var zip = String(actor.zipcode || actor.user || '').trim();
   if (!/^\d{5}$/.test(zip)) return null;
-  if (CONTRACT_PROVINCE_HQ_ZIPS.indexOf(zip) !== -1) return { prov: CONTRACT_PROVINCE_BY_ZIP2[zip.substring(0, 2)], zip: zip };
+  if (CONTRACT_PROVINCE_HQ_ZIPS.indexOf(zip) !== -1) return { prov: contractProvinceOfZip_(zip), zip: zip };
   return { zip: zip, only: true };
 }
 function contractOutputBase_() {
@@ -6492,7 +6501,7 @@ function contractFolderAllowed_(scope, provName, zip) {
   if (!scope) return false;
   if (scope.all) return true;
   if (scope.only) return zip === scope.zip;
-  return provName === scope.prov && !!zip && zip.substring(0, 2) === scope.zip.substring(0, 2);
+  return provName === scope.prov && !!zip && contractProvinceOfZip_(zip) === scope.prov;
 }
 function listContractFiles_(actor) {
   try {
