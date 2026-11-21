@@ -4,6 +4,8 @@
 <div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
     <div class="thp-page-intro">
         <p class="thp-page-intro-text">ค้นหาลูกค้าด้วยเลขบัตรประชาชนหรือ Post Family แล้วบันทึกลงชีตรายชื่อลูกค้า — ถ้าไม่พบในทะเบียนสัญญาปี 2570 กรอกข้อมูลเองได้</p>
+        <!-- เปิดชีตรายชื่อ/สัญญา A1-A12 (ผู้ใช้ขอ 2026-11-21) — สิทธิ์เปิดขึ้นกับการแชร์ของชีตใน Google Drive -->
+        <a class="thp-btn-secondary" href="https://docs.google.com/spreadsheets/d/1-avo189b2ReVHbRRs3kUVK9ylCp8t8h9d-Z9zv8UaKk/edit?gid=1308320501#gid=1308320501" target="_blank" rel="noopener"><i class="fas fa-table"></i> เปิดชีตรายชื่อลูกค้า</a>
     </div>
     <form id="ccForm" class="cc-search" onsubmit="event.preventDefault(); thpCcSearch();" novalidate>
         <label for="ccQuery" class="cc-label">เลขบัตรประชาชน 13 หลัก <span>(หรือหมายเลข Post Family 8 หลัก)</span></label>
@@ -104,10 +106,18 @@
         // ป้ายภาษาไทยของหัวคอลัมน์ภาษาอังกฤษ (ฟอร์มกรอกเอง)
         var TH_LABEL = { 'CUSTOMER_ADDRESS': 'ที่อยู่ (เลขที่/หมู่)', 'CUSTOMER_SUBDISTRICT': 'ตำบล/แขวง', 'CUSTOMER_DISTRICT': 'อำเภอ/เขต', 'CUSTOMER_PROVINCE': 'จังหวัด', 'CUSTOMER_POSTCODE': 'รหัสไปรษณีย์ลูกค้า' };
         var inputFor = function (key, val, manual) {
-            if (key === 'วันที่เริ่มต้น' || key === 'วันที่สิ้นสุด') return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '">';
-            if (key === 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน') return '<div class="cc-label-pick"><select class="cc-fill cc-select" data-label-pick aria-label="ระบบจ่าหน้าที่ใช้" onchange="thpCcLabelPick(this)">' +
-                '<option value="">— ไม่มี / ไม่ระบุ —</option><option value="PrePost">PrePost</option><option value="PostOne">PostOne</option><option value="__other">อื่นๆ (ระบุเอง)</option></select>' +
-                '<input class="cc-fill hidden" data-k="' + esc(key) + '" maxlength="100" placeholder="ระบุระบบจ่าหน้า" aria-label="ระบบจ่าหน้าอื่นๆ"></div>';
+            if (key === 'วันที่เริ่มต้น' || key === 'วันที่สิ้นสุด') {
+                var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(val || '')), iso = dm ? dm[3] + '-' + ('0' + dm[2]).slice(-2) + '-' + ('0' + dm[1]).slice(-2) : '';
+                return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '" value="' + iso + '">';
+            }
+            if (key === 'เบอร์ Wallet@post' && val) { var wd = String(val).replace(/\D/g, ''); val = wd.length === 10 ? wd.slice(0, 3) + '-' + wd.slice(3, 6) + '-' + wd.slice(6) : val; }
+            if (key === 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน') {
+                var lv = String(val || ''), known = lv === 'PrePost' || lv === 'PostOne', other = !!lv && !known;
+                var op = function (v, t) { return '<option value="' + v + '"' + ((known && v === lv) || (other && v === '__other') ? ' selected' : '') + '>' + t + '</option>'; };
+                return '<div class="cc-label-pick"><select class="cc-fill cc-select" data-label-pick aria-label="ระบบจ่าหน้าที่ใช้" onchange="thpCcLabelPick(this)">' +
+                    op('', '— ไม่มี / ไม่ระบุ —') + op('PrePost', 'PrePost') + op('PostOne', 'PostOne') + op('__other', 'อื่นๆ (ระบุเอง)') + '</select>' +
+                    '<input class="cc-fill' + (other ? '' : ' hidden') + '" data-k="' + esc(key) + '" maxlength="100" placeholder="ระบุระบบจ่าหน้า" aria-label="ระบบจ่าหน้าอื่นๆ" value="' + esc(lv) + '"></div>';
+            }
             var h = HINT[key] || ['text', '', 200];
             return '<input class="cc-fill" data-k="' + esc(key) + '" inputmode="' + h[0] + '" maxlength="' + h[2] + '" placeholder="' + esc(h[1] || (manual ? '' : 'กรอกเพิ่ม (ไม่บังคับ)')) + '" aria-label="' + esc(key) + '"' + (key === 'รหัสบริการปัจจุบัน' ? ' list="ccPkgList"' : '') + ' value="' + esc(val || '') + '">';
         };
@@ -150,7 +160,9 @@
                 var key = d[0], label = d[1], req = d[2] && !v, wide = d[3], val = v ? String(v[key] || '').trim() : '';
                 if (key === 'ไฟล์สัญญา PDF' && !v) return '';
                 var body;
-                if (val) {
+                if (val && key !== 'ไฟล์สัญญา PDF') {
+                    body = inputFor(key, val, true); // ค่าจากทะเบียนแก้ไขได้ (ผู้ใช้ขอ 2026-11-21)
+                } else if (val) {
                     var shown = key === 'ไฟล์สัญญา PDF' && /^https:\/\/drive\.google\.com\//.test(val) ? '<a href="' + esc(val) + '" target="_blank" rel="noopener" class="text-blue-700 underline"><i class="fas fa-file-pdf mr-1"></i>เปิดไฟล์ PDF</a>' : esc(val);
                     body = '<div class="cc-ro">' + shown + '</div>';
                 } else if (key === 'ไฟล์สัญญา PDF') {
@@ -222,7 +234,7 @@
             };
             if (wt) wt.addEventListener('input', function () { wt.value = fmtTel(wt.value); mirror(); });
             if (nm) nm.addEventListener('input', mirror);
-            if (wn) wn.addEventListener('input', function () { wn.dataset.manual = wn.value ? '1' : ''; });
+            if (wn) { if (wn.value) wn.dataset.manual = '1'; wn.addEventListener('input', function () { wn.dataset.manual = wn.value ? '1' : ''; }); } // ชื่อเดิมจากทะเบียนไม่ถูกแทน
         };
         window.thpCcLabelPick = function (sel) {
             var inp = sel.parentNode.querySelector('.cc-fill[data-k]');
@@ -240,10 +252,10 @@
                 var blanks = GROUPS.reduce(function (n, g) { return n + g[2].filter(function (d) { return d[0] !== 'ไฟล์สัญญา PDF' && !String(v[d[0]] || '').trim(); }).length; }, 0);
                 return '<div class="cc-card cc-found" data-i="' + i + '"><div class="cc-head"><b><i class="fas fa-user-check"></i> ' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
                     (v['ประเภทสัญญา'] ? '<span class="cc-chip">' + esc(v['ประเภทสัญญา']) + '</span>' : '') + st +
-                    '<span class="cc-note">ข้อมูลจากทะเบียนสัญญา · ' + (blanks ? 'ช่องที่ว่าง ' + blanks + ' ช่อง กรอกเพิ่มได้' : 'ข้อมูลครบทุกช่อง') + '</span></div>' +
+                    '<span class="cc-note">ดึงข้อมูลจากทะเบียนสัญญา แก้ไขได้ทุกช่องก่อนบันทึก' + (blanks ? ' · ช่องที่ว่าง ' + blanks + ' ช่อง' : '') + '</span></div>' +
                     formGroups(v) +
                     '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
-                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ค่าจากทะเบียนไม่ถูกแก้ ช่องที่ว่างไม่เขียนทับข้อมูลเดิม</span></div></div>';
+                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่เว้นว่างไม่เขียนทับข้อมูลเดิมในชีต</span></div></div>';
             }).join('');
             el.querySelectorAll('.cc-found').forEach(function (c) { setupManual(c, true); });
         };
@@ -266,6 +278,13 @@
 
         window.thpCcSave = function (btn) {
             var it = last.items[Number(btn.getAttribute('data-i'))]; if (!it) return;
+            var card = btn.closest('.cc-card'), ex0 = collectExtra(card);
+            card.querySelectorAll('.cc-invalid').forEach(function (x) { x.classList.remove('cc-invalid'); });
+            var bad0 = function (k, msg) { var e = card.querySelector('.cc-fill[data-k="' + k + '"]'); if (e) e.classList.add('cc-invalid'); Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ถูกต้อง', text: msg, returnFocus: false }).then(function () { if (e) { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.focus({ preventScroll: true }); } }); };
+            if (ex0['หมายเลขสมาชิก THP-'] && !/^\d{8}$/.test(ex0['หมายเลขสมาชิก THP-'])) return bad0('หมายเลขสมาชิก THP-', 'หมายเลข Post Family ต้องเป็นตัวเลข 8 หลัก');
+            if (ex0['รหัสที่ทำการ'] && !/^\d{5}$/.test(ex0['รหัสที่ทำการ'])) return bad0('รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการต้องเป็นตัวเลข 5 หลัก');
+            if (ex0['Email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ex0['Email'])) return bad0('Email', 'Email ไม่ถูกต้อง');
+            if (ex0['เบอร์ Wallet@post'] && !/^\d{10}$/.test(ex0['เบอร์ Wallet@post'])) return bad0('เบอร์ Wallet@post', 'เบอร์ที่ลงทะเบียน Wallet@post ต้องเป็นตัวเลข 10 หลัก');
             var what = it.listRow > 0 ? 'อัปเดตแถว ' + it.listRow + ' ในชีต "รายชื่อ/สัญญา A1-A12"' : 'เพิ่มแถวในชีต "การตอบแบบฟอร์ม 1" แล้วบันทึกข้อมูลลงชีต "รายชื่อ/สัญญา A1-A12"';
             Swal.fire({ icon: 'question', title: 'บันทึกข้อมูล ' + (it.v['ชื่อลูกค้า'] || ''), text: what, showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', returnFocus: false }).then(function (a) {
                 if (!a.isConfirmed) return;

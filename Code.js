@@ -5970,7 +5970,7 @@ function saveCustomerToSheets_(payload, actor) {
       var s = String(payload.extra[k] == null ? '' : payload.extra[k]).replace(/[\u0000-\u001F]/g, ' ').trim().substring(0, 200);
       if (s) extra[k] = s;
     });
-    var v;
+    var v, vMatch = null;
     if (payload.manual) {
       // ไม่มีในทะเบียน → ใช้ข้อมูลที่กรอกเองทั้งหมด
       v = extra;
@@ -5984,7 +5984,9 @@ function saveCustomerToSheets_(payload, actor) {
       if (!it) return { status: 'error', message: 'ไม่พบข้อมูลในทะเบียนปี 2570 (อาจถูกแก้ไขแล้ว กรุณาค้นหาใหม่)' };
       v = it.v;
       // เติมเฉพาะช่องที่ทะเบียนว่าง (ไม่ทับค่าจากทะเบียน)
-      Object.keys(extra).forEach(function (k) { if (!String(v[k] || '').trim()) v[k] = extra[k]; });
+      // แก้ไขได้ทุกช่อง (ผู้ใช้ขอ 2026-11-21) — จับคู่แถวลูกค้าด้วยข้อมูลเดิมจากทะเบียน (vMatch) เขียนด้วยค่าที่แก้ (v)
+      vMatch = JSON.parse(JSON.stringify(v));
+      Object.keys(extra).forEach(function (k) { v[k] = extra[k]; });
     }
     if (!v['ชื่อลูกค้า']) return { status: 'error', message: 'ข้อมูลในทะเบียนไม่มีชื่อลูกค้า' };
     lock.waitLock(30000);
@@ -5992,10 +5994,11 @@ function saveCustomerToSheets_(payload, actor) {
     if (!listSh) return { status: 'error', message: 'ไม่พบชีต "' + RENEWAL_SHEET_NAME + '"' };
     if (!formSh) return { status: 'error', message: 'ไม่พบชีต "' + CUSTOMER_FORM_SHEET + '"' };
     var res = { formAdded: false };
-    var listRow = customerListRow_(listSh, v);
+    var findList = function () { var r = vMatch ? customerListRow_(listSh, vMatch) : -1; return r > 0 ? r : customerListRow_(listSh, v); };
+    var listRow = findList();
     if (listRow < 0) {
       // ยังไม่มีลูกค้า → เพิ่มแถวในแบบฟอร์ม (แถวถัดจากแถวสุดท้ายที่มีชื่อในคอลัมน์ D — คอลัมน์สูตรอาจยาวกว่า)
-      var formRow = customerFormRow_(formSh, v);
+      var formRow = vMatch ? customerFormRow_(formSh, vMatch) : -1; if (formRow < 0) formRow = customerFormRow_(formSh, v);
       if (formRow < 0) {
         var last = formSh.getLastRow(), names = last > 1 ? formSh.getRange(2, 4, last - 1, 1).getDisplayValues() : [];
         var n = names.length; while (n > 0 && !String(names[n - 1][0]).trim()) n--;
@@ -6008,7 +6011,7 @@ function saveCustomerToSheets_(payload, actor) {
       }
       res.formRow = formRow;
       // รอสูตรในชีตรายชื่อดึงแถวใหม่
-      for (var k = 0; k < 4 && listRow < 0; k++) { SpreadsheetApp.flush(); if (k) Utilities.sleep(1500); listRow = customerListRow_(listSh, v); }
+      for (var k = 0; k < 4 && listRow < 0; k++) { SpreadsheetApp.flush(); if (k) Utilities.sleep(1500); listRow = findList(); }
       if (listRow < 0) return { status: 'error', message: 'เพิ่มแถวในชีต "' + CUSTOMER_FORM_SHEET + '" แล้ว (แถว ' + formRow + ') แต่ยังไม่พบลูกค้าในชีต "' + RENEWAL_SHEET_NAME + '" — ตรวจสูตรที่ดึงข้อมูลจากแบบฟอร์ม แล้วกดบันทึกอีกครั้ง', formRow: formRow };
     }
     // เขียนคอลัมน์ที่กำหนดในแถวลูกค้า (ค่าว่างข้าม)
