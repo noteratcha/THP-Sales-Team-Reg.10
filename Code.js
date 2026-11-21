@@ -5904,7 +5904,7 @@ function contractRegister_(p, actor, pdfUrl) {
 var CUSTOMER_FORM_SHEET = 'การตอบแบบฟอร์ม 1';
 // คอลัมน์ชีตรายชื่อ ← หัวคอลัมน์ทะเบียนปี 2570
 var CUSTOMER_LIST_MAP = [
-  ['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
+  ['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['O', 'วันที่สิ้นสุด'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
   ['T', 'เบอร์โทร'], ['U', 'เลขบัตรประชาชน'], ['Z', 'CUSTOMER_ADDRESS'], ['AA', 'CUSTOMER_SUBDISTRICT'], ['AB', 'CUSTOMER_DISTRICT'],
   ['AC', 'CUSTOMER_PROVINCE'], ['AD', 'CUSTOMER_POSTCODE'], ['AK', 'ประเภทสิ่งของที่ฝากส่ง'], ['AL', 'Email'], ['AM', 'เบอร์ Wallet@post'],
   ['AN', 'ชื่อเจ้าของ Wallet@post'], ['AO', 'อาคาร'], ['AP', 'ถนน']
@@ -6016,7 +6016,7 @@ function saveCustomerToSheets_(payload, actor) {
     CUSTOMER_LIST_MAP.forEach(function (m) {
       var val = String(v[m[1]] || '').trim(); if (!val) return;
       var cell = listSh.getRange(listRow, colIndex_(m[0]));
-      if (m[0] === 'M') { // วันที่เริ่มต้น เก็บเป็นวันที่จริง (สูตรเช็คเดือน/ปีใช้)
+      if (m[0] === 'M' || m[0] === 'O') { // วันที่เริ่มต้น/สิ้นสุด เก็บเป็นวันที่จริง (สูตรเช็คเดือน/ปีใช้)
         var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(val);
         cell.setValue(dm ? new Date(Number(dm[3]), Number(dm[2]) - 1, Number(dm[1])) : val);
       } else cell.setValue(val);

@@ -82,7 +82,7 @@
         var isAdmin = function () { try { return String((currentUserInfo || {}).user || '').toLowerCase() === 'admin'; } catch (e) { return false; } };
         var last = { q: '', items: [] };
         // คอลัมน์ที่จะบันทึก (ตรงกับ CUSTOMER_LIST_MAP ใน Code.js)
-        var LIST_COLS = [['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
+        var LIST_COLS = [['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['O', 'วันที่สิ้นสุด'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
             ['T', 'เบอร์โทร'], ['U', 'เลขบัตรประชาชน'], ['Z', 'CUSTOMER_ADDRESS'], ['AA', 'CUSTOMER_SUBDISTRICT'], ['AB', 'CUSTOMER_DISTRICT'],
             ['AC', 'CUSTOMER_PROVINCE'], ['AD', 'CUSTOMER_POSTCODE'], ['AK', 'ประเภทสิ่งของที่ฝากส่ง'], ['AL', 'Email'], ['AM', 'เบอร์ Wallet@post'],
             ['AN', 'ชื่อเจ้าของ Wallet@post'], ['AO', 'อาคาร'], ['AP', 'ถนน']];
@@ -96,7 +96,7 @@
         // ป้ายภาษาไทยของหัวคอลัมน์ภาษาอังกฤษ (ฟอร์มกรอกเอง)
         var TH_LABEL = { 'CUSTOMER_ADDRESS': 'ที่อยู่ (เลขที่/หมู่)', 'CUSTOMER_SUBDISTRICT': 'ตำบล/แขวง', 'CUSTOMER_DISTRICT': 'อำเภอ/เขต', 'CUSTOMER_PROVINCE': 'จังหวัด', 'CUSTOMER_POSTCODE': 'รหัสไปรษณีย์ลูกค้า' };
         var inputFor = function (key, val, manual) {
-            if (key === 'วันที่เริ่มต้น') return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '">';
+            if (key === 'วันที่เริ่มต้น' || key === 'วันที่สิ้นสุด') return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '">';
             if (key === 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน') return '<div class="cc-label-pick"><select class="cc-fill cc-select" data-label-pick aria-label="ระบบจ่าหน้าที่ใช้" onchange="thpCcLabelPick(this)">' +
                 '<option value="">— ไม่มี / ไม่ระบุ —</option><option value="PrePost">PrePost</option><option value="PostOne">PostOne</option><option value="__other">อื่นๆ (ระบุเอง)</option></select>' +
                 '<input class="cc-fill hidden" data-k="' + esc(key) + '" maxlength="100" placeholder="ระบุระบบจ่าหน้า" aria-label="ระบบจ่าหน้าอื่นๆ"></div>';
@@ -144,7 +144,7 @@
                 group('fa-user', 'ข้อมูลลูกค้า', '', field('ชื่อลูกค้า', 'ชื่อ-สกุล / ชื่อบริษัท', true, true) + field('หมายเลขสมาชิก THP-', 'หมายเลข Post Family') +
                     field('เลขบัตรประชาชน', 'เลขบัตรประชาชน') + field('เบอร์โทร', 'เบอร์โทร') + field('Email', 'Email')) +
                 group('fa-store', 'บริการและสัญญา', '', field('รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการรับฝาก', true) + field('รหัสบริการปัจจุบัน', 'รหัสบริการ (Package)') +
-                    field('ค่าธรรมเนียม COD(%)', 'ค่าธรรมเนียม COD (%)') + field('วันที่เริ่มต้น', 'วันที่เริ่มสัญญา') + field('ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า') +
+                    field('ค่าธรรมเนียม COD(%)', 'ค่าธรรมเนียม COD (%)') + field('วันที่เริ่มต้น', 'วันที่เริ่มสัญญา') + field('วันที่สิ้นสุด', 'วันที่สิ้นสุดสัญญา') + field('ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า') +
                     field('ประเภทสิ่งของที่ฝากส่ง', 'ประเภทสิ่งของที่ฝากส่ง')) +
                 group('fa-map-marker-alt', 'ที่อยู่ลูกค้า', '', field('CUSTOMER_ADDRESS', 'เลขที่ / หมู่') + field('อาคาร', 'อาคาร') + field('ถนน', 'ถนน') +
                     field('CUSTOMER_SUBDISTRICT', 'ตำบล/แขวง') + field('CUSTOMER_DISTRICT', 'อำเภอ/เขต') + field('CUSTOMER_PROVINCE', 'จังหวัด') + field('CUSTOMER_POSTCODE', 'รหัสไปรษณีย์')) +
@@ -187,6 +187,11 @@
             var cod = q('ค่าธรรมเนียม COD(%)'); if (cod && !cod.value) cod.value = '3';
             // 4) วันที่เริ่มสัญญา = วันนี้
             var dt = q('วันที่เริ่มต้น'); if (dt && !dt.value) { var d = new Date(); dt.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+            // วันที่สิ้นสุด = สิ้นปีของปีที่เริ่มสัญญา (เปลี่ยนวันเริ่มแล้วตามให้ จนกว่าจะแก้เอง) — ผู้ใช้ขอ 2026-11-21
+            var ed = q('วันที่สิ้นสุด');
+            var syncEnd = function () { if (!ed || ed.dataset.manual === '1') return; var y = dt && /^\d{4}/.test(dt.value) ? dt.value.slice(0, 4) : String(new Date().getFullYear()); ed.value = y + '-12-31'; };
+            if (ed) { syncEnd(); ed.addEventListener('input', function () { ed.dataset.manual = '1'; }); }
+            if (dt) dt.addEventListener('change', syncEnd);
             // 7) เบอร์ Wallet แสดงแบบเบอร์โทร (บันทึกเป็นตัวเลขล้วน — collectExtra ตัด - ออก)
             // 8) มีเบอร์ Wallet → ชื่อเจ้าของ = ชื่อ-สกุล (จนกว่าจะแก้เอง)
             var wt = q('เบอร์ Wallet@post'), wn = q('ชื่อเจ้าของ Wallet@post'), nm = q('ชื่อลูกค้า');
