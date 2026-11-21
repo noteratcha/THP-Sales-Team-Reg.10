@@ -63,6 +63,14 @@
     #page-contract-customer .cc-mgroup h4 i { color: #c2410c; width: 16px; text-align: center; }
     #page-contract-customer .cc-mf-wide { grid-column: span 2; }
     #page-contract-customer .cc-office { font-size: 12px; color: #6b7280; }
+    #page-contract-customer .cc-ro { min-height: 34px; display: flex; align-items: center; padding: 6px 10px; border-radius: 8px; background: #f3f4f6; color: #111827; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+    #page-contract-customer .cc-ro-empty { color: #9ca3af; font-weight: 400; }
+    #page-contract-customer .cc-add { font-style: normal; font-weight: 600; font-size: 11px; color: #c2410c; margin-left: 4px; }
+    #page-contract-customer .cc-found { border-color: #d1fae5; }
+    #page-contract-customer .cc-found .cc-mgroup { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; margin-top: 10px; }
+    #page-contract-customer .cc-found .cc-mgroup + .cc-mgroup { border-top: 1px solid #e5e7eb; padding-top: 12px; }
+    #page-contract-customer .cc-found .cc-head .cc-note { flex-basis: 100%; }
+    #page-contract-customer .cc-head b i { color: #c2410c; margin-right: 4px; }
     #page-contract-customer .cc-office.ok { color: #15803d; font-weight: 600; }
     #page-contract-customer .cc-office.bad { color: #b91c1c; }
     #page-contract-customer .cc-label-pick { display: flex; flex-direction: column; gap: 6px; }
@@ -127,29 +135,39 @@
             return out;
         };
         // ค้นไม่พบในทะเบียน → ฟอร์มกรอกเองทั้งหมด
+        // กลุ่มช่องร่วม (ฟอร์มกรอกเอง + การ์ดที่พบในทะเบียน)
+        var GROUPS = [
+            ['fa-user', 'ข้อมูลลูกค้า', [['ชื่อลูกค้า', 'ชื่อ-สกุล / ชื่อบริษัท', true, true], ['หมายเลขสมาชิก THP-', 'หมายเลข Post Family'], ['เลขบัตรประชาชน', 'เลขบัตรประชาชน'], ['เบอร์โทร', 'เบอร์โทร'], ['Email', 'Email']]],
+            ['fa-store', 'บริการและสัญญา', [['รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการรับฝาก', true], ['รหัสบริการปัจจุบัน', 'รหัสบริการ (Package)'], ['ค่าธรรมเนียม COD(%)', 'ค่าธรรมเนียม COD (%)'],
+                ['วันที่เริ่มต้น', 'วันที่เริ่มสัญญา'], ['วันที่สิ้นสุด', 'วันที่สิ้นสุดสัญญา'], ['ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า'], ['ประเภทสิ่งของที่ฝากส่ง', 'ประเภทสิ่งของที่ฝากส่ง'], ['ไฟล์สัญญา PDF', 'ไฟล์สัญญา']]],
+            ['fa-map-marker-alt', 'ที่อยู่ลูกค้า', [['CUSTOMER_ADDRESS', 'เลขที่ / หมู่'], ['อาคาร', 'อาคาร'], ['ถนน', 'ถนน'], ['CUSTOMER_SUBDISTRICT', 'ตำบล/แขวง'], ['CUSTOMER_DISTRICT', 'อำเภอ/เขต'], ['CUSTOMER_PROVINCE', 'จังหวัด'], ['CUSTOMER_POSTCODE', 'รหัสไปรษณีย์']]],
+            ['fa-wallet', 'Wallet@post', [['เบอร์ Wallet@post', 'เบอร์ที่ลงทะเบียน'], ['ชื่อเจ้าของ Wallet@post', 'ชื่อเจ้าของ']]]
+        ];
+        var PKG_LIST = '<datalist id="ccPkgList">' + ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13 (EMS ECOM 5013)','A14 (EMS ECOM 5014)','อัตราค่าบริการพิเศษเฉพาะราย'].map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
+        // v = ค่าจากทะเบียน (null = กรอกเองทั้งหมด), pre = ค่าเติมล่วงหน้าในช่องกรอก
+        var formGroups = function (v, pre) {
+            var field = function (d) {
+                var key = d[0], label = d[1], req = d[2] && !v, wide = d[3], val = v ? String(v[key] || '').trim() : '';
+                if (key === 'ไฟล์สัญญา PDF' && !v) return '';
+                var body;
+                if (val) {
+                    var shown = key === 'ไฟล์สัญญา PDF' && /^https:\/\/drive\.google\.com\//.test(val) ? '<a href="' + esc(val) + '" target="_blank" rel="noopener" class="text-blue-700 underline"><i class="fas fa-file-pdf mr-1"></i>เปิดไฟล์ PDF</a>' : esc(val);
+                    body = '<div class="cc-ro">' + shown + '</div>';
+                } else if (key === 'ไฟล์สัญญา PDF') {
+                    body = '<div class="cc-ro cc-ro-empty">— ไม่มี</div>';
+                } else body = inputFor(key, (pre || {})[key], true);
+                return '<label class="cc-mf' + (wide ? ' cc-mf-wide' : '') + (val ? ' is-ro' : '') + '"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') + (v && !val && key !== 'ไฟล์สัญญา PDF' ? ' <i class="cc-add">ว่าง · กรอกเพิ่มได้</i>' : '') + '</span>' + body +
+                    (key === 'รหัสที่ทำการ' ? '<small class="cc-office" data-office-name' + (val ? ' data-zip="' + esc(val) + '"' : '') + '>' + (val ? '' : 'พิมพ์รหัส 5 หลักเพื่อดูชื่อที่ทำการ') + '</small>' : '') + '</label>';
+            };
+            return GROUPS.map(function (g) {
+                return '<div class="cc-mgroup"><h4><i class="fas ' + g[0] + '"></i> ' + g[1] + '</h4><div class="cc-mgrid">' + g[2].map(field).join('') + '</div></div>';
+            }).join('') + PKG_LIST;
+        };
         var manualForm = function (q) {
             var pre = {}; if (q.length === 13) pre['เลขบัตรประชาชน'] = q.charAt(0) + '-' + q.substr(1, 4) + '-' + q.substr(5, 5) + '-' + q.substr(10, 2) + '-' + q.charAt(12); else if (q.length === 8) pre['หมายเลขสมาชิก THP-'] = q;
-            var COL = { 'ชื่อลูกค้า': 'D*', 'หมายเลขสมาชิก THP-': 'H*', 'รหัสที่ทำการ': 'M*' }; LIST_COLS.forEach(function (c) { COL[c[1]] = c[0]; });
-            var field = function (key, label, req, wide) {
-                var col = String(COL[key] || '').replace('*', '');
-                var sheet = /\*$/.test(COL[key] || '') ? 'แบบฟอร์ม ' : 'รายชื่อ ';
-                return '<label class="cc-mf' + (wide ? ' cc-mf-wide' : '') + '"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') +
-                    '</span>' + inputFor(key, pre[key], true) + (key === 'รหัสที่ทำการ' ? '<small class="cc-office" data-office-name>พิมพ์รหัส 5 หลักเพื่อดูชื่อที่ทำการ</small>' : '') + '</label>'; // ไม่แสดงตัวอักษรคอลัมน์ (ผู้ใช้ขอ 2026-11-21)
-            };
-            var group = function (icon, title, sub, inner) {
-                return '<div class="cc-mgroup"><h4><i class="fas ' + icon + '"></i> ' + title + (sub ? ' <small>' + sub + '</small>' : '') + '</h4><div class="cc-mgrid">' + inner + '</div></div>';
-            };
             return '<div class="cc-card cc-manual"><div class="cc-head"><b><i class="fas fa-user-plus"></i> ไม่พบในทะเบียนสัญญาปี 2570</b><span class="cc-chip new">เพิ่มลูกค้าใหม่</span>' +
                 '<span class="cc-note">กรอกข้อมูลลูกค้าเอง · ช่องที่มี <b class="text-red-600">*</b> ต้องกรอก ช่องอื่นเว้นว่างได้</span></div>' +
-                group('fa-user', 'ข้อมูลลูกค้า', '', field('ชื่อลูกค้า', 'ชื่อ-สกุล / ชื่อบริษัท', true, true) + field('หมายเลขสมาชิก THP-', 'หมายเลข Post Family') +
-                    field('เลขบัตรประชาชน', 'เลขบัตรประชาชน') + field('เบอร์โทร', 'เบอร์โทร') + field('Email', 'Email')) +
-                group('fa-store', 'บริการและสัญญา', '', field('รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการรับฝาก', true) + field('รหัสบริการปัจจุบัน', 'รหัสบริการ (Package)') +
-                    field('ค่าธรรมเนียม COD(%)', 'ค่าธรรมเนียม COD (%)') + field('วันที่เริ่มต้น', 'วันที่เริ่มสัญญา') + field('วันที่สิ้นสุด', 'วันที่สิ้นสุดสัญญา') + field('ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า') +
-                    field('ประเภทสิ่งของที่ฝากส่ง', 'ประเภทสิ่งของที่ฝากส่ง')) +
-                group('fa-map-marker-alt', 'ที่อยู่ลูกค้า', '', field('CUSTOMER_ADDRESS', 'เลขที่ / หมู่') + field('อาคาร', 'อาคาร') + field('ถนน', 'ถนน') +
-                    field('CUSTOMER_SUBDISTRICT', 'ตำบล/แขวง') + field('CUSTOMER_DISTRICT', 'อำเภอ/เขต') + field('CUSTOMER_PROVINCE', 'จังหวัด') + field('CUSTOMER_POSTCODE', 'รหัสไปรษณีย์')) +
-                group('fa-wallet', 'Wallet@post', '', field('เบอร์ Wallet@post', 'เบอร์ที่ลงทะเบียน') + field('ชื่อเจ้าของ Wallet@post', 'ชื่อเจ้าของ')) +
-                '<datalist id="ccPkgList">' + ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13 (EMS ECOM 5013)','A14 (EMS ECOM 5014)','อัตราค่าบริการพิเศษเฉพาะราย'].map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>' +
+                formGroups(null, pre) +
                 '<div class="cc-actions"><button type="button" class="cc-btn" onclick="thpCcSaveManual(this)"><i class="fas fa-save"></i> บันทึกลูกค้าใหม่</button>' +
                 '<button type="button" class="cc-btn cc-btn-2" onclick="thpCcClear()"><i class="fas fa-times"></i> ยกเลิก</button>' +
                 '<span class="cc-note">บันทึกลงชีต "การตอบแบบฟอร์ม 1" (เพิ่มแถว) และ "รายชื่อ/สัญญา A1-A12"</span></div></div>';
@@ -159,8 +177,8 @@
         var officeName = function (zip) { var o = (offices || []).filter(function (x) { return x.zip === zip; })[0]; return o ? o.name : ''; };
         var showOffice = function (card) {
             var inp = card.querySelector('.cc-fill[data-k="รหัสที่ทำการ"]'), out = card.querySelector('[data-office-name]');
-            if (!inp || !out) return;
-            var z = String(inp.value || '').replace(/\D/g, '');
+            if (!out || (!inp && !out.getAttribute('data-zip'))) return;
+            var z = String(inp ? inp.value : out.getAttribute('data-zip') || '').replace(/\D/g, '');
             out.classList.remove('ok', 'bad');
             if (z.length !== 5) { out.textContent = 'พิมพ์รหัส 5 หลักเพื่อดูชื่อที่ทำการ'; return; }
             if (!offices) { out.textContent = 'กำลังโหลดรายชื่อที่ทำการ...'; return; }
@@ -173,24 +191,25 @@
             officesLoading = true;
             google.script.run.withSuccessHandler(function (res) {
                 officesLoading = false; offices = (res && res.status === 'success' && res.data) || [];
-                var c = document.querySelector('#ccResult .cc-manual'); if (c) showOffice(c);
+                document.querySelectorAll('#ccResult .cc-card').forEach(function (c) { showOffice(c); });
             }).withFailureHandler(function () { officesLoading = false; offices = []; }).getOfficesForSubstitute('admin');
         };
         var fmtTel = function (d) { d = String(d || '').replace(/\D/g, '').slice(0, 10); return d.length > 6 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : (d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d); };
-        var setupManual = function (card) {
+        var setupManual = function (card, found) {
             var q = function (k) { return card.querySelector('.cc-fill[data-k="' + k + '"]'); };
             // 1) Post Family ตัวเลขอย่างเดียว
             var thp = q('หมายเลขสมาชิก THP-'); if (thp) thp.addEventListener('input', function () { thp.value = thp.value.replace(/\D/g, '').slice(0, 8); });
             // 2) รหัสที่ทำการ → ชื่อที่ทำการ
-            var zip = q('รหัสที่ทำการ'); if (zip) { zip.addEventListener('input', function () { zip.value = zip.value.replace(/\D/g, '').slice(0, 5); showOffice(card); }); loadOffices(card); showOffice(card); }
+            var zip = q('รหัสที่ทำการ'); if (zip) zip.addEventListener('input', function () { zip.value = zip.value.replace(/\D/g, '').slice(0, 5); showOffice(card); });
+            if (card.querySelector('[data-office-name]')) { loadOffices(card); showOffice(card); }
             // 3) COD เริ่มต้น 3%
-            var cod = q('ค่าธรรมเนียม COD(%)'); if (cod && !cod.value) cod.value = '3';
+            var cod = q('ค่าธรรมเนียม COD(%)'); if (cod && !cod.value && !found) cod.value = '3';
             // 4) วันที่เริ่มสัญญา = วันนี้
-            var dt = q('วันที่เริ่มต้น'); if (dt && !dt.value) { var d = new Date(); dt.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+            var dt = q('วันที่เริ่มต้น'); if (dt && !dt.value && !found) { var d = new Date(); dt.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
             // วันที่สิ้นสุด = สิ้นปีของปีที่เริ่มสัญญา (เปลี่ยนวันเริ่มแล้วตามให้ จนกว่าจะแก้เอง) — ผู้ใช้ขอ 2026-11-21
             var ed = q('วันที่สิ้นสุด');
             var syncEnd = function () { if (!ed || ed.dataset.manual === '1') return; var y = dt && /^\d{4}/.test(dt.value) ? dt.value.slice(0, 4) : String(new Date().getFullYear()); ed.value = y + '-12-31'; };
-            if (ed) { syncEnd(); ed.addEventListener('input', function () { ed.dataset.manual = '1'; }); }
+            if (ed) { if (!found) syncEnd(); ed.addEventListener('input', function () { ed.dataset.manual = '1'; }); }
             if (dt) dt.addEventListener('change', syncEnd);
             // 7) เบอร์ Wallet แสดงแบบเบอร์โทร (บันทึกเป็นตัวเลขล้วน — collectExtra ตัด - ออก)
             // 8) มีเบอร์ Wallet → ชื่อเจ้าของ = ชื่อ-สกุล (จนกว่าจะแก้เอง)
@@ -199,7 +218,7 @@
                 if (!wn || !wt) return;
                 var has = String(wt.value || '').replace(/\D/g, '').length > 0;
                 if (!has) { if (wn.dataset.manual !== '1') wn.value = ''; return; }
-                if (wn.dataset.manual !== '1') wn.value = nm ? nm.value.trim() : '';
+                if (wn.dataset.manual !== '1') wn.value = nm ? nm.value.trim() : (found ? String(card.querySelector('.cc-head b').textContent || '').trim() : '');
             };
             if (wt) wt.addEventListener('input', function () { wt.value = fmtTel(wt.value); mirror(); });
             if (nm) nm.addEventListener('input', mirror);
@@ -217,14 +236,16 @@
             el.innerHTML = last.items.map(function (it, i) {
                 var v = it.v;
                 var st = it.listRow > 0 ? '<span class="cc-chip ok"><i class="fas fa-check"></i> มีในชีตรายชื่อแล้ว (แถว ' + it.listRow + ')</span>'
-                    : '<span class="cc-chip new"><i class="fas fa-plus"></i> ยังไม่มีในชีตรายชื่อ — จะเพิ่มแถวในแบบฟอร์ม</span>';
-                var formBox = it.listRow > 0 ? '' : '<div class="cc-box"><h4>ชีต "การตอบแบบฟอร์ม 1"' + (it.formRow > 0 ? ' · มีแล้ว แถว ' + it.formRow + ' (ไม่เพิ่มซ้ำ)' : ' · เพิ่มแถวใหม่') + '</h4><dl>' + dlRows(FORM_COLS, v, 2) + '</dl></div>';
-                return '<div class="cc-card" data-i="' + i + '"><div class="cc-head"><b>' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
-                    '<span class="cc-chip">' + esc(v['รหัสบริการปัจจุบัน'] || '-') + '</span><span class="cc-chip">' + esc(v['ประเภทสัญญา'] || '') + '</span>' + st + '</div>' +
-                    '<div class="cc-grid">' + formBox + '<div class="cc-box cc-wide"><h4>ชีต "รายชื่อ/สัญญา A1-A12"' + (it.listRow > 0 ? ' · แถว ' + it.listRow : '') + '</h4><dl>' + dlRows(LIST_COLS, v) + '</dl></div></div>' +
+                    : '<span class="cc-chip new"><i class="fas fa-plus"></i> ยังไม่มีในชีตรายชื่อ — จะเพิ่มแถวในแบบฟอร์ม' + (it.formRow > 0 ? ' (มีในแบบฟอร์มแล้ว แถว ' + it.formRow + ')' : '') + '</span>';
+                var blanks = GROUPS.reduce(function (n, g) { return n + g[2].filter(function (d) { return d[0] !== 'ไฟล์สัญญา PDF' && !String(v[d[0]] || '').trim(); }).length; }, 0);
+                return '<div class="cc-card cc-found" data-i="' + i + '"><div class="cc-head"><b><i class="fas fa-user-check"></i> ' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
+                    (v['ประเภทสัญญา'] ? '<span class="cc-chip">' + esc(v['ประเภทสัญญา']) + '</span>' : '') + st +
+                    '<span class="cc-note">ข้อมูลจากทะเบียนสัญญา · ' + (blanks ? 'ช่องที่ว่าง ' + blanks + ' ช่อง กรอกเพิ่มได้' : 'ข้อมูลครบทุกช่อง') + '</span></div>' +
+                    formGroups(v) +
                     '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
-                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่ว่างไม่เขียนทับข้อมูลเดิม</span></div></div>';
+                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ค่าจากทะเบียนไม่ถูกแก้ ช่องที่ว่างไม่เขียนทับข้อมูลเดิม</span></div></div>';
             }).join('');
+            el.querySelectorAll('.cc-found').forEach(function (c) { setupManual(c, true); });
         };
 
         window.thpCcSearch = function () {
