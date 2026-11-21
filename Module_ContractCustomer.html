@@ -125,7 +125,7 @@
                 var col = String(COL[key] || '').replace('*', '');
                 var sheet = /\*$/.test(COL[key] || '') ? 'แบบฟอร์ม ' : 'รายชื่อ ';
                 return '<label class="cc-mf' + (wide ? ' cc-mf-wide' : '') + '"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') +
-                    ' <em title="ชีต ' + sheet + 'คอลัมน์ ' + col + '">' + col + '</em></span>' + inputFor(key, pre[key], true) + '</label>';
+                    '</span>' + inputFor(key, pre[key], true) + '</label>'; // ไม่แสดงตัวอักษรคอลัมน์ (ผู้ใช้ขอ 2026-11-21)
             };
             var group = function (icon, title, sub, inner) {
                 return '<div class="cc-mgroup"><h4><i class="fas ' + icon + '"></i> ' + title + (sub ? ' <small>' + sub + '</small>' : '') + '</h4><div class="cc-mgrid">' + inner + '</div></div>';

@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1121.2021';
+    var APP_VERSION = 'Ver. 2026.1121.2029';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20599,7 +20599,7 @@
                 var col = String(COL[key] || '').replace('*', '');
                 var sheet = /\*$/.test(COL[key] || '') ? 'แบบฟอร์ม ' : 'รายชื่อ ';
                 return '<label class="cc-mf' + (wide ? ' cc-mf-wide' : '') + '"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') +
-                    ' <em title="ชีต ' + sheet + 'คอลัมน์ ' + col + '">' + col + '</em></span>' + inputFor(key, pre[key], true) + '</label>';
+                    '</span>' + inputFor(key, pre[key], true) + '</label>'; // ไม่แสดงตัวอักษรคอลัมน์ (ผู้ใช้ขอ 2026-11-21)
             };
             var group = function (icon, title, sub, inner) {
                 return '<div class="cc-mgroup"><h4><i class="fas ' + icon + '"></i> ' + title + (sub ? ' <small>' + sub + '</small>' : '') + '</h4><div class="cc-mgrid">' + inner + '</div></div>';
