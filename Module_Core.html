@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1121.2105';
+    var APP_VERSION = 'Ver. 2026.1121.2112';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1120,6 +1120,9 @@
                 <a href="https://drive.google.com/file/d/1yYi7KNIFR64ODi1fQw7xUG89QrnjoFqz/view?usp=drive_link" target="_blank" id="headerFuzeAgentDownloadBtn"
                     class="hidden text-[10px] sm:text-xs bg-white text-green-600 border border-green-200 hover:bg-green-600 hover:text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition transform hover:scale-105 items-center gap-1 shadow-sm shrink-0 no-underline"><i
                         class="fas fa-folder-open"></i> โหลดเอกสารสัญญา FUZE</a>
+                <!-- หน้า เพิ่มข้อมูลลูกค้า: เปิดชีตรายชื่อลูกค้า (ย้ายจากในหน้า 2026-11-21) -->
+                <a id="headerCustomerSheetBtn" href="https://docs.google.com/spreadsheets/d/1-avo189b2ReVHbRRs3kUVK9ylCp8t8h9d-Z9zv8UaKk/edit?gid=1308320501#gid=1308320501" target="_blank" rel="noopener"
+                    class="hidden text-[10px] sm:text-xs bg-white text-orange-700 border border-orange-200 hover:bg-orange-50 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium transition items-center gap-1.5 whitespace-nowrap"><i class="fas fa-table"></i> เปิดชีตรายชื่อลูกค้า</a>
                 <!-- หน้า สร้างสัญญาขนส่ง: ปุ่มเดียว "ดาวน์โหลดแบบฟอร์ม" + เมนู (ต้นฉบับ A1-A12 PDF, ใส่อัตรา A11/A12) — ปรับ UX 2026-11-19; เลิกต้นฉบับ Word 2026-11-20 (ผู้ใช้สั่ง)
                      เมนูใช้ position:fixed (แถบบนตัดส่วนเกิน) ตำแหน่งคำนวณใน thpContractDlToggle (Module_Contract) -->
                 <div id="headerContractDlWrap" class="hidden relative shrink-0">
@@ -2505,10 +2508,10 @@
                 if (target.action) target.action();
             }
 
-            const headerBtns = ['headerContractDlWrap', 'headerContractResetBtn', 'headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
+            const headerBtns = ['headerCustomerSheetBtn', 'headerContractDlWrap', 'headerContractResetBtn', 'headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn', 'headerKhorLorReportBtn', 'headerPostNewsResetBtn', 'headerMergeImageBtn', 'headerPostNewsDownloadBtn', 'headerDbVisitBtn', 'headerDbRevenueBtn', 'headerExtractA1A14Container', 'headerYearSelectorContainer', 'headerPKChartBtn', 'headerVisitSummaryBtn', 'headerFuzeAgentReloadBtn', 'headerFuzeAgentDownloadBtn'];
             headerBtns.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
             // หน้า สร้างสัญญา: เวลาอัปเดตไปอยู่ท้ายต่อจากปุ่ม ล้างฟอร์ม (ผู้ใช้ขอ 2026-11-18)
-            (function () { const si = document.getElementById('headerSyncInfo'); if (si) si.style.order = pageId === 'contract' ? '99' : ''; })();
+            (function () { const si = document.getElementById('headerSyncInfo'); if (si) si.style.order = (pageId === 'contract' || pageId === 'contract-customer') ? '99' : ''; })();
 
             if (pageId === 'revenue-report') {
                 ['headerAiReportBtn', 'headerRevenueReportBtn', 'headerTopCustomersBtn', 'headerNewCustomerBtn', 'headerInactiveBtn', 'headerVolumeAlertBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
@@ -2534,6 +2537,8 @@
             } else if (pageId === 'data') {
                 const el = document.getElementById('headerVisitSummaryBtn');
                 if (el) { el.classList.remove('hidden'); }
+            } else if (pageId === 'contract-customer') {
+                const cs = document.getElementById('headerCustomerSheetBtn'); if (cs) { cs.classList.remove('hidden'); cs.classList.add('flex'); }
             } else if (pageId === 'contract') {
                 ['headerContractDlWrap', 'headerContractResetBtn'].forEach(function (id) { const b = document.getElementById(id); if (b) { b.classList.remove('hidden'); b.classList.add('flex'); } });
             } else if (pageId === 'fuze-agent') {
