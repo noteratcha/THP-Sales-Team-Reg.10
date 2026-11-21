@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1121.2112';
+    var APP_VERSION = 'Ver. 2026.1121.2121';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20658,7 +20658,7 @@
             }).join('') + PKG_LIST;
         };
         // ไฟล์แนบจากคอลัมน์ R ชีตรายชื่อ (เปิดดู/ดาวน์โหลดผ่าน Google Drive — ต้องมีสิทธิ์ไฟล์)
-        var filesBox = function (files, listRow) {
+        var filesBox = function (files, listRow, err) {
             if (!(listRow > 0)) return '';
             var rows = files.length ? files.map(function (x, i) {
                 var view = x.id ? 'https://drive.google.com/file/d/' + encodeURIComponent(x.id) + '/view' : x.url;
@@ -20666,7 +20666,7 @@
                 return '<div class="cc-file"><span class="cc-file-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cc-file-ic"></i><span class="cc-file-name">' + esc(x.name) + '</span>' +
                     '<a class="cc-file-btn" href="' + esc(view) + '" target="_blank" rel="noopener"><i class="fas fa-eye"></i> เปิดดู</a>' +
                     (dl ? '<a class="cc-file-btn" href="' + esc(dl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> ดาวน์โหลด</a>' : '') + '</div>';
-            }).join('') : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>';
+            }).join('') : (err ? '<div class="cc-ro cc-ro-empty" style="color:#b91c1c"><i class="fas fa-exclamation-triangle"></i> อ่านไฟล์แนบไม่ได้: ' + esc(err) + '</div>' : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>');
             return '<div class="cc-mgroup"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(จากชีตรายชื่อ คอลัมน์ "ไฟล์แนบ" · ' + files.length + ' ไฟล์)</small></h4><div class="cc-files">' + rows + '</div></div>';
         };
         var manualForm = function (q) {
@@ -20747,7 +20747,7 @@
                 return '<div class="cc-card cc-found" data-i="' + i + '"><div class="cc-head"><b><i class="fas fa-user-check"></i> ' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
                     (v['ประเภทสัญญา'] ? '<span class="cc-chip">' + esc(v['ประเภทสัญญา']) + '</span>' : '') + st +
                     '<span class="cc-note">ดึงข้อมูลจากทะเบียนสัญญา แก้ไขได้ทุกช่องก่อนบันทึก' + (blanks ? ' · ช่องที่ว่าง ' + blanks + ' ช่อง' : '') + '</span></div>' +
-                    formGroups(v) + filesBox(it.files || [], it.listRow) +
+                    formGroups(v) + filesBox(it.files || [], it.listRow, it.filesErr) +
                     '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
                     '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่เว้นว่างไม่เขียนทับข้อมูลเดิมในชีต</span></div></div>';
             }).join('');

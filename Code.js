@@ -5955,19 +5955,27 @@ function customerListAttachments_(listSh, row) {
     out.push({ name: name || 'ไฟล์แนบ', url: url, id: id });
   };
   // 1) ชิปไฟล์ (smart chip) อ่านได้ผ่าน Sheets API เท่านั้น: values.chipRuns[].chip.richLinkProperties.uri
+  //    ใช้บริการเสริม Sheets (เปิด API ให้อัตโนมัติ) ก่อน แล้วสำรองด้วย UrlFetch — เก็บสาเหตุที่ล้มเหลวไว้ใน out.err
+  var range = "'" + listSh.getName().replace(/'/g, "''") + "'!R" + row, ssId = listSh.getParent().getId();
+  var FIELDS = 'sheets.data.rowData.values(chipRuns,hyperlink,textFormatRuns)', data = null, errs = [];
   try {
-    var range = "'" + listSh.getName().replace(/'/g, "''") + "'!R" + row;
-    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + listSh.getParent().getId() + '?includeGridData=true&ranges=' + encodeURIComponent(range) +
-      '&fields=' + encodeURIComponent('sheets.data.rowData.values(chipRuns,hyperlink,textFormatRuns)');
-    var resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
-    if (resp.getResponseCode() === 200) {
-      var cell = (((((JSON.parse(resp.getContentText()).sheets || [])[0] || {}).data || [])[0] || {}).rowData || [])[0];
-      var val = ((cell || {}).values || [])[0] || {};
-      (val.chipRuns || []).forEach(function (r) { var p = r.chip && r.chip.richLinkProperties; if (p && p.uri) add(p.uri, ''); });
-      (val.textFormatRuns || []).forEach(function (r) { var l = r.format && r.format.link; if (l && l.uri) add(l.uri, ''); });
-      if (val.hyperlink) add(val.hyperlink, '');
-    }
-  } catch (eApi) { }
+    if (typeof Sheets !== 'undefined') data = Sheets.Spreadsheets.get(ssId, { ranges: [range], includeGridData: true, fields: FIELDS });
+  } catch (eAdv) { errs.push('Sheets: ' + String(eAdv && eAdv.message || eAdv).slice(0, 160)); }
+  if (!data) {
+    try {
+      var resp = UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + '?includeGridData=true&ranges=' + encodeURIComponent(range) + '&fields=' + encodeURIComponent(FIELDS),
+        { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+      if (resp.getResponseCode() === 200) data = JSON.parse(resp.getContentText());
+      else errs.push('HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().replace(/\s+/g, ' ').slice(0, 160));
+    } catch (eApi) { errs.push('Fetch: ' + String(eApi && eApi.message || eApi).slice(0, 160)); }
+  }
+  if (data) {
+    var cell = ((((data.sheets || [])[0] || {}).data || [])[0] || {}).rowData || [];
+    var val = (((cell[0] || {}).values) || [])[0] || {};
+    (val.chipRuns || []).forEach(function (r) { var p = r.chip && r.chip.richLinkProperties; if (p && p.uri) add(p.uri, ''); });
+    (val.textFormatRuns || []).forEach(function (r) { var l = r.format && r.format.link; if (l && l.uri) add(l.uri, ''); });
+    if (val.hyperlink) add(val.hyperlink, '');
+  }
   // 2) ลิงก์ข้อความธรรมดา (สำรอง)
   if (!out.length) {
     try {
@@ -5975,6 +5983,7 @@ function customerListAttachments_(listSh, row) {
       if (rich) rich.getRuns().forEach(function (run) { add(run.getLinkUrl(), run.getText()); });
     } catch (eRt) { }
   }
+  if (!out.length && errs.length) out.err = errs.join(' | ');
   return out;
 }
 function findCustomerForSheet_(payload, actor) {
@@ -5985,8 +5994,9 @@ function findCustomerForSheet_(payload, actor) {
     var ss = SpreadsheetApp.openById(RENEWAL_SS_ID), listSh = renewalSheet_(), formSh = ss.getSheetByName(CUSTOMER_FORM_SHEET);
     var items = r.list.map(function (it) {
       var lr = listSh ? customerListRow_(listSh, it.v) : -1, files = [];
-      try { files = customerListAttachments_(listSh, lr); } catch (eF) { }
-      return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files };
+      var filesErr = '';
+      try { files = customerListAttachments_(listSh, lr); filesErr = files.err || ''; } catch (eF) { filesErr = String(eF && eF.message || eF).slice(0, 200); }
+      return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr };
     });
     return { status: 'success', items: items, formSheet: !!formSh };
   } catch (e) {
