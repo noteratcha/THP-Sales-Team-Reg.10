@@ -5946,16 +5946,35 @@ function customerFormRow_(formSh, v) {
 function customerListAttachments_(listSh, row) {
   var out = [], seen = {};
   if (!listSh || !(row > 1)) return out;
-  var rich = listSh.getRange(row, colIndex_('R')).getRichTextValue();
-  if (!rich) return out;
-  rich.getRuns().forEach(function (run) {
-    var url = run.getLinkUrl(); if (!url) return;
+  var add = function (url, name) {
+    if (!url) return;
     var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
     var key = id || url; if (seen[key]) return; seen[key] = true;
-    var name = String(run.getText() || '').replace(/\s+/g, ' ').trim();
+    name = String(name || '').replace(/\s+/g, ' ').trim();
     if ((!name || name.length < 3) && id) { try { name = DriveApp.getFileById(id).getName(); } catch (e) { } }
     out.push({ name: name || 'ไฟล์แนบ', url: url, id: id });
-  });
+  };
+  // 1) ชิปไฟล์ (smart chip) อ่านได้ผ่าน Sheets API เท่านั้น: values.chipRuns[].chip.richLinkProperties.uri
+  try {
+    var range = "'" + listSh.getName().replace(/'/g, "''") + "'!R" + row;
+    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + listSh.getParent().getId() + '?includeGridData=true&ranges=' + encodeURIComponent(range) +
+      '&fields=' + encodeURIComponent('sheets.data.rowData.values(chipRuns,hyperlink,textFormatRuns)');
+    var resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    if (resp.getResponseCode() === 200) {
+      var cell = (((((JSON.parse(resp.getContentText()).sheets || [])[0] || {}).data || [])[0] || {}).rowData || [])[0];
+      var val = ((cell || {}).values || [])[0] || {};
+      (val.chipRuns || []).forEach(function (r) { var p = r.chip && r.chip.richLinkProperties; if (p && p.uri) add(p.uri, ''); });
+      (val.textFormatRuns || []).forEach(function (r) { var l = r.format && r.format.link; if (l && l.uri) add(l.uri, ''); });
+      if (val.hyperlink) add(val.hyperlink, '');
+    }
+  } catch (eApi) { }
+  // 2) ลิงก์ข้อความธรรมดา (สำรอง)
+  if (!out.length) {
+    try {
+      var rich = listSh.getRange(row, colIndex_('R')).getRichTextValue();
+      if (rich) rich.getRuns().forEach(function (run) { add(run.getLinkUrl(), run.getText()); });
+    } catch (eRt) { }
+  }
   return out;
 }
 function findCustomerForSheet_(payload, actor) {
