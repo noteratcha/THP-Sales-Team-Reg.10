@@ -62,6 +62,12 @@
     #page-contract-customer .cc-mgroup h4 small { font-weight: 400; color: #6b7280; }
     #page-contract-customer .cc-mgroup h4 i { color: #c2410c; width: 16px; text-align: center; }
     #page-contract-customer .cc-mf-wide { grid-column: span 2; }
+    #page-contract-customer .cc-office { font-size: 12px; color: #6b7280; }
+    #page-contract-customer .cc-office.ok { color: #15803d; font-weight: 600; }
+    #page-contract-customer .cc-office.bad { color: #b91c1c; }
+    #page-contract-customer .cc-label-pick { display: flex; flex-direction: column; gap: 6px; }
+    #page-contract-customer .cc-select { padding: 0 8px; }
+    #page-contract-customer .cc-fill.hidden { display: none; }
     @media (max-width: 520px) { #page-contract-customer .cc-mf-wide { grid-column: auto; } }
     #page-contract-customer .cc-manual .cc-head .cc-note { flex-basis: 100%; }
     #page-contract-customer .cc-mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; }
@@ -84,13 +90,16 @@
 
         var box = function () { return document.getElementById('ccResult'); };
         // ช่องกรอก (ชนิดตามหัวคอลัมน์) — ใช้ทั้งเติมช่องว่างและฟอร์มกรอกเอง
-        var HINT = { 'หมายเลขสมาชิก THP-': ['numeric', '8 หลัก', 8], 'รหัสที่ทำการ': ['numeric', '5 หลัก', 5], 'CUSTOMER_POSTCODE': ['numeric', '5 หลัก', 5],
-            'เลขบัตรประชาชน': ['numeric', '13 หลัก', 17], 'เบอร์โทร': ['tel', 'เช่น 081-234-5678', 12], 'เบอร์ Wallet@post': ['numeric', '10 หลัก', 10],
+        var HINT = { 'หมายเลขสมาชิก THP-': ['numeric', 'ตัวเลข 8 หลัก (ไม่ต้องพิมพ์ THP-)', 8], 'รหัสที่ทำการ': ['numeric', '5 หลัก', 5], 'CUSTOMER_POSTCODE': ['numeric', '5 หลัก', 5],
+            'เลขบัตรประชาชน': ['numeric', '13 หลัก', 17], 'เบอร์โทร': ['tel', 'เช่น 081-234-5678', 12], 'เบอร์ Wallet@post': ['numeric', 'เช่น 088-123-2388', 12],
             'ค่าธรรมเนียม COD(%)': ['decimal', 'เช่น 3%', 6], 'Email': ['email', 'name@example.com', 120], 'รหัสบริการปัจจุบัน': ['text', 'เช่น A12', 40], 'ชื่อลูกค้า': ['text', 'ชื่อ-สกุล หรือชื่อบริษัท', 200] };
         // ป้ายภาษาไทยของหัวคอลัมน์ภาษาอังกฤษ (ฟอร์มกรอกเอง)
         var TH_LABEL = { 'CUSTOMER_ADDRESS': 'ที่อยู่ (เลขที่/หมู่)', 'CUSTOMER_SUBDISTRICT': 'ตำบล/แขวง', 'CUSTOMER_DISTRICT': 'อำเภอ/เขต', 'CUSTOMER_PROVINCE': 'จังหวัด', 'CUSTOMER_POSTCODE': 'รหัสไปรษณีย์ลูกค้า' };
         var inputFor = function (key, val, manual) {
             if (key === 'วันที่เริ่มต้น') return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '">';
+            if (key === 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน') return '<div class="cc-label-pick"><select class="cc-fill cc-select" data-label-pick aria-label="ระบบจ่าหน้าที่ใช้" onchange="thpCcLabelPick(this)">' +
+                '<option value="">— ไม่มี / ไม่ระบุ —</option><option value="PrePost">PrePost</option><option value="PostOne">PostOne</option><option value="__other">อื่นๆ (ระบุเอง)</option></select>' +
+                '<input class="cc-fill hidden" data-k="' + esc(key) + '" maxlength="100" placeholder="ระบุระบบจ่าหน้า" aria-label="ระบบจ่าหน้าอื่นๆ"></div>';
             var h = HINT[key] || ['text', '', 200];
             return '<input class="cc-fill" data-k="' + esc(key) + '" inputmode="' + h[0] + '" maxlength="' + h[2] + '" placeholder="' + esc(h[1] || (manual ? '' : 'กรอกเพิ่ม (ไม่บังคับ)')) + '" aria-label="' + esc(key) + '"' + (key === 'รหัสบริการปัจจุบัน' ? ' list="ccPkgList"' : '') + ' value="' + esc(val || '') + '">';
         };
@@ -108,7 +117,7 @@
         var collectExtra = function (card) {
             var out = {};
             card.querySelectorAll('.cc-fill').forEach(function (el) {
-                var k = el.getAttribute('data-k'), v = String(el.value || '').trim(); if (!v) return;
+                var k = el.getAttribute('data-k'), v = String(el.value || '').trim(); if (!k || !v) return;
                 if (el.type === 'date') { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v); if (m) v = Number(m[3]) + '/' + Number(m[2]) + '/' + m[1]; }
                 if (k === 'หมายเลขสมาชิก THP-' || k === 'รหัสที่ทำการ' || k === 'CUSTOMER_POSTCODE' || k === 'เลขบัตรประชาชน' || k === 'เบอร์ Wallet@post') v = v.replace(/\D/g, '');
                 if (k === 'เลขบัตรประชาชน' && v.length === 13) v = v.charAt(0) + ' ' + v.substr(1, 4) + ' ' + v.substr(5, 5) + ' ' + v.substr(10, 2) + ' ' + v.charAt(12);
@@ -125,7 +134,7 @@
                 var col = String(COL[key] || '').replace('*', '');
                 var sheet = /\*$/.test(COL[key] || '') ? 'แบบฟอร์ม ' : 'รายชื่อ ';
                 return '<label class="cc-mf' + (wide ? ' cc-mf-wide' : '') + '"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') +
-                    '</span>' + inputFor(key, pre[key], true) + '</label>'; // ไม่แสดงตัวอักษรคอลัมน์ (ผู้ใช้ขอ 2026-11-21)
+                    '</span>' + inputFor(key, pre[key], true) + (key === 'รหัสที่ทำการ' ? '<small class="cc-office" data-office-name>พิมพ์รหัส 5 หลักเพื่อดูชื่อที่ทำการ</small>' : '') + '</label>'; // ไม่แสดงตัวอักษรคอลัมน์ (ผู้ใช้ขอ 2026-11-21)
             };
             var group = function (icon, title, sub, inner) {
                 return '<div class="cc-mgroup"><h4><i class="fas ' + icon + '"></i> ' + title + (sub ? ' <small>' + sub + '</small>' : '') + '</h4><div class="cc-mgrid">' + inner + '</div></div>';
@@ -145,9 +154,61 @@
                 '<button type="button" class="cc-btn cc-btn-2" onclick="thpCcClear()"><i class="fas fa-times"></i> ยกเลิก</button>' +
                 '<span class="cc-note">บันทึกลงชีต "การตอบแบบฟอร์ม 1" (เพิ่มแถว) และ "รายชื่อ/สัญญา A1-A12"</span></div></div>';
         };
+        // ===== ฟอร์มกรอกเอง: ค่าเริ่มต้น + ช่วยกรอก (ผู้ใช้ขอ 2026-11-21) =====
+        var offices = null, officesLoading = false;
+        var officeName = function (zip) { var o = (offices || []).filter(function (x) { return x.zip === zip; })[0]; return o ? o.name : ''; };
+        var showOffice = function (card) {
+            var inp = card.querySelector('.cc-fill[data-k="รหัสที่ทำการ"]'), out = card.querySelector('[data-office-name]');
+            if (!inp || !out) return;
+            var z = String(inp.value || '').replace(/\D/g, '');
+            out.classList.remove('ok', 'bad');
+            if (z.length !== 5) { out.textContent = 'พิมพ์รหัส 5 หลักเพื่อดูชื่อที่ทำการ'; return; }
+            if (!offices) { out.textContent = 'กำลังโหลดรายชื่อที่ทำการ...'; return; }
+            var n = officeName(z);
+            out.textContent = n ? 'ที่ทำการ: ' + n : 'ไม่พบรหัสนี้ในรายชื่อที่ทำการ ปข.10';
+            out.classList.add(n ? 'ok' : 'bad');
+        };
+        var loadOffices = function (card) {
+            if (offices || officesLoading) return;
+            officesLoading = true;
+            google.script.run.withSuccessHandler(function (res) {
+                officesLoading = false; offices = (res && res.status === 'success' && res.data) || [];
+                var c = document.querySelector('#ccResult .cc-manual'); if (c) showOffice(c);
+            }).withFailureHandler(function () { officesLoading = false; offices = []; }).getOfficesForSubstitute('admin');
+        };
+        var fmtTel = function (d) { d = String(d || '').replace(/\D/g, '').slice(0, 10); return d.length > 6 ? d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6) : (d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d); };
+        var setupManual = function (card) {
+            var q = function (k) { return card.querySelector('.cc-fill[data-k="' + k + '"]'); };
+            // 1) Post Family ตัวเลขอย่างเดียว
+            var thp = q('หมายเลขสมาชิก THP-'); if (thp) thp.addEventListener('input', function () { thp.value = thp.value.replace(/\D/g, '').slice(0, 8); });
+            // 2) รหัสที่ทำการ → ชื่อที่ทำการ
+            var zip = q('รหัสที่ทำการ'); if (zip) { zip.addEventListener('input', function () { zip.value = zip.value.replace(/\D/g, '').slice(0, 5); showOffice(card); }); loadOffices(card); showOffice(card); }
+            // 3) COD เริ่มต้น 3%
+            var cod = q('ค่าธรรมเนียม COD(%)'); if (cod && !cod.value) cod.value = '3';
+            // 4) วันที่เริ่มสัญญา = วันนี้
+            var dt = q('วันที่เริ่มต้น'); if (dt && !dt.value) { var d = new Date(); dt.value = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+            // 7) เบอร์ Wallet แสดงแบบเบอร์โทร (บันทึกเป็นตัวเลขล้วน — collectExtra ตัด - ออก)
+            // 8) มีเบอร์ Wallet → ชื่อเจ้าของ = ชื่อ-สกุล (จนกว่าจะแก้เอง)
+            var wt = q('เบอร์ Wallet@post'), wn = q('ชื่อเจ้าของ Wallet@post'), nm = q('ชื่อลูกค้า');
+            var mirror = function () {
+                if (!wn || !wt) return;
+                var has = String(wt.value || '').replace(/\D/g, '').length > 0;
+                if (!has) { if (wn.dataset.manual !== '1') wn.value = ''; return; }
+                if (wn.dataset.manual !== '1') wn.value = nm ? nm.value.trim() : '';
+            };
+            if (wt) wt.addEventListener('input', function () { wt.value = fmtTel(wt.value); mirror(); });
+            if (nm) nm.addEventListener('input', mirror);
+            if (wn) wn.addEventListener('input', function () { wn.dataset.manual = wn.value ? '1' : ''; });
+        };
+        window.thpCcLabelPick = function (sel) {
+            var inp = sel.parentNode.querySelector('.cc-fill[data-k]');
+            if (sel.value === '__other') { inp.classList.remove('hidden'); inp.value = ''; inp.focus(); }
+            else { inp.classList.add('hidden'); inp.value = sel.value; }
+        };
+
         var render = function () {
             var el = box(); if (!el) return;
-            if (!last.items.length) { el.innerHTML = manualForm(last.q); var first = el.querySelector('.cc-fill[data-k="ชื่อลูกค้า"]'); if (first) setTimeout(function () { first.focus(); }, 50); return; }
+            if (!last.items.length) { el.innerHTML = manualForm(last.q); setupManual(el); var first = el.querySelector('.cc-fill[data-k="ชื่อลูกค้า"]'); if (first) setTimeout(function () { first.focus(); }, 50); return; }
             el.innerHTML = last.items.map(function (it, i) {
                 var v = it.v;
                 var st = it.listRow > 0 ? '<span class="cc-chip ok"><i class="fas fa-check"></i> มีในชีตรายชื่อแล้ว (แถว ' + it.listRow + ')</span>'
@@ -203,6 +264,7 @@
             if (!/^\d{5}$/.test(ex['รหัสที่ทำการ'] || '')) return bad('รหัสที่ทำการ', 'กรุณากรอกรหัสไปรษณีย์ที่ทำการ 5 หลัก');
             if (ex['หมายเลขสมาชิก THP-'] && !/^\d{8}$/.test(ex['หมายเลขสมาชิก THP-'])) return bad('หมายเลขสมาชิก THP-', 'หมายเลข Post Family ต้องเป็นตัวเลข 8 หลัก');
             if (ex['Email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ex['Email'])) return bad('Email', 'Email ไม่ถูกต้อง');
+            if (ex['เบอร์ Wallet@post'] && !/^\d{10}$/.test(ex['เบอร์ Wallet@post'])) return bad('เบอร์ Wallet@post', 'เบอร์ที่ลงทะเบียน Wallet@post ต้องเป็นตัวเลข 10 หลัก');
             Swal.fire({ icon: 'question', title: 'เพิ่มลูกค้าใหม่ ' + ex['ชื่อลูกค้า'], text: 'เพิ่มแถวในชีต "การตอบแบบฟอร์ม 1" แล้วบันทึกข้อมูลลงชีต "รายชื่อ/สัญญา A1-A12"', showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', returnFocus: false }).then(function (a) {
                 if (!a.isConfirmed) return;
                 var html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังบันทึก...';
