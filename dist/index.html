@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1120.2039';
+    var APP_VERSION = 'Ver. 2026.1121.2014';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20521,6 +20521,21 @@
     @media (min-width: 1200px) { #page-contract-customer .cc-wide dl { grid-template-columns: 34px 1fr 34px 1fr 34px 1fr; } }
     #page-contract-customer .cc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
     #page-contract-customer .cc-note { font-size: 12.5px; color: #6b7280; }
+    /* ช่องกรอกเพิ่ม / ฟอร์มกรอกเอง (ผู้ใช้ขอ 2026-11-21) */
+    #page-contract-customer .cc-fill { width: 100%; height: 34px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 10px; font-size: 13px; background: #fff; color: #14532d; font-weight: 500; }
+    #page-contract-customer .cc-fill::placeholder { color: #9ca3af; font-weight: 400; }
+    #page-contract-customer .cc-fill:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-customer .cc-fill.cc-invalid { border-color: #dc2626; }
+    #page-contract-customer .cc-box dd.cc-blank small { color: #c2410c; }
+    #page-contract-customer .cc-manual { border-color: #fdba74; background: #fffaf5; }
+    #page-contract-customer .cc-mgroup { margin-top: 6px; }
+    #page-contract-customer .cc-mgroup + .cc-mgroup { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #fed7aa; }
+    #page-contract-customer .cc-mgroup h4 { font-size: 13px; font-weight: 700; color: #374151; margin: 0 0 8px; }
+    #page-contract-customer .cc-mgroup h4 small { font-weight: 400; color: #6b7280; }
+    #page-contract-customer .cc-mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; }
+    #page-contract-customer .cc-mf { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    #page-contract-customer .cc-mf > span { font-size: 12.5px; font-weight: 600; color: #374151; }
+    #page-contract-customer .cc-mf > span em { font-style: normal; font-weight: 600; color: #9ca3af; font-size: 11px; margin-left: 4px; }
 </style>
 
 <script>
@@ -20536,24 +20551,63 @@
         var FORM_COLS = [['D', 'ชื่อลูกค้า', 'ชื่อ-สกุล ลูกค้า'], ['H', 'หมายเลขสมาชิก THP-', 'Post family'], ['M', 'รหัสที่ทำการ', 'รหัสไปรษณีย์']];
 
         var box = function () { return document.getElementById('ccResult'); };
+        // ช่องกรอก (ชนิดตามหัวคอลัมน์) — ใช้ทั้งเติมช่องว่างและฟอร์มกรอกเอง
+        var HINT = { 'หมายเลขสมาชิก THP-': ['numeric', '8 หลัก', 8], 'รหัสที่ทำการ': ['numeric', '5 หลัก', 5], 'CUSTOMER_POSTCODE': ['numeric', '5 หลัก', 5],
+            'เลขบัตรประชาชน': ['numeric', '13 หลัก', 17], 'เบอร์โทร': ['tel', 'เช่น 081-234-5678', 12], 'เบอร์ Wallet@post': ['numeric', '10 หลัก', 10],
+            'ค่าธรรมเนียม COD(%)': ['decimal', 'เช่น 3%', 6], 'Email': ['email', 'name@example.com', 120], 'รหัสบริการปัจจุบัน': ['text', 'เช่น A12', 40], 'ชื่อลูกค้า': ['text', 'ชื่อ-สกุล หรือชื่อบริษัท', 200] };
+        // ป้ายภาษาไทยของหัวคอลัมน์ภาษาอังกฤษ (ฟอร์มกรอกเอง)
+        var TH_LABEL = { 'CUSTOMER_ADDRESS': 'ที่อยู่ (เลขที่/หมู่)', 'CUSTOMER_SUBDISTRICT': 'ตำบล/แขวง', 'CUSTOMER_DISTRICT': 'อำเภอ/เขต', 'CUSTOMER_PROVINCE': 'จังหวัด', 'CUSTOMER_POSTCODE': 'รหัสไปรษณีย์ลูกค้า' };
+        var inputFor = function (key, val) {
+            if (key === 'วันที่เริ่มต้น') return '<input type="date" class="cc-fill" data-k="' + esc(key) + '" aria-label="' + esc(key) + '">';
+            var h = HINT[key] || ['text', '', 200];
+            return '<input class="cc-fill" data-k="' + esc(key) + '" inputmode="' + h[0] + '" maxlength="' + h[2] + '" placeholder="' + esc(h[1] || 'กรอกเพิ่ม (ไม่บังคับ)') + '" aria-label="' + esc(key) + '" value="' + esc(val || '') + '">';
+        };
         var dlRows = function (cols, v, labelIdx) {
             return cols.map(function (c) {
                 var val = v[c[1]] || '';
                 var label = labelIdx ? c[labelIdx] : c[1];
                 if (c[1] === 'ไฟล์สัญญา PDF' && /^https:\/\/drive\.google\.com\//.test(val)) val = '<a href="' + esc(val) + '" target="_blank" rel="noopener" class="text-blue-700 underline">เปิดไฟล์ PDF</a>';
+                else if (!val && c[1] !== 'ไฟล์สัญญา PDF') return '<dt>' + c[0] + '</dt><dd class="cc-blank">' + inputFor(c[1]) + '<small>' + esc(label) + ' · ทะเบียนว่าง กรอกเพิ่มได้</small></dd>';
                 else val = val ? esc(val) : '';
                 return '<dt>' + c[0] + '</dt><dd' + (val ? '' : ' class="cc-blank"') + '>' + (val || '— ว่าง (ไม่เขียน)') + '<small>' + esc(label) + '</small></dd>';
             }).join('');
         };
+        // ค่าจากช่องกรอกในการ์ด (วันที่ yyyy-mm-dd → d/m/yyyy ค.ศ. แบบชีตเดิม)
+        var collectExtra = function (card) {
+            var out = {};
+            card.querySelectorAll('.cc-fill').forEach(function (el) {
+                var k = el.getAttribute('data-k'), v = String(el.value || '').trim(); if (!v) return;
+                if (el.type === 'date') { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v); if (m) v = Number(m[3]) + '/' + Number(m[2]) + '/' + m[1]; }
+                if (k === 'หมายเลขสมาชิก THP-' || k === 'รหัสที่ทำการ' || k === 'CUSTOMER_POSTCODE' || k === 'เลขบัตรประชาชน' || k === 'เบอร์ Wallet@post') v = v.replace(/\D/g, '');
+                if (k === 'เลขบัตรประชาชน' && v.length === 13) v = v.charAt(0) + ' ' + v.substr(1, 4) + ' ' + v.substr(5, 5) + ' ' + v.substr(10, 2) + ' ' + v.charAt(12);
+                if (k === 'ค่าธรรมเนียม COD(%)' && /^\d+(\.\d+)?$/.test(v)) v = v + '%';
+                out[k] = v;
+            });
+            return out;
+        };
+        // ค้นไม่พบในทะเบียน → ฟอร์มกรอกเองทั้งหมด
+        var manualForm = function (q) {
+            var pre = {}; if (q.length === 13) pre['เลขบัตรประชาชน'] = q.charAt(0) + '-' + q.substr(1, 4) + '-' + q.substr(5, 5) + '-' + q.substr(10, 2) + '-' + q.charAt(12); else if (q.length === 8) pre['หมายเลขสมาชิก THP-'] = q;
+            var field = function (col, key, label, req) {
+                return '<label class="cc-mf"><span>' + esc(label) + (req ? ' <b class="text-red-600">*</b>' : '') + ' <em>' + col + '</em></span>' + inputFor(key, pre[key]) + '</label>';
+            };
+            return '<div class="cc-card cc-manual"><div class="cc-head"><b><i class="fas fa-user-plus"></i> ไม่พบในทะเบียนสัญญาปี 2570 — กรอกข้อมูลลูกค้าเอง</b><span class="cc-chip new">เพิ่มลูกค้าใหม่</span></div>' +
+                '<div class="cc-mgroup"><h4>ชีต "การตอบแบบฟอร์ม 1"</h4><div class="cc-mgrid">' +
+                field('D', 'ชื่อลูกค้า', 'ชื่อ-สกุล ลูกค้า', true) + field('H', 'หมายเลขสมาชิก THP-', 'Post family', false) + field('M', 'รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการ', true) +
+                '</div></div><div class="cc-mgroup"><h4>ชีต "รายชื่อ/สัญญา A1-A12" <small>(ไม่บังคับ — ช่องที่ว่างไม่เขียน)</small></h4><div class="cc-mgrid">' +
+                LIST_COLS.filter(function (c) { return c[1] !== 'ไฟล์สัญญา PDF'; }).map(function (c) { return field(c[0], c[1], TH_LABEL[c[1]] || c[1], false); }).join('') +
+                '</div></div><div class="cc-actions"><button type="button" class="cc-btn" onclick="thpCcSaveManual(this)"><i class="fas fa-save"></i> บันทึกลูกค้าใหม่ลงชีต</button>' +
+                '<span class="cc-note">เพิ่มแถวใน "การตอบแบบฟอร์ม 1" แล้วบันทึกข้อมูลที่กรอกลง "รายชื่อ/สัญญา A1-A12"</span></div></div>';
+        };
         var render = function () {
             var el = box(); if (!el) return;
-            if (!last.items.length) { el.innerHTML = '<div class="cc-empty">ไม่พบข้อมูลในทะเบียนสัญญาปี 2570 — ลูกค้าต้องสร้างสัญญาผ่านหน้า "สร้างสัญญาขนส่ง" ก่อน</div>'; return; }
+            if (!last.items.length) { el.innerHTML = manualForm(last.q); var first = el.querySelector('.cc-fill[data-k="ชื่อลูกค้า"]'); if (first) setTimeout(function () { first.focus(); }, 50); return; }
             el.innerHTML = last.items.map(function (it, i) {
                 var v = it.v;
                 var st = it.listRow > 0 ? '<span class="cc-chip ok"><i class="fas fa-check"></i> มีในชีตรายชื่อแล้ว (แถว ' + it.listRow + ')</span>'
                     : '<span class="cc-chip new"><i class="fas fa-plus"></i> ยังไม่มีในชีตรายชื่อ — จะเพิ่มแถวในแบบฟอร์ม</span>';
                 var formBox = it.listRow > 0 ? '' : '<div class="cc-box"><h4>ชีต "การตอบแบบฟอร์ม 1"' + (it.formRow > 0 ? ' · มีแล้ว แถว ' + it.formRow + ' (ไม่เพิ่มซ้ำ)' : ' · เพิ่มแถวใหม่') + '</h4><dl>' + dlRows(FORM_COLS, v, 2) + '</dl></div>';
-                return '<div class="cc-card"><div class="cc-head"><b>' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
+                return '<div class="cc-card" data-i="' + i + '"><div class="cc-head"><b>' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
                     '<span class="cc-chip">' + esc(v['รหัสบริการปัจจุบัน'] || '-') + '</span><span class="cc-chip">' + esc(v['ประเภทสัญญา'] || '') + '</span>' + st + '</div>' +
                     '<div class="cc-grid">' + formBox + '<div class="cc-box cc-wide"><h4>ชีต "รายชื่อ/สัญญา A1-A12"' + (it.listRow > 0 ? ' · แถว ' + it.listRow : '') + '</h4><dl>' + dlRows(LIST_COLS, v) + '</dl></div></div>' +
                     '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
@@ -20591,7 +20645,29 @@
                 }).withFailureHandler(function (err) {
                     btn.disabled = false; btn.innerHTML = html;
                     Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
-                }).saveCustomerToSheets({ q: last.q, rowNo: it.rowNo }, currentUserInfo);
+                }).saveCustomerToSheets({ q: last.q, rowNo: it.rowNo, extra: collectExtra(btn.closest('.cc-card')) }, currentUserInfo);
+            });
+        };
+
+        window.thpCcSaveManual = function (btn) {
+            var card = btn.closest('.cc-card'), ex = collectExtra(card);
+            card.querySelectorAll('.cc-invalid').forEach(function (x) { x.classList.remove('cc-invalid'); });
+            var bad = function (k, msg) { var e = card.querySelector('.cc-fill[data-k="' + k + '"]'); if (e) e.classList.add('cc-invalid'); Swal.fire({ icon: 'warning', title: 'กรอกไม่ครบ', text: msg, returnFocus: false }).then(function () { if (e) { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.focus({ preventScroll: true }); } }); };
+            if (!ex['ชื่อลูกค้า']) return bad('ชื่อลูกค้า', 'กรุณากรอกชื่อ-สกุลลูกค้า');
+            if (!/^\d{5}$/.test(ex['รหัสที่ทำการ'] || '')) return bad('รหัสที่ทำการ', 'กรุณากรอกรหัสไปรษณีย์ที่ทำการ 5 หลัก');
+            if (ex['หมายเลขสมาชิก THP-'] && !/^\d{8}$/.test(ex['หมายเลขสมาชิก THP-'])) return bad('หมายเลขสมาชิก THP-', 'หมายเลข Post Family ต้องเป็นตัวเลข 8 หลัก');
+            if (ex['Email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ex['Email'])) return bad('Email', 'Email ไม่ถูกต้อง');
+            Swal.fire({ icon: 'question', title: 'เพิ่มลูกค้าใหม่ ' + ex['ชื่อลูกค้า'], text: 'เพิ่มแถวในชีต "การตอบแบบฟอร์ม 1" แล้วบันทึกข้อมูลลงชีต "รายชื่อ/สัญญา A1-A12"', showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', returnFocus: false }).then(function (a) {
+                if (!a.isConfirmed) return;
+                var html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+                google.script.run.withSuccessHandler(function (res) {
+                    btn.disabled = false; btn.innerHTML = html;
+                    if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : 'มีลูกค้าในชีตอยู่แล้ว (ไม่เพิ่มซ้ำ)<br>') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow });
+                }).withFailureHandler(function (err) {
+                    btn.disabled = false; btn.innerHTML = html;
+                    Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
+                }).saveCustomerToSheets({ manual: true, extra: ex }, currentUserInfo);
             });
         };
 

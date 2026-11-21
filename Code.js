@@ -5961,11 +5961,31 @@ function saveCustomerToSheets_(payload, actor) {
   var lock = LockService.getScriptLock();
   try {
     if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
-    var r = customerRegistryFind_(payload && payload.q);
-    if (r.error) return { status: 'error', message: r.error };
-    var it = r.list.filter(function (x) { return x.rowNo === Number(payload.rowNo); })[0]; // ข้อมูลจากทะเบียน (ไม่เชื่อค่าจากหน้าเว็บ)
-    if (!it) return { status: 'error', message: 'ไม่พบข้อมูลในทะเบียนปี 2570 (อาจถูกแก้ไขแล้ว กรุณาค้นหาใหม่)' };
-    var v = it.v;
+    payload = payload || {};
+    // ข้อมูลที่ admin กรอกเพิ่ม (ผู้ใช้ขอ 2026-11-21): ใช้เฉพาะคีย์ที่กำหนด, ตัดยาว/อักขระควบคุม
+    var allowKeys = ['ชื่อลูกค้า', 'หมายเลขสมาชิก THP-', 'รหัสที่ทำการ'].concat(CUSTOMER_LIST_MAP.map(function (m) { return m[1]; }));
+    var extra = {};
+    Object.keys(payload.extra || {}).forEach(function (k) {
+      if (allowKeys.indexOf(k) === -1) return;
+      var s = String(payload.extra[k] == null ? '' : payload.extra[k]).replace(/[\u0000-\u001F]/g, ' ').trim().substring(0, 200);
+      if (s) extra[k] = s;
+    });
+    var v;
+    if (payload.manual) {
+      // ไม่มีในทะเบียน → ใช้ข้อมูลที่กรอกเองทั้งหมด
+      v = extra;
+      if (!v['ชื่อลูกค้า']) return { status: 'error', message: 'กรุณากรอกชื่อลูกค้า' };
+      if (!/^\d{5}$/.test(v['รหัสที่ทำการ'] || '')) return { status: 'error', message: 'กรุณากรอกรหัสที่ทำการ (รหัสไปรษณีย์ 5 หลัก)' };
+      if (v['หมายเลขสมาชิก THP-'] && !/^\d{8}$/.test(String(v['หมายเลขสมาชิก THP-']).replace(/\D/g, ''))) return { status: 'error', message: 'หมายเลข Post Family ต้องเป็นตัวเลข 8 หลัก' };
+    } else {
+      var r = customerRegistryFind_(payload.q);
+      if (r.error) return { status: 'error', message: r.error };
+      var it = r.list.filter(function (x) { return x.rowNo === Number(payload.rowNo); })[0]; // ข้อมูลจากทะเบียน (ไม่เชื่อค่าจากหน้าเว็บ)
+      if (!it) return { status: 'error', message: 'ไม่พบข้อมูลในทะเบียนปี 2570 (อาจถูกแก้ไขแล้ว กรุณาค้นหาใหม่)' };
+      v = it.v;
+      // เติมเฉพาะช่องที่ทะเบียนว่าง (ไม่ทับค่าจากทะเบียน)
+      Object.keys(extra).forEach(function (k) { if (!String(v[k] || '').trim()) v[k] = extra[k]; });
+    }
     if (!v['ชื่อลูกค้า']) return { status: 'error', message: 'ข้อมูลในทะเบียนไม่มีชื่อลูกค้า' };
     lock.waitLock(30000);
     var ss = SpreadsheetApp.openById(RENEWAL_SS_ID), listSh = renewalSheet_(), formSh = ss.getSheetByName(CUSTOMER_FORM_SHEET);
