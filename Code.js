@@ -5942,6 +5942,22 @@ function customerFormRow_(formSh, v) {
   }
   return -1;
 }
+// ไฟล์แนบในคอลัมน์ R (ชิปไฟล์/ลิงก์ Drive หลายไฟล์ในช่องเดียว) → [{ name, url, id }]
+function customerListAttachments_(listSh, row) {
+  var out = [], seen = {};
+  if (!listSh || !(row > 1)) return out;
+  var rich = listSh.getRange(row, colIndex_('R')).getRichTextValue();
+  if (!rich) return out;
+  rich.getRuns().forEach(function (run) {
+    var url = run.getLinkUrl(); if (!url) return;
+    var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
+    var key = id || url; if (seen[key]) return; seen[key] = true;
+    var name = String(run.getText() || '').replace(/\s+/g, ' ').trim();
+    if ((!name || name.length < 3) && id) { try { name = DriveApp.getFileById(id).getName(); } catch (e) { } }
+    out.push({ name: name || 'ไฟล์แนบ', url: url, id: id });
+  });
+  return out;
+}
 function findCustomerForSheet_(payload, actor) {
   try {
     if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
@@ -5949,7 +5965,9 @@ function findCustomerForSheet_(payload, actor) {
     if (r.error) return { status: 'error', message: r.error };
     var ss = SpreadsheetApp.openById(RENEWAL_SS_ID), listSh = renewalSheet_(), formSh = ss.getSheetByName(CUSTOMER_FORM_SHEET);
     var items = r.list.map(function (it) {
-      return { rowNo: it.rowNo, v: it.v, listRow: listSh ? customerListRow_(listSh, it.v) : -1, formRow: formSh ? customerFormRow_(formSh, it.v) : -1 };
+      var lr = listSh ? customerListRow_(listSh, it.v) : -1, files = [];
+      try { files = customerListAttachments_(listSh, lr); } catch (eF) { }
+      return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files };
     });
     return { status: 'success', items: items, formSheet: !!formSh };
   } catch (e) {
