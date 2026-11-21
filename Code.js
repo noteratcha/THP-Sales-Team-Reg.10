@@ -5946,33 +5946,25 @@ function customerFormRow_(formSh, v) {
 function customerListAttachments_(listSh, row) {
   var out = [], seen = {};
   if (!listSh || !(row > 1)) return out;
-  var add = function (url, name) {
+  var add = function (url, name, chipText) {
     if (!url) return;
     var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
     var key = id || url; if (seen[key]) return; seen[key] = true;
     name = String(name || '').replace(/\s+/g, ' ').trim();
     if ((!name || name.length < 3) && id) { try { name = DriveApp.getFileById(id).getName(); } catch (e) { } }
+    if ((!name || name.length < 3) && chipText) name = chipText;
     out.push({ name: name || 'ไฟล์แนบ', url: url, id: id });
   };
   // 1) ชิปไฟล์ (smart chip) อ่านได้ผ่าน Sheets API เท่านั้น: values.chipRuns[].chip.richLinkProperties.uri
-  //    ใช้บริการเสริม Sheets (เปิด API ให้อัตโนมัติ) ก่อน แล้วสำรองด้วย UrlFetch — เก็บสาเหตุที่ล้มเหลวไว้ใน out.err
-  var range = "'" + listSh.getName().replace(/'/g, "''") + "'!R" + row, ssId = listSh.getParent().getId();
-  var FIELDS = 'sheets.data.rowData.values(chipRuns,hyperlink,textFormatRuns)', data = null, errs = [];
-  try {
-    if (typeof Sheets !== 'undefined') data = Sheets.Spreadsheets.get(ssId, { ranges: [range], includeGridData: true, fields: FIELDS });
-  } catch (eAdv) { errs.push('Sheets: ' + String(eAdv && eAdv.message || eAdv).slice(0, 160)); }
-  if (!data) {
-    try {
-      var resp = UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + '?includeGridData=true&ranges=' + encodeURIComponent(range) + '&fields=' + encodeURIComponent(FIELDS),
-        { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
-      if (resp.getResponseCode() === 200) data = JSON.parse(resp.getContentText());
-      else errs.push('HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().replace(/\s+/g, ' ').slice(0, 160));
-    } catch (eApi) { errs.push('Fetch: ' + String(eApi && eApi.message || eApi).slice(0, 160)); }
-  }
-  if (data) {
-    var cell = ((((data.sheets || [])[0] || {}).data || [])[0] || {}).rowData || [];
-    var val = (((cell[0] || {}).values) || [])[0] || {};
-    (val.chipRuns || []).forEach(function (r) { var p = r.chip && r.chip.richLinkProperties; if (p && p.uri) add(p.uri, ''); });
+  var errs = [], val = customerListCell_(listSh, row, errs);
+  if (val) {
+    var fv = String(val.formattedValue || ''), runs = val.chipRuns || [];
+    runs.forEach(function (r, i) {
+      var p = r.chip && r.chip.richLinkProperties; if (!p || !p.uri) return;
+      var end = i + 1 < runs.length ? runs[i + 1].startIndex : fv.length;
+      var txt = fv.substring(r.startIndex || 0, end).replace(/\s+/g, ' ').trim(); // ชื่อที่แสดงบนชิป (ใช้เมื่อเปิดไฟล์ใน Drive ไม่ได้)
+      add(p.uri, '', txt.length >= 3 ? txt : '');
+    });
     (val.textFormatRuns || []).forEach(function (r) { var l = r.format && r.format.link; if (l && l.uri) add(l.uri, ''); });
     if (val.hyperlink) add(val.hyperlink, '');
   }
@@ -5985,6 +5977,87 @@ function customerListAttachments_(listSh, row) {
   }
   if (!out.length && errs.length) out.err = errs.join(' | ');
   return out;
+}
+// อ่านช่อง R ของแถวผ่าน Sheets API (บริการเสริมก่อน แล้วสำรอง UrlFetch) — คืน CellData หรือ null (สาเหตุใส่ใน errs)
+function customerListCell_(listSh, row, errs) {
+  var range = "'" + listSh.getName().replace(/'/g, "''") + "'!R" + row, ssId = listSh.getParent().getId();
+  var FIELDS = 'sheets.data.rowData.values(chipRuns,hyperlink,textFormatRuns,formattedValue,userEnteredValue)', data = null;
+  try {
+    if (typeof Sheets !== 'undefined') data = Sheets.Spreadsheets.get(ssId, { ranges: [range], includeGridData: true, fields: FIELDS });
+  } catch (eAdv) { errs.push('Sheets: ' + String(eAdv && eAdv.message || eAdv).slice(0, 160)); }
+  if (!data) {
+    try {
+      var resp = UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + '?includeGridData=true&ranges=' + encodeURIComponent(range) + '&fields=' + encodeURIComponent(FIELDS),
+        { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+      if (resp.getResponseCode() === 200) data = JSON.parse(resp.getContentText());
+      else errs.push('HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().replace(/\s+/g, ' ').slice(0, 160));
+    } catch (eApi) { errs.push('Fetch: ' + String(eApi && eApi.message || eApi).slice(0, 160)); }
+  }
+  if (!data) return null;
+  var rd = ((((data.sheets || [])[0] || {}).data || [])[0] || {}).rowData || [];
+  return (((rd[0] || {}).values) || [])[0] || {};
+}
+// เขียนช่อง R เป็นชิปไฟล์ (ข้อความ "@" = ตำแหน่งชิป) ผ่าน batchUpdate — คืน '' เมื่อสำเร็จ หรือข้อความ error
+function customerListWriteChips_(listSh, row, text, chipRuns) {
+  var ssId = listSh.getParent().getId();
+  var req = { requests: [{ updateCells: {
+    range: { sheetId: listSh.getSheetId(), startRowIndex: row - 1, endRowIndex: row, startColumnIndex: colIndex_('R') - 1, endColumnIndex: colIndex_('R') },
+    rows: [{ values: [{ userEnteredValue: { stringValue: text }, chipRuns: chipRuns }] }], fields: 'userEnteredValue,chipRuns' } }] };
+  var err = '';
+  try { if (typeof Sheets !== 'undefined') { Sheets.Spreadsheets.batchUpdate(req, ssId); return ''; } } catch (e) { err = String(e && e.message || e).slice(0, 200); }
+  var resp = UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + ':batchUpdate', { method: 'post', contentType: 'application/json',
+    payload: JSON.stringify(req), headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+  if (resp.getResponseCode() === 200) return '';
+  return (err ? err + ' | ' : '') + 'HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().replace(/\s+/g, ' ').slice(0, 200);
+}
+var CUSTOMER_ATTACH_FOLDER_NAME = 'ไฟล์แนบรายชื่อลูกค้า (จากระบบ)';
+var CUSTOMER_ATTACH_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+// เพิ่มไฟล์แนบ (ผู้ใช้ขอ 2026-11-21): อัปโหลดไป Drive แล้วต่อท้ายชิปไฟล์ในคอลัมน์ R ของแถวลูกค้า — admin เท่านั้น
+// payload = { listRow, v (ข้อมูลลูกค้าที่ค้นได้ ใช้ยืนยันแถว), fileName, mime, data (base64) }
+function uploadCustomerAttachment_(payload, actor) {
+  var lock = LockService.getScriptLock();
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    payload = payload || {};
+    var listSh = renewalSheet_(); if (!listSh) return { status: 'error', message: 'ไม่พบชีตรายชื่อ' };
+    var row = Number(payload.listRow);
+    if (!(row > 1) || customerListRow_(listSh, payload.v || {}) !== row) return { status: 'error', message: 'แถวลูกค้าในชีตไม่ตรงกับข้อมูลที่ค้นได้ — กรุณาค้นหาใหม่' };
+    var mime = String(payload.mime || '');
+    if (CUSTOMER_ATTACH_MIME.indexOf(mime) === -1) return { status: 'error', message: 'รองรับเฉพาะ PDF, รูปภาพ (JPG/PNG/WEBP), Word, Excel' };
+    var bytes = Utilities.base64Decode(String(payload.data || ''));
+    if (!bytes.length || bytes.length > 10 * 1024 * 1024) return { status: 'error', message: 'ไฟล์ว่างหรือใหญ่เกิน 10 MB' };
+    var fileName = String(payload.fileName || 'ไฟล์แนบ').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150) || 'ไฟล์แนบ';
+    // โฟลเดอร์เก็บไฟล์: อยู่ข้างไฟล์ชีตรายชื่อ
+    var parents = DriveApp.getFileById(listSh.getParent().getId()).getParents();
+    var base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+    var fit = base.getFoldersByName(CUSTOMER_ATTACH_FOLDER_NAME);
+    var folder = fit.hasNext() ? fit.next() : base.createFolder(CUSTOMER_ATTACH_FOLDER_NAME);
+    var file = folder.createFile(Utilities.newBlob(bytes, mime, fileName))
+      .setDescription('แนบจากระบบ THP Sales Team Reg.10 (เพิ่มข้อมูลลูกค้า) โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : ''));
+    var uri = file.getUrl();
+    lock.waitLock(20000);
+    var errs = [], val = customerListCell_(listSh, row, errs);
+    if (!val) return { status: 'error', message: 'อัปโหลดไฟล์แล้ว แต่อ่านช่องไฟล์แนบไม่ได้: ' + errs.join(' | '), url: uri };
+    // วิธีที่ 1: คงข้อความ/ชิปเดิมทั้งหมด แล้วต่อท้ายชิปใหม่ขึ้นบรรทัดใหม่
+    var text = String((val.userEnteredValue && val.userEnteredValue.stringValue) || '');
+    var runs = (val.chipRuns || []).filter(function (r) { return r.chip; }).map(function (r) { return { startIndex: r.startIndex || 0, chip: r.chip }; });
+    var t1 = text ? text + '\n@' : '@';
+    var werr = customerListWriteChips_(listSh, row, t1, runs.concat([{ startIndex: t1.length - 1, chip: { richLinkProperties: { uri: uri } } }]));
+    if (werr) {
+      // วิธีที่ 2: สร้างช่องใหม่จากลิงก์ไฟล์ทั้งหมด (ชิปละบรรทัด)
+      var uris = customerListAttachments_(listSh, row).map(function (f) { return f.url; }).concat([uri]);
+      var t2 = uris.map(function () { return '@'; }).join('\n');
+      var werr2 = customerListWriteChips_(listSh, row, t2, uris.map(function (u, i) { return { startIndex: i * 2, chip: { richLinkProperties: { uri: u } } }; }));
+      if (werr2) return { status: 'error', message: 'อัปโหลดไฟล์แล้ว แต่เขียนลงชีตไม่ได้: ' + werr2 + ' (ครั้งแรก: ' + werr + ')', url: uri };
+    }
+    SpreadsheetApp.flush();
+    var files = customerListAttachments_(listSh, row);
+    return { status: 'success', fileName: fileName, url: uri, files: files.slice(), filesErr: files.err || '' };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'uploadCustomerAttachment_');
+    return { status: 'error', message: e.toString() };
+  } finally { try { lock.releaseLock(); } catch (eL) { } }
 }
 function findCustomerForSheet_(payload, actor) {
   try {
@@ -6767,7 +6840,7 @@ var API_ALLOWED_FUNCTIONS = [
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
   'findCustomerForSheet', 'saveCustomerToSheets', 'getRenewalBulk', 'generateContractBulk',
-  'listContractFiles', 'getContractFileData', 'checkContractExisting'
+  'listContractFiles', 'getContractFileData', 'checkContractExisting', 'uploadCustomerAttachment'
 ];
 
 
@@ -6800,6 +6873,7 @@ var AUTH_SESSION_USER_ARG = {
   createRenewalArchive: 1,       // (payload, actor) — admin เท่านั้น
   findCustomerForSheet: 1,       // (payload, actor) — admin เท่านั้น
   saveCustomerToSheets: 1,       // (payload, actor) — admin เท่านั้น
+  uploadCustomerAttachment: 1,   // (payload, actor) — admin เท่านั้น
   getRenewalBulk: 1,             // (payload, actor) — admin เท่านั้น (สร้างสัญญาทั้งที่ทำการ)
   generateContractBulk: 1,       // (payload, actor) — admin เท่านั้น
   listContractFiles: 0,          // (actor) — admin ทั้งหมด / ปจ. ทั้งจังหวัด / ที่ทำการ เฉพาะของตน
