@@ -6010,7 +6010,26 @@ function customerListWriteChips_(listSh, row, text, chipRuns) {
   if (resp.getResponseCode() === 200) return '';
   return (err ? err + ' | ' : '') + 'HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().replace(/\s+/g, ' ').slice(0, 200);
 }
-var CUSTOMER_ATTACH_FOLDER_NAME = 'ไฟล์แนบรายชื่อลูกค้า (จากระบบ)';
+var CUSTOMER_ATTACH_FOLDER_NAME = 'ไฟล์แนบรายชื่อลูกค้า (จากระบบ)'; // เดิม (ไม่ใช้แล้ว)
+var CUSTOMER_ATTACH_BASE_ID = '1XoEJSWWdFP0GT-nWrpuL2ZOPA7PUWMxj'; // โฟลเดอร์ "สัญญาขนส่ง"
+// ปี พ.ศ. ของลูกค้า: วันที่เริ่มต้น (ชีตรายชื่อ) → วันที่เริ่มต้นที่ส่งมา → วันที่สิ้นสุด → ปีปัจจุบัน
+function customerAttachYear_(listSh, row, v) {
+  var toBE = function (x) {
+    if (x instanceof Date && !isNaN(x)) return x.getFullYear() + 543;
+    var m = /(\d{4})/.exec(String(x || '')); if (!m) return 0;
+    var y = Number(m[1]); return y > 2400 ? y : (y > 1900 ? y + 543 : 0);
+  };
+  try {
+    var head = listSh.getRange(1, 1, 1, listSh.getLastColumn()).getDisplayValues()[0].map(function (h) { return String(h).trim(); });
+    var cols = ['วันที่เริ่มต้น', 'วันที่สิ้นสุด'];
+    for (var k = 0; k < cols.length; k++) {
+      var c = head.indexOf(cols[k]);
+      if (c >= 0) { var y = toBE(listSh.getRange(row, c + 1).getValue()); if (y) return y; }
+      var y2 = toBE(v[cols[k]]); if (y2) return y2;
+    }
+  } catch (e) { }
+  return new Date().getFullYear() + 543;
+}
 var CUSTOMER_ATTACH_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
 // เพิ่มไฟล์แนบ (ผู้ใช้ขอ 2026-11-21): อัปโหลดไป Drive แล้วต่อท้ายชิปไฟล์ในคอลัมน์ R ของแถวลูกค้า — admin เท่านั้น
@@ -6028,11 +6047,11 @@ function uploadCustomerAttachment_(payload, actor) {
     var bytes = Utilities.base64Decode(String(payload.data || ''));
     if (!bytes.length || bytes.length > 10 * 1024 * 1024) return { status: 'error', message: 'ไฟล์ว่างหรือใหญ่เกิน 10 MB' };
     var fileName = String(payload.fileName || 'ไฟล์แนบ').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150) || 'ไฟล์แนบ';
-    // โฟลเดอร์เก็บไฟล์: อยู่ข้างไฟล์ชีตรายชื่อ
-    var parents = DriveApp.getFileById(listSh.getParent().getId()).getParents();
-    var base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
-    var fit = base.getFoldersByName(CUSTOMER_ATTACH_FOLDER_NAME);
-    var folder = fit.hasNext() ? fit.next() : base.createFolder(CUSTOMER_ATTACH_FOLDER_NAME);
+    // โฟลเดอร์เก็บไฟล์: โฟลเดอร์ "สัญญาขนส่ง" › "ปี <พ.ศ.>" ตามปีของลูกค้า (วันที่เริ่มต้นสัญญา) — ผู้ใช้ขอ 2026-11-23
+    var base = DriveApp.getFolderById(CUSTOMER_ATTACH_BASE_ID);
+    var yName = 'ปี ' + customerAttachYear_(listSh, row, payload.v || {});
+    var fit = base.getFoldersByName(yName);
+    var folder = fit.hasNext() ? fit.next() : base.createFolder(yName);
     var file = folder.createFile(Utilities.newBlob(bytes, mime, fileName))
       .setDescription('แนบจากระบบ THP Sales Team Reg.10 (เพิ่มข้อมูลลูกค้า) โดย ' + actor.user + (actor.name ? ' (' + actor.name + ')' : ''));
     var uri = file.getUrl();
