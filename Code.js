@@ -5723,7 +5723,8 @@ function fillContractDocx_(templateBlob, values, fileName) {
 // ===== เขียนข้อมูลลูกค้ากลับลงชีตต้นทาง + ไฟล์สำเนา หลังสร้างสัญญาต่อ/เปลี่ยน (ผู้ใช้กำหนด 2026-11-19) =====
 // เติมเฉพาะช่องที่ว่างหรือเป็น "-" (ไม่เขียนทับข้อมูลเดิม); ข้อมูลที่ไม่มีคอลัมน์ → เพิ่มคอลัมน์ท้ายชีต (RENEWAL_EXTRA_COLS)
 // หาแถวลูกค้าจาก THP 8 หลัก หรือ ชื่อ+รหัสที่ทำการ (เลือกแถวที่ไม่ใช่ยกเลิกสัญญา, ล่างสุด) — ทำในแต่ละไฟล์แยกกัน
-var RENEWAL_EXTRA_COLS = ['ประเภทสิ่งของที่ฝากส่ง', 'Email', 'เบอร์ Wallet@post', 'ชื่อเจ้าของ Wallet@post', 'อาคาร', 'ถนน', 'อัปเดตข้อมูลจากระบบสัญญา'];
+var CONTRACT_LINK_COL = 'ไฟล์สัญญาจากระบบ'; // ลิงก์ PDF สัญญาที่ระบบสร้าง (ผู้ใช้ขอ 2026-11-23 — แยกจากคอลัมน์ R ไฟล์แนบ)
+var RENEWAL_EXTRA_COLS = ['ประเภทสิ่งของที่ฝากส่ง', 'Email', 'เบอร์ Wallet@post', 'ชื่อเจ้าของ Wallet@post', 'อาคาร', 'ถนน', 'อัปเดตข้อมูลจากระบบสัญญา', CONTRACT_LINK_COL];
 function renewalFindRow_(data, c, thpDigits, name, zip) {
   var hit = -1;
   for (var i = 1; i < data.length; i++) {
@@ -5735,7 +5736,7 @@ function renewalFindRow_(data, c, thpDigits, name, zip) {
   return hit;
 }
 // values = { หัวคอลัมน์(ขึ้นต้นด้วย): ค่า } → คืนจำนวนช่องที่เติม
-function renewalFillSheet_(sh, thpDigits, name, zip, values, stamp) {
+function renewalFillSheet_(sh, thpDigits, name, zip, values, stamp, link) {
   var lastCol = sh.getLastColumn();
   var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
   // เพิ่มคอลัมน์ที่ยังไม่มี (ท้ายชีต)
@@ -5764,9 +5765,10 @@ function renewalFillSheet_(sh, thpDigits, name, zip, values, stamp) {
     filled++;
   });
   if (filled) { var sj = findCol('อัปเดตข้อมูลจากระบบสัญญา'); if (sj >= 0) sh.getRange(idx + 1, sj + 1).setNumberFormat('@').setValue(stamp); }
-  return { found: true, filled: filled };
+  if (link) { var lj = header.indexOf(CONTRACT_LINK_COL); if (lj >= 0) sh.getRange(idx + 1, lj + 1).setValue(link); } // ลิงก์สัญญาล่าสุด (เขียนทับ)
+  return { found: true, filled: filled, link: !!link };
 }
-function renewalWriteBack_(p, actor) {
+function renewalWriteBack_(p, actor, pdfUrl) {
   var lock = LockService.getScriptLock();
   try {
     if (!renewalCanUse_(actor) || (!renewalEnabled_() && !renewalIsAdmin_(actor))) return { skipped: 'ไม่มีสิทธิ์' };
@@ -5797,9 +5799,9 @@ function renewalWriteBack_(p, actor) {
     var stamp = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') + ' ' + actor.user;
     var out = {};
     var live = renewalSheet_();
-    if (live) out.live = renewalFillSheet_(live, thp, name, zip, values, stamp);
+    if (live) out.live = renewalFillSheet_(live, thp, name, zip, values, stamp, pdfUrl);
     var info = renewalArchiveInfo_();
-    if (info) { var arc = SpreadsheetApp.openById(info.id).getSheetByName(RENEWAL_ARCHIVE_SHEET); if (arc) out.archive = renewalFillSheet_(arc, thp, name, zip, values, stamp); }
+    if (info) { var arc = SpreadsheetApp.openById(info.id).getSheetByName(RENEWAL_ARCHIVE_SHEET); if (arc) out.archive = renewalFillSheet_(arc, thp, name, zip, values, stamp, pdfUrl); }
     return out;
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'renewalWriteBack_');
@@ -5904,7 +5906,7 @@ function contractRegister_(p, actor, pdfUrl) {
 var CUSTOMER_FORM_SHEET = 'การตอบแบบฟอร์ม 1';
 // คอลัมน์ชีตรายชื่อ ← หัวคอลัมน์ทะเบียนปี 2570
 var CUSTOMER_LIST_MAP = [
-  ['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['O', 'วันที่สิ้นสุด'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], ['R', 'ไฟล์สัญญา PDF'],
+  ['H', 'รหัสบริการปัจจุบัน'], ['L', 'ค่าธรรมเนียม COD(%)'], ['M', 'วันที่เริ่มต้น'], ['O', 'วันที่สิ้นสุด'], ['Q', 'ชื่อโปรแกรมจ่าหน้าที่ใช้งาน'], // R = ไฟล์แนบ (ลิงก์สัญญาไปคอลัมน์ CONTRACT_LINK_COL แทน — 2026-11-23)
   ['T', 'เบอร์โทร'], ['U', 'เลขบัตรประชาชน'], ['Z', 'CUSTOMER_ADDRESS'], ['AA', 'CUSTOMER_SUBDISTRICT'], ['AB', 'CUSTOMER_DISTRICT'],
   ['AC', 'CUSTOMER_PROVINCE'], ['AD', 'CUSTOMER_POSTCODE'], ['AK', 'ประเภทสิ่งของที่ฝากส่ง'], ['AL', 'Email'], ['AM', 'เบอร์ Wallet@post'],
   ['AN', 'ชื่อเจ้าของ Wallet@post'], ['AO', 'อาคาร'], ['AP', 'ถนน']
@@ -5965,19 +5967,59 @@ function customerRegisterUpsert_(v, rowNo, vMatch, listSh, listRow, actor) {
   });
   return { row: target, added: added, written: n };
 }
+// คอลัมน์ "ไฟล์สัญญาจากระบบ" ในชีตรายชื่อ (สร้างท้ายชีตถ้ายังไม่มี) → เลขคอลัมน์ (1-based)
+function contractLinkCol_(sh) {
+  var lastCol = sh.getLastColumn(), header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0].map(function (h) { return String(h).trim(); });
+  var j = header.indexOf(CONTRACT_LINK_COL); if (j >= 0) return j + 1;
+  if (sh.getMaxColumns() < lastCol + 1) sh.insertColumnsAfter(sh.getMaxColumns(), 1);
+  sh.getRange(1, lastCol + 1).setValue(CONTRACT_LINK_COL);
+  return lastCol + 1;
+}
+/**
+ * (Run ครั้งเดียวในหน้า Apps Script) ย้ายลิงก์ไฟล์สัญญาที่เคยถูกเขียนลงคอลัมน์ R "ไฟล์แนบ" ของชีตรายชื่อ
+ * ไปคอลัมน์ "ไฟล์สัญญาจากระบบ" — จับเฉพาะไฟล์ที่ตรงกับ "ไฟล์สัญญา PDF" ในทะเบียนปี 2570; ไฟล์แนบอื่นใน R คงไว้
+ * Log แสดงเฉพาะยอดนับ (ผู้ใช้ขอ 2026-11-23)
+ */
+function moveContractLinksFromAttachCol() {
+  var listSh = renewalSheet_(); if (!listSh) { Logger.log('ไม่พบชีตรายชื่อ'); return; }
+  var reg = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID).getSheetByName(CONTRACT_REGISTER_SHEET);
+  if (!reg || reg.getLastRow() < 2) { Logger.log('ไม่พบทะเบียน'); return; }
+  var rd = reg.getDataRange().getDisplayValues(), h = rd[0], iu = h.indexOf('ไฟล์สัญญา PDF');
+  var lcol = contractLinkCol_(listSh);
+  var st = { registryWithPdf: 0, noListRow: 0, moved: 0, linkOnly: 0, rewriteErr: 0 };
+  for (var i = 1; i < rd.length; i++) {
+    var url = String(rd[i][iu] || '').trim(), m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
+    if (!id) continue;
+    st.registryWithPdf++;
+    var v = {}; h.forEach(function (k, j) { if (k) v[k] = String(rd[i][j] || '').trim(); });
+    var row = customerListRow_(listSh, v);
+    if (row < 2) { st.noListRow++; continue; }
+    var files = customerListAttachments_(listSh, row), hit = files.some(function (f) { return f.id === id; });
+    if (hit) {
+      var keep = files.filter(function (f) { return f.id !== id; }).map(function (f) { return f.url; }), err = '';
+      if (keep.length) err = customerListWriteChips_(listSh, row, keep.map(function () { return '@'; }).join(String.fromCharCode(10)), keep.map(function (u, k) { return { startIndex: k * 2, chip: { richLinkProperties: { uri: u } } }; }));
+      else listSh.getRange(row, colIndex_('R')).clearContent();
+      if (err) { st.rewriteErr++; continue; }
+      st.moved++;
+    } else st.linkOnly++;
+    listSh.getRange(row, lcol).setValue(url);
+  }
+  SpreadsheetApp.flush();
+  Logger.log('ย้ายลิงก์สัญญา R → "' + CONTRACT_LINK_COL + '": ' + JSON.stringify(st));
+}
 // ค้นในชีตรายชื่อด้วยเลขบัตร (U) / THP (G) → [{ listRow, v }] (คีย์เดียวกับทะเบียน)
 function customerListFind_(listSh, q) {
   var key = String(q || '').replace(/\D/g, ''), out = [];
   if (key.length !== 13 && key.length !== 8) return out;
   var last = listSh.getLastRow(); if (last < 2) return out;
   var data = listSh.getRange(1, 1, last, Math.max(listSh.getLastColumn(), colIndex_('AP'))).getDisplayValues();
-  var kc = colIndex_(key.length === 13 ? 'U' : 'G') - 1;
+  var kc = colIndex_(key.length === 13 ? 'U' : 'G') - 1, lc = data[0].map(function (h) { return String(h).trim(); }).indexOf(CONTRACT_LINK_COL);
   var map = [['C', 'รหัสที่ทำการ'], ['F', 'ชื่อลูกค้า'], ['G', 'หมายเลขสมาชิก THP-']].concat(CUSTOMER_LIST_MAP);
   for (var i = 1; i < data.length; i++) {
     if (String(data[i][kc] || '').replace(/\D/g, '') !== key) continue;
     var v = {}; map.forEach(function (m) { v[m[1]] = String(data[i][colIndex_(m[0]) - 1] || '').trim(); });
     if (!v['ชื่อลูกค้า']) continue;
-    v['ไฟล์สัญญา PDF'] = ''; // คอลัมน์ R = ชิปไฟล์แนบ (แสดงในกล่องไฟล์แนบแทน)
+    v['ไฟล์สัญญา PDF'] = lc >= 0 ? String(data[i][lc] || '').trim() : ''; // คอลัมน์ ไฟล์สัญญาจากระบบ
     out.push({ listRow: i + 1, v: v });
   }
   return out;
@@ -6202,7 +6244,8 @@ function findCustomerForSheet_(payload, actor) {
     if (!items.length && listSh) items = customerListFind_(listSh, payload && payload.q).map(function (x) {
       var files = [], filesErr = '';
       try { files = customerListAttachments_(listSh, x.listRow); filesErr = files.err || ''; } catch (eF) { filesErr = String(eF && eF.message || eF).slice(0, 200); }
-      return { rowNo: 0, src: 'list', v: x.v, listRow: x.listRow, formRow: formSh ? customerFormRow_(formSh, x.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr };
+      return { rowNo: 0, src: 'list', v: x.v, listRow: x.listRow, formRow: formSh ? customerFormRow_(formSh, x.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr,
+        contract: customerDriveFileMeta_(x.v['ไฟล์สัญญา PDF']) };
     });
     return { status: 'success', items: items, formSheet: !!formSh };
   } catch (e) {
@@ -6272,14 +6315,15 @@ function saveCustomerToSheets_(payload, actor) {
     CUSTOMER_LIST_MAP.forEach(function (m) {
       var val = String(v[m[1]] || '').trim(); if (!val) return;
       var cell = listSh.getRange(listRow, colIndex_(m[0]));
-      // R = ช่องไฟล์แนบ (ชิปหลายไฟล์) — เขียนลิงก์สัญญาเฉพาะตอนช่องว่าง ไม่งั้นชิปไฟล์ที่แนบไว้จะถูกทับ
-      if (m[0] === 'R' && String(cell.getDisplayValue() || '').trim()) return;
       if (m[0] === 'M' || m[0] === 'O') { // วันที่เริ่มต้น/สิ้นสุด เก็บเป็นวันที่จริง (สูตรเช็คเดือน/ปีใช้)
         var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(val);
         cell.setValue(dm ? new Date(Number(dm[3]), Number(dm[2]) - 1, Number(dm[1])) : val);
       } else cell.setValue(val);
       written++;
     });
+    // ลิงก์ไฟล์สัญญาจากทะเบียน → คอลัมน์ "ไฟล์สัญญาจากระบบ" (ไม่ใช่ R ไฟล์แนบ)
+    var ctUrl = String(v['ไฟล์สัญญา PDF'] || '').trim();
+    if (/^https:\/\/drive\.google\.com\//.test(ctUrl)) { listSh.getRange(listRow, contractLinkCol_(listSh)).setValue(ctUrl); written++; }
     res.listRow = listRow; res.written = written;
     // อัปเดตทะเบียนสัญญา "ปี 2570" ด้วย (ผู้ใช้ขอ 2026-11-23) — ไม่ทำให้การบันทึกหลักล้มถ้าผิดพลาด
     try {
@@ -6328,7 +6372,7 @@ function generateTransportContract_(payload, actor) {
     // ทะเบียนสัญญาปี 2570 (ทุกสัญญา) — ล้มเหลวไม่กระทบการสร้างสัญญา
     out.register = contractRegister_(payload, actor, pdfFile.getUrl());
     // ต่อ/เปลี่ยนสัญญาลูกค้าเดิม: เติมข้อมูลที่ขาดกลับลงชีตต้นทาง + สำเนา (ล้มเหลวไม่กระทบการสร้างสัญญา)
-    if (payload.renewal && payload.renewal.name) out.writeBack = renewalWriteBack_(payload, actor);
+    if (payload.renewal && payload.renewal.name) out.writeBack = renewalWriteBack_(payload, actor, pdfFile.getUrl());
     if (payload.wantDocx) {
       var docx = fillContractDocx_(tpl.getBlob(), built.values, fileName + '.docx');
       folder.createFile(docx).setDescription(desc);
