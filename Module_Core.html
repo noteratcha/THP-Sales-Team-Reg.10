@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2215';
+    var APP_VERSION = 'Ver. 2026.1123.2220';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1368,21 +1368,28 @@
                         .hcf-k.is-total .hcf-k-l i { color: #ea580c; }
                         .hcf-k.is-view .hcf-k-l i { color: #2563eb; }
                         .hcf-k.is-dl .hcf-k-l i { color: #16a34a; }
-                        .hcf-k.is-none .hcf-k-l i { color: #9ca3af; }
+                        .hcf-k.is-none .hcf-k-l i { color: #d97706; }
+                        .hcf-k.is-none { background: #fffbeb; border-color: #fde68a; }
                         .hcf-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
                         .hcf-bar span { display: block; height: 100%; border-radius: inherit; }
-                        .is-view .hcf-bar span { background: #2563eb; } .is-dl .hcf-bar span { background: #16a34a; } .is-none .hcf-bar span { background: #9ca3af; }
+                        .is-view .hcf-bar span { background: #2563eb; } .is-dl .hcf-bar span { background: #16a34a; } .is-none .hcf-bar span { background: #f59e0b; }
                         .hcf-sub-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 800; color: #374151; margin: 0; }
                         .hcf-sub-h small { font-size: 11px; font-weight: 600; color: #9ca3af; }
-                        .hcf-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
-                        .hcf-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 76px; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; border: 0; background: none; text-align: left; font: inherit; cursor: pointer; }
-                        .hcf-row:hover { background: #fff7ed; }
-                        .hcf-row-n { font-size: 13px; font-weight: 600; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .hcf-row-n small { color: #9ca3af; font-weight: 500; margin-left: 4px; }
-                        .hcf-stack { display: flex; height: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
-                        .hcf-stack .d { background: #16a34a; } .hcf-stack .v { background: #93c5fd; }
-                        .hcf-row-p { font-size: 12px; color: #6b7280; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-                        .hcf-row-p b { color: #111827; }
+                        .hcf-prog-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; }
+                        .hcf-rows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+                        .hcf-row { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-radius: 12px; border: 1px solid #f1f2f4; background: #fff; text-align: left; font: inherit; cursor: pointer; min-width: 0; transition: border-color .15s, background .15s; }
+                        .hcf-row:hover { border-color: #fdba74; background: #fffaf5; }
+                        .hcf-row-t { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+                        .hcf-row-n { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .hcf-row-n small { display: block; color: #9ca3af; font-weight: 500; font-size: 11px; }
+                        .hcf-row-pc { font-size: 18px; font-weight: 800; color: #111827; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+                        .hcf-row-pc small { font-size: 11px; font-weight: 600; color: #6b7280; margin-left: 2px; }
+                        .hcf-row-pc.is-zero { color: #d97706; }
+                        .hcf-stack { display: flex; height: 8px; border-radius: 999px; background: #fde68a; overflow: hidden; }
+                        .hcf-stack .d { background: #16a34a; } .hcf-stack .v { background: #60a5fa; }
+                        .hcf-row-c { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; color: #6b7280; font-variant-numeric: tabular-nums; }
+                        .hcf-row-c b { color: #111827; font-weight: 700; }
+                        .hcf-row-c i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
                         .hcf-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #6b7280; }
                         .hcf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
                         .hcf-active { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e5e7eb; }
@@ -1403,13 +1410,13 @@
                         @keyframes hcfSk { to { background-position: -200% 0; } }
                         .hcf-err { font-size: 13px; color: #6b7280; padding: 8px 0; }
                         @media (prefers-reduced-motion: reduce) { .hcf-sk, .hcf-ref:disabled i { animation: none; } }
-                        @media (max-width: 1024px) { .hcf-rows { grid-template-columns: minmax(0, 1fr); } }
+                        @media (max-width: 1100px) { .hcf-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
                         @media (max-width: 640px) {
                             .hcf { padding: 14px; border-radius: 1.25rem; }
                             .hcf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
                             .hcf-k-v { font-size: 22px; }
                             .hcf-act { width: 100%; } .hcf-go { flex: 1; justify-content: center; }
-                            .hcf-row { grid-template-columns: minmax(0, 1fr) 84px 64px; }
+                            .hcf-rows { grid-template-columns: minmax(0, 1fr); }
                         }
                     </style>
                     <script>
@@ -1418,7 +1425,7 @@
                             var who = function () { try { return String((currentUserInfo || {}).user || '').trim().toLowerCase(); } catch (e) { return ''; } };
                             var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
                             var fmt = function (n) { return Number(n || 0).toLocaleString('th-TH'); };
-                            var pct = function (a, b) { return b ? Math.round(a * 100 / b) : 0; };
+                            var pct = function (a, b) { if (!b || !a) return 0; var p = a * 100 / b; return p < 1 ? Math.max(0.1, Math.round(p * 10) / 10) : Math.round(p); };
                             var seen = function (f) { return f.nView > 0 || !!f.view; }, dled = function (f) { return f.nDl > 0 || !!f.dl; };
                             var render = function (res) {
                                 var body = document.getElementById('hcfBody'), sc = document.getElementById('hcfScope'); if (!body) return;
@@ -1447,13 +1454,15 @@
                                     var ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'สกลนคร', 'นครพนม', 'มุกดาหาร', '@34010', '@47010'];
                                     var rank = function (r) { var i = ORDER.indexOf(r.z ? '@' + r.z : String(r.k).replace(/^จังหวัด\s*/, '')); return i === -1 ? ORDER.length : i; };
                                     var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(byProv ? function (a, b) { return rank(a) - rank(b) || String(a.k).localeCompare(String(b.k), 'th'); } : function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
-                                    html += '<div><p class="hcf-sub-h">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>' + (byProv ? '' : 'เรียงจากดาวน์โหลดน้อยไปมาก · ') + 'คลิกเพื่อดูไฟล์</small></p>' +
-                                        '<div class="hcf-legend" style="margin:6px 0 4px"><span><i style="background:#16a34a"></i>ดาวน์โหลดแล้ว</span><span><i style="background:#93c5fd"></i>เปิดดูอย่างเดียว</span><span><i style="background:#eef0f3"></i>ยังไม่เปิด</span></div>' +
+                                    var C_D = '#16a34a', C_V = '#60a5fa', C_N = '#fde68a';
+                                    html += '<div><div class="hcf-prog-h"><p class="hcf-sub-h" style="margin:0">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>' + (byProv ? '' : 'เรียงจากดาวน์โหลดน้อยไปมาก · ') + 'ตัวเลขใหญ่ = % ดาวน์โหลดแล้ว · คลิกเพื่อดูไฟล์</small></p>' +
+                                        '<div class="hcf-legend"><span><i style="background:' + C_D + '"></i>ดาวน์โหลดแล้ว</span><span><i style="background:' + C_V + '"></i>เปิดดูอย่างเดียว</span><span><i style="background:' + C_N + '"></i>ยังไม่เปิด</span></div></div>' +
                                         '<div class="hcf-rows">' + rows.map(function (r) {
-                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" title="' + esc(r.k.replace(/^@/, '')) + ': ดาวน์โหลด ' + r.d + ' · เปิดดูอย่างเดียว ' + r.v + ' · ยังไม่เปิด ' + (r.n - r.d - r.v) + ' จาก ' + r.n + ' สัญญา">' +
-                                                '<span class="hcf-row-n">' + esc(r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
-                                                '<span class="hcf-stack"><span class="d" style="width:' + (r.n ? r.d * 100 / r.n : 0) + '%"></span><span class="v" style="width:' + (r.n ? r.v * 100 / r.n : 0) + '%"></span></span>' +
-                                                '<span class="hcf-row-p"><b>' + fmt(r.d) + '</b>/' + fmt(r.n) + ' · ' + pct(r.d, r.n) + '%</span></button>';
+                                            var name = r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k, none = r.n - r.d - r.v, pd = pct(r.d, r.n);
+                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" aria-label="' + esc(name) + ': ดาวน์โหลดแล้ว ' + r.d + ' เปิดดูอย่างเดียว ' + r.v + ' ยังไม่เปิด ' + none + ' จาก ' + r.n + ' สัญญา">' +
+                                                '<span class="hcf-row-t"><span class="hcf-row-n">' + esc(name) + '<small>' + fmt(r.n) + ' สัญญา</small></span><span class="hcf-row-pc' + (r.d ? '' : ' is-zero') + '">' + pd + '<small>%</small></span></span>' +
+                                                '<span class="hcf-stack" aria-hidden="true"><span class="d" style="width:' + (r.n ? r.d * 100 / r.n : 0) + '%"></span><span class="v" style="width:' + (r.n ? r.v * 100 / r.n : 0) + '%"></span></span>' +
+                                                '<span class="hcf-row-c"><span><i style="background:' + C_D + '"></i><b>' + fmt(r.d) + '</b></span><span><i style="background:' + C_V + '"></i><b>' + fmt(r.v) + '</b></span><span><i style="background:' + C_N + '"></i>' + fmt(none) + '</span></span></button>';
                                         }).join('') + '</div></div>';
                                 }
                                 if (!n) html = '<div class="hcf-err">ยังไม่มีไฟล์สัญญาที่ต้องขยายในพื้นที่ของคุณ</div>';
