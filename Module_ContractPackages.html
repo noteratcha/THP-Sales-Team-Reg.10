@@ -1,0 +1,314 @@
+<!-- 📦 PAGE: ลูกค้าแต่ละ Package (เมนูย่อยใต้ สัญญาขนส่ง — ผู้ใช้ขอ 2026-11-23)
+     แดชบอร์ด: จำนวนลูกค้า + ข้อมูลฝากส่ง (ชิ้นงาน/รายได้) แยกตาม ปี/เดือนที่ฝากส่ง, Package, ทีม, ที่ทำการ (เรียงรหัสน้อย→มาก) และรายชื่อลูกค้า
+     สิทธิ์เหมือนหน้าไฟล์สัญญา — หลังบ้าน getPackageDashboard_ ตรวจจาก session -->
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
+    <div class="cp-top">
+        <p id="cpScope" class="cp-scope">ลูกค้าตาม Package</p>
+        <div class="cp-top-r">
+            <span id="cpUpdated" class="cp-updated"></span>
+            <button type="button" id="cpReload" class="cp-btn-2" onclick="thpCpLoad(true)"><i class="fas fa-sync-alt"></i> โหลดใหม่</button>
+        </div>
+    </div>
+    <div class="cp-filters" role="group" aria-label="ตัวกรอง">
+        <label class="cp-f"><span>ปีที่ฝากส่ง</span><select id="cpYear" onchange="thpCpSet('year', this.value)"></select></label>
+        <label class="cp-f"><span>เดือนที่ฝากส่ง</span><select id="cpMonth" onchange="thpCpSet('month', this.value)"></select></label>
+        <label class="cp-f"><span>Package</span><select id="cpPkg" onchange="thpCpSet('pkg', this.value)"></select></label>
+        <label class="cp-f"><span>ทีม</span><select id="cpTeam" onchange="thpCpSet('team', this.value)"></select></label>
+        <label class="cp-f cp-f-wide"><span>ที่ทำการ</span><select id="cpZip" onchange="thpCpSet('zip', this.value)"></select></label>
+        <label class="cp-f cp-f-wide"><span>ค้นหาลูกค้า</span><span class="cp-search"><i class="fas fa-search" aria-hidden="true"></i><input id="cpQ" type="search" autocomplete="off" placeholder="ชื่อลูกค้า หรือ หมายเลข THP" oninput="thpCpSet('q', this.value)"></span></label>
+        <button type="button" id="cpClear" class="cp-clear hidden" onclick="thpCpReset()"><i class="fas fa-times"></i> ล้างตัวกรอง</button>
+    </div>
+    <div id="cpBody" class="cp-body"></div>
+</div>
+
+<style>
+    #page-contract-packages .cp-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    #page-contract-packages .cp-top-r { display: flex; align-items: center; gap: 10px; }
+    #page-contract-packages .cp-scope { font-size: 14px; color: #4b5563; margin: 0; }
+    #page-contract-packages .cp-scope b { color: #c2410c; }
+    #page-contract-packages .cp-updated { font-size: 12px; color: #9ca3af; }
+    #page-contract-packages .cp-btn-2 { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid #fdba74; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract-packages .cp-btn-2:disabled { opacity: .6; cursor: wait; }
+    #page-contract-packages .cp-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) repeat(2, minmax(0, 1.4fr)) auto; gap: 8px 10px; align-items: end; margin: 14px 0 6px; }
+    #page-contract-packages .cp-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    #page-contract-packages .cp-f > span:first-child { font-size: 12px; font-weight: 700; color: #6b7280; }
+    #page-contract-packages .cp-f select, #page-contract-packages .cp-search input { width: 100%; height: 38px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 10px; font-size: 13px; background: #fff; min-width: 0; }
+    #page-contract-packages .cp-f select:focus, #page-contract-packages .cp-search input:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-packages .cp-f select.is-set { border-color: #ea580c; background: #fff7ed; color: #9a3412; font-weight: 600; }
+    #page-contract-packages .cp-search { position: relative; display: block; }
+    #page-contract-packages .cp-search i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 12px; }
+    #page-contract-packages .cp-search input { padding-left: 30px; }
+    #page-contract-packages .cp-clear { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #fdba74; background: #fff; color: #c2410c; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+    #page-contract-packages .cp-clear.hidden { display: none; }
+    #page-contract-packages .cp-body { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+    #page-contract-packages .cp-note { font-size: 12px; color: #6b7280; margin: -6px 0 0; }
+    #page-contract-packages .cp-note.warn { color: #b45309; }
+    #page-contract-packages .cp-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    #page-contract-packages .cp-kpi { padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; min-width: 0; }
+    #page-contract-packages .cp-kpi-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
+    #page-contract-packages .cp-kpi-l i { color: #c2410c; width: 14px; text-align: center; }
+    #page-contract-packages .cp-kpi-v { display: block; margin-top: 4px; font-size: 24px; font-weight: 800; color: #111827; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    #page-contract-packages .cp-kpi-v small { font-size: 12px; font-weight: 600; color: #6b7280; }
+    #page-contract-packages .cp-kpi-s { display: block; margin-top: 2px; font-size: 12px; color: #6b7280; }
+    #page-contract-packages .cp-card { border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; overflow: hidden; min-width: 0; }
+    #page-contract-packages .cp-card-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; background: #fffaf5; }
+    #page-contract-packages .cp-card-h h3 { margin: 0; font-size: 15px; font-weight: 800; color: #7c2d12; display: flex; align-items: center; gap: 8px; }
+    #page-contract-packages .cp-card-h h3 i { color: #c2410c; font-size: 13px; }
+    #page-contract-packages .cp-card-h small { font-size: 12px; color: #6b7280; }
+    #page-contract-packages .cp-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    #page-contract-packages .cp-scroll { overflow-x: auto; }
+    #page-contract-packages table.cp-t { width: 100%; border-collapse: collapse; font-size: 13px; }
+    #page-contract-packages .cp-t th { text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; padding: 8px 12px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; background: #fff; }
+    #page-contract-packages .cp-t td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    #page-contract-packages .cp-t .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #page-contract-packages .cp-t tbody tr.cp-click { cursor: pointer; }
+    #page-contract-packages .cp-t tbody tr.cp-click:hover { background: #fff7ed; }
+    #page-contract-packages .cp-t tbody tr.cp-click:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
+    #page-contract-packages .cp-t tbody tr.is-on { background: #ffedd5; }
+    #page-contract-packages .cp-t tbody tr.is-on td:first-child { box-shadow: inset 3px 0 0 #ea580c; }
+    #page-contract-packages .cp-t tfoot td { font-weight: 800; background: #fafafa; border-bottom: 0; }
+    #page-contract-packages .cp-share { display: block; height: 4px; margin-top: 4px; border-radius: 999px; background: #f3f4f6; overflow: hidden; min-width: 60px; }
+    #page-contract-packages .cp-share span { display: block; height: 100%; background: #ea580c; border-radius: inherit; }
+    #page-contract-packages .cp-zero { color: #d1d5db; }
+    #page-contract-packages .cp-pkg { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; white-space: nowrap; }
+    #page-contract-packages .cp-pkg.is-custom { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+    #page-contract-packages .cp-pkg.is-none { color: #6b7280; background: #f9fafb; border-color: #e5e7eb; }
+    #page-contract-packages .cp-mix { display: flex; flex-wrap: wrap; gap: 4px; }
+    #page-contract-packages .cp-mix .cp-pkg b { font-weight: 800; margin-left: 3px; }
+    #page-contract-packages .cp-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; padding: 16px 16px 12px; }
+    #page-contract-packages .cp-mo { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 4px 0; border-radius: 10px; cursor: pointer; font: inherit; min-width: 0; }
+    #page-contract-packages .cp-mo:hover { background: #fff7ed; }
+    #page-contract-packages .cp-mo:focus-visible { outline: 2px solid #c2410c; outline-offset: 1px; }
+    #page-contract-packages .cp-mo-v { font-size: 11px; font-weight: 700; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #page-contract-packages .cp-mo-bar { width: 70%; max-width: 40px; height: 120px; display: flex; align-items: flex-end; background: #f9fafb; border-radius: 8px; overflow: hidden; }
+    #page-contract-packages .cp-mo-bar span { display: block; width: 100%; background: #fdba74; border-radius: 8px 8px 0 0; }
+    #page-contract-packages .cp-mo.is-on .cp-mo-bar span { background: #ea580c; }
+    #page-contract-packages .cp-mo.is-dim .cp-mo-bar span { background: #fde3cc; }
+    #page-contract-packages .cp-mo-l { font-size: 12px; color: #6b7280; }
+    #page-contract-packages .cp-mo.is-on .cp-mo-l { color: #c2410c; font-weight: 800; }
+    #page-contract-packages .cp-mo-p { font-size: 10px; color: #9ca3af; white-space: nowrap; }
+    #page-contract-packages .cp-cust-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    #page-contract-packages .cp-cust-tools select { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; }
+    #page-contract-packages .cp-name b { display: block; color: #111827; }
+    #page-contract-packages .cp-name small, #page-contract-packages .cp-sub { display: block; font-size: 11px; color: #9ca3af; }
+    #page-contract-packages .cp-spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 84px; }
+    #page-contract-packages .cp-spark span { flex: 1; min-height: 1px; background: #fdba74; border-radius: 2px 2px 0 0; }
+    #page-contract-packages .cp-spark span.is-on { background: #ea580c; }
+    #page-contract-packages .cp-spark span.z { background: #f3f4f6; }
+    #page-contract-packages .cp-more { display: block; width: 100%; padding: 10px; border: 0; border-top: 1px solid #f3f4f6; background: #fffaf5; color: #c2410c; font-size: 13px; font-weight: 700; cursor: pointer; }
+    #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: #6b7280; font-size: 14px; }
+    #page-contract-packages .cp-skel { height: 88px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: cpSk 1.2s infinite; }
+    @keyframes cpSk { to { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { #page-contract-packages .cp-skel { animation: none; } }
+    @media (max-width: 1024px) { #page-contract-packages .cp-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } #page-contract-packages .cp-f-wide { grid-column: span 2; } }
+    @media (max-width: 860px) { #page-contract-packages .cp-grid2 { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 640px) {
+        #page-contract-packages .cp-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #page-contract-packages .cp-f-wide { grid-column: span 2; }
+        #page-contract-packages .cp-clear { grid-column: span 2; }
+        #page-contract-packages .cp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #page-contract-packages .cp-kpi-v { font-size: 20px; }
+        #page-contract-packages .cp-months { gap: 2px; padding: 12px 8px 8px; }
+        #page-contract-packages .cp-mo-v { display: none; }
+        #page-contract-packages .cp-mo-p { display: none; }
+        #page-contract-packages .cp-mo-bar { height: 90px; width: 80%; }
+        #page-contract-packages .cp-cust-tools { margin-left: 0; width: 100%; }
+    }
+</style>
+
+<script>
+    ;(function () {
+        var esc = function (s) { return window.escapeHtml ? window.escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+        var who = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
+        var fmt = function (n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); };
+        var short = function (n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' ล.' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + ' พ.' : fmt(n); };
+        var MO = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        var MO_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        var NOPKG = 'ไม่ระบุ Package', NOTEAM = 'ไม่ระบุทีม';
+        var st = { data: null, forUser: null, seq: 0, f: { year: '', month: '', pkg: '', team: '', zip: '', q: '' }, limit: 100, sort: 'zip' };
+
+        var pkgOf = function (c) { return c.pkg || NOPKG; };
+        var teamOf = function (c) { return c.team || NOTEAM; };
+        var pkgRank = function (p) { var m = /^A(\d+)/i.exec(p); return m ? Number(m[1]) : (p === NOPKG ? 999 : 500); };
+        var pkgSort = function (a, b) { return pkgRank(a) - pkgRank(b) || String(a).localeCompare(String(b), 'th'); };
+        var pkgBadge = function (p, n) {
+            var cls = p === NOPKG ? ' is-none' : (/พิเศษ/.test(p) ? ' is-custom' : '');
+            var label = p === NOPKG ? 'ไม่ระบุ' : (/พิเศษ/.test(p) ? 'อัตราพิเศษ' : p.replace(/\s*\(.*\)$/, ''));
+            return '<span class="cp-pkg' + cls + '" title="' + esc(p) + '">' + esc(label) + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</span>';
+        };
+        // ชิ้นงาน/รายได้ของลูกค้าในปี/เดือนที่เลือก
+        var shipOf = function (c, y, m) {
+            var a = c.thp && st.data.ship[c.thp] && st.data.ship[c.thp][y]; if (!a) return [0, 0];
+            if (m !== '') return [a[m * 2], a[m * 2 + 1]];
+            var p = 0, r = 0; for (var i = 0; i < 12; i++) { p += a[i * 2]; r += a[i * 2 + 1]; } return [p, r];
+        };
+        var match = function (c, skip) {
+            var f = st.f;
+            if (skip !== 'pkg' && f.pkg && pkgOf(c) !== f.pkg) return false;
+            if (skip !== 'team' && f.team && teamOf(c) !== f.team) return false;
+            if (skip !== 'zip' && f.zip && c.zip !== f.zip) return false;
+            if (f.q) { var q = f.q.toLowerCase(), qd = f.q.replace(/\D/g, ''); if (String(c.name).toLowerCase().indexOf(q) === -1 && !(qd.length >= 3 && c.thp.indexOf(qd) !== -1)) return false; }
+            return true;
+        };
+
+        window.thpCpClear = function () {
+            st.data = null; st.forUser = null; st.seq++;
+            st.f = { year: '', month: '', pkg: '', team: '', zip: '', q: '' };
+            var b = document.getElementById('cpBody'); if (b) b.innerHTML = '';
+            var q = document.getElementById('cpQ'); if (q) q.value = '';
+        };
+        window.loadContractPackagesPage = function () { window.thpCpLoad(false); };
+        window.thpCpLoad = function (force) {
+            var u = who();
+            if (!force && st.data && st.forUser === u) { window.thpCpRender(); return; }
+            if (st.forUser !== u) window.thpCpClear();
+            st.forUser = u;
+            var seq = ++st.seq, body = document.getElementById('cpBody'), btn = document.getElementById('cpReload');
+            if (body) body.innerHTML = '<div class="cp-kpis"><div class="cp-skel"></div><div class="cp-skel"></div><div class="cp-skel"></div><div class="cp-skel"></div></div><div class="cp-skel" style="height:180px"></div>' +
+                '<p class="cp-note">กำลังดึงรายชื่อลูกค้าและข้อมูลฝากส่ง อาจใช้เวลาสักครู่...</p>';
+            if (btn) btn.disabled = true;
+            google.script.run.withSuccessHandler(function (res) {
+                if (seq !== st.seq || who() !== u) return;
+                if (btn) btn.disabled = false;
+                if (!(res && res.status === 'success')) { if (body) body.innerHTML = '<div class="cp-empty">' + esc((res && res.message) || 'โหลดข้อมูลไม่สำเร็จ') + '</div>'; return; }
+                st.data = res;
+                if (!st.f.year || res.years.indexOf(Number(st.f.year)) === -1) st.f.year = res.years.length ? String(res.years[0]) : '';
+                var sc = document.getElementById('cpScope');
+                if (sc) sc.innerHTML = res.scope === 'all' ? 'ลูกค้าตาม Package <b>ทุกที่ทำการ ปข.10</b>' : res.scope === 'province' ? 'ลูกค้าตาม Package ของที่ทำการใน<b>จังหวัด' + esc(res.prov) + '</b>' : 'ลูกค้าตาม Package ของที่ทำการ <b>' + esc(res.zip) + '</b>';
+                var up = document.getElementById('cpUpdated'); if (up) up.textContent = res.updatedAt ? 'ข้อมูล ณ ' + res.updatedAt.slice(11) + ' น.' : '';
+                window.thpCpRender();
+            }).withFailureHandler(function (err) {
+                if (seq !== st.seq) return;
+                if (btn) btn.disabled = false;
+                if (body) body.innerHTML = '<div class="cp-empty">โหลดข้อมูลไม่สำเร็จ: ' + esc(err && err.message ? err.message : err) + '</div>';
+            }).getPackageDashboard(currentUserInfo);
+        };
+        window.thpCpSet = function (k, v) {
+            st.f[k] = st.f[k] === v && k !== 'q' && k !== 'year' ? '' : v;
+            if (k === 'q') { clearTimeout(st.qt); st.qt = setTimeout(function () { st.limit = 100; window.thpCpRender(); }, 200); return; }
+            st.limit = 100; window.thpCpRender();
+        };
+        window.thpCpReset = function () {
+            st.f.month = ''; st.f.pkg = ''; st.f.team = ''; st.f.zip = ''; st.f.q = '';
+            var q = document.getElementById('cpQ'); if (q) q.value = '';
+            st.limit = 100; window.thpCpRender();
+        };
+        window.thpCpMore = function () { st.limit += 200; window.thpCpRender(); };
+        window.thpCpSort = function (v) { st.sort = v; window.thpCpRender(); };
+        window.thpCpKey = function (e, k, v) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.thpCpSet(k, v); } };
+
+        // ตัวเลือกในตัวกรอง (นับตามตัวกรองอื่น)
+        var fillSelect = function (id, all, items, cur) {
+            var el = document.getElementById(id); if (!el) return;
+            el.innerHTML = '<option value="">' + esc(all) + '</option>' + items.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('');
+            el.value = cur; el.classList.toggle('is-set', !!cur);
+        };
+
+        // ตารางสรุปตามมิติ (คลิกแถว = กรอง)
+        var groupTable = function (key, title, icon, groups, sel, firstHead, extraHead, extraCell) {
+            var tot = groups.reduce(function (a, g) { a.n += g.n; a.a += g.a; a.p += g.p; a.r += g.r; return a; }, { n: 0, a: 0, p: 0, r: 0 });
+            var maxR = Math.max.apply(null, groups.map(function (g) { return g.r; }).concat([1]));
+            var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
+            return '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas ' + icon + '"></i>' + title + '</h3><small>' + fmt(groups.length) + ' รายการ · คลิกแถวเพื่อกรอง</small></div><div class="cp-scroll"><table class="cp-t"><thead><tr><th>' + firstHead + '</th>' + (extraHead || '') +
+                '<th class="n">ลูกค้า</th><th class="n">ฝากส่ง (ราย)</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th></tr></thead><tbody>' +
+                groups.map(function (g) {
+                    var on = sel === g.k;
+                    return '<tr class="cp-click' + (on ? ' is-on' : '') + '" tabindex="0" role="button" aria-pressed="' + on + '" onclick="thpCpSet(\'' + key + '\', ' + esc(JSON.stringify(g.k)) + ')" onkeydown="thpCpKey(event, \'' + key + '\', ' + esc(JSON.stringify(g.k)) + ')">' +
+                        '<td>' + g.label + '</td>' + (extraCell ? extraCell(g) : '') + '<td class="n">' + fmt(g.n) + '</td><td class="n">' + cell(g.a) + '</td><td class="n">' + cell(g.p) + '</td>' +
+                        '<td class="n">' + cell(g.r) + '<span class="cp-share"><span style="width:' + Math.round(g.r * 100 / maxR) + '%"></span></span></td></tr>';
+                }).join('') + '</tbody><tfoot><tr><td>รวม</td>' + (extraHead ? '<td colspan="' + (extraHead.match(/<th/g) || []).length + '"></td>' : '') + '<td class="n">' + fmt(tot.n) + '</td><td class="n">' + fmt(tot.a) + '</td><td class="n">' + fmt(tot.p) + '</td><td class="n">' + fmt(tot.r) + '</td></tr></tfoot></table></div></section>';
+        };
+        var groupBy = function (list, keyFn, y, m) {
+            var g = {};
+            list.forEach(function (c) {
+                var k = keyFn(c), s = shipOf(c, y, m), o = g[k] || (g[k] = { k: k, n: 0, a: 0, p: 0, r: 0, items: [] });
+                o.n++; o.p += s[0]; o.r += s[1]; if (s[0] > 0 || s[1] > 0) o.a++; o.items.push(c);
+            });
+            return Object.keys(g).map(function (k) { return g[k]; });
+        };
+
+        window.thpCpRender = function () {
+            var body = document.getElementById('cpBody'); if (!body || !st.data) return;
+            var D = st.data, f = st.f, y = f.year, m = f.month === '' ? '' : Number(f.month);
+            var all = D.customers;
+            // ตัวกรอง
+            fillSelect('cpYear', D.years.length ? 'เลือกปี' : 'ไม่มีข้อมูลฝากส่ง', D.years.map(function (x) { return [String(x), 'พ.ศ. ' + (x + 543)]; }), y);
+            var ys = document.getElementById('cpYear'); if (ys) { ys.querySelector('option[value=""]').disabled = true; ys.classList.remove('is-set'); }
+            fillSelect('cpMonth', 'ทั้งปี', MO_FULL.map(function (x, i) { return [String(i), x]; }), f.month);
+            var cnt = function (skip, fn) { var o = {}; all.forEach(function (c) { if (match(c, skip)) { var k = fn(c); o[k] = (o[k] || 0) + 1; } }); return o; };
+            var pc = cnt('pkg', pkgOf), tc = cnt('team', teamOf), zc = {}, zn = {};
+            all.forEach(function (c) { if (!zn[c.zip]) zn[c.zip] = c.office; if (match(c, 'zip')) zc[c.zip] = (zc[c.zip] || 0) + 1; });
+            fillSelect('cpPkg', 'ทุก Package', Object.keys(pc).concat(f.pkg && !pc[f.pkg] ? [f.pkg] : []).sort(pkgSort).map(function (k) { return [k, k + ' (' + fmt(pc[k] || 0) + ')']; }), f.pkg);
+            fillSelect('cpTeam', 'ทุกทีม', Object.keys(tc).concat(f.team && !tc[f.team] ? [f.team] : []).sort(function (a, b) { return a === NOTEAM ? 1 : b === NOTEAM ? -1 : a.localeCompare(b, 'th'); }).map(function (k) { return [k, k + ' (' + fmt(tc[k] || 0) + ')']; }), f.team);
+            fillSelect('cpZip', 'ทุกที่ทำการ (' + fmt(Object.keys(zc).length) + ' แห่ง)', Object.keys(zc).concat(f.zip && !zc[f.zip] ? [f.zip] : []).sort().map(function (z) { return [z, z + ' ' + (zn[z] || '') + ' (' + fmt(zc[z] || 0) + ')']; }), f.zip);
+            var cl = document.getElementById('cpClear'); if (cl) cl.classList.toggle('hidden', !(f.month !== '' || f.pkg || f.team || f.zip || f.q));
+
+            var list = all.filter(function (c) { return match(c); });
+            var period = y ? (m !== '' ? MO_FULL[m] + ' ' : 'ทั้งปี ') + (Number(y) + 543) : '-';
+            var sum = list.reduce(function (a, c) { var s = shipOf(c, y, m); a.p += s[0]; a.r += s[1]; if (s[0] > 0 || s[1] > 0) a.a++; if (!c.thp) a.noThp++; return a; }, { p: 0, r: 0, a: 0, noThp: 0 });
+            var pkgs = {}; list.forEach(function (c) { pkgs[pkgOf(c)] = 1; });
+            var kpi = function (icon, label, v, unit, sub) { return '<div class="cp-kpi"><span class="cp-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="cp-kpi-v">' + v + (unit ? '<small> ' + unit + '</small>' : '') + '</span><span class="cp-kpi-s">' + sub + '</span></div>'; };
+            var html = '<div class="cp-kpis">' +
+                kpi('fa-users', 'ลูกค้าตามตัวกรอง', fmt(list.length), 'ราย', fmt(Object.keys(pkgs).length) + ' Package') +
+                kpi('fa-truck', 'มีการฝากส่ง · ' + period, fmt(sum.a), 'ราย', list.length ? Math.round(sum.a * 100 / list.length) + '% ของลูกค้า' : '-') +
+                kpi('fa-box', 'ชิ้นงาน · ' + period, fmt(sum.p), 'ชิ้น', sum.a ? 'เฉลี่ย ' + fmt(sum.p / sum.a) + ' ชิ้น/ราย' : '-') +
+                kpi('fa-coins', 'รายได้ · ' + period, fmt(sum.r), 'บาท', sum.a ? 'เฉลี่ย ' + fmt(sum.r / sum.a) + ' บาท/ราย' : '-') + '</div>';
+            var notes = [];
+            if (sum.noThp) notes.push(fmt(sum.noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงดึงข้อมูลฝากส่งไม่ได้');
+            if (D.shipErr) notes.push(D.shipErr);
+            if (notes.length) html += '<p class="cp-note warn"><i class="fas fa-info-circle"></i> ' + notes.map(esc).join(' · ') + '</p>';
+
+            if (!list.length) { body.innerHTML = html + '<div class="cp-empty">ไม่พบลูกค้าที่ตรงกับตัวกรอง</div>'; return; }
+
+            // รายเดือน (ปีที่เลือก)
+            if (y) {
+                var mo = []; for (var i = 0; i < 12; i++) mo.push([0, 0, 0]);
+                list.forEach(function (c) { var a = c.thp && D.ship[c.thp] && D.ship[c.thp][y]; if (!a) return; for (var i = 0; i < 12; i++) { mo[i][0] += a[i * 2]; mo[i][1] += a[i * 2 + 1]; if (a[i * 2] > 0 || a[i * 2 + 1] > 0) mo[i][2]++; } });
+                var maxM = Math.max.apply(null, mo.map(function (x) { return x[1]; }).concat([1]));
+                html += '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-chart-bar"></i>ฝากส่งรายเดือน ปี ' + (Number(y) + 543) + '</h3><small>ความสูงแท่ง = รายได้ · คลิกเดือนเพื่อกรอง</small></div><div class="cp-months">' +
+                    mo.map(function (x, i) {
+                        var on = m === i, dim = m !== '' && !on;
+                        return '<button type="button" class="cp-mo' + (on ? ' is-on' : '') + (dim ? ' is-dim' : '') + '" aria-pressed="' + on + '" onclick="thpCpSet(\'month\', \'' + i + '\')" title="' + MO_FULL[i] + ': ลูกค้าฝากส่ง ' + fmt(x[2]) + ' ราย · ' + fmt(x[0]) + ' ชิ้น · ' + fmt(x[1]) + ' บาท">' +
+                            '<span class="cp-mo-v">' + (x[1] ? short(x[1]) : '') + '</span><span class="cp-mo-bar"><span style="height:' + (x[1] ? Math.max(2, Math.round(x[1] * 100 / maxM)) : 0) + '%"></span></span>' +
+                            '<span class="cp-mo-l">' + MO[i] + '</span><span class="cp-mo-p">' + (x[0] ? short(x[0]) + ' ชิ้น' : '-') + '</span></button>';
+                    }).join('') + '</div></section>';
+            }
+
+            // Package / ทีม (นับตามตัวกรองอื่น เห็นทุกรายการ แถวที่เลือกเน้นสี)
+            var gPkg = groupBy(all.filter(function (c) { return match(c, 'pkg'); }), pkgOf, y, m).sort(function (a, b) { return pkgSort(a.k, b.k); });
+            gPkg.forEach(function (g) { g.label = pkgBadge(g.k) + (g.k !== NOPKG && /\(/.test(g.k) ? ' <span class="cp-sub" style="display:inline">' + esc(g.k.replace(/^[^(]*/, '')) + '</span>' : ''); });
+            var gTeam = groupBy(all.filter(function (c) { return match(c, 'team'); }), teamOf, y, m).sort(function (a, b) { return a.k === NOTEAM ? 1 : b.k === NOTEAM ? -1 : a.k.localeCompare(b.k, 'th'); });
+            gTeam.forEach(function (g) { g.label = '<b>' + esc(g.k) + '</b>'; });
+            html += '<div class="cp-grid2">' + groupTable('pkg', 'แยกตาม Package', 'fa-tags', gPkg, f.pkg, 'Package') + groupTable('team', 'แยกตามทีม', 'fa-users', gTeam, f.team, 'ทีม') + '</div>';
+
+            // ที่ทำการ (รหัสน้อย→มาก)
+            var gZip = groupBy(all.filter(function (c) { return match(c, 'zip'); }), function (c) { return c.zip; }, y, m).sort(function (a, b) { return a.k.localeCompare(b.k); });
+            gZip.forEach(function (g) { g.label = '<b>' + esc(g.k) + '</b>'; g.office = g.items[0].office; g.team = teamOf(g.items[0]); var mix = {}; g.items.forEach(function (c) { var p = pkgOf(c); mix[p] = (mix[p] || 0) + 1; }); g.mix = mix; });
+            html += groupTable('zip', 'แยกตามที่ทำการ (เรียงรหัสไปรษณีย์น้อยไปมาก)', 'fa-building', gZip, f.zip, 'รหัส', '<th>ที่ทำการ</th><th>ทีม</th><th>Package</th>', function (g) {
+                return '<td>' + esc(g.office) + '</td><td>' + esc(g.team) + '</td><td><div class="cp-mix">' + Object.keys(g.mix).sort(pkgSort).map(function (p) { return pkgBadge(p, g.mix[p]); }).join('') + '</div></td>';
+            });
+
+            // รายชื่อลูกค้า
+            var rows = list.map(function (c) { return { c: c, s: shipOf(c, y, m) }; });
+            rows.sort(st.sort === 'rev' ? function (a, b) { return b.s[1] - a.s[1] || a.c.zip.localeCompare(b.c.zip); }
+                : st.sort === 'pcs' ? function (a, b) { return b.s[0] - a.s[0] || a.c.zip.localeCompare(b.c.zip); }
+                : function (a, b) { return a.c.zip.localeCompare(b.c.zip) || pkgSort(pkgOf(a.c), pkgOf(b.c)) || a.c.name.localeCompare(b.c.name, 'th'); });
+            var shown = rows.slice(0, st.limit);
+            html += '<section class="cp-card" id="cpCustomers"><div class="cp-card-h"><h3><i class="fas fa-address-book"></i>รายชื่อลูกค้า</h3><small>' + fmt(rows.length) + ' ราย · ฝากส่ง ' + esc(period) + '</small>' +
+                '<span class="cp-cust-tools"><label for="cpSortSel" class="cp-sub" style="display:inline">เรียงตาม</label><select id="cpSortSel" onchange="thpCpSort(this.value)">' +
+                [['zip', 'รหัสที่ทำการ'], ['rev', 'รายได้มาก → น้อย'], ['pcs', 'ชิ้นงานมาก → น้อย']].map(function (o) { return '<option value="' + o[0] + '"' + (st.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></span></div>' +
+                '<div class="cp-scroll"><table class="cp-t"><thead><tr><th class="n">#</th><th>ลูกค้า</th><th>ที่ทำการ</th><th>ทีม</th><th>Package</th><th>สัญญา</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th><th>' + (y ? 'รายเดือน ' + (Number(y) + 543) : '') + '</th></tr></thead><tbody>' +
+                shown.map(function (x, i) {
+                    var c = x.c, a = c.thp && D.ship[c.thp] && D.ship[c.thp][y], mx = 0, spark = '';
+                    if (a) { for (var j = 0; j < 12; j++) mx = Math.max(mx, a[j * 2 + 1]); for (var k = 0; k < 12; k++) { var v = a[k * 2 + 1]; spark += '<span class="' + (v ? (m === k ? 'is-on' : '') : 'z') + '" style="height:' + (v ? Math.max(8, Math.round(v * 100 / (mx || 1))) : 8) + '%" title="' + MO[k] + ': ' + fmt(a[k * 2]) + ' ชิ้น · ' + fmt(v) + ' บาท"></span>'; } }
+                    return '<tr><td class="n cp-sub">' + (i + 1) + '</td><td class="cp-name"><b>' + esc(c.name) + '</b><small>' + (c.thp ? 'THP-' + esc(c.thp) : 'ไม่มีหมายเลข THP') + '</small></td>' +
+                        '<td>' + esc(c.zip) + '<span class="cp-sub">' + esc(c.office) + '</span></td><td>' + esc(teamOf(c)) + '</td><td>' + pkgBadge(pkgOf(c)) + '</td>' +
+                        '<td style="white-space:nowrap">' + esc(c.start || '-') + '<span class="cp-sub">ถึง ' + esc(c.end || '-') + '</span></td>' +
+                        '<td class="n">' + (x.s[0] ? fmt(x.s[0]) : '<span class="cp-zero">0</span>') + '</td><td class="n">' + (x.s[1] ? fmt(x.s[1]) : '<span class="cp-zero">0</span>') + '</td>' +
+                        '<td>' + (a ? '<div class="cp-spark" aria-label="รายได้รายเดือน">' + spark + '</div>' : '<span class="cp-sub">ไม่มีข้อมูล</span>') + '</td></tr>';
+                }).join('') + '</tbody></table></div>' +
+                (rows.length > shown.length ? '<button type="button" class="cp-more" onclick="thpCpMore()">แสดงเพิ่ม (เหลืออีก ' + fmt(rows.length - shown.length) + ' ราย)</button>' : '') + '</section>';
+            body.innerHTML = html;
+        };
+    })();
+</script>

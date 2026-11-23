@@ -6969,6 +6969,74 @@ function contractFilePkgMap_() {
   return out;
 }
 
+// ==========================================
+// 📦 ลูกค้าแต่ละ Package (เมนูย่อยใต้ สัญญาขนส่ง — ผู้ใช้ขอ 2026-11-23)
+// ลูกค้า = ชีตรายชื่อ "รายชื่อ/สัญญา A1-A12" (C รหัส, D ที่ทำการ, E จังหวัด, F ชื่อ, G THP, H Package, M เริ่ม, O สิ้นสุด)
+// ทีม = ชีตเป้าหมายรายได้ (รหัสที่ทำการ → ทีม) · ฝากส่ง = ชีต Tableau รายลูกค้า (จับด้วยหมายเลข THP 8 หลัก) ชิ้นงาน/รายได้ รายเดือน
+// สิทธิ์เหมือนหน้าไฟล์สัญญา (contractFileScope_): admin ทั้งหมด / ที่ทำการจังหวัด ทั้งจังหวัด / ที่ทำการอื่น เฉพาะของตน
+// ==========================================
+var PKG_TABLEAU_SS_ID = '1k_YWc5TYbeiviinIJCJt4Aj94jAbuf4MB9qYMKsuVLs';
+var PKG_TABLEAU_SHEET = 'Tableau(2.ประมาณการรายได้ แยกรายลูกค้า)';
+var PKG_THAI_MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+function getPackageDashboard_(actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var scope = contractFileScope_(actor);
+    if (!scope) return { status: 'error', message: 'บัญชีนี้ไม่มีสิทธิ์ดูข้อมูลลูกค้าตาม Package' };
+    var listSh = renewalSheet_(); if (!listSh) return { status: 'error', message: 'ไม่พบชีตรายชื่อลูกค้า' };
+    var last = listSh.getLastRow();
+    var rows = last > 1 ? listSh.getRange(2, 1, last - 1, colIndex_('O')).getDisplayValues() : [];
+    var thpOf = function (v) { var d = String(v || '').replace(/\D/g, ''); return d.length === 8 ? d : ''; };
+    // ทีมของที่ทำการ (ปีล่าสุดในชีตเป้าหมาย)
+    var zipTeam = {}, zipTeamYear = {};
+    try {
+      var tg = getRevenueTargets_();
+      if (tg && tg.status === 'success') tg.data.slice(1).forEach(function (t) {
+        var y = parseInt(t[0], 10) || 0, z = String(t[2] || '').trim(), tm = String(t[6] || '').trim();
+        if (/^\d{5}$/.test(z) && tm && (!zipTeamYear[z] || y >= zipTeamYear[z])) { zipTeam[z] = tm; zipTeamYear[z] = y; }
+      });
+    } catch (eT) { }
+    var customers = [], want = {};
+    rows.forEach(function (r, i) {
+      var zip = String(r[2] || '').replace(/\D/g, '').slice(0, 5), name = String(r[5] || '').trim();
+      if (!name || !/^\d{5}$/.test(zip)) return;
+      if (!scope.all) {
+        if (scope.only && zip !== scope.zip) return;
+        if (scope.prov && contractProvinceOfZip_(zip) !== scope.prov) return;
+      }
+      var thp = thpOf(r[6]);
+      if (thp) want[thp] = true;
+      customers.push({ row: i + 2, zip: zip, office: String(r[3] || '').trim(), prov: String(r[4] || '').trim() || contractProvinceOfZip_(zip), name: name, thp: thp,
+        pkg: String(r[7] || '').trim(), start: String(r[12] || '').trim(), end: String(r[14] || '').trim(), team: zipTeam[zip] || '' });
+    });
+    // ข้อมูลฝากส่งรายเดือน: ship[thp][ปี ค.ศ.] = [ชิ้น ม.ค., รายได้ ม.ค., ชิ้น ก.พ., ...] (24 ค่า)
+    var ship = {}, years = {}, shipErr = '';
+    try {
+      var tsh = SpreadsheetApp.openById(PKG_TABLEAU_SS_ID).getSheetByName(PKG_TABLEAU_SHEET);
+      var tl = tsh ? tsh.getLastRow() : 0;
+      if (tl > 1) {
+        var td = tsh.getRange(2, 5, tl - 1, 6).getDisplayValues(); // E รหัสสมาชิก, F ระดับ, G เดือน, H ชื่อการวัดผล, I ค่า, J ปี
+        td.forEach(function (r) {
+          var thp = thpOf(r[0]); if (!thp || !want[thp]) return;
+          var mi = PKG_THAI_MONTHS.indexOf(String(r[2] || '').trim()); if (mi < 0) return;
+          var y = parseInt(r[5], 10); if (!y) return; if (y > 2500) y -= 543;
+          var metric = String(r[3] || '').trim(), k = metric === 'จำนวนชิ้นงาน' ? 0 : metric === 'รายได้รวม' ? 1 : -1; if (k < 0) return;
+          var v = parseFloat(String(r[4] || '').replace(/,/g, '')) || 0;
+          var a = (ship[thp] || (ship[thp] = {}))[y] || (ship[thp][y] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+          a[mi * 2 + k] += v; years[y] = true;
+        });
+        Object.keys(ship).forEach(function (t) { Object.keys(ship[t]).forEach(function (y) { ship[t][y] = ship[t][y].map(function (v) { return Math.round(v * 100) / 100; }); }); });
+      } else shipErr = 'ไม่พบข้อมูลในชีตรายได้รายลูกค้า';
+    } catch (eS) { shipErr = 'อ่านข้อมูลฝากส่งไม่ได้: ' + String(eS && eS.message || eS).slice(0, 160); }
+    return { status: 'success', customers: customers, ship: ship, years: Object.keys(years).map(Number).sort(function (a, b) { return b - a; }), shipErr: shipErr,
+      scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '',
+      updatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm') };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'getPackageDashboard_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -7155,7 +7223,7 @@ var API_ALLOWED_FUNCTIONS = [
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
   'findCustomerForSheet', 'saveCustomerToSheets', 'getRenewalBulk', 'generateContractBulk',
-  'listContractFiles', 'getContractFileData', 'checkContractExisting', 'uploadCustomerAttachment', 'deleteCustomerAttachment'
+  'listContractFiles', 'getContractFileData', 'checkContractExisting', 'getPackageDashboard', 'uploadCustomerAttachment', 'deleteCustomerAttachment'
 ];
 
 
@@ -7193,6 +7261,7 @@ var AUTH_SESSION_USER_ARG = {
   getRenewalBulk: 1,             // (payload, actor) — admin เท่านั้น (สร้างสัญญาทั้งที่ทำการ)
   generateContractBulk: 1,       // (payload, actor) — admin เท่านั้น
   listContractFiles: 0,          // (actor) — admin ทั้งหมด / ปจ. ทั้งจังหวัด / ที่ทำการ เฉพาะของตน
+  getPackageDashboard: 0,        // (actor) — สิทธิ์เหมือน listContractFiles
   getContractFileData: 1,        // (payload, actor) — ตรวจสิทธิ์จากโฟลเดอร์ของไฟล์
   checkContractExisting: 1       // (payload, actor) — admin เท่านั้น
 };
