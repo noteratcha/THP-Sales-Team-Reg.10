@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.1433';
+    var APP_VERSION = 'Ver. 2026.1123.1445';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20548,6 +20548,7 @@
     #page-contract-customer .cc-file-btn { flex: 0 0 auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid #fdba74; color: #c2410c; background: #fff; white-space: nowrap; }
     #page-contract-customer .cc-file-btn:hover { background: #fff7ed; }
     #page-contract-customer .cc-files-group h4 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    #page-contract-customer .cc-year + .cc-file-add { margin-left: 0; }
     #page-contract-customer .cc-file-add { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 999px; background: #ea580c; color: #fff; cursor: pointer; position: relative; }
     #page-contract-customer .cc-file-add:hover { background: #c2410c; }
     #page-contract-customer .cc-file-add:focus-within { outline: 2px solid #fdba74; outline-offset: 2px; }
@@ -20665,6 +20666,14 @@
                 return '<div class="cc-mgroup"><h4><i class="fas ' + g[0] + '"></i> ' + g[1] + '</h4><div class="cc-mgrid">' + g[2].map(field).join('') + '</div></div>';
             }).join('') + PKG_LIST;
         };
+        // เลือกปี (พ.ศ.) ของโฟลเดอร์เก็บไฟล์แนบ: สัญญาขนส่ง › ปี xxxx — ค่าเริ่มต้นปีปัจจุบัน (ผู้ใช้ขอ 2026-11-23)
+        var curBE = function () { return new Date().getFullYear() + 543; };
+        var yearSel = function (sel, onch) {
+            var c = curBE(), y = Number(sel) || c;
+            return '<select class="cc-year" aria-label="ปีของโฟลเดอร์เก็บไฟล์" title="เก็บไฟล์ในโฟลเดอร์ สัญญาขนส่ง › ปี ที่เลือก"' + (onch ? ' onchange="' + onch + '"' : '') + ' style="margin-left:auto;font-size:13px;padding:3px 6px;border:1px solid #fdba74;border-radius:8px;background:#fff">' +
+                [c - 1, c, c + 1].map(function (x) { return '<option value="' + x + '"' + (x === y ? ' selected' : '') + '>เก็บในโฟลเดอร์ ปี ' + x + '</option>'; }).join('') + '</select>';
+        };
+        window.thpCcYear = function (sel) { var g = sel.closest('.cc-files-group'), it = g && last.items[Number(g.getAttribute('data-i'))]; if (it) it.attachYear = sel.value; };
         // ไฟล์แนบจากคอลัมน์ R ชีตรายชื่อ (เปิดดู/ดาวน์โหลดผ่าน Google Drive — ต้องมีสิทธิ์ไฟล์)
         var filesBox = function (files, listRow, err, idx) {
             if (!(listRow > 0)) return '';
@@ -20676,7 +20685,8 @@
                     '<a class="cc-file-btn" href="' + esc(view) + '" target="_blank" rel="noopener"><i class="fas fa-eye"></i> เปิดดู</a>' +
                     (dl ? '<a class="cc-file-btn" href="' + esc(dl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> ดาวน์โหลด</a>' : '') + '</div>';
             }).join('') : (err ? '<div class="cc-ro cc-ro-empty" style="color:#b91c1c"><i class="fas fa-exclamation-triangle"></i> อ่านไฟล์แนบไม่ได้: ' + esc(err) + '</div>' : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>');
-            return '<div class="cc-mgroup cc-files-group" data-i="' + idx + '"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(จากชีตรายชื่อ คอลัมน์ "ไฟล์แนบ" · ' + files.length + ' ไฟล์)</small>' +
+            var it0 = last.items[idx] || {};
+            return '<div class="cc-mgroup cc-files-group" data-i="' + idx + '"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(จากชีตรายชื่อ คอลัมน์ "ไฟล์แนบ" · ' + files.length + ' ไฟล์)</small>' + yearSel(it0.attachYear, 'thpCcYear(this)') +
                 '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcUpload(this)" aria-label="เพิ่มไฟล์แนบ"></label></h4>' +
                 '<div class="cc-files">' + rows + '</div><div class="cc-file-hint">PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>';
         };
@@ -20693,7 +20703,7 @@
                 '<span class="cc-note">กรอกข้อมูลลูกค้าเอง · ช่องที่มี <b class="text-red-600">*</b> ต้องกรอก ช่องอื่นเว้นว่างได้</span></div>' +
                 formGroups(null, pre) +
                 // ลูกค้าใหม่ยังไม่มีแถวในชีต → เลือกไฟล์ไว้ก่อน อัปโหลดหลังบันทึกสำเร็จ (ผู้ใช้ขอ 2026-11-23)
-                '<div class="cc-mgroup cc-files-group cc-pending"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(อัปโหลดอัตโนมัติหลังกดบันทึกลูกค้าใหม่)</small>' +
+                '<div class="cc-mgroup cc-files-group cc-pending"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(อัปโหลดอัตโนมัติหลังกดบันทึกลูกค้าใหม่)</small>' + yearSel() +
                 '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcPick(this)" aria-label="เพิ่มไฟล์แนบ"></label></h4>' +
                 '<div class="cc-files" id="ccPendingList">' + pendingRows() + '</div><div class="cc-file-hint">PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>' +
                 '<div class="cc-actions"><button type="button" class="cc-btn" onclick="thpCcSaveManual(this)"><i class="fas fa-save"></i> บันทึกลูกค้าใหม่</button>' +
@@ -20785,7 +20795,7 @@
         var warnBad = function (bad) { Swal.fire({ icon: 'warning', title: 'เพิ่มไฟล์ไม่ได้', html: 'ไฟล์ต่อไปนี้ไม่ใช่ PDF/รูปภาพ/Word/Excel หรือใหญ่เกิน 10 MB:<br><b>' + bad.map(function (f) { return esc(f.name); }).join('<br>') + '</b>', returnFocus: false }); };
         var failHtml = function (fails) { return fails.map(function (x) { return '<div style="text-align:left"><b>' + esc(x[0]) + '</b>: ' + esc(x[1]) + '</div>'; }).join(''); };
         // อัปโหลดทีละไฟล์ → resolve { done, fails }
-        var uploadFiles = function (list, listRow, v, onOk) {
+        var uploadFiles = function (list, listRow, v, year, onOk) {
             return new Promise(function (resolve) {
                 var done = 0, fails = [];
                 var step = function () {
@@ -20793,7 +20803,7 @@
                     var file = list[done + fails.length];
                     Swal.fire({ title: 'กำลังอัปโหลดไฟล์แนบ ' + (done + fails.length + 1) + '/' + list.length, text: file.name, allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
                     readB64(file).then(function (b64) {
-                        return callGs('uploadCustomerAttachment', { listRow: listRow, v: v, fileName: file.name, mime: MIME_BY_EXT[(file.name.split('.').pop() || '').toLowerCase()], data: b64 });
+                        return callGs('uploadCustomerAttachment', { listRow: listRow, v: v, year: Number(year) || curBE(), fileName: file.name, mime: MIME_BY_EXT[(file.name.split('.').pop() || '').toLowerCase()], data: b64 });
                     }).then(function (res) {
                         if (res && res.status === 'success') { done++; if (onOk) onOk(res); }
                         else fails.push([file.name, (res && res.message) || 'ไม่ทราบสาเหตุ']);
@@ -20808,7 +20818,8 @@
             var list = Array.prototype.slice.call(inp.files || []); inp.value = '';
             if (!it || !list.length) return;
             var bad = badFiles(list); if (bad.length) return warnBad(bad);
-            uploadFiles(list, it.listRow, it.v, function (res) {
+            var ys = grp.querySelector('.cc-year'); it.attachYear = ys ? ys.value : it.attachYear;
+            uploadFiles(list, it.listRow, it.v, it.attachYear, function (res) {
                 it.files = res.files || it.files; it.filesErr = res.filesErr || '';
                 var g = document.querySelector('#ccResult .cc-files-group[data-i="' + idx + '"]');
                 if (g) g.outerHTML = filesBox(it.files, it.listRow, it.filesErr, idx);
@@ -20894,7 +20905,8 @@
                     }
                     pending = [];
                     var box2 = document.getElementById('ccPendingList'); if (box2) box2.innerHTML = pendingRows();
-                    uploadFiles(files, res.listRow, ex).then(function (r) {
+                    var ys = card.querySelector('.cc-pending .cc-year');
+                    uploadFiles(files, res.listRow, ex, ys ? ys.value : 0).then(function (r) {
                         Swal.fire({ icon: r.fails.length ? 'warning' : 'success', title: 'บันทึกแล้ว',
                             html: msg + '<br>ไฟล์แนบ: อัปโหลดแล้ว ' + r.done + ' จาก ' + files.length + ' ไฟล์' + (r.fails.length ? '<br><br>' + failHtml(r.fails) + '<div style="margin-top:6px">ไฟล์ที่ไม่สำเร็จ: ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"</div>' : '') });
                     });

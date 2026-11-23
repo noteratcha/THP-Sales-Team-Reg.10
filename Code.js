@@ -6049,7 +6049,8 @@ function uploadCustomerAttachment_(payload, actor) {
     var fileName = String(payload.fileName || 'ไฟล์แนบ').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150) || 'ไฟล์แนบ';
     // โฟลเดอร์เก็บไฟล์: โฟลเดอร์ "สัญญาขนส่ง" › "ปี <พ.ศ.>" ตามปีของลูกค้า (วันที่เริ่มต้นสัญญา) — ผู้ใช้ขอ 2026-11-23
     var base = DriveApp.getFolderById(CUSTOMER_ATTACH_BASE_ID);
-    var yName = 'ปี ' + customerAttachYear_(listSh, row, payload.v || {});
+    var py = Number(payload.year); // ปีที่ผู้ใช้เลือก (ค่าเริ่มต้นปีปัจจุบัน) — ผู้ใช้ขอ 2026-11-23
+    var yName = 'ปี ' + (py >= 2500 && py <= 2700 ? py : customerAttachYear_(listSh, row, payload.v || {}));
     var fit = base.getFoldersByName(yName);
     var folder = fit.hasNext() ? fit.next() : base.createFolder(yName);
     var file = folder.createFile(Utilities.newBlob(bytes, mime, fileName))
