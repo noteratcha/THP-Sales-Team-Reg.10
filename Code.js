@@ -6690,7 +6690,8 @@ function getRenewalCustomers_(actor) {
         svc: String(r[c.svc] || '').trim(), pkg: renewalPackage_(r[c.svc]), end: c.end >= 0 ? String(r[c.end] || '').trim() : ''
       };
       // สำเนาเก็บแยกตามบริการ (ลูกค้าเปลี่ยนบริการระหว่างปีมีหลายแถว) → ใช้แถวล่าสุด (อยู่ล่างกว่า) รายเดียว
-      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, zip) : '';
+      // ชีตจริง: ลูกค้ารหัส|ชื่อ เดียวกันหลายแถวที่ใช้งาน (เช่นเปลี่ยนบริการ) = รายเดียว ใช้แถวล่าสุด ตรงกับไฟล์สัญญา 1 ไฟล์ (ผู้ใช้เลือก 2026-11-24)
+      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, zip) : 'n|' + zip + '|' + name.replace(/\s+/g, ' ');
       if (k && seen.hasOwnProperty(k)) { out[seen[k]] = item; continue; }
       if (k) seen[k] = out.length;
       out.push(item);
@@ -6820,7 +6821,7 @@ function getRenewalBulk_(payload, actor) {
       if ((all ? !/^\d{5}$/.test(z) : z !== zip) || !name || !renewalActive_(r[c.svc], z)) continue;
       var item = renewalRowData_(c, r); item.row = i + 1;
       // เหมือนรายชื่อ: สำเนามีหลายแถวต่อลูกค้า → ใช้แถวล่าสุด
-      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, z) : '';
+      var k = src.archive ? renewalKey_(c.thp >= 0 ? r[c.thp] : '', name, z) : 'n|' + z + '|' + name.replace(/\s+/g, ' '); // เหมือนรายชื่อ: แถวซ้ำ = รายเดียว ใช้แถวล่าสุด
       if (k && seen.hasOwnProperty(k)) { out[seen[k]] = item; continue; }
       if (k) seen[k] = out.length;
       out.push(item);
@@ -6998,7 +6999,7 @@ function getPackageDashboard_(actor) {
         if (/^\d{5}$/.test(z) && tm && (!zipTeamYear[z] || y >= zipTeamYear[z])) { zipTeam[z] = tm; zipTeamYear[z] = y; }
       });
     } catch (eT) { }
-    var customers = [], want = {}, cancelled = 0;
+    var customers = [], want = {}, cancelled = 0, seenCust = {};
     rows.forEach(function (r, i) {
       var zip = String(r[2] || '').replace(/\D/g, '').slice(0, 5), name = String(r[5] || '').trim();
       if (!name || !/^\d{5}$/.test(zip)) return;
@@ -7010,8 +7011,10 @@ function getPackageDashboard_(actor) {
       if (isCancel) { cancelled++; return; }
       var thp = thpOf(r[6]);
       if (thp) want[thp] = true;
-      customers.push({ row: i + 2, zip: zip, office: String(r[3] || '').trim(), prov: String(r[4] || '').trim() || contractProvinceOfZip_(zip), name: name, thp: thp,
+      var ck = zip + '|' + name.replace(/\s+/g, ' '), item = ({ row: i + 2, zip: zip, office: String(r[3] || '').trim(), prov: String(r[4] || '').trim() || contractProvinceOfZip_(zip), name: name, thp: thp,
         pkg: String(r[7] || '').trim(), start: String(r[12] || '').trim(), end: String(r[14] || '').trim(), team: zipTeam[zip] || '' });
+      // แถวซ้ำ (รหัส|ชื่อ เดียวกัน) = รายเดียว ใช้แถวล่าสุด (ผู้ใช้เลือก 2026-11-24)
+      if (seenCust.hasOwnProperty(ck)) customers[seenCust[ck]] = item; else { seenCust[ck] = customers.length; customers.push(item); }
     });
     // ข้อมูลฝากส่งรายเดือน: ship[thp][ปี ค.ศ.] = [ชิ้น ม.ค., รายได้ ม.ค., ชิ้น ก.พ., ...] (24 ค่า)
     var ship = {}, years = {}, shipErr = '';
