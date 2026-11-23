@@ -1641,9 +1641,13 @@
             var label = zip ? zip + (offices[zip] ? ' ' + offices[zip] : '') : 'ทุกที่ทำการ (' + nOff.toLocaleString('th-TH') + ' แห่ง)';
             var svcText = useSel ? Object.keys(sel).filter(function (k) { return sel[k]; }).join(', ') : 'ทุกบริการ';
             var mins = Math.ceil(inList.length * 4 / 60);
+            // ชื่อซ้ำในที่ทำการเดียวกัน (เช่น ลูกค้าเปลี่ยนบริการแล้วมี 2 แถวที่ใช้งาน) → ชื่อไฟล์เดียวกัน ได้ไฟล์เดียว (ผู้ใช้ถาม 2026-11-24 ทำไมจำนวนไฟล์ไม่เท่ารายชื่อ)
+            var uniq = {}; inList.forEach(function (c) { uniq[bulkKey(c)] = 1; });
+            var nDup = inList.length - Object.keys(uniq).length;
             Swal.fire({
                 icon: zip ? 'question' : 'warning', title: zip ? 'สร้างสัญญาทั้งหมดของที่ทำการ?' : 'สร้างสัญญาทั้งหมดทุกที่ทำการ?',
                 html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>บริการ: ' + esc(svcText) + '<br>จำนวน <b>' + inList.length.toLocaleString('th-TH') + ' ราย</b> (ใช้เวลาประมาณ ' + mins.toLocaleString('th-TH') + ' นาที)' +
+                    (nDup ? '<br><span style="color:#b45309">• ชื่อลูกค้าซ้ำในที่ทำการเดียวกัน ' + nDup.toLocaleString('th-TH') + ' ราย (มีหลายแถวในชีต) จะได้ไฟล์สัญญาเดียว — จำนวนไฟล์จึงเป็น ' + Object.keys(uniq).length.toLocaleString('th-TH') + ' ไฟล์</span>' : '') +
                     '<hr style="margin:8px 0">• เลขที่หนังสือ: ปข.10 (รหัสไปรษณีย์ที่ทำการ)/ เว้นว่างช่องที่ 3<br>• ข้อมูลลูกค้าตามชีต ช่องที่ไม่มีข้อมูลเว้นว่าง<br>• เก็บไฟล์ที่ จังหวัด › ที่ทำการ (รหัส) และบันทึก/อัปเดตทะเบียน "ปี 2570"<br>• ลูกค้าที่เคยสร้างแล้ว จะแทนไฟล์และอัปเดตข้อมูลเดิม' +
                     '<br><b style="color:#b91c1c">• ห้ามปิดหรือรีเฟรชหน้านี้จนกว่าจะเสร็จ (กด "หยุด" ได้ระหว่างทาง)</b></div>',
                 showCancelButton: true, confirmButtonText: 'เริ่มสร้าง', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#c2410c', returnFocus: false

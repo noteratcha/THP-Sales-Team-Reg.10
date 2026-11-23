@@ -5731,7 +5731,7 @@ function renewalFindRow_(data, c, thpDigits, name, zip) {
     var r = data[i], t = c.thp >= 0 ? String(r[c.thp] || '').replace(/\D/g, '') : '';
     var ok = thpDigits && thpDigits.length === 8 ? t === thpDigits : (String(r[c.name] || '').trim() === name && String(r[c.zip] || '').trim() === zip);
     if (!ok) continue;
-    if (hit < 0 || String(r[c.svc] || '').trim() !== 'ยกเลิกสัญญา') hit = i;
+    if (hit < 0 || !isCancelledSvc_(r[c.svc])) hit = i;
   }
   return hit;
 }
@@ -6472,9 +6472,11 @@ function renewalInScope_(actor, zip) {
   if (String(actor.user || '').toLowerCase() === 'admin') return true;
   return !!zip && String(zip).trim() === String(actor.zipcode || actor.user || '').trim();
 }
+// รหัสบริการที่เป็นการยกเลิก — รับทุกรูปแบบที่มีคำว่า "ยกเลิก" (เช่น "ยกเลิกสัญญา", "ยกเลิกสัญญาแล้ว") (ผู้ใช้ขอ 2026-11-24)
+function isCancelledSvc_(svc) { return /ยกเลิก/.test(String(svc || '')); }
 function renewalActive_(svc, zip) {
   var s = String(svc || '').trim();
-  return !!String(zip || '').trim() && !!s && s !== 'ยกเลิกสัญญา';
+  return !!String(zip || '').trim() && !!s && !isCancelledSvc_(s);
 }
 // "A12" / "A13 (EMS ECOM 5013)" → "Package A12" / "Package A13"; อัตราพิเศษอื่น → ''
 function renewalPackage_(svc) {
@@ -6641,7 +6643,7 @@ function renewalArchiveRecord_(thpDigits, name, zip) {
     var r = data[i];
     var t = c.thp >= 0 ? String(r[c.thp] || '').replace(/\D/g, '') : '';
     if (!(thpDigits && thpDigits.length === 8 ? t === thpDigits : (String(r[c.name] || '').trim() === name && String(r[c.zip] || '').trim() === zip))) continue;
-    if (!hit || (String(hit[c.svc] || '').trim() === 'ยกเลิกสัญญา' && String(r[c.svc] || '').trim() !== 'ยกเลิกสัญญา')) hit = r;
+    if (!hit || (isCancelledSvc_(hit[c.svc]) && !isCancelledSvc_(r[c.svc]))) hit = r;
   }
   if (!hit) return { archivedAt: info.at, found: false };
   var g = function (k) { return c[k] >= 0 ? String(hit[c[k]] || '').replace(/\s+/g, ' ').trim() : ''; };
@@ -7000,7 +7002,7 @@ function getPackageDashboard_(actor) {
     rows.forEach(function (r, i) {
       var zip = String(r[2] || '').replace(/\D/g, '').slice(0, 5), name = String(r[5] || '').trim();
       if (!name || !/^\d{5}$/.test(zip)) return;
-      var isCancel = String(r[7] || '').trim() === 'ยกเลิกสัญญา'; // ไม่รวมลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
+      var isCancel = isCancelledSvc_(r[7]); // ไม่รวมลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
       if (!scope.all) {
         if (scope.only && zip !== scope.zip) return;
         if (scope.prov && contractProvinceOfZip_(zip) !== scope.prov) return;
@@ -7052,7 +7054,7 @@ function contractCancelledMap_() {
     var zip = String(data[i][2] || '').replace(/\D/g, '').slice(0, 5), name = String(data[i][5] || '').trim();
     if (!zip || !name) continue;
     var key = zip + '|' + contractSafeName_(name), id = lc >= 0 ? idOf(data[i][lc]) : '';
-    if (String(data[i][7] || '').trim() === 'ยกเลิกสัญญา') { out.byKey[key] = 1; if (id) out.byId[id] = 1; }
+    if (isCancelledSvc_(data[i][7])) { out.byKey[key] = 1; if (id) out.byId[id] = 1; }
     else { out.active[key] = 1; if (id) activeIds[id] = 1; }
   }
   Object.keys(out.active).forEach(function (k) { delete out.byKey[k]; });
@@ -7096,8 +7098,10 @@ function listContractFiles_(actor) {
       f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || '';
       if (!cancelMap.active[key] && (cancelMap.byId[f.id] || cancelMap.byKey[key])) f.cancelled = true; // ยกเลิกสัญญาจริง (ไม่มีแถวใช้งานอยู่) — ไม่นับในสรุป
     });
+    var nCancelled = out.filter(function (f) { return f.cancelled; }).length;
+    out = out.filter(function (f) { return !f.cancelled; }); // ไม่แสดงไฟล์ของลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-24)
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
-    return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
+    return { status: 'success', data: out, cancelled: nCancelled, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'listContractFiles_');
     return { status: 'error', message: e.toString() };

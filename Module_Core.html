@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.0629';
+    var APP_VERSION = 'Ver. 2026.1124.0643';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1394,7 +1394,7 @@
                             var seen = function (f) { return f.nView > 0 || !!f.view; }, dled = function (f) { return f.nDl > 0 || !!f.dl; };
                             var render = function (res) {
                                 var body = document.getElementById('hcfBody'), sc = document.getElementById('hcfScope'); if (!body) return;
-                                var nc = (res.data || []).filter(function (f) { return f.cancelled; }).length; // ไม่นับลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
+                                var nc = res.cancelled || 0; // ไม่นับลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
                                 var L = (res.data || []).filter(function (f) { return !f.cancelled; }), n = L.length, v = L.filter(seen).length, d = L.filter(dled).length, none = L.filter(function (f) { return !seen(f) && !dled(f); }).length;
                                 var tv = L.reduce(function (a, f) { return a + (f.nView || 0); }, 0), td = L.reduce(function (a, f) { return a + (f.nDl || 0); }, 0);
                                 if (sc) sc.textContent = (res.scope === 'all' ? 'ทุกที่ทำการ ปข.10' : res.scope === 'province' ? 'ที่ทำการในจังหวัด' + (res.prov || '') : 'ที่ทำการ ' + (res.zip || '')) + ' · ไฟล์สัญญาที่สร้างแล้วรอให้ลูกค้าลงนาม' + (nc ? ' · ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : '');

@@ -180,7 +180,7 @@
             var dash = document.getElementById('cfDash');
             if (dash) {
                 // ไม่นับไฟล์ของลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
-                var act = base.filter(function (f) { return !f.cancelled; }), nc = base.length - act.length;
+                var act = base.filter(function (f) { return !f.cancelled; }), nc = (q || off) ? 0 : ((st.meta && st.meta.cancelled) || 0);
                 var n = act.length, cnt = function (k) { return act.filter(STATUS[k].fn).length; };
                 var sum = function (k) { return act.reduce(function (a, f) { return a + (Number(f[k]) || 0); }, 0); };
                 var pct = function (x) { return n ? Math.round(x * 100 / n) : 0; };
