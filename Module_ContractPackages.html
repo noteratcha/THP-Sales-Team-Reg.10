@@ -296,6 +296,7 @@
                 kpi('fa-box', 'ชิ้นงาน · ' + period, fmt(sum.p), 'ชิ้น', sum.a ? 'เฉลี่ย ' + fmt(sum.p / sum.a) + ' ชิ้นต่อรายที่ฝากส่ง' : '-') +
                 kpi('fa-coins', 'รายได้ · ' + period, fmt(sum.r), 'บาท', sum.a ? 'เฉลี่ย ' + fmt(sum.r / sum.a) + ' บาทต่อรายที่ฝากส่ง' : '-') + '</div>';
             var notes = [];
+            if (D.cancelled) notes.push('ไม่รวมลูกค้าที่ยกเลิกสัญญา ' + fmt(D.cancelled) + ' ราย');
             if (sum.noThp) notes.push(fmt(sum.noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงดึงข้อมูลฝากส่งไม่ได้');
             if (D.shipErr) notes.push(D.shipErr);
             if (notes.length) html += '<p class="cp-note"><i class="fas fa-info-circle"></i><span>' + notes.map(esc).join(' · ') + '</span></p>';

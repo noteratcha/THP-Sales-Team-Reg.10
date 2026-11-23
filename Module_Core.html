@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2144';
+    var APP_VERSION = 'Ver. 2026.1123.2202';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1327,6 +1327,195 @@
                                 </div>
                             </div>
                         </div>
+
+                    <!-- 📑 สรุปสัญญาที่ต้องขยาย (ผู้ใช้ขอ 2026-11-23): ข้อมูลเดียวกับหน้าไฟล์สัญญา (listContractFiles — สิทธิ์ตามที่ทำการ/จังหวัด) -->
+                    <section id="homeContractCard" class="hcf hidden" aria-labelledby="hcfTitle">
+                        <div class="hcf-h">
+                            <span class="hcf-ic" aria-hidden="true"><i class="fas fa-file-signature"></i></span>
+                            <div class="hcf-tt"><h3 id="hcfTitle">สัญญาขนส่งที่ต้องขยายอายุ ปี 2570</h3><p id="hcfScope">กำลังโหลด...</p></div>
+                            <div class="hcf-act">
+                                <button type="button" class="hcf-ref" onclick="loadHomeContractSummary(true)" aria-label="โหลดข้อมูลใหม่" title="โหลดใหม่"><i class="fas fa-sync-alt"></i></button>
+                                <button type="button" class="hcf-go" onclick="switchPage('contract-files')">ไปที่ไฟล์สัญญา <i class="fas fa-arrow-right"></i></button>
+                            </div>
+                        </div>
+                        <div id="hcfBody" class="hcf-body"><div class="hcf-kpis"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div></div>
+                        <div id="hcfActive" class="hcf-active"></div>
+                    </section>
+                    <style>
+                        .hcf { width: 100%; background: #fff; border: 1px solid #f1f2f4; border-radius: 1.5rem; box-shadow: 0 8px 30px rgba(0, 0, 0, .04); padding: 18px 20px; }
+                        .hcf.hidden { display: none; }
+                        .hcf-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5; }
+                        .hcf-ic { width: 32px; height: 32px; border-radius: 12px; background: #ffedd5; color: #ea580c; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+                        .hcf-tt { flex: 1; min-width: 0; }
+                        .hcf-tt h3 { margin: 0; font-size: 17px; font-weight: 800; color: #111827; line-height: 1.3; }
+                        .hcf-tt p { margin: 0; font-size: 12px; color: #6b7280; }
+                        .hcf-act { display: flex; align-items: center; gap: 8px; }
+                        .hcf-ref { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; }
+                        .hcf-ref:hover { color: #ea580c; border-color: #fdba74; }
+                        .hcf-ref:disabled i { animation: hcfSpin 1s linear infinite; }
+                        @keyframes hcfSpin { to { transform: rotate(360deg); } }
+                        .hcf-go { height: 34px; padding: 0 14px; border-radius: 10px; border: 0; background: #ea580c; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+                        .hcf-go:hover { background: #c2410c; }
+                        .hcf-ref:focus-visible, .hcf-go:focus-visible, .hcf-row:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+                        .hcf-body { padding-top: 14px; display: flex; flex-direction: column; gap: 14px; }
+                        .hcf-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+                        .hcf-k { border: 1px solid #f1f2f4; border-radius: 14px; padding: 12px 14px; min-width: 0; background: #fcfcfd; }
+                        .hcf-k-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
+                        .hcf-k-v { display: block; margin-top: 4px; font-size: 26px; font-weight: 800; color: #111827; line-height: 1.1; font-variant-numeric: tabular-nums; }
+                        .hcf-k-v small { font-size: 12px; font-weight: 600; color: #6b7280; }
+                        .hcf-k-s { display: block; margin-top: 2px; font-size: 12px; color: #6b7280; }
+                        .hcf-k.is-total { background: #fff7ed; border-color: #fed7aa; }
+                        .hcf-k.is-total .hcf-k-l i { color: #ea580c; }
+                        .hcf-k.is-view .hcf-k-l i { color: #2563eb; }
+                        .hcf-k.is-dl .hcf-k-l i { color: #16a34a; }
+                        .hcf-k.is-none .hcf-k-l i { color: #9ca3af; }
+                        .hcf-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
+                        .hcf-bar span { display: block; height: 100%; border-radius: inherit; }
+                        .is-view .hcf-bar span { background: #2563eb; } .is-dl .hcf-bar span { background: #16a34a; } .is-none .hcf-bar span { background: #9ca3af; }
+                        .hcf-sub-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 800; color: #374151; margin: 0; }
+                        .hcf-sub-h small { font-size: 11px; font-weight: 600; color: #9ca3af; }
+                        .hcf-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
+                        .hcf-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 76px; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; border: 0; background: none; text-align: left; font: inherit; cursor: pointer; }
+                        .hcf-row:hover { background: #fff7ed; }
+                        .hcf-row-n { font-size: 13px; font-weight: 600; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .hcf-row-n small { color: #9ca3af; font-weight: 500; margin-left: 4px; }
+                        .hcf-stack { display: flex; height: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
+                        .hcf-stack .d { background: #16a34a; } .hcf-stack .v { background: #93c5fd; }
+                        .hcf-row-p { font-size: 12px; color: #6b7280; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+                        .hcf-row-p b { color: #111827; }
+                        .hcf-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #6b7280; }
+                        .hcf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+                        .hcf-active { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e5e7eb; }
+                        .hcf-active:empty { display: none; }
+                        .hcf-a-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+                        .hcf-a-h h4 { margin: 0; font-size: 15px; font-weight: 800; color: #111827; display: flex; align-items: center; gap: 8px; }
+                        .hcf-a-h h4 i { color: #16a34a; }
+                        .hcf-a-h small { font-size: 12px; color: #6b7280; }
+                        .hcf-a-go { margin-left: auto; height: 30px; padding: 0 12px; border-radius: 9px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #15803d; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+                        .hcf-a-go:hover { background: #dcfce7; }
+                        .hcf-a-go:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+                        .hcf-a { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+                        .hcf-a .hcf-k.is-act .hcf-k-l i { color: #16a34a; }
+                        .hcf-a .hcf-k.is-act .hcf-bar span { background: #16a34a; }
+                        .hcf-a-note { margin: 8px 0 0; font-size: 12px; color: #b45309; }
+                        @media (max-width: 640px) { .hcf-a { grid-template-columns: minmax(0, 1fr); } .hcf-a-go { margin-left: 0; } }
+                        .hcf-sk { height: 84px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: hcfSk 1.2s infinite; }
+                        @keyframes hcfSk { to { background-position: -200% 0; } }
+                        .hcf-err { font-size: 13px; color: #6b7280; padding: 8px 0; }
+                        @media (prefers-reduced-motion: reduce) { .hcf-sk, .hcf-ref:disabled i { animation: none; } }
+                        @media (max-width: 1024px) { .hcf-rows { grid-template-columns: minmax(0, 1fr); } }
+                        @media (max-width: 640px) {
+                            .hcf { padding: 14px; border-radius: 1.25rem; }
+                            .hcf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                            .hcf-k-v { font-size: 22px; }
+                            .hcf-act { width: 100%; } .hcf-go { flex: 1; justify-content: center; }
+                            .hcf-row { grid-template-columns: minmax(0, 1fr) 84px 64px; }
+                        }
+                    </style>
+                    <script>
+                        (function () {
+                            var cache = null, seq = 0;
+                            var who = function () { try { return String((currentUserInfo || {}).user || '').trim().toLowerCase(); } catch (e) { return ''; } };
+                            var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+                            var fmt = function (n) { return Number(n || 0).toLocaleString('th-TH'); };
+                            var pct = function (a, b) { return b ? Math.round(a * 100 / b) : 0; };
+                            var seen = function (f) { return f.nView > 0 || !!f.view; }, dled = function (f) { return f.nDl > 0 || !!f.dl; };
+                            var render = function (res) {
+                                var body = document.getElementById('hcfBody'), sc = document.getElementById('hcfScope'); if (!body) return;
+                                var nc = (res.data || []).filter(function (f) { return f.cancelled; }).length; // ไม่นับลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
+                                var L = (res.data || []).filter(function (f) { return !f.cancelled; }), n = L.length, v = L.filter(seen).length, d = L.filter(dled).length, none = L.filter(function (f) { return !seen(f) && !dled(f); }).length;
+                                var tv = L.reduce(function (a, f) { return a + (f.nView || 0); }, 0), td = L.reduce(function (a, f) { return a + (f.nDl || 0); }, 0);
+                                if (sc) sc.textContent = (res.scope === 'all' ? 'ทุกที่ทำการ ปข.10' : res.scope === 'province' ? 'ที่ทำการในจังหวัด' + (res.prov || '') : 'ที่ทำการ ' + (res.zip || '')) + ' · ไฟล์สัญญาที่สร้างแล้วรอให้ลูกค้าลงนาม' + (nc ? ' · ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : '');
+                                var k = function (cls, icon, label, val, sub, p) {
+                                    return '<div class="hcf-k ' + cls + '"><span class="hcf-k-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="hcf-k-v">' + fmt(val) + '<small> สัญญา' + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
+                                        (p != null ? '<span class="hcf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="hcf-k-s">' + sub + '</span></div>';
+                                };
+                                var html = '<div class="hcf-kpis">' + k('is-total', 'fa-file-contract', 'สัญญาที่ต้องขยาย', n, 'ไฟล์สัญญาทั้งหมด', null) +
+                                    k('is-view', 'fa-eye', 'เปิดดูแล้ว', v, 'รวม ' + fmt(tv) + ' ครั้ง', pct(v, n)) +
+                                    k('is-dl', 'fa-download', 'ดาวน์โหลดแล้ว', d, 'รวม ' + fmt(td) + ' ครั้ง', pct(d, n)) +
+                                    k('is-none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', none, 'ต้องติดตาม', pct(none, n)) + '</div>';
+                                // แยกตามจังหวัด (admin) / ที่ทำการ (ที่ทำการจังหวัด) — เรียงจากดาวน์โหลดน้อยไปมาก เพื่อเห็นที่ต้องติดตามก่อน
+                                if (res.scope !== 'office' && n) {
+                                    var byProv = res.scope === 'all', g = {};
+                                    L.forEach(function (f) {
+                                        var key = byProv ? (f.prov || 'ไม่ระบุจังหวัด') : (f.office || f.zip || '-');
+                                        var o = g[key] || (g[key] = { k: key, n: 0, v: 0, d: 0 }); o.n++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
+                                    });
+                                    var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
+                                    html += '<div><p class="hcf-sub-h">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>เรียงจากดาวน์โหลดน้อยไปมาก · คลิกเพื่อดูไฟล์</small></p>' +
+                                        '<div class="hcf-legend" style="margin:6px 0 4px"><span><i style="background:#16a34a"></i>ดาวน์โหลดแล้ว</span><span><i style="background:#93c5fd"></i>เปิดดูอย่างเดียว</span><span><i style="background:#eef0f3"></i>ยังไม่เปิด</span></div>' +
+                                        '<div class="hcf-rows">' + rows.map(function (r) {
+                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" title="' + esc(r.k) + ': ดาวน์โหลด ' + r.d + ' · เปิดดูอย่างเดียว ' + r.v + ' · ยังไม่เปิด ' + (r.n - r.d - r.v) + ' จาก ' + r.n + ' สัญญา">' +
+                                                '<span class="hcf-row-n">' + esc(byProv ? 'จ.' + r.k : r.k) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
+                                                '<span class="hcf-stack"><span class="d" style="width:' + (r.n ? r.d * 100 / r.n : 0) + '%"></span><span class="v" style="width:' + (r.n ? r.v * 100 / r.n : 0) + '%"></span></span>' +
+                                                '<span class="hcf-row-p"><b>' + fmt(r.d) + '</b>/' + fmt(r.n) + ' · ' + pct(r.d, r.n) + '%</span></button>';
+                                        }).join('') + '</div></div>';
+                                }
+                                if (!n) html = '<div class="hcf-err">ยังไม่มีไฟล์สัญญาที่ต้องขยายในพื้นที่ของคุณ</div>';
+                                body.innerHTML = html;
+                            };
+                            // ----- ลูกค้า Active: ทำสัญญากี่ราย มีการฝากส่งกี่ราย (ผู้ใช้ขอ 2026-11-23) — ข้อมูลเดียวกับหน้า ลูกค้าแต่ละ Package (ไม่รวมยกเลิกสัญญา) -----
+                            var aCache = null, aSeq = 0;
+                            var MOF = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+                            var renderActive = function (res) {
+                                var el = document.getElementById('hcfActive'); if (!el) return;
+                                var C = res.customers || [], y = (res.years || [])[0], n = C.length;
+                                if (!n) { el.innerHTML = ''; return; }
+                                var lastM = -1, ship = res.ship || {};
+                                if (y) Object.keys(ship).forEach(function (t) { var a = ship[t][y]; if (!a) return; for (var m = 11; m > lastM; m--) if (a[m * 2] > 0 || a[m * 2 + 1] > 0) { lastM = m; break; } });
+                                var yr = 0, mo = 0, noThp = 0;
+                                C.forEach(function (c) {
+                                    if (!c.thp) { noThp++; return; }
+                                    var a = y && ship[c.thp] && ship[c.thp][y]; if (!a) return;
+                                    var any = false; for (var m = 0; m < 12; m++) if (a[m * 2] > 0 || a[m * 2 + 1] > 0) { any = true; break; }
+                                    if (any) yr++;
+                                    if (lastM >= 0 && (a[lastM * 2] > 0 || a[lastM * 2 + 1] > 0)) mo++;
+                                });
+                                var k = function (cls, icon, label, val, unit, sub, p) {
+                                    return '<div class="hcf-k ' + cls + '"><span class="hcf-k-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="hcf-k-v">' + fmt(val) + '<small> ' + unit + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
+                                        (p != null ? '<span class="hcf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="hcf-k-s">' + sub + '</span></div>';
+                                };
+                                var be = y ? y + 543 : '';
+                                el.innerHTML = '<div class="hcf-a-h"><h4><i class="fas fa-user-check"></i>ลูกค้า Active</h4><small>ทำสัญญากี่ราย มีการมาฝากส่งกี่ราย (ไม่รวมยกเลิกสัญญา)</small>' +
+                                    '<button type="button" class="hcf-a-go" onclick="switchPage(\'contract-packages\')">ดูรายละเอียด <i class="fas fa-arrow-right"></i></button></div><div class="hcf-a">' +
+                                    k('is-total', 'fa-users', 'ลูกค้าที่ทำสัญญา', n, 'ราย', (res.cancelled ? 'ไม่รวมยกเลิกสัญญา ' + fmt(res.cancelled) + ' ราย' : 'ตามชีตรายชื่อลูกค้า'), null) +
+                                    k('is-act', 'fa-truck', 'มีการฝากส่ง ปี ' + be, yr, 'ราย', 'ไม่มีการฝากส่ง ' + fmt(n - yr) + ' ราย', pct(yr, n)) +
+                                    k('is-act', 'fa-calendar-check', 'มีการฝากส่ง ' + (lastM >= 0 ? MOF[lastM] + ' ' + be : 'เดือนล่าสุด'), mo, 'ราย', 'เดือนล่าสุดที่มีข้อมูลรายได้', pct(mo, n)) + '</div>' +
+                                    (noThp ? '<p class="hcf-a-note"><i class="fas fa-info-circle"></i> ' + fmt(noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงตรวจการฝากส่งไม่ได้ (นับเป็นไม่มีการฝากส่ง)</p>' : '');
+                            };
+                            var loadActive = function (force, u) {
+                                var el = document.getElementById('hcfActive'); if (!el) return;
+                                if (!force && aCache && aCache.u === u && Date.now() - aCache.at < 300000) { renderActive(aCache.res); return; }
+                                var my = ++aSeq;
+                                if (!aCache || aCache.u !== u) el.innerHTML = '<div class="hcf-a"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div>';
+                                google.script.run.withSuccessHandler(function (res) {
+                                    if (my !== aSeq || who() !== u) return;
+                                    if (!(res && res.status === 'success')) { el.innerHTML = ''; return; }
+                                    aCache = { u: u, at: Date.now(), res: res }; renderActive(res);
+                                }).withFailureHandler(function () { if (my === aSeq) el.innerHTML = ''; }).getPackageDashboard(currentUserInfo);
+                            };
+                            window.clearHomeContractSummary = function () { cache = null; seq++; aCache = null; aSeq++; var ea = document.getElementById('hcfActive'); if (ea) ea.innerHTML = ''; var c = document.getElementById('homeContractCard'); if (c) c.classList.add('hidden'); };
+                            // force = กดโหลดใหม่ · ไม่ force = ใช้ข้อมูลเดิมถ้าโหลดไว้ไม่เกิน 5 นาที
+                            window.loadHomeContractSummary = function (force) {
+                                var u = who(), card = document.getElementById('homeContractCard');
+                                if (!card) return;
+                                if (!u || u === 'viewer' || u === 'prepost') { card.classList.add('hidden'); return; }
+                                card.classList.remove('hidden');
+                                loadActive(force, u);
+                                if (!force && cache && cache.u === u && Date.now() - cache.at < 300000) { render(cache.res); return; }
+                                var my = ++seq, btn = card.querySelector('.hcf-ref'); if (btn) btn.disabled = true;
+                                if (!cache || cache.u !== u) document.getElementById('hcfBody').innerHTML = '<div class="hcf-kpis"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div>';
+                                google.script.run.withSuccessHandler(function (res) {
+                                    if (my !== seq || who() !== u) return; if (btn) btn.disabled = false;
+                                    if (!(res && res.status === 'success')) { if (res && /สิทธิ์/.test(res.message || '')) { card.classList.add('hidden'); return; } document.getElementById('hcfBody').innerHTML = '<div class="hcf-err">โหลดข้อมูลสัญญาไม่สำเร็จ: ' + esc((res && res.message) || '') + '</div>'; return; }
+                                    cache = { u: u, at: Date.now(), res: res }; render(res);
+                                }).withFailureHandler(function (err) {
+                                    if (my !== seq) return; if (btn) btn.disabled = false;
+                                    document.getElementById('hcfBody').innerHTML = '<div class="hcf-err">โหลดข้อมูลสัญญาไม่สำเร็จ: ' + esc(err && err.message ? err.message : err) + '</div>';
+                                }).listContractFiles(currentUserInfo);
+                            };
+                        })();
+                    </script>
 
                     <!-- Dashboards Container -->
                     <div id="homeDashboardsContainer" style="display: none;" class="w-full grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -2444,6 +2633,7 @@
                         }
                         setTimeout(() => {
                             if (typeof updateHomeVisitSummary === 'function') updateHomeVisitSummary();
+                            if (typeof window.loadHomeContractSummary === 'function') window.loadHomeContractSummary(false); // สรุปสัญญาที่ต้องขยาย (ผู้ใช้ขอ 2026-11-23)
                         }, 300);
                     }
                 },
@@ -2841,6 +3031,7 @@
         if (typeof window.thpCfClear === 'function') window.thpCfClear(); // ล้างรายการไฟล์สัญญาของผู้ใช้ก่อน
         { const elCp = document.getElementById('menu-contract-packages'); if (elCp) elCp.classList.add('hidden'); }
         if (typeof window.thpCpClear === 'function') window.thpCpClear(); // ล้างข้อมูลลูกค้าตาม Package ของผู้ใช้ก่อน
+        if (typeof window.clearHomeContractSummary === 'function') window.clearHomeContractSummary(); // ล้างสรุปสัญญาบนหน้าหลัก
         
         // 💡 ล้างข้อมูลแคชเก่าทั้งหมด เพื่อไม่ให้ปนกับ User ใหม่เวลา Login เข้ามา
         if (typeof window !== 'undefined') {

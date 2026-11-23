@@ -55,6 +55,9 @@
     #page-contract-files .k-dl .cf-bar span { background: #16a34a; }
     #page-contract-files .k-none .cf-bar span { background: #9ca3af; }
     #page-contract-files .cf-chip-x { margin-left: 6px; font-size: 12px; font-weight: 700; color: #c2410c; background: #fff7ed; border: 1px solid #fdba74; border-radius: 999px; padding: 2px 8px; cursor: pointer; }
+    #page-contract-files .cf-cancel { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #6b7280; background: #f3f4f6; border: 1px solid #e5e7eb; vertical-align: 1px; white-space: nowrap; }
+    #page-contract-files .cf-row.is-cancel .cf-title b { color: #9ca3af; text-decoration: line-through; text-decoration-color: #d1d5db; }
+    #page-contract-files .cf-row.is-cancel .cf-ic { color: #d1d5db; }
     #page-contract-files .cf-seen { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-weight: 600; }
     #page-contract-files .cf-seen i { font-size: 11px; opacity: .8; }
     @media (max-width: 760px) { #page-contract-files .cf-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract-files .cf-kpi-v { font-size: 20px; } }
@@ -176,23 +179,25 @@
             if (st.status && !STATUS[st.status]) st.status = '';
             var dash = document.getElementById('cfDash');
             if (dash) {
-                var n = base.length, cnt = function (k) { return base.filter(STATUS[k].fn).length; };
-                var sum = function (k) { return base.reduce(function (a, f) { return a + (Number(f[k]) || 0); }, 0); };
+                // ไม่นับไฟล์ของลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
+                var act = base.filter(function (f) { return !f.cancelled; }), nc = base.length - act.length;
+                var n = act.length, cnt = function (k) { return act.filter(STATUS[k].fn).length; };
+                var sum = function (k) { return act.reduce(function (a, f) { return a + (Number(f[k]) || 0); }, 0); };
                 var pct = function (x) { return n ? Math.round(x * 100 / n) : 0; };
                 var nv = cnt('view'), nd = cnt('dl'), nn = cnt('none'), offices = {};
-                base.forEach(function (f) { offices[f.office] = 1; });
+                act.forEach(function (f) { offices[f.office] = 1; });
                 var card = function (key, icon, label, val, sub, p) {
                     var tag = key ? 'button type="button" onclick="thpCfStatus(\'' + key + '\')" aria-pressed="' + (st.status === key) + '"' : 'div';
                     return '<' + tag + ' class="cf-kpi' + (key ? ' is-btn k-' + key : '') + (key && st.status === key ? ' is-on' : '') + '"><span class="cf-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span>' +
                         '<span class="cf-kpi-v">' + fmt(val) + '<small> ไฟล์' + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
                         (p != null ? '<span class="cf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="cf-kpi-s">' + sub + '</span></' + tag.split(' ')[0] + '>';
                 };
-                dash.innerHTML = card('', 'fa-file-pdf', 'ไฟล์สัญญา' + (q || off ? ' (ตามตัวกรอง)' : 'ทั้งหมด'), n, fmt(Object.keys(offices).length) + ' ที่ทำการ', null) +
+                dash.innerHTML = card('', 'fa-file-pdf', 'ไฟล์สัญญา' + (q || off ? ' (ตามตัวกรอง)' : 'ทั้งหมด'), n, fmt(Object.keys(offices).length) + ' ที่ทำการ' + (nc ? ' · ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : ''), null) +
                     card('view', 'fa-eye', 'เปิดดูแล้ว', nv, 'รวม ' + fmt(sum('nView')) + ' ครั้ง', pct(nv)) +
                     card('dl', 'fa-download', 'ดาวน์โหลดแล้ว', nd, 'รวม ' + fmt(sum('nDl')) + ' ครั้ง', pct(nd)) +
                     card('none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', nn, 'ไม่เคยเปิดดูหรือดาวน์โหลด', pct(nn));
             }
-            var hits = st.status ? base.filter(STATUS[st.status].fn) : base;
+            var hits = st.status ? base.filter(function (f) { return !f.cancelled && STATUS[st.status].fn(f); }) : base;
             var filtered = q || off || st.status;
             if (tot) tot.innerHTML = (filtered ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (filtered ? ' จาก ' + fmt(st.list.length) : '') +
                 (st.status ? ' <button type="button" class="cf-chip-x" onclick="thpCfStatus(\'\')" aria-label="ล้างตัวกรองสถานะ">' + STATUS[st.status].t + ' <i class="fas fa-times"></i></button>' : '');
@@ -230,11 +235,12 @@
             // จำนวนไฟล์ที่เปิดดู/ดาวน์โหลดแล้วในจังหวัด
             var seen = function (P) {
                 var all = []; P.oOrder.forEach(function (k) { all = all.concat(P.offices[k]); });
+                all = all.filter(function (f) { return !f.cancelled; });
                 var v = all.filter(function (f) { return f.nView > 0 || f.view; }).length, d = all.filter(function (f) { return f.nDl > 0 || f.dl; }).length;
                 return '<span class="cf-seen"><i class="fas fa-eye"></i>' + fmt(v) + '</span><span class="cf-seen"><i class="fas fa-download"></i>' + fmt(d) + '</span>';
             };
             var row = function (f, i) {
-                return '<div class="cf-row"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + '</div>' +
+                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
                     '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';

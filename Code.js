@@ -6996,14 +6996,16 @@ function getPackageDashboard_(actor) {
         if (/^\d{5}$/.test(z) && tm && (!zipTeamYear[z] || y >= zipTeamYear[z])) { zipTeam[z] = tm; zipTeamYear[z] = y; }
       });
     } catch (eT) { }
-    var customers = [], want = {};
+    var customers = [], want = {}, cancelled = 0;
     rows.forEach(function (r, i) {
       var zip = String(r[2] || '').replace(/\D/g, '').slice(0, 5), name = String(r[5] || '').trim();
       if (!name || !/^\d{5}$/.test(zip)) return;
+      var isCancel = String(r[7] || '').trim() === 'ยกเลิกสัญญา'; // ไม่รวมลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
       if (!scope.all) {
         if (scope.only && zip !== scope.zip) return;
         if (scope.prov && contractProvinceOfZip_(zip) !== scope.prov) return;
       }
+      if (isCancel) { cancelled++; return; }
       var thp = thpOf(r[6]);
       if (thp) want[thp] = true;
       customers.push({ row: i + 2, zip: zip, office: String(r[3] || '').trim(), prov: String(r[4] || '').trim() || contractProvinceOfZip_(zip), name: name, thp: thp,
@@ -7028,7 +7030,7 @@ function getPackageDashboard_(actor) {
         Object.keys(ship).forEach(function (t) { Object.keys(ship[t]).forEach(function (y) { ship[t][y] = ship[t][y].map(function (v) { return Math.round(v * 100) / 100; }); }); });
       } else shipErr = 'ไม่พบข้อมูลในชีตรายได้รายลูกค้า';
     } catch (eS) { shipErr = 'อ่านข้อมูลฝากส่งไม่ได้: ' + String(eS && eS.message || eS).slice(0, 160); }
-    return { status: 'success', customers: customers, ship: ship, years: Object.keys(years).map(Number).sort(function (a, b) { return b - a; }), shipErr: shipErr,
+    return { status: 'success', customers: customers, cancelled: cancelled, ship: ship, years: Object.keys(years).map(Number).sort(function (a, b) { return b - a; }), shipErr: shipErr,
       scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '',
       updatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm') };
   } catch (e) {
@@ -7037,6 +7039,21 @@ function getPackageDashboard_(actor) {
   }
 }
 
+// ลูกค้าที่ยกเลิกสัญญา (ชีตรายชื่อ H = "ยกเลิกสัญญา") → { byId: {fileId:1}, byKey: {"zip|ชื่อ":1} } ใช้ตัดออกจากตัวเลขสรุป (ผู้ใช้ขอ 2026-11-23)
+function contractCancelledMap_() {
+  var out = { byId: {}, byKey: {} };
+  var sh = renewalSheet_(); if (!sh || sh.getLastRow() < 2) return out;
+  var lastCol = sh.getLastColumn(), data = sh.getRange(1, 1, sh.getLastRow(), lastCol).getDisplayValues();
+  var lc = data[0].map(function (h) { return String(h).trim(); }).indexOf(CONTRACT_LINK_COL);
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][7] || '').trim() !== 'ยกเลิกสัญญา') continue;
+    var zip = String(data[i][2] || '').replace(/\D/g, '').slice(0, 5), name = String(data[i][5] || '').trim();
+    if (zip && name) out.byKey[zip + '|' + contractSafeName_(name)] = 1;
+    var m = lc >= 0 ? /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(String(data[i][lc] || '')) : null;
+    if (m) out.byId[m[1] || m[2]] = 1;
+  }
+  return out;
+}
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -7067,9 +7084,12 @@ function listContractFiles_(actor) {
     var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
     out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; f.nView = e.nView || 0; f.nDl = e.nDl || 0; });
     var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
+    var cancelMap = { byId: {}, byKey: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
     out.forEach(function (f) {
       var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
-      f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[(f.zip || '') + '|' + contractSafeName_(nm)] || '';
+      var key = (f.zip || '') + '|' + contractSafeName_(nm);
+      f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || '';
+      if (cancelMap.byId[f.id] || cancelMap.byKey[key]) f.cancelled = true; // ลูกค้ายกเลิกสัญญา — ไม่นับในสรุป
     });
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
     return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
