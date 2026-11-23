@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2202';
+    var APP_VERSION = 'Ver. 2026.1123.2210';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2104,7 +2104,7 @@
                     </style>
                     <script>
                         (function () {
-                            var cache = null, seq = 0;
+                            var cache = null, seq = 0, SEP_ZIPS = ['34010', '47010'];
                             var who = function () { try { return String((currentUserInfo || {}).user || '').trim().toLowerCase(); } catch (e) { return ''; } };
                             var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
                             var fmt = function (n) { return Number(n || 0).toLocaleString('th-TH'); };
@@ -2128,15 +2128,17 @@
                                 if (res.scope !== 'office' && n) {
                                     var byProv = res.scope === 'all', g = {};
                                     L.forEach(function (f) {
-                                        var key = byProv ? (f.prov || 'ไม่ระบุจังหวัด') : (f.office || f.zip || '-');
+                                        // 34010 / 47010 (ศูนย์ไปรษณีย์) แยกเป็นแถวของตัวเอง ไม่รวมในจังหวัด (ผู้ใช้ขอ 2026-11-23)
+                                        var own = byProv && SEP_ZIPS.indexOf(String(f.zip || '')) !== -1;
+                                        var key = own ? '@' + (f.office || f.zip) : byProv ? (f.prov || 'ไม่ระบุจังหวัด') : (f.office || f.zip || '-');
                                         var o = g[key] || (g[key] = { k: key, n: 0, v: 0, d: 0 }); o.n++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
                                     });
                                     var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
                                     html += '<div><p class="hcf-sub-h">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>เรียงจากดาวน์โหลดน้อยไปมาก · คลิกเพื่อดูไฟล์</small></p>' +
                                         '<div class="hcf-legend" style="margin:6px 0 4px"><span><i style="background:#16a34a"></i>ดาวน์โหลดแล้ว</span><span><i style="background:#93c5fd"></i>เปิดดูอย่างเดียว</span><span><i style="background:#eef0f3"></i>ยังไม่เปิด</span></div>' +
                                         '<div class="hcf-rows">' + rows.map(function (r) {
-                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" title="' + esc(r.k) + ': ดาวน์โหลด ' + r.d + ' · เปิดดูอย่างเดียว ' + r.v + ' · ยังไม่เปิด ' + (r.n - r.d - r.v) + ' จาก ' + r.n + ' สัญญา">' +
-                                                '<span class="hcf-row-n">' + esc(byProv ? 'จ.' + r.k : r.k) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
+                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" title="' + esc(r.k.replace(/^@/, '')) + ': ดาวน์โหลด ' + r.d + ' · เปิดดูอย่างเดียว ' + r.v + ' · ยังไม่เปิด ' + (r.n - r.d - r.v) + ' จาก ' + r.n + ' สัญญา">' +
+                                                '<span class="hcf-row-n">' + esc(r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
                                                 '<span class="hcf-stack"><span class="d" style="width:' + (r.n ? r.d * 100 / r.n : 0) + '%"></span><span class="v" style="width:' + (r.n ? r.v * 100 / r.n : 0) + '%"></span></span>' +
                                                 '<span class="hcf-row-p"><b>' + fmt(r.d) + '</b>/' + fmt(r.n) + ' · ' + pct(r.d, r.n) + '%</span></button>';
                                         }).join('') + '</div></div>';
