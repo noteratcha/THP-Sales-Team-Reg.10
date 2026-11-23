@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2220';
+    var APP_VERSION = 'Ver. 2026.1123.2232';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1878,78 +1878,43 @@
                     class="md:hidden w-10 h-10 mr-2 rounded-full bg-gray-50 border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-100 active:scale-95 transition">
                     <i class="fas fa-ellipsis-h text-base"></i>
                 </button>
-                <button onclick="toggleBgMusic()" oncontextmenu="handleMusicContextMenu(event); return false;"
-                    id="btnBgMusicPlayMini"
+                <!-- ปุ่มเพลง (2026-11-23): เปิดฟังในแท็บ YouTube แยก ให้ YouTube นับยอดวิว/เวลารับชมได้ — ไม่ฝังเครื่องเล่นซ่อนในหน้าเว็บแล้ว -->
+                <button type="button" onclick="openMusicOnYouTube('selected')" oncontextmenu="handleMusicContextMenu(event); return false;"
+                    id="btnBgMusicPlayMini" aria-haspopup="menu" aria-controls="musicContextMenu"
+                    aria-label="เปิดฟังเพลงบน YouTube ในแท็บใหม่ (คลิกขวาเพื่อเลือกเพลงหรือสุ่มคิว)"
                     class="music-disc w-8 h-8 rounded-full bg-gray-50 border border-gray-200 text-theme-orange flex items-center justify-center hover:bg-theme-orange hover:text-white hover:border-theme-orange active:scale-95 shadow-sm transition-all duration-300 cursor-pointer relative group"
-                    title="คลิกซ้าย: เล่น/หยุด | คลิกขวา: ปรับแต่งเสียง & เปลี่ยนเพลง">
-                    <!-- Pulsing outer ring -->
+                    title="คลิกซ้าย: เปิดฟังเพลงบน YouTube | คลิกขวา: เลือกเพลง / สุ่มคิว">
                     <span
                         class="absolute inset-0 rounded-full border border-theme-orange/30 animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
                     <i class="fas fa-music text-[10px]" id="musicDiscIconMini"></i>
                 </button>
 
-                <!-- Custom Premium Music Context Menu -->
-                <div id="musicContextMenu"
+                <!-- เมนูคลิกขวา: เลือกเพลง / เปิดคิว / สุ่มคิว บน YouTube -->
+                <div id="musicContextMenu" role="menu" aria-label="เพลงบน YouTube"
                     class="hidden absolute right-0 top-10 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-[9999] p-4 text-gray-700 animate-fade-in text-xs"
-                    style="transform-origin: top right; font-family: sans-serif;">
+                    style="transform-origin: top right;">
                     <div class="font-bold text-gray-800 mb-3 flex items-center gap-1.5 border-b border-gray-100 pb-2">
-                        <i class="fas fa-sliders-h text-theme-orange"></i>
-                        <span style="font-size: 13px;">ตั้งค่าเพลงพื้นหลัง</span>
+                        <i class="fab fa-youtube text-red-600"></i>
+                        <span style="font-size: 13px;">ฟังเพลงบน YouTube</span>
                     </div>
-
-                    <!-- Volume Control Section -->
-                    <div class="mb-4">
-                        <div class="flex justify-between items-center mb-1.5">
-                            <span class="text-gray-500 font-medium">ระดับเสียง</span>
-                            <span id="musicVolPercent" class="text-theme-orange font-bold font-mono">15%</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i id="musicVolIcon" class="fas fa-volume-down text-gray-400 w-4 text-center"></i>
-                            <input type="range" id="musicVolSlider" min="0" max="100" value="15"
-                                oninput="window.changeBgMusicVolume(this.value)"
-                                class="w-full accent-theme-orange h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                    </div>
-
-                    <!-- Track Selection Section -->
                     <div class="mb-3">
-                        <span class="text-gray-500 font-medium block mb-1.5">เลือกเพลงบรรเลง</span>
-                        <select id="musicTrackSelect" onchange="window.playSelectedTrack(this.value)"
+                        <label for="musicTrackSelect" class="text-gray-500 font-medium block mb-1.5">เลือกเพลง (เปิดคิวโดยเริ่มที่เพลงนี้)</label>
+                        <select id="musicTrackSelect" onchange="window.openMusicOnYouTube('selected', this.value)"
                             class="w-full border border-gray-200 rounded-lg p-2 text-xs bg-gray-50 text-gray-700 focus:outline-none focus:border-theme-orange cursor-pointer">
-                            <!-- Options filled dynamically -->
+                            <option value="">(กำลังโหลดรายการเพลง...)</option>
                         </select>
                     </div>
-
-                    <!-- Mini Player Toggle -->
-                    <div class="mb-3 flex items-center justify-between border-t border-gray-100 pt-3">
-                        <span class="text-gray-500 font-medium flex items-center gap-1">
-                            <i class="fas fa-desktop text-[10px]"></i> แสดง Mini Player
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="miniPlayerToggle" class="sr-only peer" onchange="window.toggleMiniPlayer(this.checked)">
-                            <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-theme-orange"></div>
-                        </label>
-                    </div>
-
-                    <!-- Quick Actions Section -->
-                    <div class="flex justify-center items-center gap-3 mt-2 pt-3 border-t border-gray-100">
-                        <button onclick="window.playPreviousTrack()" title="ย้อนกลับ"
-                            class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-theme-orange/10 hover:text-theme-orange text-gray-500 border border-gray-200 transition duration-200 cursor-pointer">
-                            <i class="fas fa-step-backward text-[10px]"></i>
+                    <div class="flex flex-col gap-2 pt-3 border-t border-gray-100">
+                        <button type="button" role="menuitem" onclick="window.openMusicOnYouTube('all')"
+                            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-orange text-white font-semibold hover:bg-orange-600 transition cursor-pointer">
+                            <i class="fas fa-list-ol w-4 text-center"></i> เปิดคิวทั้งหมดบน YouTube
                         </button>
-                        <button onclick="window.toggleBgMusic()" id="menuBtnPlayPause" title="เล่น/หยุด"
-                            class="w-10 h-10 flex items-center justify-center rounded-full bg-theme-orange hover:bg-orange-600 text-white shadow-md transition duration-200 cursor-pointer">
-                            <i class="fas fa-play text-xs ml-0.5" id="menuBtnPlayPauseIcon"></i>
-                        </button>
-                        <button onclick="window.playNextTrack()" title="เพลงต่อไป"
-                            class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-theme-orange/10 hover:text-theme-orange text-gray-500 border border-gray-200 transition duration-200 cursor-pointer">
-                            <i class="fas fa-step-forward text-[10px]"></i>
-                        </button>
-                        <button onclick="window.playRandomNextTrack()" title="สุ่มเพลง"
-                            class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 hover:bg-theme-orange/10 hover:text-theme-orange text-gray-500 border border-gray-200 transition duration-200 cursor-pointer ml-2">
-                            <i class="fas fa-random text-[10px]"></i>
+                        <button type="button" role="menuitem" onclick="window.openMusicOnYouTube('shuffle')"
+                            class="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-700 font-semibold hover:border-theme-orange hover:text-theme-orange transition cursor-pointer">
+                            <i class="fas fa-random w-4 text-center"></i> สุ่มลำดับคิวบน YouTube
                         </button>
                     </div>
+                    <p class="mt-3 text-[11px] text-gray-400 leading-snug">เพลงเปิดในแท็บ YouTube แยก กดซ้ำจะเปิดทับแท็บเพลงเดิม</p>
                 </div>
             </div>
         </header>
@@ -31593,387 +31558,96 @@
     };
 
     // ==========================================
-    // 🎵 BACKGROUND MUSIC PLAYER (YouTube Iframe API)
+    // 🎵 เพลง: เปิดฟังในแท็บ YouTube แยก (2026-11-23 — ผู้ใช้เลือก เพื่อให้ YouTube นับยอดวิวและเวลารับชม)
+    // เดิมฝัง iframe ซ่อนหลังหน้าเว็บ (เล็กกว่า 200×200, z-index ติดลบ) YouTube ไม่นับวิวและเสี่ยง Invalid Traffic จึงเลิกใช้
     // ==========================================
-    var ytPlayer;
-    var isMusicPlaying = false;
-    var isMusicMuted = false;
-    var currentMusicVolume = parseInt(SafeStorage.getItem('thp_bg_music_vol')) || 15;
-    var savedMusicState = SafeStorage.getItem('thp_bg_music_state') || 'playing'; // ค่าเริ่มต้นคือรอเล่น
+    // รายชื่อเพลงจากชีต "เพลง" (getMusicPlaylist) — Module_Settings เขียนทับ window.BG_MUSIC_TRACKS หลังแก้รายการเพลง
+    window.BG_MUSIC_TRACKS = window.BG_MUSIC_TRACKS || [];
+    var YT_MUSIC_WINDOW = 'thp_yt_music'; // ชื่อแท็บ: กดซ้ำเปิดทับแท็บเดิม (ห้ามใส่ noopener ไม่งั้นเปิดแท็บใหม่ทุกครั้ง)
+    var YT_QUEUE_MAX = 50; // watch_videos รับได้สูงสุด 50 คลิป
 
-    // รายชื่อเพลงเริ่มต้น (จะถูกเขียนทับด้วยข้อมูลจากเซิร์ฟเวอร์)
-    var BG_MUSIC_TRACKS = [];
-    var currentMusicTrack = null;
-
-    // ฟังก์ชันเริ่มโหลด Player และอัปเดต UI หลังจากได้ข้อมูลเพลง
-    function initMusicPlayerAndUI() {
-        if (!BG_MUSIC_TRACKS || BG_MUSIC_TRACKS.length === 0) {
-            // ปิดการใช้งานฟังก์ชันเพลงหากไม่มีข้อมูลในชีต
-            var select = document.getElementById('musicTrackSelect');
-            if (select) {
-                select.innerHTML = '<option value="">(ไม่มีเพลงในระบบ)</option>';
-                select.disabled = true;
-            }
-            return;
-        }
-        
-        currentMusicTrack = BG_MUSIC_TRACKS[Math.floor(Math.random() * BG_MUSIC_TRACKS.length)];
-
-        // ดึงและใส่รายการเพลงลงใน Select Dropdown อัตโนมัติ
+    function musicTracks() {
+        return (window.BG_MUSIC_TRACKS || []).filter(function (t) { return t && /^[\w-]{11}$/.test(String(t.id || '')); });
+    }
+    function fillMusicSelect() {
         var select = document.getElementById('musicTrackSelect');
-        if (select) {
-            select.innerHTML = '';
-            BG_MUSIC_TRACKS.forEach(function (track) {
-                var opt = document.createElement('option');
-                opt.value = track.id;
-                opt.text = track.title;
-                select.appendChild(opt);
-            });
-            select.value = currentMusicTrack.id;
-        }
-
-        // โหลดสคริปต์ YouTube Player API และสร้าง container
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        if (firstScriptTag) {
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        } else {
-            document.head.appendChild(tag);
-        }
-
-        var div = document.createElement('div');
-        div.id = 'ytPlayerContainer';
-        div.style.position = 'fixed';
-        div.style.bottom = '24px';
-        div.style.right = '24px';
-        div.style.width = '240px';
-        div.style.height = '135px';
-        div.style.pointerEvents = 'none'; // ปิดการคลิกเพื่อให้ไม่บังของอื่น
-        div.style.zIndex = '-100'; // ดันไปอยู่หลังสุดของเว็บ
-        div.style.opacity = '1'; // ตั้งเป็น 1 แต่อยู่ด้านหลัง เพื่อให้ YouTube มองเห็นว่า player แสดงผลอยู่ (นับวิว)
-        div.style.borderRadius = '12px';
-        div.style.overflow = 'hidden';
-        div.innerHTML = '<div id="ytPlayer"></div>';
-        document.body.appendChild(div);
+        if (!select) return;
+        var list = musicTracks(), cur = select.value;
+        if (!list.length) { select.innerHTML = '<option value="">(ไม่มีเพลงในระบบ)</option>'; select.disabled = true; return; }
+        select.disabled = false;
+        select.innerHTML = '';
+        list.forEach(function (t) { var o = document.createElement('option'); o.value = t.id; o.text = t.title || t.id; select.appendChild(o); });
+        select.value = list.some(function (t) { return t.id === cur; }) ? cur : list[0].id;
     }
 
-    // โหลดข้อมูลเพลงจากเซิร์ฟเวอร์ (ดึงจากชีต "เพลง")
-    // getMusicPlaylist ต้องมี session (เมื่อเปิด AUTH_ENFORCE คำขอก่อนล็อกอินจะถูกปฏิเสธ แล้วเพลงจะว่างทั้งรอบ)
-    // จึงรอให้ล็อกอินก่อน — ผู้ใช้ที่มี session ในเครื่องอยู่แล้วโหลดทันทีเหมือนเดิม
+    // getMusicPlaylist ต้องมี session จึงรอให้ล็อกอินก่อน
     function loadMusicPlaylist() {
-        google.script.run.withSuccessHandler(function(res) {
-            if (res && res.status === 'success' && res.data && res.data.length > 0) {
-                BG_MUSIC_TRACKS = res.data;
-            }
-            initMusicPlayerAndUI();
-        }).withFailureHandler(function(err) {
+        google.script.run.withSuccessHandler(function (res) {
+            if (res && res.status === 'success' && res.data && res.data.length > 0) window.BG_MUSIC_TRACKS = res.data;
+            fillMusicSelect();
+        }).withFailureHandler(function (err) {
             console.error('Failed to load music playlist', err);
-            initMusicPlayerAndUI();
+            fillMusicSelect();
         }).getMusicPlaylist();
     }
     if (typeof window.runWhenLoggedIn === 'function') window.runWhenLoggedIn(loadMusicPlaylist); else loadMusicPlaylist();
 
-    // ฟังก์ชัน callback ส่วนกลางเมื่อ API พร้อมใช้งาน
-    window.onYouTubeIframeAPIReady = function () {
-        ytPlayer = new YT.Player('ytPlayer', {
-            height: '200',
-            width: '200',
-            videoId: currentMusicTrack.id,
-            playerVars: {
-                'autoplay': 0, // ปิด autoplay เพื่อให้ YouTube นับยอดวิว 
-                'controls': 0,
-                'disablekb': 1,
-                'fs': 0,
-                'modestbranding': 1,
-                'rel': 0,
-                'showinfo': 0,
-                'start': 0, 
-                'loop': 0, 
-                'enablejsapi': 1,
-                'origin': window.location.origin
-            },
-            events: {
-                'onReady': onYtPlayerReady,
-                'onStateChange': onYtPlayerStateChange,
-                'onError': onYtPlayerError
-            }
-        });
+    // mode: 'selected' = เริ่มที่เพลงที่เลือก (หรือ startId), 'all' = คิวตามลำดับในชีต, 'shuffle' = สุ่มลำดับ
+    window.openMusicOnYouTube = function (mode, startId) {
+        var ids = musicTracks().map(function (t) { return t.id; });
+        if (!ids.length) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'ยังไม่มีเพลงในระบบ', showConfirmButton: false, timer: 2500 });
+            return;
+        }
+        if (mode === 'shuffle') {
+            for (var i = ids.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
+        } else if (mode === 'selected') {
+            var sel = document.getElementById('musicTrackSelect');
+            var first = startId || (sel && sel.value) || '';
+            var k = ids.indexOf(first);
+            if (k > 0) ids = ids.slice(k).concat(ids.slice(0, k));
+        }
+        var url = 'https://www.youtube.com/watch_videos?video_ids=' + ids.slice(0, YT_QUEUE_MAX).join(',');
+        var w = null;
+        try { w = window.open(url, YT_MUSIC_WINDOW); } catch (e) { w = null; }
+        var menu = document.getElementById('musicContextMenu');
+        if (menu && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); document.removeEventListener('click', closeMusicContextMenu); }
+        if (!w) {
+            Swal.fire({ icon: 'warning', title: 'เบราว์เซอร์บล็อกการเปิดแท็บใหม่', html: 'กรุณาอนุญาตป๊อปอัปสำหรับเว็บนี้ หรือกดลิงก์ด้านล่าง<br><a href="' + url + '" target="' + YT_MUSIC_WINDOW + '" style="color:#ea580c;font-weight:700">เปิดเพลงบน YouTube</a>', returnFocus: false });
+            return;
+        }
+        try { w.focus(); } catch (e) { }
     };
 
-    // ฟังก์ชันแจ้งเตือนข้อผิดพลาดและข้ามไปยังเพลงถัดไปอัตโนมัติ (เช่น เพลงถูกลบ/ติดลิขสิทธิ์)
-    function onYtPlayerError(event) {
-        console.warn("YouTube player error (code " + event.data + "). Skipping to next random track...");
-        // ถ้าเพลงกำลังเล่นอยู่ หรือเคยเล่นแล้วให้สุ่มแล้วเล่นต่อเลย แต่ถ้ายังไม่เคยเล่น (เกิด error ตั้งแต่โหลดเพจ) ให้โหลดไว้เฉยๆ
-        playRandomNextTrack(isMusicPlaying); 
-    }
-
-    function onYtPlayerReady(event) {
-        event.target.setVolume(currentMusicVolume);
-
-        // บังคับเริ่มเล่นที่ 0 วินาทีเสมอ ทำในจังหวะที่มีการกดเล่นจริงๆ แล้ว (ป้องกัน auto-play)
-
-        // ถ้าก่อนหน้านี้ผู้ใช้ไม่ได้กดหยุดเพลงไว้ เราจะรอให้คลิกที่ไหนก็ได้บนจอ 1 ครั้งเพื่อเริ่มเล่น (ป้องกัน browser block autoplay และนับวิวให้ youtube)
-        if (savedMusicState === 'playing') {
-            document.addEventListener('click', function autoPlayOnFirstClick() {
-                if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
-                    if (typeof ytPlayer.seekTo === 'function') {
-                        ytPlayer.seekTo(0, true);
-                    }
-                    ytPlayer.playVideo();
-                }
-                document.removeEventListener('click', autoPlayOnFirstClick);
-            }, { once: true });
-        }
-    }
-
-    function onYtPlayerStateChange(event) {
-        var disc = document.getElementById('btnBgMusicPlayMini');
-        var menuBtnIcon = document.getElementById('menuBtnPlayPauseIcon');
-
-        if (event.data === YT.PlayerState.PLAYING) {
-            isMusicPlaying = true;
-            if (disc) {
-                disc.classList.add('playing');
-                disc.classList.remove('bg-gray-50', 'border-gray-200', 'text-theme-orange');
-                disc.classList.add('bg-theme-orange', 'border-theme-orange', 'text-white', 'shadow-md');
-            }
-            if (menuBtnIcon) {
-                menuBtnIcon.className = 'fas fa-pause text-xs ml-0.5';
-            }
-            SafeStorage.setItem('thp_bg_music_state', 'playing');
-        } else if (event.data === YT.PlayerState.ENDED) {
-            // เมื่อเพลงบรรเลงปัจจุบันจบลง สุ่มเล่นเพลงใหม่ทันที!
-            playRandomNextTrack(isMusicPlaying);
-        } else if (event.data === YT.PlayerState.PAUSED) {
-            isMusicPlaying = false;
-            if (disc) {
-                disc.classList.remove('playing');
-                disc.classList.remove('bg-theme-orange', 'border-theme-orange', 'text-white', 'shadow-md');
-                disc.classList.add('bg-gray-50', 'border-gray-200', 'text-theme-orange');
-            }
-            if (menuBtnIcon) {
-                menuBtnIcon.className = 'fas fa-play text-xs ml-0.5';
-            }
-            SafeStorage.setItem('thp_bg_music_state', 'paused');
-        } else {
-            // สถานะอื่นๆ (เช่น UNSTARTED, BUFFERING) ให้ปรับเฉพาะตัวแปรและ UI แต่ไม่ต้องจำค่าลง Storage
-            isMusicPlaying = false;
-            if (disc) {
-                disc.classList.remove('playing');
-                disc.classList.remove('bg-theme-orange', 'border-theme-orange', 'text-white', 'shadow-md');
-                disc.classList.add('bg-gray-50', 'border-gray-200', 'text-theme-orange');
-            }
-            if (menuBtnIcon) {
-                menuBtnIcon.className = 'fas fa-play text-xs ml-0.5';
-            }
-        }
-    }
-
-    // ฟังก์ชันสำหรับสุ่มเพลงบรรเลงในลำดับถัดไป
-    window.playRandomNextTrack = function(shouldPlay) {
-        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
-
-        // ถ้าไม่ได้ระบุ shouldPlay มา ให้ถือว่าผู้ใช้กดเปลี่ยนเพลงเอง (ต้องเล่นทันที)
-        if (typeof shouldPlay === 'undefined') shouldPlay = true;
-
-        // กรองเพลงปัจจุบันออกไปก่อนเพื่อไม่ให้สุ่มได้เพลงเดิมซ้ำติดต่อกัน
-        var availableTracks = BG_MUSIC_TRACKS.filter(function (t) {
-            return t.id !== currentMusicTrack.id;
-        });
-        if (availableTracks.length === 0) availableTracks = BG_MUSIC_TRACKS;
-
-        currentMusicTrack = availableTracks[Math.floor(Math.random() * availableTracks.length)];
-
-        if (shouldPlay) {
-            ytPlayer.loadVideoById({
-                videoId: currentMusicTrack.id,
-                startSeconds: 0
-            });
-            if (typeof ytPlayer.seekTo === 'function') ytPlayer.seekTo(0, true);
-            ytPlayer.playVideo();
-        } else {
-            ytPlayer.cueVideoById({
-                videoId: currentMusicTrack.id,
-                startSeconds: 0
-            });
-        }
-
-        // ซิงค์การแสดงผลของ Dropdown เพลงบรรเลง
-        var select = document.getElementById('musicTrackSelect');
-        if (select) {
-            select.value = currentMusicTrack.id;
-        }
-    };
-
-    window.playNextTrack = function() {
-        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
-        var currentIndex = BG_MUSIC_TRACKS.findIndex(function(t) { return t.id === currentMusicTrack.id; });
-        var nextIndex = (currentIndex + 1) % BG_MUSIC_TRACKS.length;
-        playSelectedTrack(BG_MUSIC_TRACKS[nextIndex].id);
-    };
-
-    window.playPreviousTrack = function() {
-        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
-        var currentIndex = BG_MUSIC_TRACKS.findIndex(function(t) { return t.id === currentMusicTrack.id; });
-        var prevIndex = (currentIndex - 1 + BG_MUSIC_TRACKS.length) % BG_MUSIC_TRACKS.length;
-        playSelectedTrack(BG_MUSIC_TRACKS[prevIndex].id);
-    };
-
-    // ฟังก์ชันสำหรับการเลือกเล่นเพลงจาก Dropdown รายการตั้งค่า
-    window.playSelectedTrack = function (id) {
-        if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') return;
-
-        var track = BG_MUSIC_TRACKS.find(function (t) { return t.id === id; });
-        if (!track) return;
-
-        currentMusicTrack = track;
-
-        ytPlayer.loadVideoById({
-            videoId: currentMusicTrack.id,
-            startSeconds: 0
-        });
-        if (typeof ytPlayer.seekTo === 'function') {
-            ytPlayer.seekTo(0, true);
-        }
-        ytPlayer.playVideo();
-
-        // ยืนยันการอัปเดตสถานะ Dropdown
-        var select = document.getElementById('musicTrackSelect');
-        if (select) {
-            select.value = id;
-        }
-    };
-
-    // ฟังก์ชันเปิด/ปิดเครื่องเล่นผ่านปุ่มตัวโน้ตหลัก
-    window.toggleBgMusic = function (forcePlay) {
-        if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
-
-        if (forcePlay === true || !isMusicPlaying) {
-            ytPlayer.playVideo();
-        } else {
-            ytPlayer.pauseVideo();
-        }
-    };
-
-    window.toggleBgMusicMute = function () {
-        if (!ytPlayer || typeof ytPlayer.mute !== 'function') return;
-        var muteIcon = document.getElementById('btnBgMusicMuteIcon');
-
-        if (isMusicMuted) {
-            ytPlayer.unMute();
-            isMusicMuted = false;
-            if (muteIcon) {
-                muteIcon.className = 'fas fa-volume-up';
-                muteIcon.classList.remove('text-red-500');
-            }
-        } else {
-            ytPlayer.mute();
-            isMusicMuted = true;
-            if (muteIcon) {
-                muteIcon.className = 'fas fa-volume-mute text-red-500';
-            }
-        }
-        updateMusicVolIcon(currentMusicVolume);
-    };
-
-    // ฟังก์ชันปรับความดังของเสียง (ซิงค์ทั้ง YouTube, Slider, เปอร์เซ็นต์ และ ไอคอน)
-    window.changeBgMusicVolume = function (val) {
-        currentMusicVolume = parseInt(val);
-        if (ytPlayer && typeof ytPlayer.setVolume === 'function') {
-            ytPlayer.setVolume(currentMusicVolume);
-        }
-
-        // ซิงค์ค่าไปยัง UI Slider และป้ายเปอร์เซ็นต์
-        var percent = document.getElementById('musicVolPercent');
-        var slider = document.getElementById('musicVolSlider');
-        if (percent) percent.innerText = currentMusicVolume + '%';
-        if (slider) slider.value = currentMusicVolume;
-
-        updateMusicVolIcon(currentMusicVolume);
-    };
-
-    // ฟังก์ชันเปิด/ปิดการมองเห็น Mini Player
-    window.toggleMiniPlayer = function (isVisible) {
-        var container = document.getElementById('ytPlayerContainer');
-        if (container) {
-            if (isVisible) {
-                // แสดงแบบ Mini Player มุมขวาล่าง
-                container.style.zIndex = '9990';
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
-                container.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
-                container.style.border = '3px solid rgba(255, 255, 255, 0.8)';
-            } else {
-                // ซ่อนอยู่ข้างหลังเหมือนเดิม
-                container.style.zIndex = '-100';
-                container.style.opacity = '0.05';
-                container.style.pointerEvents = 'none';
-                container.style.boxShadow = 'none';
-                container.style.border = 'none';
-            }
-        }
-    };
-
-    // แสดง/ซ่อน Context Menu ควบคุมเสียงและเพลงด้วยคลิกขวา
+    // คลิกขวาที่ปุ่มตัวโน้ต: แสดง/ซ่อนเมนูเลือกเพลง
     window.handleMusicContextMenu = function (e) {
         if (e) e.preventDefault();
         var menu = document.getElementById('musicContextMenu');
         if (!menu) return;
-
-        var isHidden = menu.classList.contains('hidden');
-        if (isHidden) {
-            // อัปเดตข้อมูลใน Slider และ Dropdown ก่อนแสดงหน้าจอ
-            var slider = document.getElementById('musicVolSlider');
-            var percent = document.getElementById('musicVolPercent');
-            var select = document.getElementById('musicTrackSelect');
-
-            if (slider) slider.value = currentMusicVolume;
-            if (percent) percent.innerText = currentMusicVolume + '%';
-            if (select) select.value = currentMusicTrack.id;
-            updateMusicVolIcon(currentMusicVolume);
-
+        if (menu.classList.contains('hidden')) {
+            fillMusicSelect();
             menu.classList.remove('hidden');
-
-            // รอสักครู่แล้วเปิด event ตรวจจับการคลิกด้านนอกเพื่อปิดเมนู
-            setTimeout(function () {
-                document.addEventListener('click', closeMusicContextMenu);
-            }, 50);
+            setTimeout(function () { document.addEventListener('click', closeMusicContextMenu); }, 50);
         } else {
             menu.classList.add('hidden');
+            document.removeEventListener('click', closeMusicContextMenu);
         }
     };
-
-    // ปิดเมนูควบคุมเมื่อผู้ใช้คลิกข้างนอกตัวควบคุม
     function closeMusicContextMenu(e) {
         var menu = document.getElementById('musicContextMenu');
         if (!menu) return;
-
         var btn = document.getElementById('btnBgMusicPlayMini');
-        if (menu.contains(e.target) || (btn && btn.contains(e.target))) {
-            return; // หากคลิกโดนเมนูการตั้งค่า หรือโดนปุ่มโน้ตเพลงหลัก ไม่ต้องปิด
-        }
-
+        if (menu.contains(e.target) || (btn && btn.contains(e.target))) return;
         menu.classList.add('hidden');
         document.removeEventListener('click', closeMusicContextMenu);
     }
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var menu = document.getElementById('musicContextMenu');
+        if (menu && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); document.removeEventListener('click', closeMusicContextMenu); var b = document.getElementById('btnBgMusicPlayMini'); if (b) b.focus(); }
+    });
 
-    // ฟังก์ชันช่วยเปลี่ยนสถานะไอคอนเสียงตามระดับเปอร์เซ็นต์เสียงจริง
-    function updateMusicVolIcon(vol) {
-        var icon = document.getElementById('musicVolIcon');
-        if (!icon) return;
-        if (vol === 0 || isMusicMuted) {
-            icon.className = 'fas fa-volume-mute text-red-500 w-4 text-center';
-        } else if (vol < 30) {
-            icon.className = 'fas fa-volume-down text-gray-400 w-4 text-center';
-        } else if (vol < 70) {
-            icon.className = 'fas fa-volume-up text-gray-500 w-4 text-center';
-        } else {
-            icon.className = 'fas fa-volume-up text-theme-orange w-4 text-center';
-        }
-    }
-
-    // แสดง/ซ่อน เมนูออกจากระบบเมื่อคลิกขวาที่รูปโปรไฟล์ ด้วยเอฟเฟกต์แอนิเมชันแบบสปริงที่นุ่มนวล
+        // แสดง/ซ่อน เมนูออกจากระบบเมื่อคลิกขวาที่รูปโปรไฟล์ ด้วยเอฟเฟกต์แอนิเมชันแบบสปริงที่นุ่มนวล
     window.handleProfileContextMenu = function (e) {
         if (e) e.preventDefault();
         var menu = document.getElementById('profileContextMenu');
