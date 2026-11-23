@@ -6154,6 +6154,37 @@ function uploadCustomerAttachment_(payload, actor) {
     return { status: 'error', message: e.toString() };
   } finally { try { lock.releaseLock(); } catch (eL) { } }
 }
+// ลบไฟล์แนบ 1 ไฟล์: เอาชิปออกจากคอลัมน์ R แล้วย้ายไฟล์ไปถังขยะ Drive (กู้คืนได้ 30 วัน) — admin เท่านั้น (ผู้ใช้ขอ 2026-11-23)
+function deleteCustomerAttachment_(payload, actor) {
+  var lock = LockService.getScriptLock();
+  try {
+    if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
+    payload = payload || {};
+    var listSh = renewalSheet_(); if (!listSh) return { status: 'error', message: 'ไม่พบชีตรายชื่อ' };
+    var row = Number(payload.listRow), id = String(payload.id || '').trim();
+    if (!/^[\w-]{10,}$/.test(id)) return { status: 'error', message: 'ไม่ทราบไฟล์ที่จะลบ' };
+    if (!(row > 1) || customerListRow_(listSh, payload.v || {}) !== row) return { status: 'error', message: 'แถวลูกค้าในชีตไม่ตรงกับข้อมูลที่ค้นได้ — กรุณาค้นหาใหม่' };
+    lock.waitLock(20000);
+    var files = customerListAttachments_(listSh, row);
+    if (!files.some(function (f) { return f.id === id; })) return { status: 'error', message: 'ไม่พบไฟล์นี้ในคอลัมน์ "ไฟล์แนบ" (อาจถูกลบไปแล้ว) — กรุณาค้นหาใหม่' };
+    var keep = files.filter(function (f) { return f.id !== id; }).map(function (f) { return f.url; });
+    if (keep.length) {
+      var werr = customerListWriteChips_(listSh, row, keep.map(function () { return '@'; }).join('\n'), keep.map(function (u, i) { return { startIndex: i * 2, chip: { richLinkProperties: { uri: u } } }; }));
+      if (werr) return { status: 'error', message: 'เขียนช่องไฟล์แนบไม่ได้: ' + werr };
+    } else listSh.getRange(row, colIndex_('R')).clearContent();
+    var trashed = false, trashErr = '';
+    try {
+      var f = DriveApp.getFileById(id);
+      f.setTrashed(true); trashed = true;
+    } catch (eT) { trashErr = String(eT && eT.message || eT).slice(0, 160); }
+    SpreadsheetApp.flush();
+    var after = customerListAttachments_(listSh, row);
+    return { status: 'success', trashed: trashed, trashErr: trashErr, files: after.slice(), filesErr: after.err || '' };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'deleteCustomerAttachment_');
+    return { status: 'error', message: e.toString() };
+  } finally { try { lock.releaseLock(); } catch (eL) { } }
+}
 function findCustomerForSheet_(payload, actor) {
   try {
     if (!renewalIsAdmin_(actor)) return { status: 'error', message: 'เฉพาะผู้ดูแลระบบ (admin)' };
@@ -7032,7 +7063,7 @@ var API_ALLOWED_FUNCTIONS = [
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
   'findCustomerForSheet', 'saveCustomerToSheets', 'getRenewalBulk', 'generateContractBulk',
-  'listContractFiles', 'getContractFileData', 'checkContractExisting', 'uploadCustomerAttachment'
+  'listContractFiles', 'getContractFileData', 'checkContractExisting', 'uploadCustomerAttachment', 'deleteCustomerAttachment'
 ];
 
 
@@ -7066,6 +7097,7 @@ var AUTH_SESSION_USER_ARG = {
   findCustomerForSheet: 1,       // (payload, actor) — admin เท่านั้น
   saveCustomerToSheets: 1,       // (payload, actor) — admin เท่านั้น
   uploadCustomerAttachment: 1,   // (payload, actor) — admin เท่านั้น
+  deleteCustomerAttachment: 1,   // (payload, actor) — admin เท่านั้น
   getRenewalBulk: 1,             // (payload, actor) — admin เท่านั้น (สร้างสัญญาทั้งที่ทำการ)
   generateContractBulk: 1,       // (payload, actor) — admin เท่านั้น
   listContractFiles: 0,          // (actor) — admin ทั้งหมด / ปจ. ทั้งจังหวัด / ที่ทำการ เฉพาะของตน

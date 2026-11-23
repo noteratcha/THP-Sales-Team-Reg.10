@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.1521';
+    var APP_VERSION = 'Ver. 2026.1123.1532';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20549,6 +20549,9 @@
     #page-contract-customer .cc-file-btn:hover { background: #fff7ed; }
     #page-contract-customer .cc-files-group h4 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     #page-contract-customer .cc-year + .cc-file-add { margin-left: 0; }
+    #page-contract-customer .cc-file-del { color: #dc2626 !important; border-color: #fca5a5 !important; background: #fff; cursor: pointer; }
+    #page-contract-customer .cc-file-del:hover { background: #fef2f2; }
+    #page-contract-customer .cc-file-del i { color: #dc2626; }
     #page-contract-customer .cc-file-ct { background: #fff7ed; border-color: #fdba74; }
     #page-contract-customer .cc-file-tag { flex: none; font-size: 11.5px; font-weight: 700; color: #c2410c; background: #ffedd5; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
     #page-contract-customer .cc-file-tag i { color: #ea580c; }
@@ -20694,7 +20697,8 @@
                     '<i class="fas ' + ic(x.name) + ' cc-file-ic"></i><span class="cc-file-name">' + esc(x.name) +
                     (meta ? '<small class="cc-file-meta">' + esc(meta) + '</small>' : '') + '</span>' +
                     '<a class="cc-file-btn" href="' + esc(view) + '" target="_blank" rel="noopener"><i class="fas fa-eye"></i> เปิดดู</a>' +
-                    (dl ? '<a class="cc-file-btn" href="' + esc(dl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> ดาวน์โหลด</a>' : '') + '</div>';
+                    (dl ? '<a class="cc-file-btn" href="' + esc(dl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> ดาวน์โหลด</a>' : '') +
+                    (!isCt && canAdd && x.id ? '<button type="button" class="cc-file-btn cc-file-del" data-id="' + esc(x.id) + '" data-name="' + esc(x.name) + '" onclick="thpCcDelFile(this)" title="ลบไฟล์แนบ"><i class="fas fa-trash-alt"></i> ลบ</button>' : '') + '</div>';
             };
             var rows = (ct ? fileRow(ct, 0, true) : '') + (files.length ? files.map(function (x, i) { return fileRow(x, i + 1, false); }).join('')
                 : !canAdd ? '' : err ? '<div class="cc-ro cc-ro-empty" style="color:#b91c1c"><i class="fas fa-exclamation-triangle"></i> อ่านไฟล์แนบไม่ได้: ' + esc(err) + '</div>' : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>');
@@ -20839,6 +20843,25 @@
             }).then(function (r) {
                 Swal.fire({ icon: r.fails.length ? (r.done ? 'warning' : 'error') : 'success', title: r.fails.length ? 'เพิ่มไฟล์ได้ ' + r.done + ' จาก ' + list.length + ' ไฟล์' : 'เพิ่มไฟล์แล้ว ' + r.done + ' ไฟล์',
                     html: r.fails.length ? failHtml(r.fails) : 'บันทึกลงคอลัมน์ "ไฟล์แนบ" ในชีตรายชื่อแล้ว', returnFocus: false });
+            });
+        };
+        // ลบไฟล์แนบ (ผู้ใช้ขอ 2026-11-23): เอาออกจากคอลัมน์ "ไฟล์แนบ" + ย้ายไฟล์ไปถังขยะ Drive
+        window.thpCcDelFile = function (btn) {
+            var grp = btn.closest('.cc-files-group'), idx = Number(grp.getAttribute('data-i')), it = last.items[idx];
+            var id = btn.getAttribute('data-id'), name = btn.getAttribute('data-name') || 'ไฟล์แนบ';
+            if (!it || !id) return;
+            Swal.fire({ icon: 'warning', title: 'ลบไฟล์แนบ?', html: '<b>' + esc(name) + '</b><br><small>เอาออกจากคอลัมน์ "ไฟล์แนบ" และย้ายไฟล์ไปถังขยะ Google Drive (กู้คืนได้ภายใน 30 วัน)</small>',
+                showCancelButton: true, confirmButtonText: 'ลบไฟล์', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#dc2626', returnFocus: false }).then(function (a) {
+                if (!a.isConfirmed) return;
+                Swal.fire({ title: 'กำลังลบไฟล์...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+                callGs('deleteCustomerAttachment', { listRow: it.listRow, v: it.v, id: id }).then(function (res) {
+                    if (!(res && res.status === 'success')) { Swal.fire('ลบไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
+                    it.files = res.files || []; it.filesErr = res.filesErr || '';
+                    var g = document.querySelector('#ccResult .cc-files-group[data-i="' + idx + '"]');
+                    if (g) g.outerHTML = filesBox(it.files, it.listRow, it.filesErr, idx);
+                    Swal.fire({ icon: res.trashed ? 'success' : 'warning', title: 'ลบไฟล์แนบแล้ว',
+                        html: res.trashed ? 'เอาออกจากคอลัมน์ "ไฟล์แนบ" และย้ายไฟล์ไปถังขยะแล้ว' : 'เอาออกจากคอลัมน์ "ไฟล์แนบ" แล้ว แต่ย้ายไฟล์ไปถังขยะไม่ได้: ' + esc(res.trashErr || '') + '<br><small>(ไฟล์ยังอยู่ใน Drive)</small>', returnFocus: false });
+                }).catch(function (err) { Swal.fire('ลบไม่สำเร็จ', err && err.message ? err.message : String(err), 'error'); });
             });
         };
         // ฟอร์มลูกค้าใหม่: เลือกไฟล์ไว้ก่อน
