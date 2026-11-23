@@ -7041,17 +7041,22 @@ function getPackageDashboard_(actor) {
 
 // ลูกค้าที่ยกเลิกสัญญา (ชีตรายชื่อ H = "ยกเลิกสัญญา") → { byId: {fileId:1}, byKey: {"zip|ชื่อ":1} } ใช้ตัดออกจากตัวเลขสรุป (ผู้ใช้ขอ 2026-11-23)
 function contractCancelledMap_() {
-  var out = { byId: {}, byKey: {} };
+  // active = ลูกค้า (รหัส|ชื่อ) ที่ยังมีแถวใช้งานอยู่ — ลูกค้าที่เปลี่ยนบริการมีแถวเก่า "ยกเลิกสัญญา" + แถวใหม่ที่ใช้งาน ต้องไม่นับเป็นยกเลิก (แก้ 2026-11-24)
+  var out = { byId: {}, byKey: {}, active: {} };
   var sh = renewalSheet_(); if (!sh || sh.getLastRow() < 2) return out;
   var lastCol = sh.getLastColumn(), data = sh.getRange(1, 1, sh.getLastRow(), lastCol).getDisplayValues();
   var lc = data[0].map(function (h) { return String(h).trim(); }).indexOf(CONTRACT_LINK_COL);
+  var idOf = function (v) { var m = lc >= 0 ? /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(String(v || '')) : null; return m ? (m[1] || m[2]) : ''; };
+  var activeIds = {};
   for (var i = 1; i < data.length; i++) {
-    if (String(data[i][7] || '').trim() !== 'ยกเลิกสัญญา') continue;
     var zip = String(data[i][2] || '').replace(/\D/g, '').slice(0, 5), name = String(data[i][5] || '').trim();
-    if (zip && name) out.byKey[zip + '|' + contractSafeName_(name)] = 1;
-    var m = lc >= 0 ? /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(String(data[i][lc] || '')) : null;
-    if (m) out.byId[m[1] || m[2]] = 1;
+    if (!zip || !name) continue;
+    var key = zip + '|' + contractSafeName_(name), id = lc >= 0 ? idOf(data[i][lc]) : '';
+    if (String(data[i][7] || '').trim() === 'ยกเลิกสัญญา') { out.byKey[key] = 1; if (id) out.byId[id] = 1; }
+    else { out.active[key] = 1; if (id) activeIds[id] = 1; }
   }
+  Object.keys(out.active).forEach(function (k) { delete out.byKey[k]; });
+  Object.keys(activeIds).forEach(function (k) { delete out.byId[k]; });
   return out;
 }
 function listContractFiles_(actor) {
@@ -7084,12 +7089,12 @@ function listContractFiles_(actor) {
     var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
     out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; f.nView = e.nView || 0; f.nDl = e.nDl || 0; });
     var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
-    var cancelMap = { byId: {}, byKey: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
+    var cancelMap = { byId: {}, byKey: {}, active: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
     out.forEach(function (f) {
       var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
       var key = (f.zip || '') + '|' + contractSafeName_(nm);
       f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || '';
-      if (cancelMap.byId[f.id] || cancelMap.byKey[key]) f.cancelled = true; // ลูกค้ายกเลิกสัญญา — ไม่นับในสรุป
+      if (!cancelMap.active[key] && (cancelMap.byId[f.id] || cancelMap.byKey[key])) f.cancelled = true; // ยกเลิกสัญญาจริง (ไม่มีแถวใช้งานอยู่) — ไม่นับในสรุป
     });
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
     return { status: 'success', data: out, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
