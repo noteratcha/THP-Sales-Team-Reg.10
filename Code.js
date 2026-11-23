@@ -6814,6 +6814,89 @@ function getContractFileData_(payload, actor) {
   }
 }
 
+// ใช้ครั้งเดียว (ผู้ใช้ขอ 2026-11-23): Google Sheet "รายชื่อลูกค้า Package A1-A12 ปี 2570" ชีต "ปข.10"
+// แถวลูกค้าอ้างอิงจากที่ทำการข้างเคียง (หมายเหตุมี "อ้างอิงลูกค้าจาก") → "ช่องทางการรับฝาก" = CAPOS — กด Run ในหน้า Apps Script
+function setA12RefChannelCapos() {
+  var it = DriveApp.getFilesByName('รายชื่อลูกค้า Package A1-A12 ปี 2570'), file = null;
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed() && f.getMimeType() === MimeType.GOOGLE_SHEETS) { file = f; break; } }
+  if (!file) { Logger.log('ไม่พบ Google Sheet "รายชื่อลูกค้า Package A1-A12 ปี 2570"'); return; }
+  var sh = SpreadsheetApp.open(file).getSheetByName('ปข.10');
+  if (!sh) { Logger.log('ไม่พบชีต ปข.10'); return; }
+  var HDR = 5, last = sh.getLastRow(), lastCol = sh.getLastColumn();
+  var head = sh.getRange(HDR, 1, 1, lastCol).getDisplayValues()[0].map(function (h) { return String(h).trim(); });
+  var find = function (p) { for (var j = 0; j < head.length; j++) if (head[j].indexOf(p) === 0) return j + 1; return -1; };
+  var cCh = find('ช่องทางการรับฝาก'), cNote = find('หมายเหตุ');
+  if (cCh < 0 || cNote < 0) { Logger.log('ไม่พบคอลัมน์ ช่องทางการรับฝาก/หมายเหตุ'); return; }
+  var notes = sh.getRange(HDR + 1, cNote, last - HDR, 1).getDisplayValues(), n = 0;
+  for (var i = 0; i < notes.length; i++) {
+    if (String(notes[i][0]).indexOf('อ้างอิงลูกค้าจาก') === -1) continue;
+    sh.getRange(HDR + 1 + i, cCh).setValue('CAPOS'); n++;
+  }
+  Logger.log('ตั้งช่องทางการรับฝาก = CAPOS ให้แถวลูกค้าอ้างอิง ' + n + ' แถว (ไฟล์ ' + file.getUrl() + ')');
+}
+
+/**
+ * (Run ครั้งเดียวในหน้า Apps Script) อัปเดต เบอร์โทรศัพท์ + เลขบัตรประชาชน ในชีต ปข.10
+ * ของ Google Sheet "รายชื่อลูกค้า Package A1-A12 ปี 2570" จาก Google Sheet "รายชื่อ/สัญญา A1-A12"
+ * จับคู่ด้วยรหัสสมาชิก THP (8 หลัก) — แถวที่ไม่ใช่ลูกค้าอ้างอิงใช้ ชื่อ+รหัสไปรษณีย์ สำรอง
+ * เขียนเฉพาะเมื่อต้นทางมีค่า (ไม่ลบค่าเดิม) — Log แสดงเฉพาะยอดนับ
+ */
+function updateA12PhoneIdFromContracts() {
+  var dig = function (v) { return String(v == null ? '' : v).replace(/\D/g, ''); };
+  var nk = function (v) { return String(v || '').replace(/\s+/g, '').replace(/^(นางสาว|นาง|นาย|น\.ส\.|คุณ)/, ''); };
+  var fmtId = function (d) { return d.length === 13 ? d[0] + '-' + d.substr(1, 4) + '-' + d.substr(5, 5) + '-' + d.substr(10, 2) + '-' + d[12] : ''; };
+  var fmtPhone = function (v) {
+    var s = String(v || '').trim(), d = dig(s);
+    if (!s || s === '-') return '';
+    if (d.length === 9 && d[0] !== '0') return '0' + d;
+    if (d.length === 10 && d[0] === '0') return d;
+    return d.length >= 9 ? s : '';
+  };
+  // ต้นทาง
+  var src = SpreadsheetApp.openById('1-avo189b2ReVHbRRs3kUVK9ylCp8t8h9d-Z9zv8UaKk').getSheetByName('รายชื่อ/สัญญา A1-A12');
+  if (!src) { Logger.log('ไม่พบชีต รายชื่อ/สัญญา A1-A12'); return; }
+  var sv = src.getDataRange().getDisplayValues(), sh0 = sv[0].map(function (h) { return String(h).trim(); });
+  var sc = function (p) { for (var j = 0; j < sh0.length; j++) if (sh0[j].indexOf(p) === 0) return j; return -1; };
+  var cZ = sc('รหัสที่ทำการ'), cN = sc('ชื่อลูกค้า'), cT = sc('หมายเลขสมาชิก'), cP = sc('เบอร์โทร'), cI = sc('เลขบัตรประชาชน');
+  if ([cZ, cN, cT, cP, cI].indexOf(-1) !== -1) { Logger.log('ต้นทาง: ไม่พบคอลัมน์ที่ต้องใช้'); return; }
+  var byT = {}, byNZ = {};
+  var put = function (m, k, ph, id) { if (!k) return; var o = m[k] || (m[k] = {}); if (ph) o.ph = ph; if (id) o.id = id; };
+  for (var i = 1; i < sv.length; i++) {
+    var r = sv[i], ph = fmtPhone(r[cP]), id = fmtId(dig(r[cI]));
+    if (!ph && !id) continue;
+    var t = dig(r[cT]); if (t.length === 8) put(byT, t, ph, id);
+    put(byNZ, nk(r[cN]) + '|' + ('00000' + dig(r[cZ])).slice(-5), ph, id);
+  }
+  // ปลายทาง
+  var it = DriveApp.getFilesByName('รายชื่อลูกค้า Package A1-A12 ปี 2570'), file = null;
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed() && f.getMimeType() === MimeType.GOOGLE_SHEETS) { file = f; break; } }
+  if (!file) { Logger.log('ไม่พบ Google Sheet "รายชื่อลูกค้า Package A1-A12 ปี 2570"'); return; }
+  var sh = SpreadsheetApp.open(file).getSheetByName('ปข.10');
+  if (!sh) { Logger.log('ไม่พบชีต ปข.10'); return; }
+  var HDR = 5, last = sh.getLastRow(), n = last - HDR;
+  var head = sh.getRange(HDR, 1, 1, sh.getLastColumn()).getDisplayValues()[0].map(function (h) { return String(h).trim(); });
+  var find = function (p) { for (var j = 0; j < head.length; j++) if (head[j].indexOf(p) === 0) return j + 1; return -1; };
+  var dName = find('ชื่อ-สกุล'), dZip = find('รหัสไปรษณีย์'), dThp = find('รหัสสมาชิก'), dPh = find('เบอร์โทรศัพท์'), dId = find('เลขบัตรประชาชน'), dNote = find('หมายเหตุ');
+  if ([dName, dZip, dThp, dPh, dId, dNote].indexOf(-1) !== -1) { Logger.log('ปลายทาง: ไม่พบคอลัมน์ที่ต้องใช้'); return; }
+  var get = function (c) { return sh.getRange(HDR + 1, c, n, 1).getDisplayValues(); };
+  var names = get(dName), zips = get(dZip), thps = get(dThp), notes = get(dNote), phs = get(dPh), ids = get(dId);
+  var st = { rows: 0, matched: 0, noMatch: 0, phoneChanged: 0, phoneSame: 0, idChanged: 0, idSame: 0, noPhoneInSource: 0, noIdInSource: 0 };
+  for (var k = 0; k < n; k++) {
+    if (!String(names[k][0]).trim()) continue;
+    st.rows++;
+    var isRef = String(notes[k][0]).indexOf('อ้างอิงลูกค้าจาก') !== -1, t2 = dig(thps[k][0]);
+    var o = (t2.length === 8 && byT[t2]) || (!isRef && byNZ[nk(names[k][0]) + '|' + ('00000' + dig(zips[k][0])).slice(-5)]);
+    if (!o) { st.noMatch++; continue; }
+    st.matched++;
+    if (o.ph) { if (dig(phs[k][0]) !== dig(o.ph)) { phs[k][0] = o.ph; st.phoneChanged++; } else st.phoneSame++; } else st.noPhoneInSource++;
+    if (o.id) { if (dig(ids[k][0]) !== dig(o.id)) { ids[k][0] = o.id; st.idChanged++; } else st.idSame++; } else st.noIdInSource++;
+  }
+  [[dPh, phs], [dId, ids]].forEach(function (p) {
+    var rg = sh.getRange(HDR + 1, p[0], n, 1); rg.setNumberFormat('@'); rg.setValues(p[1]);
+  });
+  Logger.log('อัปเดตเบอร์โทร/เลขบัตร ปข.10: ' + JSON.stringify(st));
+}
+
 var API_ALLOWED_FUNCTIONS = [
   'endSession',
   'getRevenueAnalysisReport',
