@@ -206,14 +206,15 @@
             // ค้นหาอยู่ = เปิดทุกจังหวัดที่พบ; ไม่ค้นหา = เปิดจังหวัดที่เปิดไว้ล่าสุด (ครั้งแรก = จังหวัดแรก)
             var provs = {}, pOrder = [];
             hits.forEach(function (f) {
-                var p = f.prov || 'ไม่ระบุจังหวัด';
+                // ศป.อุบลราชธานี (34010) / ศป.สกลนคร (47010) แยกเป็นกลุ่มของตัวเอง ไม่รวมในจังหวัด (ผู้ใช้ขอ 2026-11-24)
+                var p = f.zip === '34010' ? 'ศป.อุบลราชธานี' : f.zip === '47010' ? 'ศป.สกลนคร' : (f.prov || 'ไม่ระบุจังหวัด');
                 if (!provs[p]) { provs[p] = { n: 0, offices: {}, oOrder: [] }; pOrder.push(p); }
                 var P = provs[p]; P.n++;
                 if (!P.offices[f.office]) { P.offices[f.office] = []; P.oOrder.push(f.office); }
                 P.offices[f.office].push(f);
             });
             // ลำดับจังหวัดตามที่ผู้ใช้กำหนด (2026-11-20) — จังหวัดอื่น/ไม่ระบุ ต่อท้าย
-            var PROV_ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'นครพนม', 'สกลนคร', 'มุกดาหาร'];
+            var PROV_ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'นครพนม', 'สกลนคร', 'มุกดาหาร', 'ศป.อุบลราชธานี', 'ศป.สกลนคร'];
             var provRank = function (p) {
                 var name = String(p).replace(/^จังหวัด\s*|^จ\.\s*/, '').trim();
                 var i = PROV_ORDER.indexOf(name);
@@ -247,7 +248,7 @@
             };
             list.innerHTML = pOrder.map(function (p) {
                 var P = provs[p], open = openAll || p === st.openProv;
-                return '<details class="cf-prov" data-prov="' + esc(p) + '"' + (open ? ' open' : '') + '><summary class="cf-prov-h"><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas fa-map-marker-alt"></i>จังหวัด' + esc(p) +
+                return '<details class="cf-prov" data-prov="' + esc(p) + '"' + (open ? ' open' : '') + '><summary class="cf-prov-h"><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas ' + (/^ศป\./.test(p) ? 'fa-warehouse' : 'fa-map-marker-alt') + '"></i>' + (/^ศป\./.test(p) ? '' : 'จังหวัด') + esc(p) +
                     '<small>' + fmt(P.oOrder.length) + ' ที่ทำการ · ' + fmt(P.n) + ' ไฟล์' + seen(P) + '</small></summary><div class="cf-prov-body">' +
                     P.oOrder.map(function (k) {
                         // ที่ทำการพับได้เช่นกัน: เปิดทีละ 1 ที่ทำการ (ผู้ใช้ขอ 2026-11-20); ค้นหา/กรองที่ทำการ = เปิดทั้งหมดที่พบ; จังหวัดมีที่ทำการเดียว = เปิดเลย
