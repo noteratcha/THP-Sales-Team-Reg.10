@@ -1657,8 +1657,10 @@
         };
         // ลูกค้าที่มีไฟล์สัญญาอยู่แล้ว → ให้เลือก ข้ามทั้งหมด / สร้างทับทั้งหมด / เลือกเอง (ผู้ใช้ขอ 2026-11-20)
         // คืน Promise<รายการที่จะสร้าง | null = ยกเลิก>
+        // คีย์จับคู่ลูกค้า (zip|ชื่อ) ยุบช่องว่างซ้ำ ให้ตรงกับหลังบ้าน (renewalRowData_) — เดิมชื่อที่มีเว้นวรรคสองครั้งหลุดจากการสร้าง (ผู้ใช้แจ้ง 2026-11-24)
+        var bulkKey = function (c) { return String(c.zip || '').trim() + '|' + String(c.name || '').replace(/\s+/g, ' ').trim(); };
         var bulkChooseExisting = function (inList) {
-            var key = function (c) { return c.zip + '|' + c.name; };
+            var key = bulkKey;
             if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังตรวจไฟล์สัญญาที่มีอยู่...');
             return new Promise(function (resolve, reject) {
                 google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
@@ -1709,10 +1711,10 @@
                 return null;
             });
         };
-        var runBulk = function (zip, inList, label, offices) {
-            var stop = false, done = 0, ok = 0, fails = [], folderUrl = '', started = Date.now();
-            var key = function (c) { return c.zip + '|' + c.name; };
-            var want = {}; inList.forEach(function (c) { want[key(c)] = true; });
+        var runBulk = function (zip, inList, label, offices, isRetry) {
+            var stop = false, done = 0, ok = 0, fails = [], failItems = [], skipped = [], retried = 0, folderUrl = '', started = Date.now();
+            var key = bulkKey;
+            var want = {}; inList.forEach(function (c) { want[key(c)] = c; });
             // กันปิดแท็บระหว่างสร้าง
             var guard = function (e) { e.preventDefault(); e.returnValue = ''; return ''; };
             window.addEventListener('beforeunload', guard);
@@ -1734,10 +1736,27 @@
                     google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg, currentUserInfo);
                 });
             };
+            // เครือข่าย/เซิร์ฟเวอร์ไม่ตอบ → ลองใหม่อีก 2 ครั้ง (รอ 3 และ 8 วินาที) — การสร้างซ้ำแทนไฟล์ชื่อเดิมและอัปเดตแถวทะเบียนเดิม จึงไม่เกิดไฟล์ซ้ำ
+            var isNetErr = function (err) { return /failed to fetch|networkerror|network error|load failed|timeout|timed out|503|502|504|ECONN/i.test(String(err && err.message ? err.message : err)); };
+            var callRetry = function (fn, arg, tag) {
+                var tries = 0, waits = [3000, 8000];
+                var attempt = function () {
+                    return call(fn, arg).catch(function (err) {
+                        if (stop || tries >= waits.length || !isNetErr(err)) throw err;
+                        var w = waits[tries++]; retried++;
+                        ui(tag + ' · การเชื่อมต่อขัดข้อง กำลังลองใหม่ครั้งที่ ' + tries + '...');
+                        return new Promise(function (r) { setTimeout(r, w); }).then(attempt);
+                    });
+                };
+                return attempt();
+            };
             Promise.all([call('getRenewalBulk', zip ? { zip: zip } : { all: true }), ratesReady(), loadContractLibs()]).then(function (r) {
                 var res = r[0], rates = r[1] || {};
                 if (!(res && res.status === 'success')) throw new Error((res && res.message) || 'ดึงข้อมูลลูกค้าไม่สำเร็จ');
                 var list = (res.data || []).filter(function (d) { return want[key(d)]; });
+                // รายที่เลือกไว้แต่ไม่พบข้อมูลในชีต (ชื่อ/รหัสเปลี่ยนระหว่างนั้น) → แจ้งในสรุป ไม่หายเงียบ
+                var got = {}; list.forEach(function (d) { got[key(d)] = true; });
+                Object.keys(want).forEach(function (k) { if (!got[k]) skipped.push(want[k]); });
                 total = list.length; ui('');
                 var i = 0;
                 var next = function () {
@@ -1747,23 +1766,31 @@
                     var p = bulkPayload(d, rates, offices[d.zip] || d.office);
                     return getTemplatePdf(p.pkg).then(function (tpl) { return window.thpBuildContractPdf(tpl, p); }).then(function (bytes) {
                         p.pdf = bytesToB64(bytes);
-                        return call('generateContractBulk', p);
+                        return callRetry('generateContractBulk', p, tag);
                     }).then(function (g) {
-                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) fails.push(tag + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); }
-                        else fails.push(tag + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ'));
-                    }, function (err) { fails.push(tag + ': ' + (err && err.message ? err.message : err)); })
+                        if (g && g.status === 'success') { ok++; folderUrl = g.folderUrl || folderUrl; if (g.register && g.register.error) { fails.push(tag + ': สร้างไฟล์แล้ว แต่บันทึกทะเบียนไม่สำเร็จ'); failItems.push(d); } }
+                        else { fails.push(tag + ': ' + ((g && g.message) || 'ไม่ทราบสาเหตุ')); failItems.push(d); }
+                    }, function (err) { fails.push(tag + ': ' + (err && err.message ? err.message : err) + ' (ลองซ้ำแล้ว)'); failItems.push(d); })
                     .then(function () { done++; ui(''); return next(); });
                 };
                 return next();
             }).then(function () {
                 window.removeEventListener('beforeunload', guard);
+                var fmtN = function (n) { return n.toLocaleString('th-TH'); };
+                var retryList = failItems.map(function (d) { return { zip: d.zip, name: d.name, office: d.office }; });
                 Swal.fire({
-                    icon: fails.length ? 'warning' : 'success', title: stop ? 'หยุดการสร้างแล้ว' : 'สร้างสัญญาเสร็จแล้ว',
-                    html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>สร้างสำเร็จ <b>' + ok.toLocaleString('th-TH') + '</b> จาก ' + total.toLocaleString('th-TH') + ' ราย' +
+                    icon: fails.length || skipped.length ? 'warning' : 'success', title: stop ? 'หยุดการสร้างแล้ว' : 'สร้างสัญญาเสร็จแล้ว',
+                    html: '<div style="text-align:left;font-size:14px;line-height:1.7">ที่ทำการ <b>' + esc(label) + '</b><br>สร้างสำเร็จ <b>' + fmtN(ok) + '</b> จาก ' + fmtN(inList.length) + ' ราย' +
+                        (fails.length ? ' · ไม่สำเร็จ <b style="color:#b91c1c">' + fmtN(fails.length) + '</b>' : '') + (skipped.length ? ' · ไม่พบข้อมูล <b style="color:#b45309">' + fmtN(skipped.length) + '</b>' : '') +
+                        (stop && total - done > 0 ? ' · ยังไม่ได้ทำ ' + fmtN(total - done) : '') + (retried ? '<br><span style="font-size:12px;color:#6b7280">ลองเชื่อมต่อซ้ำอัตโนมัติ ' + fmtN(retried) + ' ครั้ง</span>' : '') +
                         (fails.length ? '<div style="margin-top:8px;max-height:180px;overflow:auto;font-size:12px;color:#b91c1c;background:#fef2f2;border-radius:8px;padding:8px">' + fails.map(esc).join('<br>') + '</div>' : '') +
+                        (skipped.length ? '<div style="margin-top:8px;max-height:140px;overflow:auto;font-size:12px;color:#92400e;background:#fffbeb;border-radius:8px;padding:8px"><b>ไม่พบข้อมูลลูกค้าในชีต (ข้าม):</b><br>' + skipped.map(function (c) { return esc(c.zip + ' · ' + c.name); }).join('<br>') + '</div>' : '') +
                         (zip && folderUrl ? '<div style="margin-top:10px"><a href="' + esc(folderUrl) + '" target="_blank" rel="noopener" style="color:#c2410c;font-weight:700"><i class="fas fa-folder-open"></i> เปิดโฟลเดอร์สัญญาของที่ทำการ</a></div>' : '') +
                         (zip ? '' : '<div style="margin-top:10px;font-size:13px;color:#4b5563">ดูไฟล์ทั้งหมดได้ที่เมนู สัญญาขนส่ง › ไฟล์สัญญา</div>') + '</div>',
-                    confirmButtonText: 'ปิด', returnFocus: false
+                    confirmButtonText: 'ปิด', returnFocus: false,
+                    showDenyButton: retryList.length > 0, denyButtonText: 'ลองใหม่เฉพาะ ' + fmtN(retryList.length) + ' รายที่ไม่สำเร็จ', denyButtonColor: '#c2410c'
+                }).then(function (a) {
+                    if (a.isDenied && retryList.length) runBulk(zip, retryList, label + ' (ลองใหม่)', offices, true);
                 });
             }).catch(function (err) {
                 window.removeEventListener('beforeunload', guard);
