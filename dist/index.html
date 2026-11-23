@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2118';
+    var APP_VERSION = 'Ver. 2026.1123.2124';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1729,6 +1729,31 @@
     <main class="flex-1 overflow-y-auto relative bg-gray-50 h-screen w-full overflow-x-hidden">
         <header
             class="min-h-[60px] sm:min-h-[72px] py-2.5 sm:py-3 bg-white shadow-sm border-b flex flex-wrap items-center justify-between px-3 sm:px-8 sticky top-0 z-30 gap-y-2 sm:gap-y-3">
+
+            <!-- 📢 ข้อความวิ่งแจ้งเพื่อดำเนินการ (ผู้ใช้ขอ 2026-11-23) — แสดงทุกหน้าถึง 31 ธ.ค. 2569 เท่านั้น (ซ่อนไว้ก่อน สคริปต์ด้านล่างเปิดเมื่อยังไม่หมดเวลา) -->
+            <div id="thpAnnounce" class="thp-announce hidden" role="region" aria-label="ประกาศแจ้งเพื่อดำเนินการ">
+                <span class="thp-announce-tag"><i class="fas fa-bullhorn" aria-hidden="true"></i> แจ้งเพื่อดำเนินการ</span>
+                <div class="thp-announce-track"><span class="thp-announce-text">ขอให้ทีมขายประจำที่ทำการทุกแห่ง ดาวน์โหลดเอกสารขยายอายุสัญญาขนส่ง A11–A14 ประจำปี 2570 เพื่อดำเนินการให้ลูกค้าลงนามให้แล้วเสร็จสมบูรณ์ และนำส่งให้ ผปข.10 พิจารณาอนุมัติ ภายในวันที่ 20 ธันวาคม 2569 ทั้งนี้ ขอความร่วมมือดำเนินการให้แล้วเสร็จตามกำหนดเวลาดังกล่าว</span></div>
+            </div>
+            <style>
+                .thp-announce { order: -1; flex: 0 0 auto; width: calc(100% + 1.5rem); margin: -0.625rem calc(-0.75rem + 1px) 0 -0.75rem; /* ขอบขวาเกิน 1px ให้รายการถัดไปขึ้นบรรทัดใหม่เสมอ */ display: flex; align-items: stretch; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #9a3412; font-size: 13px; overflow: hidden; }
+                @media (min-width: 640px) { .thp-announce { width: calc(100% + 4rem); margin: -0.75rem calc(-2rem + 1px) 0 -2rem; } }
+                .thp-announce.hidden { display: none; }
+                .thp-announce-tag { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ea580c; color: #fff; font-weight: 700; white-space: nowrap; }
+                .thp-announce-track { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; }
+                .thp-announce-text { display: inline-block; padding-left: 100%; white-space: nowrap; font-weight: 600; animation: thpAnnounceRun 55s linear infinite; }
+                .thp-announce:hover .thp-announce-text { animation-play-state: paused; }
+                @keyframes thpAnnounceRun { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+                @media (max-width: 639px) { .thp-announce-tag span, .thp-announce { font-size: 12px; } .thp-announce-text { animation-duration: 45s; } }
+                @media (prefers-reduced-motion: reduce) { .thp-announce-text { animation: none; padding: 6px 12px; white-space: normal; } }
+            </style>
+            <script>
+                (function () {
+                    // แสดงถึง 31 ธ.ค. 2569 23:59:59 เวลาไทย
+                    var el = document.getElementById('thpAnnounce');
+                    if (el && Date.now() <= Date.UTC(2026, 11, 31, 16, 59, 59)) el.classList.remove('hidden');
+                })();
+            </script>
 
             <!-- Left: Menu & Title -->
             <div class="flex items-center shrink-0 flex-1 min-w-0 md:flex-none order-1">
