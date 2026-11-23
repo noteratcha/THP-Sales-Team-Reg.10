@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2124';
+    var APP_VERSION = 'Ver. 2026.1123.2142';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21311,7 +21311,8 @@
             <div id="page-contract-packages" class="hidden animate-fade-in w-full pb-10">
                 <!-- 📦 PAGE: ลูกค้าแต่ละ Package (เมนูย่อยใต้ สัญญาขนส่ง — ผู้ใช้ขอ 2026-11-23)
      แดชบอร์ด: จำนวนลูกค้า + ข้อมูลฝากส่ง (ชิ้นงาน/รายได้) แยกตาม ปี/เดือนที่ฝากส่ง, Package, ทีม, ที่ทำการ (เรียงรหัสน้อย→มาก) และรายชื่อลูกค้า
-     สิทธิ์เหมือนหน้าไฟล์สัญญา — หลังบ้าน getPackageDashboard_ ตรวจจาก session -->
+     สิทธิ์เหมือนหน้าไฟล์สัญญา — หลังบ้าน getPackageDashboard_ ตรวจจาก session
+     ปรับ UX/UI (ผู้ใช้ขอ 2026-11-23): สรุปแยกตามมิติเป็นแท็บเต็มความกว้าง, สลับ รายได้/ชิ้นงาน, ป้ายตัวกรองที่ใช้อยู่, คอลัมน์ฝากส่ง x/y -->
 <div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
     <div class="cp-top">
         <p id="cpScope" class="cp-scope">ลูกค้าตาม Package</p>
@@ -21327,103 +21328,137 @@
         <label class="cp-f"><span>ทีม</span><select id="cpTeam" onchange="thpCpSet('team', this.value)"></select></label>
         <label class="cp-f cp-f-wide"><span>ที่ทำการ</span><select id="cpZip" onchange="thpCpSet('zip', this.value)"></select></label>
         <label class="cp-f cp-f-wide"><span>ค้นหาลูกค้า</span><span class="cp-search"><i class="fas fa-search" aria-hidden="true"></i><input id="cpQ" type="search" autocomplete="off" placeholder="ชื่อลูกค้า หรือ หมายเลข THP" oninput="thpCpSet('q', this.value)"></span></label>
-        <button type="button" id="cpClear" class="cp-clear hidden" onclick="thpCpReset()"><i class="fas fa-times"></i> ล้างตัวกรอง</button>
     </div>
+    <div id="cpChips" class="cp-chips" aria-live="polite"></div>
     <div id="cpBody" class="cp-body"></div>
 </div>
 
 <style>
+    #page-contract-packages { --cp-ink: #111827; --cp-mute: #6b7280; --cp-faint: #9ca3af; --cp-line: #eef0f3; --cp-brand: #ea580c; --cp-brand-ink: #9a3412; --cp-brand-soft: #fff7ed; --cp-brand-mid: #fdba74; --cp-ok: #16a34a; }
     #page-contract-packages .cp-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
     #page-contract-packages .cp-top-r { display: flex; align-items: center; gap: 10px; }
     #page-contract-packages .cp-scope { font-size: 14px; color: #4b5563; margin: 0; }
     #page-contract-packages .cp-scope b { color: #c2410c; }
-    #page-contract-packages .cp-updated { font-size: 12px; color: #9ca3af; }
-    #page-contract-packages .cp-btn-2 { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid #fdba74; border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract-packages .cp-updated { font-size: 12px; color: var(--cp-faint); }
+    #page-contract-packages .cp-btn-2 { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #c2410c; background: #fff; border: 1px solid var(--cp-brand-mid); border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+    #page-contract-packages .cp-btn-2:hover { background: var(--cp-brand-soft); }
     #page-contract-packages .cp-btn-2:disabled { opacity: .6; cursor: wait; }
-    #page-contract-packages .cp-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) repeat(2, minmax(0, 1.4fr)) auto; gap: 8px 10px; align-items: end; margin: 14px 0 6px; }
+    /* ตัวกรอง */
+    #page-contract-packages .cp-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) repeat(2, minmax(0, 1.5fr)); gap: 8px 10px; align-items: end; margin: 14px 0 0; }
     #page-contract-packages .cp-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    #page-contract-packages .cp-f > span:first-child { font-size: 12px; font-weight: 700; color: #6b7280; }
-    #page-contract-packages .cp-f select, #page-contract-packages .cp-search input { width: 100%; height: 38px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 10px; font-size: 13px; background: #fff; min-width: 0; }
-    #page-contract-packages .cp-f select:focus, #page-contract-packages .cp-search input:focus { outline: none; border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
-    #page-contract-packages .cp-f select.is-set { border-color: #ea580c; background: #fff7ed; color: #9a3412; font-weight: 600; }
+    #page-contract-packages .cp-f > span:first-child { font-size: 12px; font-weight: 700; color: var(--cp-mute); }
+    #page-contract-packages .cp-f select, #page-contract-packages .cp-search input { width: 100%; height: 38px; border: 1px solid #d1d5db; border-radius: 10px; padding: 0 10px; font-size: 13px; background: #fff; min-width: 0; color: var(--cp-ink); }
+    #page-contract-packages .cp-f select:focus, #page-contract-packages .cp-search input:focus { outline: none; border-color: var(--cp-brand); box-shadow: 0 0 0 3px rgba(234, 88, 12, .15); }
+    #page-contract-packages .cp-f select.is-set { border-color: var(--cp-brand); background: var(--cp-brand-soft); color: var(--cp-brand-ink); font-weight: 600; }
     #page-contract-packages .cp-search { position: relative; display: block; }
-    #page-contract-packages .cp-search i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 12px; }
+    #page-contract-packages .cp-search i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--cp-faint); font-size: 12px; }
     #page-contract-packages .cp-search input { padding-left: 30px; }
-    #page-contract-packages .cp-clear { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #fdba74; background: #fff; color: #c2410c; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
-    #page-contract-packages .cp-clear.hidden { display: none; }
-    #page-contract-packages .cp-body { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
-    #page-contract-packages .cp-note { font-size: 12px; color: #6b7280; margin: -6px 0 0; }
-    #page-contract-packages .cp-note.warn { color: #b45309; }
+    /* ป้ายตัวกรองที่ใช้อยู่ */
+    #page-contract-packages .cp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; min-height: 0; }
+    #page-contract-packages .cp-chips:empty { display: none; }
+    #page-contract-packages .cp-chips-l { font-size: 12px; color: var(--cp-mute); margin-right: 2px; }
+    #page-contract-packages .cp-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 10px; border-radius: 999px; border: 1px solid var(--cp-brand-mid); background: var(--cp-brand-soft); color: var(--cp-brand-ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+    #page-contract-packages .cp-chip i { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 999px; font-size: 10px; background: #fed7aa; }
+    #page-contract-packages .cp-chip:hover i { background: var(--cp-brand); color: #fff; }
+    #page-contract-packages .cp-chip-clear { height: 28px; padding: 0 8px; border: 0; background: none; color: #c2410c; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    #page-contract-packages .cp-body { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
+    #page-contract-packages .cp-note { font-size: 12px; color: #b45309; margin: -6px 0 0; display: flex; gap: 6px; align-items: baseline; }
+    /* การ์ดตัวเลข */
     #page-contract-packages .cp-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     #page-contract-packages .cp-kpi { padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; min-width: 0; }
-    #page-contract-packages .cp-kpi-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
+    #page-contract-packages .cp-kpi-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--cp-mute); }
     #page-contract-packages .cp-kpi-l i { color: #c2410c; width: 14px; text-align: center; }
-    #page-contract-packages .cp-kpi-v { display: block; margin-top: 4px; font-size: 24px; font-weight: 800; color: #111827; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-    #page-contract-packages .cp-kpi-v small { font-size: 12px; font-weight: 600; color: #6b7280; }
-    #page-contract-packages .cp-kpi-s { display: block; margin-top: 2px; font-size: 12px; color: #6b7280; }
+    #page-contract-packages .cp-kpi-v { display: block; margin-top: 4px; font-size: 24px; font-weight: 800; color: var(--cp-ink); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    #page-contract-packages .cp-kpi-v small { font-size: 12px; font-weight: 600; color: var(--cp-mute); }
+    #page-contract-packages .cp-kpi-s { display: block; margin-top: 2px; font-size: 12px; color: var(--cp-mute); }
+    #page-contract-packages .cp-kpi .cp-meter { margin-top: 6px; }
+    /* การ์ดเนื้อหา */
     #page-contract-packages .cp-card { border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; overflow: hidden; min-width: 0; }
-    #page-contract-packages .cp-card-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; background: #fffaf5; }
+    #page-contract-packages .cp-card-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 16px; border-bottom: 1px solid var(--cp-line); background: #fffaf5; min-height: 52px; }
     #page-contract-packages .cp-card-h h3 { margin: 0; font-size: 15px; font-weight: 800; color: #7c2d12; display: flex; align-items: center; gap: 8px; }
     #page-contract-packages .cp-card-h h3 i { color: #c2410c; font-size: 13px; }
-    #page-contract-packages .cp-card-h small { font-size: 12px; color: #6b7280; }
-    #page-contract-packages .cp-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    #page-contract-packages .cp-card-h small { font-size: 12px; color: var(--cp-mute); }
+    #page-contract-packages .cp-card-h .cp-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* ปุ่มแบบแบ่งช่อง (แท็บ / รายได้-ชิ้นงาน) */
+    #page-contract-packages .cp-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; gap: 2px; }
+    #page-contract-packages .cp-seg button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: none; color: #4b5563; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    #page-contract-packages .cp-seg button:hover { color: var(--cp-ink); }
+    #page-contract-packages .cp-seg button[aria-selected="true"], #page-contract-packages .cp-seg button[aria-pressed="true"] { background: #fff; color: #c2410c; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+    #page-contract-packages .cp-seg button:focus-visible { outline: 2px solid #c2410c; outline-offset: 1px; }
+    #page-contract-packages .cp-seg button b { font-weight: 700; color: var(--cp-faint); margin-left: 4px; font-size: 11px; }
+    /* ตาราง */
     #page-contract-packages .cp-scroll { overflow-x: auto; }
     #page-contract-packages table.cp-t { width: 100%; border-collapse: collapse; font-size: 13px; }
-    #page-contract-packages .cp-t th { text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; padding: 8px 12px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; background: #fff; }
-    #page-contract-packages .cp-t td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    #page-contract-packages .cp-t th { text-align: left; font-size: 12px; font-weight: 700; color: var(--cp-mute); padding: 8px 12px; border-bottom: 1px solid var(--cp-line); white-space: nowrap; background: #fff; }
+    #page-contract-packages .cp-t td { padding: 9px 12px; border-bottom: 1px solid var(--cp-line); vertical-align: middle; color: #374151; }
     #page-contract-packages .cp-t .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
     #page-contract-packages .cp-t tbody tr.cp-click { cursor: pointer; }
-    #page-contract-packages .cp-t tbody tr.cp-click:hover { background: #fff7ed; }
+    #page-contract-packages .cp-t tbody tr.cp-click:hover { background: var(--cp-brand-soft); }
     #page-contract-packages .cp-t tbody tr.cp-click:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
     #page-contract-packages .cp-t tbody tr.is-on { background: #ffedd5; }
-    #page-contract-packages .cp-t tbody tr.is-on td:first-child { box-shadow: inset 3px 0 0 #ea580c; }
-    #page-contract-packages .cp-t tfoot td { font-weight: 800; background: #fafafa; border-bottom: 0; }
-    #page-contract-packages .cp-share { display: block; height: 4px; margin-top: 4px; border-radius: 999px; background: #f3f4f6; overflow: hidden; min-width: 60px; }
-    #page-contract-packages .cp-share span { display: block; height: 100%; background: #ea580c; border-radius: inherit; }
+    #page-contract-packages .cp-t tbody tr.is-on td:first-child { box-shadow: inset 3px 0 0 var(--cp-brand); }
+    #page-contract-packages .cp-t tfoot td { font-weight: 800; background: #fafafa; border-bottom: 0; color: var(--cp-ink); }
+    #page-contract-packages .cp-t .cp-lbl { font-weight: 700; color: var(--cp-ink); white-space: nowrap; }
     #page-contract-packages .cp-zero { color: #d1d5db; }
+    /* แถบสัดส่วน */
+    #page-contract-packages .cp-meter { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+    #page-contract-packages .cp-meter > span:first-child { flex: 1; height: 6px; border-radius: 999px; background: #f3f4f6; overflow: hidden; min-width: 40px; }
+    #page-contract-packages .cp-meter > span:first-child > span { display: block; height: 100%; border-radius: inherit; background: var(--cp-brand); }
+    #page-contract-packages .cp-meter.ok > span:first-child > span { background: var(--cp-ok); }
+    #page-contract-packages .cp-meter em { font-style: normal; font-size: 12px; color: var(--cp-mute); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+    #page-contract-packages .cp-act { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+    #page-contract-packages .cp-act .cp-frac { min-width: 58px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #page-contract-packages .cp-frac b { color: var(--cp-ink); font-weight: 700; }
+    #page-contract-packages .cp-frac span { color: var(--cp-faint); }
+    /* ป้าย Package */
     #page-contract-packages .cp-pkg { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; white-space: nowrap; }
     #page-contract-packages .cp-pkg.is-custom { color: #92400e; background: #fffbeb; border-color: #fde68a; }
-    #page-contract-packages .cp-pkg.is-none { color: #6b7280; background: #f9fafb; border-color: #e5e7eb; }
-    #page-contract-packages .cp-mix { display: flex; flex-wrap: wrap; gap: 4px; }
+    #page-contract-packages .cp-pkg.is-none { color: var(--cp-mute); background: #f9fafb; border-color: #e5e7eb; }
+    #page-contract-packages .cp-pkg-note { font-size: 11px; color: var(--cp-faint); margin-left: 6px; white-space: nowrap; }
+    #page-contract-packages .cp-mix { display: flex; flex-wrap: wrap; gap: 4px; max-width: 360px; }
     #page-contract-packages .cp-mix .cp-pkg b { font-weight: 800; margin-left: 3px; }
-    #page-contract-packages .cp-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; padding: 16px 16px 12px; }
-    #page-contract-packages .cp-mo { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 4px 0; border-radius: 10px; cursor: pointer; font: inherit; min-width: 0; }
-    #page-contract-packages .cp-mo:hover { background: #fff7ed; }
+    /* กราฟรายเดือน */
+    #page-contract-packages .cp-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; padding: 14px 16px 10px; }
+    #page-contract-packages .cp-mo { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 4px 0 6px; border-radius: 10px; cursor: pointer; font: inherit; min-width: 0; }
+    #page-contract-packages .cp-mo:hover { background: var(--cp-brand-soft); }
     #page-contract-packages .cp-mo:focus-visible { outline: 2px solid #c2410c; outline-offset: 1px; }
-    #page-contract-packages .cp-mo-v { font-size: 11px; font-weight: 700; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    #page-contract-packages .cp-mo-bar { width: 70%; max-width: 40px; height: 120px; display: flex; align-items: flex-end; background: #f9fafb; border-radius: 8px; overflow: hidden; }
-    #page-contract-packages .cp-mo-bar span { display: block; width: 100%; background: #fdba74; border-radius: 8px 8px 0 0; }
-    #page-contract-packages .cp-mo.is-on .cp-mo-bar span { background: #ea580c; }
+    #page-contract-packages .cp-mo-v { font-size: 11px; font-weight: 700; color: #374151; font-variant-numeric: tabular-nums; white-space: nowrap; min-height: 14px; }
+    #page-contract-packages .cp-mo-bar { width: 64%; max-width: 38px; height: 96px; display: flex; align-items: flex-end; background: #f9fafb; border-radius: 8px; overflow: hidden; }
+    #page-contract-packages .cp-mo-bar span { display: block; width: 100%; background: var(--cp-brand-mid); border-radius: 8px 8px 0 0; transition: height .25s; }
+    #page-contract-packages .cp-mo.is-on .cp-mo-bar span { background: var(--cp-brand); }
     #page-contract-packages .cp-mo.is-dim .cp-mo-bar span { background: #fde3cc; }
-    #page-contract-packages .cp-mo-l { font-size: 12px; color: #6b7280; }
+    #page-contract-packages .cp-mo-l { font-size: 12px; color: var(--cp-mute); }
     #page-contract-packages .cp-mo.is-on .cp-mo-l { color: #c2410c; font-weight: 800; }
-    #page-contract-packages .cp-mo-p { font-size: 10px; color: #9ca3af; white-space: nowrap; }
-    #page-contract-packages .cp-cust-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    /* รายชื่อลูกค้า */
     #page-contract-packages .cp-cust-tools select { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; }
-    #page-contract-packages .cp-name b { display: block; color: #111827; }
-    #page-contract-packages .cp-name small, #page-contract-packages .cp-sub { display: block; font-size: 11px; color: #9ca3af; }
+    #page-contract-packages .cp-name b { display: block; color: var(--cp-ink); }
+    #page-contract-packages .cp-name small, #page-contract-packages .cp-sub { display: block; font-size: 11px; color: var(--cp-faint); }
+    #page-contract-packages .cp-t tr.is-idle td { color: var(--cp-faint); }
+    #page-contract-packages .cp-t tr.is-idle .cp-name b { color: var(--cp-mute); font-weight: 600; }
+    #page-contract-packages .cp-idle-tag { display: inline-block; margin-top: 2px; font-size: 10px; font-weight: 700; color: var(--cp-mute); background: #f3f4f6; border-radius: 999px; padding: 0 6px; }
     #page-contract-packages .cp-spark { display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 84px; }
-    #page-contract-packages .cp-spark span { flex: 1; min-height: 1px; background: #fdba74; border-radius: 2px 2px 0 0; }
-    #page-contract-packages .cp-spark span.is-on { background: #ea580c; }
+    #page-contract-packages .cp-spark span { flex: 1; min-height: 1px; background: var(--cp-brand-mid); border-radius: 2px 2px 0 0; }
+    #page-contract-packages .cp-spark span.is-on { background: var(--cp-brand); }
     #page-contract-packages .cp-spark span.z { background: #f3f4f6; }
-    #page-contract-packages .cp-more { display: block; width: 100%; padding: 10px; border: 0; border-top: 1px solid #f3f4f6; background: #fffaf5; color: #c2410c; font-size: 13px; font-weight: 700; cursor: pointer; }
-    #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: #6b7280; font-size: 14px; }
+    #page-contract-packages .cp-more { display: block; width: 100%; padding: 10px; border: 0; border-top: 1px solid var(--cp-line); background: #fffaf5; color: #c2410c; font-size: 13px; font-weight: 700; cursor: pointer; }
+    #page-contract-packages .cp-more:hover { background: var(--cp-brand-soft); }
+    #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: var(--cp-mute); font-size: 14px; }
     #page-contract-packages .cp-skel { height: 88px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: cpSk 1.2s infinite; }
     @keyframes cpSk { to { background-position: -200% 0; } }
-    @media (prefers-reduced-motion: reduce) { #page-contract-packages .cp-skel { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { #page-contract-packages .cp-skel { animation: none; } #page-contract-packages .cp-mo-bar span { transition: none; } }
     @media (max-width: 1024px) { #page-contract-packages .cp-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); } #page-contract-packages .cp-f-wide { grid-column: span 2; } }
-    @media (max-width: 860px) { #page-contract-packages .cp-grid2 { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 640px) {
         #page-contract-packages .cp-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         #page-contract-packages .cp-f-wide { grid-column: span 2; }
-        #page-contract-packages .cp-clear { grid-column: span 2; }
         #page-contract-packages .cp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         #page-contract-packages .cp-kpi-v { font-size: 20px; }
         #page-contract-packages .cp-months { gap: 2px; padding: 12px 8px 8px; }
         #page-contract-packages .cp-mo-v { display: none; }
-        #page-contract-packages .cp-mo-p { display: none; }
-        #page-contract-packages .cp-mo-bar { height: 90px; width: 80%; }
-        #page-contract-packages .cp-cust-tools { margin-left: 0; width: 100%; }
+        #page-contract-packages .cp-mo-bar { height: 80px; width: 80%; }
+        #page-contract-packages .cp-mo-l { font-size: 10px; }
+        #page-contract-packages .cp-card-h .cp-right { margin-left: 0; width: 100%; }
+        #page-contract-packages .cp-seg { width: 100%; }
+        #page-contract-packages .cp-seg button { flex: 1; padding: 0 6px; }
     }
 </style>
 
@@ -21433,21 +21468,25 @@
         var who = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
         var fmt = function (n) { return Math.round(Number(n) || 0).toLocaleString('th-TH'); };
         var short = function (n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + ' ล.' : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + ' พ.' : fmt(n); };
+        var pctOf = function (a, b) { return b ? Math.round(a * 100 / b) : 0; };
         var MO = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
         var MO_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
         var NOPKG = 'ไม่ระบุ Package', NOTEAM = 'ไม่ระบุทีม';
-        var st = { data: null, forUser: null, seq: 0, f: { year: '', month: '', pkg: '', team: '', zip: '', q: '' }, limit: 100, sort: 'zip' };
+        var st = { data: null, forUser: null, seq: 0, f: { year: '', month: '', pkg: '', team: '', zip: '', q: '' }, limit: 100, sort: 'zip', view: 'pkg', metric: 'rev' };
 
         var pkgOf = function (c) { return c.pkg || NOPKG; };
         var teamOf = function (c) { return c.team || NOTEAM; };
         var pkgRank = function (p) { var m = /^A(\d+)/i.exec(p); return m ? Number(m[1]) : (p === NOPKG ? 999 : 500); };
         var pkgSort = function (a, b) { return pkgRank(a) - pkgRank(b) || String(a).localeCompare(String(b), 'th'); };
+        var teamSort = function (a, b) { return a === NOTEAM ? 1 : b === NOTEAM ? -1 : a.localeCompare(b, 'th'); };
+        var pkgLabel = function (p) { return p === NOPKG ? 'ไม่ระบุ' : (/พิเศษ/.test(p) ? 'อัตราพิเศษ' : p.replace(/\s*\(.*\)$/, '')); };
         var pkgBadge = function (p, n) {
             var cls = p === NOPKG ? ' is-none' : (/พิเศษ/.test(p) ? ' is-custom' : '');
-            var label = p === NOPKG ? 'ไม่ระบุ' : (/พิเศษ/.test(p) ? 'อัตราพิเศษ' : p.replace(/\s*\(.*\)$/, ''));
-            return '<span class="cp-pkg' + cls + '" title="' + esc(p) + '">' + esc(label) + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</span>';
+            return '<span class="cp-pkg' + cls + '" title="' + esc(p) + '">' + esc(pkgLabel(p)) + (n != null ? '<b>' + fmt(n) + '</b>' : '') + '</span>';
         };
-        // ชิ้นงาน/รายได้ของลูกค้าในปี/เดือนที่เลือก
+        var mVal = function (s) { return st.metric === 'pcs' ? s[0] : s[1]; };
+        var mUnit = function () { return st.metric === 'pcs' ? 'ชิ้น' : 'บาท'; };
+        // ชิ้นงาน/รายได้ของลูกค้าในปี/เดือนที่เลือก → [ชิ้น, รายได้]
         var shipOf = function (c, y, m) {
             var a = c.thp && st.data.ship[c.thp] && st.data.ship[c.thp][y]; if (!a) return [0, 0];
             if (m !== '') return [a[m * 2], a[m * 2 + 1]];
@@ -21461,11 +21500,13 @@
             if (f.q) { var q = f.q.toLowerCase(), qd = f.q.replace(/\D/g, ''); if (String(c.name).toLowerCase().indexOf(q) === -1 && !(qd.length >= 3 && c.thp.indexOf(qd) !== -1)) return false; }
             return true;
         };
+        var meter = function (p, ok) { return '<span class="cp-meter' + (ok ? ' ok' : '') + '"><span><span style="width:' + Math.min(100, Math.max(0, p)) + '%"></span></span><em>' + p + '%</em></span>'; };
 
         window.thpCpClear = function () {
             st.data = null; st.forUser = null; st.seq++;
             st.f = { year: '', month: '', pkg: '', team: '', zip: '', q: '' };
             var b = document.getElementById('cpBody'); if (b) b.innerHTML = '';
+            var c = document.getElementById('cpChips'); if (c) c.innerHTML = '';
             var q = document.getElementById('cpQ'); if (q) q.value = '';
         };
         window.loadContractPackagesPage = function () { window.thpCpLoad(false); };
@@ -21476,7 +21517,7 @@
             st.forUser = u;
             var seq = ++st.seq, body = document.getElementById('cpBody'), btn = document.getElementById('cpReload');
             if (body) body.innerHTML = '<div class="cp-kpis"><div class="cp-skel"></div><div class="cp-skel"></div><div class="cp-skel"></div><div class="cp-skel"></div></div><div class="cp-skel" style="height:180px"></div>' +
-                '<p class="cp-note">กำลังดึงรายชื่อลูกค้าและข้อมูลฝากส่ง อาจใช้เวลาสักครู่...</p>';
+                '<p class="cp-note" style="color:#6b7280">กำลังดึงรายชื่อลูกค้าและข้อมูลฝากส่ง อาจใช้เวลาสักครู่...</p>';
             if (btn) btn.disabled = true;
             google.script.run.withSuccessHandler(function (res) {
                 if (seq !== st.seq || who() !== u) return;
@@ -21499,6 +21540,7 @@
             if (k === 'q') { clearTimeout(st.qt); st.qt = setTimeout(function () { st.limit = 100; window.thpCpRender(); }, 200); return; }
             st.limit = 100; window.thpCpRender();
         };
+        window.thpCpUnset = function (k) { st.f[k] = ''; if (k === 'q') { var q = document.getElementById('cpQ'); if (q) q.value = ''; } st.limit = 100; window.thpCpRender(); };
         window.thpCpReset = function () {
             st.f.month = ''; st.f.pkg = ''; st.f.team = ''; st.f.zip = ''; st.f.q = '';
             var q = document.getElementById('cpQ'); if (q) q.value = '';
@@ -21506,28 +21548,18 @@
         };
         window.thpCpMore = function () { st.limit += 200; window.thpCpRender(); };
         window.thpCpSort = function (v) { st.sort = v; window.thpCpRender(); };
+        window.thpCpView = function (v) { st.view = v; window.thpCpRender(); var t = document.querySelector('#page-contract-packages [data-view="' + v + '"]'); if (t) t.focus(); };
+        window.thpCpMetric = function (v) { st.metric = v; window.thpCpRender(); };
         window.thpCpKey = function (e, k, v) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.thpCpSet(k, v); } };
+        window.thpCpTabKey = function (e) {
+            var order = ['pkg', 'team', 'zip'], i = order.indexOf(st.view);
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); window.thpCpView(order[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]); }
+        };
 
-        // ตัวเลือกในตัวกรอง (นับตามตัวกรองอื่น)
         var fillSelect = function (id, all, items, cur) {
             var el = document.getElementById(id); if (!el) return;
             el.innerHTML = '<option value="">' + esc(all) + '</option>' + items.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('');
             el.value = cur; el.classList.toggle('is-set', !!cur);
-        };
-
-        // ตารางสรุปตามมิติ (คลิกแถว = กรอง)
-        var groupTable = function (key, title, icon, groups, sel, firstHead, extraHead, extraCell) {
-            var tot = groups.reduce(function (a, g) { a.n += g.n; a.a += g.a; a.p += g.p; a.r += g.r; return a; }, { n: 0, a: 0, p: 0, r: 0 });
-            var maxR = Math.max.apply(null, groups.map(function (g) { return g.r; }).concat([1]));
-            var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
-            return '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas ' + icon + '"></i>' + title + '</h3><small>' + fmt(groups.length) + ' รายการ · คลิกแถวเพื่อกรอง</small></div><div class="cp-scroll"><table class="cp-t"><thead><tr><th>' + firstHead + '</th>' + (extraHead || '') +
-                '<th class="n">ลูกค้า</th><th class="n">ฝากส่ง (ราย)</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th></tr></thead><tbody>' +
-                groups.map(function (g) {
-                    var on = sel === g.k;
-                    return '<tr class="cp-click' + (on ? ' is-on' : '') + '" tabindex="0" role="button" aria-pressed="' + on + '" onclick="thpCpSet(\'' + key + '\', ' + esc(JSON.stringify(g.k)) + ')" onkeydown="thpCpKey(event, \'' + key + '\', ' + esc(JSON.stringify(g.k)) + ')">' +
-                        '<td>' + g.label + '</td>' + (extraCell ? extraCell(g) : '') + '<td class="n">' + fmt(g.n) + '</td><td class="n">' + cell(g.a) + '</td><td class="n">' + cell(g.p) + '</td>' +
-                        '<td class="n">' + cell(g.r) + '<span class="cp-share"><span style="width:' + Math.round(g.r * 100 / maxR) + '%"></span></span></td></tr>';
-                }).join('') + '</tbody><tfoot><tr><td>รวม</td>' + (extraHead ? '<td colspan="' + (extraHead.match(/<th/g) || []).length + '"></td>' : '') + '<td class="n">' + fmt(tot.n) + '</td><td class="n">' + fmt(tot.a) + '</td><td class="n">' + fmt(tot.p) + '</td><td class="n">' + fmt(tot.r) + '</td></tr></tfoot></table></div></section>';
         };
         var groupBy = function (list, keyFn, y, m) {
             var g = {};
@@ -21542,81 +21574,110 @@
             var body = document.getElementById('cpBody'); if (!body || !st.data) return;
             var D = st.data, f = st.f, y = f.year, m = f.month === '' ? '' : Number(f.month);
             var all = D.customers;
-            // ตัวกรอง
+            // ----- ตัวกรอง (ตัวเลขในวงเล็บนับตามตัวกรองอื่น) -----
             fillSelect('cpYear', D.years.length ? 'เลือกปี' : 'ไม่มีข้อมูลฝากส่ง', D.years.map(function (x) { return [String(x), 'พ.ศ. ' + (x + 543)]; }), y);
-            var ys = document.getElementById('cpYear'); if (ys) { ys.querySelector('option[value=""]').disabled = true; ys.classList.remove('is-set'); }
+            var ys = document.getElementById('cpYear'); if (ys) { var o0 = ys.querySelector('option[value=""]'); if (o0) o0.disabled = true; ys.classList.remove('is-set'); }
             fillSelect('cpMonth', 'ทั้งปี', MO_FULL.map(function (x, i) { return [String(i), x]; }), f.month);
             var cnt = function (skip, fn) { var o = {}; all.forEach(function (c) { if (match(c, skip)) { var k = fn(c); o[k] = (o[k] || 0) + 1; } }); return o; };
             var pc = cnt('pkg', pkgOf), tc = cnt('team', teamOf), zc = {}, zn = {};
             all.forEach(function (c) { if (!zn[c.zip]) zn[c.zip] = c.office; if (match(c, 'zip')) zc[c.zip] = (zc[c.zip] || 0) + 1; });
             fillSelect('cpPkg', 'ทุก Package', Object.keys(pc).concat(f.pkg && !pc[f.pkg] ? [f.pkg] : []).sort(pkgSort).map(function (k) { return [k, k + ' (' + fmt(pc[k] || 0) + ')']; }), f.pkg);
-            fillSelect('cpTeam', 'ทุกทีม', Object.keys(tc).concat(f.team && !tc[f.team] ? [f.team] : []).sort(function (a, b) { return a === NOTEAM ? 1 : b === NOTEAM ? -1 : a.localeCompare(b, 'th'); }).map(function (k) { return [k, k + ' (' + fmt(tc[k] || 0) + ')']; }), f.team);
+            fillSelect('cpTeam', 'ทุกทีม', Object.keys(tc).concat(f.team && !tc[f.team] ? [f.team] : []).sort(teamSort).map(function (k) { return [k, k + ' (' + fmt(tc[k] || 0) + ')']; }), f.team);
             fillSelect('cpZip', 'ทุกที่ทำการ (' + fmt(Object.keys(zc).length) + ' แห่ง)', Object.keys(zc).concat(f.zip && !zc[f.zip] ? [f.zip] : []).sort().map(function (z) { return [z, z + ' ' + (zn[z] || '') + ' (' + fmt(zc[z] || 0) + ')']; }), f.zip);
-            var cl = document.getElementById('cpClear'); if (cl) cl.classList.toggle('hidden', !(f.month !== '' || f.pkg || f.team || f.zip || f.q));
+            // ----- ป้ายตัวกรองที่ใช้อยู่ -----
+            var chips = [];
+            if (f.month !== '') chips.push(['month', 'เดือน ' + MO_FULL[m]]);
+            if (f.pkg) chips.push(['pkg', 'Package ' + pkgLabel(f.pkg)]);
+            if (f.team) chips.push(['team', f.team]);
+            if (f.zip) chips.push(['zip', f.zip + ' ' + (zn[f.zip] || '')]);
+            if (f.q) chips.push(['q', 'ค้นหา “' + f.q + '”']);
+            var ch = document.getElementById('cpChips');
+            if (ch) ch.innerHTML = chips.length ? '<span class="cp-chips-l">กรองอยู่:</span>' + chips.map(function (c) { return '<button type="button" class="cp-chip" onclick="thpCpUnset(\'' + c[0] + '\')" aria-label="เอาตัวกรอง ' + esc(c[1]) + ' ออก">' + esc(c[1]) + '<i class="fas fa-times" aria-hidden="true"></i></button>'; }).join('') +
+                (chips.length > 1 ? '<button type="button" class="cp-chip-clear" onclick="thpCpReset()">ล้างทั้งหมด</button>' : '') : '';
 
             var list = all.filter(function (c) { return match(c); });
             var period = y ? (m !== '' ? MO_FULL[m] + ' ' : 'ทั้งปี ') + (Number(y) + 543) : '-';
             var sum = list.reduce(function (a, c) { var s = shipOf(c, y, m); a.p += s[0]; a.r += s[1]; if (s[0] > 0 || s[1] > 0) a.a++; if (!c.thp) a.noThp++; return a; }, { p: 0, r: 0, a: 0, noThp: 0 });
             var pkgs = {}; list.forEach(function (c) { pkgs[pkgOf(c)] = 1; });
-            var kpi = function (icon, label, v, unit, sub) { return '<div class="cp-kpi"><span class="cp-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="cp-kpi-v">' + v + (unit ? '<small> ' + unit + '</small>' : '') + '</span><span class="cp-kpi-s">' + sub + '</span></div>'; };
+            // ----- การ์ดตัวเลข -----
+            var kpi = function (icon, label, v, unit, sub, extra) { return '<div class="cp-kpi"><span class="cp-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="cp-kpi-v">' + v + (unit ? '<small> ' + unit + '</small>' : '') + '</span>' + (extra || '') + '<span class="cp-kpi-s">' + sub + '</span></div>'; };
             var html = '<div class="cp-kpis">' +
-                kpi('fa-users', 'ลูกค้าตามตัวกรอง', fmt(list.length), 'ราย', fmt(Object.keys(pkgs).length) + ' Package') +
-                kpi('fa-truck', 'มีการฝากส่ง · ' + period, fmt(sum.a), 'ราย', list.length ? Math.round(sum.a * 100 / list.length) + '% ของลูกค้า' : '-') +
-                kpi('fa-box', 'ชิ้นงาน · ' + period, fmt(sum.p), 'ชิ้น', sum.a ? 'เฉลี่ย ' + fmt(sum.p / sum.a) + ' ชิ้น/ราย' : '-') +
-                kpi('fa-coins', 'รายได้ · ' + period, fmt(sum.r), 'บาท', sum.a ? 'เฉลี่ย ' + fmt(sum.r / sum.a) + ' บาท/ราย' : '-') + '</div>';
+                kpi('fa-users', 'ลูกค้า', fmt(list.length), 'ราย', fmt(Object.keys(pkgs).length) + ' Package · ' + fmt(Object.keys(groupBy(list, function (c) { return c.zip; }, y, m)).length) + ' ที่ทำการ') +
+                kpi('fa-truck', 'มีการฝากส่ง · ' + period, fmt(sum.a), 'ราย', 'จากลูกค้า ' + fmt(list.length) + ' ราย', meter(pctOf(sum.a, list.length), true)) +
+                kpi('fa-box', 'ชิ้นงาน · ' + period, fmt(sum.p), 'ชิ้น', sum.a ? 'เฉลี่ย ' + fmt(sum.p / sum.a) + ' ชิ้นต่อรายที่ฝากส่ง' : '-') +
+                kpi('fa-coins', 'รายได้ · ' + period, fmt(sum.r), 'บาท', sum.a ? 'เฉลี่ย ' + fmt(sum.r / sum.a) + ' บาทต่อรายที่ฝากส่ง' : '-') + '</div>';
             var notes = [];
             if (sum.noThp) notes.push(fmt(sum.noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงดึงข้อมูลฝากส่งไม่ได้');
             if (D.shipErr) notes.push(D.shipErr);
-            if (notes.length) html += '<p class="cp-note warn"><i class="fas fa-info-circle"></i> ' + notes.map(esc).join(' · ') + '</p>';
-
+            if (notes.length) html += '<p class="cp-note"><i class="fas fa-info-circle"></i><span>' + notes.map(esc).join(' · ') + '</span></p>';
             if (!list.length) { body.innerHTML = html + '<div class="cp-empty">ไม่พบลูกค้าที่ตรงกับตัวกรอง</div>'; return; }
 
-            // รายเดือน (ปีที่เลือก)
+            var seg = '<div class="cp-seg" role="group" aria-label="แสดงเป็น">' + [['rev', 'รายได้'], ['pcs', 'ชิ้นงาน']].map(function (o) {
+                return '<button type="button" aria-pressed="' + (st.metric === o[0]) + '" onclick="thpCpMetric(\'' + o[0] + '\')">' + o[1] + '</button>'; }).join('') + '</div>';
+
+            // ----- กราฟรายเดือน -----
             if (y) {
                 var mo = []; for (var i = 0; i < 12; i++) mo.push([0, 0, 0]);
                 list.forEach(function (c) { var a = c.thp && D.ship[c.thp] && D.ship[c.thp][y]; if (!a) return; for (var i = 0; i < 12; i++) { mo[i][0] += a[i * 2]; mo[i][1] += a[i * 2 + 1]; if (a[i * 2] > 0 || a[i * 2 + 1] > 0) mo[i][2]++; } });
-                var maxM = Math.max.apply(null, mo.map(function (x) { return x[1]; }).concat([1]));
-                html += '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-chart-bar"></i>ฝากส่งรายเดือน ปี ' + (Number(y) + 543) + '</h3><small>ความสูงแท่ง = รายได้ · คลิกเดือนเพื่อกรอง</small></div><div class="cp-months">' +
+                var maxM = Math.max.apply(null, mo.map(function (x) { return mVal(x); }).concat([1]));
+                html += '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-chart-bar"></i>ฝากส่งรายเดือน ปี ' + (Number(y) + 543) + '</h3><small>คลิกเดือนเพื่อกรอง</small><div class="cp-right">' + seg + '</div></div><div class="cp-months">' +
                     mo.map(function (x, i) {
-                        var on = m === i, dim = m !== '' && !on;
+                        var on = m === i, dim = m !== '' && !on, v = mVal(x);
                         return '<button type="button" class="cp-mo' + (on ? ' is-on' : '') + (dim ? ' is-dim' : '') + '" aria-pressed="' + on + '" onclick="thpCpSet(\'month\', \'' + i + '\')" title="' + MO_FULL[i] + ': ลูกค้าฝากส่ง ' + fmt(x[2]) + ' ราย · ' + fmt(x[0]) + ' ชิ้น · ' + fmt(x[1]) + ' บาท">' +
-                            '<span class="cp-mo-v">' + (x[1] ? short(x[1]) : '') + '</span><span class="cp-mo-bar"><span style="height:' + (x[1] ? Math.max(2, Math.round(x[1] * 100 / maxM)) : 0) + '%"></span></span>' +
-                            '<span class="cp-mo-l">' + MO[i] + '</span><span class="cp-mo-p">' + (x[0] ? short(x[0]) + ' ชิ้น' : '-') + '</span></button>';
+                            '<span class="cp-mo-v">' + (v ? short(v) : '') + '</span><span class="cp-mo-bar"><span style="height:' + (v ? Math.max(2, Math.round(v * 100 / maxM)) : 0) + '%"></span></span>' +
+                            '<span class="cp-mo-l">' + MO[i] + '</span></button>';
                     }).join('') + '</div></section>';
             }
 
-            // Package / ทีม (นับตามตัวกรองอื่น เห็นทุกรายการ แถวที่เลือกเน้นสี)
-            var gPkg = groupBy(all.filter(function (c) { return match(c, 'pkg'); }), pkgOf, y, m).sort(function (a, b) { return pkgSort(a.k, b.k); });
-            gPkg.forEach(function (g) { g.label = pkgBadge(g.k) + (g.k !== NOPKG && /\(/.test(g.k) ? ' <span class="cp-sub" style="display:inline">' + esc(g.k.replace(/^[^(]*/, '')) + '</span>' : ''); });
-            var gTeam = groupBy(all.filter(function (c) { return match(c, 'team'); }), teamOf, y, m).sort(function (a, b) { return a.k === NOTEAM ? 1 : b.k === NOTEAM ? -1 : a.k.localeCompare(b.k, 'th'); });
-            gTeam.forEach(function (g) { g.label = '<b>' + esc(g.k) + '</b>'; });
-            html += '<div class="cp-grid2">' + groupTable('pkg', 'แยกตาม Package', 'fa-tags', gPkg, f.pkg, 'Package') + groupTable('team', 'แยกตามทีม', 'fa-users', gTeam, f.team, 'ทีม') + '</div>';
+            // ----- สรุปแยกตาม (แท็บ: Package / ทีม / ที่ทำการ) — นับตามตัวกรองอื่น เห็นทุกรายการ แถวที่เลือกเน้นสี -----
+            var V = st.view, gs, sel, head1, extraHead = '', extraCell = null;
+            if (V === 'team') {
+                gs = groupBy(all.filter(function (c) { return match(c, 'team'); }), teamOf, y, m).sort(function (a, b) { return teamSort(a.k, b.k); });
+                gs.forEach(function (g) { g.label = '<span class="cp-lbl">' + esc(g.k) + '</span>'; }); sel = f.team; head1 = 'ทีม';
+            } else if (V === 'zip') {
+                gs = groupBy(all.filter(function (c) { return match(c, 'zip'); }), function (c) { return c.zip; }, y, m).sort(function (a, b) { return a.k.localeCompare(b.k); });
+                gs.forEach(function (g) { g.label = '<span class="cp-lbl">' + esc(g.k) + '</span>'; var mix = {}; g.items.forEach(function (c) { var p = pkgOf(c); mix[p] = (mix[p] || 0) + 1; }); g.mix = mix; });
+                sel = f.zip; head1 = 'รหัส'; extraHead = '<th>ที่ทำการ</th><th>ทีม</th><th>Package</th>';
+                extraCell = function (g) { return '<td style="white-space:nowrap">' + esc(g.items[0].office) + '</td><td style="white-space:nowrap">' + esc(teamOf(g.items[0])) + '</td><td><div class="cp-mix">' + Object.keys(g.mix).sort(pkgSort).map(function (p) { return pkgBadge(p, g.mix[p]); }).join('') + '</div></td>'; };
+            } else {
+                gs = groupBy(all.filter(function (c) { return match(c, 'pkg'); }), pkgOf, y, m).sort(function (a, b) { return pkgSort(a.k, b.k); });
+                gs.forEach(function (g) { g.label = pkgBadge(g.k) + (g.k !== NOPKG && /\(/.test(g.k) ? '<span class="cp-pkg-note">' + esc(g.k.replace(/^[^(]*/, '')) + '</span>' : ''); }); sel = f.pkg; head1 = 'Package';
+            }
+            var key = V, tot = gs.reduce(function (a, g) { a.n += g.n; a.a += g.a; a.p += g.p; a.r += g.r; return a; }, { n: 0, a: 0, p: 0, r: 0 });
+            var totM = st.metric === 'pcs' ? tot.p : tot.r;
+            var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
+            var tabs = [['pkg', 'Package', Object.keys(pc).length], ['team', 'ทีม', Object.keys(tc).length], ['zip', 'ที่ทำการ', Object.keys(zc).length]];
+            html += '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-layer-group"></i>สรุปแยกตาม</h3>' +
+                '<div class="cp-seg" role="tablist" aria-label="สรุปแยกตาม">' + tabs.map(function (t) {
+                    return '<button type="button" role="tab" data-view="' + t[0] + '" aria-selected="' + (V === t[0]) + '" tabindex="' + (V === t[0] ? 0 : -1) + '" onclick="thpCpView(\'' + t[0] + '\')" onkeydown="thpCpTabKey(event)">' + t[1] + '<b>' + fmt(t[2]) + '</b></button>'; }).join('') + '</div>' +
+                '<div class="cp-right"><small>' + (V === 'zip' ? 'เรียงรหัสไปรษณีย์น้อยไปมาก · ' : '') + 'คลิกแถวเพื่อกรอง</small>' + seg + '</div></div>' +
+                '<div class="cp-scroll" role="tabpanel"><table class="cp-t"><thead><tr><th>' + head1 + '</th>' + extraHead + '<th class="n">ลูกค้า</th><th>ฝากส่งในช่วงนี้</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th><th>สัดส่วน' + (st.metric === 'pcs' ? 'ชิ้นงาน' : 'รายได้') + '</th></tr></thead><tbody>' +
+                gs.map(function (g) {
+                    var on = sel === g.k, arg = esc(JSON.stringify(g.k));
+                    return '<tr class="cp-click' + (on ? ' is-on' : '') + '" tabindex="0" role="button" aria-pressed="' + on + '" onclick="thpCpSet(\'' + key + '\', ' + arg + ')" onkeydown="thpCpKey(event, \'' + key + '\', ' + arg + ')">' +
+                        '<td>' + g.label + '</td>' + (extraCell ? extraCell(g) : '') + '<td class="n">' + fmt(g.n) + '</td>' +
+                        '<td><div class="cp-act"><span class="cp-frac"><b>' + fmt(g.a) + '</b><span>/' + fmt(g.n) + '</span></span>' + meter(pctOf(g.a, g.n), true) + '</div></td>' +
+                        '<td class="n">' + cell(g.p) + '</td><td class="n">' + cell(g.r) + '</td><td>' + meter(pctOf(st.metric === 'pcs' ? g.p : g.r, totM)) + '</td></tr>';
+                }).join('') + '</tbody><tfoot><tr><td>รวม</td>' + (extraHead ? '<td colspan="3"></td>' : '') + '<td class="n">' + fmt(tot.n) + '</td><td><span class="cp-frac"><b>' + fmt(tot.a) + '</b><span>/' + fmt(tot.n) + '</span></span></td><td class="n">' + fmt(tot.p) + '</td><td class="n">' + fmt(tot.r) + '</td><td></td></tr></tfoot></table></div></section>';
 
-            // ที่ทำการ (รหัสน้อย→มาก)
-            var gZip = groupBy(all.filter(function (c) { return match(c, 'zip'); }), function (c) { return c.zip; }, y, m).sort(function (a, b) { return a.k.localeCompare(b.k); });
-            gZip.forEach(function (g) { g.label = '<b>' + esc(g.k) + '</b>'; g.office = g.items[0].office; g.team = teamOf(g.items[0]); var mix = {}; g.items.forEach(function (c) { var p = pkgOf(c); mix[p] = (mix[p] || 0) + 1; }); g.mix = mix; });
-            html += groupTable('zip', 'แยกตามที่ทำการ (เรียงรหัสไปรษณีย์น้อยไปมาก)', 'fa-building', gZip, f.zip, 'รหัส', '<th>ที่ทำการ</th><th>ทีม</th><th>Package</th>', function (g) {
-                return '<td>' + esc(g.office) + '</td><td>' + esc(g.team) + '</td><td><div class="cp-mix">' + Object.keys(g.mix).sort(pkgSort).map(function (p) { return pkgBadge(p, g.mix[p]); }).join('') + '</div></td>';
-            });
-
-            // รายชื่อลูกค้า
+            // ----- รายชื่อลูกค้า -----
             var rows = list.map(function (c) { return { c: c, s: shipOf(c, y, m) }; });
             rows.sort(st.sort === 'rev' ? function (a, b) { return b.s[1] - a.s[1] || a.c.zip.localeCompare(b.c.zip); }
                 : st.sort === 'pcs' ? function (a, b) { return b.s[0] - a.s[0] || a.c.zip.localeCompare(b.c.zip); }
                 : function (a, b) { return a.c.zip.localeCompare(b.c.zip) || pkgSort(pkgOf(a.c), pkgOf(b.c)) || a.c.name.localeCompare(b.c.name, 'th'); });
             var shown = rows.slice(0, st.limit);
-            html += '<section class="cp-card" id="cpCustomers"><div class="cp-card-h"><h3><i class="fas fa-address-book"></i>รายชื่อลูกค้า</h3><small>' + fmt(rows.length) + ' ราย · ฝากส่ง ' + esc(period) + '</small>' +
-                '<span class="cp-cust-tools"><label for="cpSortSel" class="cp-sub" style="display:inline">เรียงตาม</label><select id="cpSortSel" onchange="thpCpSort(this.value)">' +
-                [['zip', 'รหัสที่ทำการ'], ['rev', 'รายได้มาก → น้อย'], ['pcs', 'ชิ้นงานมาก → น้อย']].map(function (o) { return '<option value="' + o[0] + '"' + (st.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></span></div>' +
-                '<div class="cp-scroll"><table class="cp-t"><thead><tr><th class="n">#</th><th>ลูกค้า</th><th>ที่ทำการ</th><th>ทีม</th><th>Package</th><th>สัญญา</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th><th>' + (y ? 'รายเดือน ' + (Number(y) + 543) : '') + '</th></tr></thead><tbody>' +
+            html += '<section class="cp-card" id="cpCustomers"><div class="cp-card-h"><h3><i class="fas fa-address-book"></i>รายชื่อลูกค้า</h3><small>' + fmt(rows.length) + ' ราย · ฝากส่ง ' + esc(period) + ' ' + fmt(sum.a) + ' ราย</small>' +
+                '<div class="cp-right cp-cust-tools"><label for="cpSortSel" class="cp-sub" style="display:inline">เรียงตาม</label><select id="cpSortSel" onchange="thpCpSort(this.value)">' +
+                [['zip', 'รหัสที่ทำการ'], ['rev', 'รายได้มาก → น้อย'], ['pcs', 'ชิ้นงานมาก → น้อย']].map(function (o) { return '<option value="' + o[0] + '"' + (st.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+                '<div class="cp-scroll"><table class="cp-t"><thead><tr><th class="n">#</th><th>ลูกค้า</th><th>ที่ทำการ</th><th>ทีม</th><th>Package</th><th>สัญญา</th><th class="n">ชิ้นงาน</th><th class="n">รายได้ (บาท)</th><th>' + (y ? (st.metric === 'pcs' ? 'ชิ้นงาน' : 'รายได้') + 'รายเดือน ' + (Number(y) + 543) : '') + '</th></tr></thead><tbody>' +
                 shown.map(function (x, i) {
-                    var c = x.c, a = c.thp && D.ship[c.thp] && D.ship[c.thp][y], mx = 0, spark = '';
-                    if (a) { for (var j = 0; j < 12; j++) mx = Math.max(mx, a[j * 2 + 1]); for (var k = 0; k < 12; k++) { var v = a[k * 2 + 1]; spark += '<span class="' + (v ? (m === k ? 'is-on' : '') : 'z') + '" style="height:' + (v ? Math.max(8, Math.round(v * 100 / (mx || 1))) : 8) + '%" title="' + MO[k] + ': ' + fmt(a[k * 2]) + ' ชิ้น · ' + fmt(v) + ' บาท"></span>'; } }
-                    return '<tr><td class="n cp-sub">' + (i + 1) + '</td><td class="cp-name"><b>' + esc(c.name) + '</b><small>' + (c.thp ? 'THP-' + esc(c.thp) : 'ไม่มีหมายเลข THP') + '</small></td>' +
-                        '<td>' + esc(c.zip) + '<span class="cp-sub">' + esc(c.office) + '</span></td><td>' + esc(teamOf(c)) + '</td><td>' + pkgBadge(pkgOf(c)) + '</td>' +
+                    var c = x.c, a = c.thp && D.ship[c.thp] && D.ship[c.thp][y], mx = 0, spark = '', idle = !(x.s[0] > 0 || x.s[1] > 0), off = st.metric === 'pcs' ? 0 : 1;
+                    if (a) { for (var j = 0; j < 12; j++) mx = Math.max(mx, a[j * 2 + off]); for (var k = 0; k < 12; k++) { var v = a[k * 2 + off]; spark += '<span class="' + (v ? (m === k ? 'is-on' : '') : 'z') + '" style="height:' + (v ? Math.max(8, Math.round(v * 100 / (mx || 1))) : 8) + '%" title="' + MO[k] + ': ' + fmt(a[k * 2]) + ' ชิ้น · ' + fmt(a[k * 2 + 1]) + ' บาท"></span>'; } }
+                    return '<tr' + (idle ? ' class="is-idle"' : '') + '><td class="n cp-sub">' + (i + 1) + '</td><td class="cp-name"><b>' + esc(c.name) + '</b><small>' + (c.thp ? 'THP-' + esc(c.thp) : 'ไม่มีหมายเลข THP') + '</small>' + (idle && c.thp ? '<span class="cp-idle-tag">ไม่ได้ฝากส่งในช่วงนี้</span>' : '') + '</td>' +
+                        '<td style="white-space:nowrap">' + esc(c.zip) + '<span class="cp-sub">' + esc(c.office) + '</span></td><td style="white-space:nowrap">' + esc(teamOf(c)) + '</td><td>' + pkgBadge(pkgOf(c)) + '</td>' +
                         '<td style="white-space:nowrap">' + esc(c.start || '-') + '<span class="cp-sub">ถึง ' + esc(c.end || '-') + '</span></td>' +
                         '<td class="n">' + (x.s[0] ? fmt(x.s[0]) : '<span class="cp-zero">0</span>') + '</td><td class="n">' + (x.s[1] ? fmt(x.s[1]) : '<span class="cp-zero">0</span>') + '</td>' +
-                        '<td>' + (a ? '<div class="cp-spark" aria-label="รายได้รายเดือน">' + spark + '</div>' : '<span class="cp-sub">ไม่มีข้อมูล</span>') + '</td></tr>';
+                        '<td>' + (a ? '<div class="cp-spark" aria-label="' + (st.metric === 'pcs' ? 'ชิ้นงาน' : 'รายได้') + 'รายเดือน">' + spark + '</div>' : '<span class="cp-sub">ไม่มีข้อมูล</span>') + '</td></tr>';
                 }).join('') + '</tbody></table></div>' +
                 (rows.length > shown.length ? '<button type="button" class="cp-more" onclick="thpCpMore()">แสดงเพิ่ม (เหลืออีก ' + fmt(rows.length - shown.length) + ' ราย)</button>' : '') + '</section>';
             body.innerHTML = html;
