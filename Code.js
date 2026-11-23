@@ -5926,6 +5926,62 @@ function customerRegistryFind_(q) {
   }
   return { list: out };
 }
+// เขียนข้อมูลลูกค้าลงทะเบียน "ปี 2570": rowNo>0 = แถวทะเบียนเดิม, ไม่งั้นหาด้วย THP / ชื่อ+รหัส แล้วเพิ่มแถวใหม่ถ้าไม่พบ
+// เขียนเฉพาะช่องที่มีค่า (ไม่ลบค่าเดิม) — เรียกภายใต้ lock ของ saveCustomerToSheets_
+function customerRegisterUpsert_(v, rowNo, vMatch, listSh, listRow, actor) {
+  var sh = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID).getSheetByName(CONTRACT_REGISTER_SHEET);
+  if (!sh) throw new Error('ไม่พบชีตทะเบียน "' + CONTRACT_REGISTER_SHEET + '"');
+  var lastCol = sh.getLastColumn(), header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  var lastRow = sh.getLastRow(), target = rowNo > 1 && rowNo <= lastRow ? rowNo : -1;
+  if (target < 0 && lastRow > 1) {
+    var data = sh.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
+    var ci = header.indexOf('หมายเลขสมาชิก THP-'), ni = header.indexOf('ชื่อลูกค้า'), zi = header.indexOf('รหัสที่ทำการ');
+    [vMatch, v].forEach(function (m) {
+      if (!m || target > 0) return;
+      var pf = String(m['หมายเลขสมาชิก THP-'] || '').replace(/\D/g, ''), nm = String(m['ชื่อลูกค้า'] || '').trim(), zp = String(m['รหัสที่ทำการ'] || '').trim();
+      for (var i = 0; i < data.length; i++) {
+        var same = pf.length === 8 ? String(data[i][ci] || '').replace(/\D/g, '') === pf : (nm && String(data[i][ni] || '').trim() === nm && String(data[i][zi] || '').trim() === zp);
+        if (same) { target = i + 2; break; }
+      }
+    });
+  }
+  var keys = ['ชื่อลูกค้า', 'หมายเลขสมาชิก THP-', 'รหัสที่ทำการ'].concat(CUSTOMER_LIST_MAP.map(function (m) { return m[1]; }));
+  var w = {}; keys.forEach(function (k) { var s = String(v[k] == null ? '' : v[k]).trim(); if (s && k !== 'ไฟล์สัญญา PDF') w[k] = s; });
+  if (w['หมายเลขสมาชิก THP-']) w['หมายเลขสมาชิก THP-'] = w['หมายเลขสมาชิก THP-'].replace(/\D/g, '');
+  var added = target < 0;
+  if (added) {
+    target = lastRow + 1;
+    var office = '';
+    try { office = String(listSh.getRange(listRow, 4).getDisplayValue() || '').trim(); } catch (eO) { } // ชีตรายชื่อคอลัมน์ D ที่ทำการรับฝาก
+    w['ปน./ปข.'] = 'ปข.10'; if (office) w['ที่ทำการรับฝาก'] = office;
+    w['ประเภทสัญญา'] = 'ลูกค้ารายใหม่ (เพิ่มข้อมูลลูกค้า)';
+    w['สร้างโดย'] = actor.user + (actor.name ? ' (' + actor.name + ')' : '');
+  }
+  w['บันทึกเมื่อ'] = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
+  var n = 0;
+  header.forEach(function (h, j) {
+    if (!w.hasOwnProperty(h)) return;
+    sh.getRange(target, j + 1).setNumberFormat('@').setValue(w[h]); n++;
+  });
+  return { row: target, added: added, written: n };
+}
+// ค้นในชีตรายชื่อด้วยเลขบัตร (U) / THP (G) → [{ listRow, v }] (คีย์เดียวกับทะเบียน)
+function customerListFind_(listSh, q) {
+  var key = String(q || '').replace(/\D/g, ''), out = [];
+  if (key.length !== 13 && key.length !== 8) return out;
+  var last = listSh.getLastRow(); if (last < 2) return out;
+  var data = listSh.getRange(1, 1, last, Math.max(listSh.getLastColumn(), colIndex_('AP'))).getDisplayValues();
+  var kc = colIndex_(key.length === 13 ? 'U' : 'G') - 1;
+  var map = [['C', 'รหัสที่ทำการ'], ['F', 'ชื่อลูกค้า'], ['G', 'หมายเลขสมาชิก THP-']].concat(CUSTOMER_LIST_MAP);
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][kc] || '').replace(/\D/g, '') !== key) continue;
+    var v = {}; map.forEach(function (m) { v[m[1]] = String(data[i][colIndex_(m[0]) - 1] || '').trim(); });
+    if (!v['ชื่อลูกค้า']) continue;
+    v['ไฟล์สัญญา PDF'] = ''; // คอลัมน์ R = ชิปไฟล์แนบ (แสดงในกล่องไฟล์แนบแทน)
+    out.push({ listRow: i + 1, v: v });
+  }
+  return out;
+}
 // แถวลูกค้าในชีตรายชื่อ (THP หรือ ชื่อ+รหัสที่ทำการ) / ในแบบฟอร์ม (Post family หรือ ชื่อ)
 function customerListRow_(listSh, v) {
   var data = listSh.getDataRange().getDisplayValues(), c = renewalCols_(data[0]);
@@ -6091,6 +6147,12 @@ function findCustomerForSheet_(payload, actor) {
       try { files = customerListAttachments_(listSh, lr); filesErr = files.err || ''; } catch (eF) { filesErr = String(eF && eF.message || eF).slice(0, 200); }
       return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr };
     });
+    // ไม่พบในทะเบียน → ค้นในชีตรายชื่อ (ลูกค้าที่เพิ่มเองจากฟอร์มลูกค้าใหม่) — ผู้ใช้ขอ 2026-11-23
+    if (!items.length && listSh) items = customerListFind_(listSh, payload && payload.q).map(function (x) {
+      var files = [], filesErr = '';
+      try { files = customerListAttachments_(listSh, x.listRow); filesErr = files.err || ''; } catch (eF) { filesErr = String(eF && eF.message || eF).slice(0, 200); }
+      return { rowNo: 0, src: 'list', v: x.v, listRow: x.listRow, formRow: formSh ? customerFormRow_(formSh, x.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr };
+    });
     return { status: 'success', items: items, formSheet: !!formSh };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'findCustomerForSheet_');
@@ -6166,6 +6228,11 @@ function saveCustomerToSheets_(payload, actor) {
       written++;
     });
     res.listRow = listRow; res.written = written;
+    // อัปเดตทะเบียนสัญญา "ปี 2570" ด้วย (ผู้ใช้ขอ 2026-11-23) — ไม่ทำให้การบันทึกหลักล้มถ้าผิดพลาด
+    try {
+      var rg = customerRegisterUpsert_(v, payload.manual ? 0 : Number(payload.rowNo), vMatch, listSh, listRow, actor);
+      res.regRow = rg.row; res.regAdded = rg.added;
+    } catch (eR) { res.regErr = String(eR && eR.message || eR).slice(0, 200); }
     res.status = 'success';
     return res;
   } catch (e) {

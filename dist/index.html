@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.1445';
+    var APP_VERSION = 'Ver. 2026.1123.1510';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20708,7 +20708,7 @@
                 '<div class="cc-files" id="ccPendingList">' + pendingRows() + '</div><div class="cc-file-hint">PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>' +
                 '<div class="cc-actions"><button type="button" class="cc-btn" onclick="thpCcSaveManual(this)"><i class="fas fa-save"></i> บันทึกลูกค้าใหม่</button>' +
                 '<button type="button" class="cc-btn cc-btn-2" onclick="thpCcClear()"><i class="fas fa-times"></i> ยกเลิก</button>' +
-                '<span class="cc-note">บันทึกลงชีต "การตอบแบบฟอร์ม 1" (เพิ่มแถว) และ "รายชื่อ/สัญญา A1-A12"</span></div></div>';
+                '<span class="cc-note">บันทึกลงชีต "การตอบแบบฟอร์ม 1" (เพิ่มแถว), "รายชื่อ/สัญญา A1-A12" และทะเบียนสัญญา "ปี 2570"</span></div></div>';
         };
         // ===== ฟอร์มกรอกเอง: ค่าเริ่มต้น + ช่วยกรอก (ผู้ใช้ขอ 2026-11-21) =====
         var offices = null, officesLoading = false;
@@ -20778,10 +20778,10 @@
                 var blanks = GROUPS.reduce(function (n, g) { return n + g[2].filter(function (d) { return d[0] !== 'ไฟล์สัญญา PDF' && !String(v[d[0]] || '').trim(); }).length; }, 0);
                 return '<div class="cc-card cc-found" data-i="' + i + '"><div class="cc-head"><b><i class="fas fa-user-check"></i> ' + esc(v['ชื่อลูกค้า'] || '-') + '</b>' +
                     (v['ประเภทสัญญา'] ? '<span class="cc-chip">' + esc(v['ประเภทสัญญา']) + '</span>' : '') + st +
-                    '<span class="cc-note">ดึงข้อมูลจากทะเบียนสัญญา แก้ไขได้ทุกช่องก่อนบันทึก' + (blanks ? ' · ช่องที่ว่าง ' + blanks + ' ช่อง' : '') + '</span></div>' +
+                    '<span class="cc-note">' + (it.src === 'list' ? 'ไม่อยู่ในทะเบียนสัญญาปี 2570 · ข้อมูลจากชีตรายชื่อ (เพิ่มเองจากฟอร์มลูกค้าใหม่)' : 'ดึงข้อมูลจากทะเบียนสัญญา') + ' แก้ไขได้ทุกช่องก่อนบันทึก' + (blanks ? ' · ช่องที่ว่าง ' + blanks + ' ช่อง' : '') + '</span></div>' +
                     formGroups(v) + filesBox(it.files || [], it.listRow, it.filesErr, i) +
                     '<div class="cc-actions"><button type="button" class="cc-btn" data-i="' + i + '" onclick="thpCcSave(this)"><i class="fas fa-save"></i> บันทึกลงชีต</button>' +
-                    '<span class="cc-note">ทะเบียนแถว ' + it.rowNo + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่เว้นว่างไม่เขียนทับข้อมูลเดิมในชีต</span></div></div>';
+                    '<span class="cc-note">' + (it.src === 'list' ? 'ชีตรายชื่อแถว ' + it.listRow : 'ทะเบียนแถว ' + it.rowNo) + ' · บันทึกเมื่อ ' + esc(v['บันทึกเมื่อ'] || '-') + ' · ช่องที่เว้นว่างไม่เขียนทับข้อมูลเดิมในชีต</span></div></div>';
             }).join('');
             el.querySelectorAll('.cc-found').forEach(function (c) { setupManual(c, true); });
         };
@@ -20857,6 +20857,10 @@
             }).findCustomerForSheet({ q: q }, currentUserInfo);
         };
 
+        var regMsg = function (res) {
+            return res.regErr ? '<br><span style="color:#b91c1c">อัปเดตทะเบียนสัญญาปี 2570 ไม่สำเร็จ: ' + esc(res.regErr) + '</span>'
+                : res.regRow ? '<br>' + (res.regAdded ? 'เพิ่ม' : 'อัปเดต') + 'ทะเบียนสัญญา "ปี 2570" แถว ' + res.regRow : '';
+        };
         window.thpCcSave = function (btn) {
             var it = last.items[Number(btn.getAttribute('data-i'))]; if (!it) return;
             var card = btn.closest('.cc-card'), ex0 = collectExtra(card);
@@ -20873,12 +20877,13 @@
                 google.script.run.withSuccessHandler(function (res) {
                     btn.disabled = false; btn.innerHTML = html;
                     if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
-                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : '') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow });
+                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : '') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow + regMsg(res) });
                     window.thpCcSearch(); // แสดงสถานะล่าสุด
                 }).withFailureHandler(function (err) {
                     btn.disabled = false; btn.innerHTML = html;
                     Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
-                }).saveCustomerToSheets({ q: last.q, rowNo: it.rowNo, extra: collectExtra(btn.closest('.cc-card')) }, currentUserInfo);
+                }).saveCustomerToSheets(it.src === 'list' ? { manual: true, extra: collectExtra(btn.closest('.cc-card')) } // ไม่อยู่ในทะเบียน → อัปเดตแถวในชีตรายชื่อ
+                    : { q: last.q, rowNo: it.rowNo, extra: collectExtra(btn.closest('.cc-card')) }, currentUserInfo);
             });
         };
 
@@ -20897,10 +20902,11 @@
                 google.script.run.withSuccessHandler(function (res) {
                     btn.disabled = false; btn.innerHTML = html;
                     if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
-                    var msg = (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : 'มีลูกค้าในชีตอยู่แล้ว (ไม่เพิ่มซ้ำ)<br>') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow;
+                    var msg = (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : 'มีลูกค้าในชีตอยู่แล้ว (ไม่เพิ่มซ้ำ)<br>') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow + regMsg(res);
                     var files = pending.slice();
                     if (!files.length || !(res.listRow > 1)) {
                         Swal.fire({ icon: files.length ? 'warning' : 'success', title: 'บันทึกแล้ว', html: msg + (files.length ? '<br><br>ยังไม่ได้อัปโหลดไฟล์แนบ (ไม่ทราบแถวในชีตรายชื่อ) — ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"' : '') });
+                        if (res.listRow > 1) window.thpCcSearch(); // แสดงข้อมูลที่บันทึกจากชีตรายชื่อ
                         return;
                     }
                     pending = [];
@@ -20909,6 +20915,7 @@
                     uploadFiles(files, res.listRow, ex, ys ? ys.value : 0).then(function (r) {
                         Swal.fire({ icon: r.fails.length ? 'warning' : 'success', title: 'บันทึกแล้ว',
                             html: msg + '<br>ไฟล์แนบ: อัปโหลดแล้ว ' + r.done + ' จาก ' + files.length + ' ไฟล์' + (r.fails.length ? '<br><br>' + failHtml(r.fails) + '<div style="margin-top:6px">ไฟล์ที่ไม่สำเร็จ: ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"</div>' : '') });
+                        window.thpCcSearch(); // แสดงข้อมูลที่บันทึก + ไฟล์แนบจากชีตรายชื่อ
                     });
                 }).withFailureHandler(function (err) {
                     btn.disabled = false; btn.innerHTML = html;
