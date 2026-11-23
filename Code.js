@@ -5998,6 +5998,18 @@ function customerFormRow_(formSh, v) {
   }
   return -1;
 }
+// ไฟล์สัญญาจากทะเบียน (ลิงก์ Drive) → { name, url, id, size, created, updated } หรือ null — แสดงในกล่องไฟล์แนบ (ผู้ใช้ขอ 2026-11-23)
+function customerDriveFileMeta_(url) {
+  url = String(url || '').trim();
+  var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
+  if (!id) return null;
+  var o = { name: 'ไฟล์สัญญา PDF', url: url, id: id, size: -1, created: '', updated: '' };
+  try {
+    var f = DriveApp.getFileById(id), fmt = function (d) { return d ? Utilities.formatDate(d, 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') : ''; };
+    o.name = f.getName(); o.size = f.getSize(); o.created = fmt(f.getDateCreated()); o.updated = fmt(f.getLastUpdated());
+  } catch (e) { }
+  return o;
+}
 // ไฟล์แนบในคอลัมน์ R (ชิปไฟล์/ลิงก์ Drive หลายไฟล์ในช่องเดียว) → [{ name, url, id }]
 function customerListAttachments_(listSh, row) {
   var out = [], seen = {};
@@ -6007,9 +6019,16 @@ function customerListAttachments_(listSh, row) {
     var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
     var key = id || url; if (seen[key]) return; seen[key] = true;
     name = String(name || '').replace(/\s+/g, ' ').trim();
-    if ((!name || name.length < 3) && id) { try { name = DriveApp.getFileById(id).getName(); } catch (e) { } }
+    var size = -1, created = '', updated = '';
+    if (id) { // ขนาด + วันเวลาไฟล์ (ผู้ใช้ขอ 2026-11-23)
+      try {
+        var f = DriveApp.getFileById(id), fmt = function (d) { return d ? Utilities.formatDate(d, 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') : ''; };
+        if (!name || name.length < 3) name = f.getName();
+        size = f.getSize(); created = fmt(f.getDateCreated()); updated = fmt(f.getLastUpdated());
+      } catch (e) { }
+    }
     if ((!name || name.length < 3) && chipText) name = chipText;
-    out.push({ name: name || 'ไฟล์แนบ', url: url, id: id });
+    out.push({ name: name || 'ไฟล์แนบ', url: url, id: id, size: size, created: created, updated: updated });
   };
   // 1) ชิปไฟล์ (smart chip) อ่านได้ผ่าน Sheets API เท่านั้น: values.chipRuns[].chip.richLinkProperties.uri
   var errs = [], val = customerListCell_(listSh, row, errs);
@@ -6145,7 +6164,8 @@ function findCustomerForSheet_(payload, actor) {
       var lr = listSh ? customerListRow_(listSh, it.v) : -1, files = [];
       var filesErr = '';
       try { files = customerListAttachments_(listSh, lr); filesErr = files.err || ''; } catch (eF) { filesErr = String(eF && eF.message || eF).slice(0, 200); }
-      return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr };
+      return { rowNo: it.rowNo, v: it.v, listRow: lr, formRow: formSh ? customerFormRow_(formSh, it.v) : -1, files: files.slice ? files.slice() : [], filesErr: filesErr,
+        contract: customerDriveFileMeta_(it.v['ไฟล์สัญญา PDF']) };
     });
     // ไม่พบในทะเบียน → ค้นในชีตรายชื่อ (ลูกค้าที่เพิ่มเองจากฟอร์มลูกค้าใหม่) — ผู้ใช้ขอ 2026-11-23
     if (!items.length && listSh) items = customerListFind_(listSh, payload && payload.q).map(function (x) {
@@ -6221,6 +6241,8 @@ function saveCustomerToSheets_(payload, actor) {
     CUSTOMER_LIST_MAP.forEach(function (m) {
       var val = String(v[m[1]] || '').trim(); if (!val) return;
       var cell = listSh.getRange(listRow, colIndex_(m[0]));
+      // R = ช่องไฟล์แนบ (ชิปหลายไฟล์) — เขียนลิงก์สัญญาเฉพาะตอนช่องว่าง ไม่งั้นชิปไฟล์ที่แนบไว้จะถูกทับ
+      if (m[0] === 'R' && String(cell.getDisplayValue() || '').trim()) return;
       if (m[0] === 'M' || m[0] === 'O') { // วันที่เริ่มต้น/สิ้นสุด เก็บเป็นวันที่จริง (สูตรเช็คเดือน/ปีใช้)
         var dm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(val);
         cell.setValue(dm ? new Date(Number(dm[3]), Number(dm[2]) - 1, Number(dm[1])) : val);

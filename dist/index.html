@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.1510';
+    var APP_VERSION = 'Ver. 2026.1123.1521';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -20549,6 +20549,10 @@
     #page-contract-customer .cc-file-btn:hover { background: #fff7ed; }
     #page-contract-customer .cc-files-group h4 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     #page-contract-customer .cc-year + .cc-file-add { margin-left: 0; }
+    #page-contract-customer .cc-file-ct { background: #fff7ed; border-color: #fdba74; }
+    #page-contract-customer .cc-file-tag { flex: none; font-size: 11.5px; font-weight: 700; color: #c2410c; background: #ffedd5; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+    #page-contract-customer .cc-file-tag i { color: #ea580c; }
+    #page-contract-customer .cc-file-meta { display: block; font-size: 11.5px; font-weight: 400; color: #6b7280; margin-top: 1px; }
     #page-contract-customer .cc-file-add { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 999px; background: #ea580c; color: #fff; cursor: pointer; position: relative; }
     #page-contract-customer .cc-file-add:hover { background: #c2410c; }
     #page-contract-customer .cc-file-add:focus-within { outline: 2px solid #fdba74; outline-offset: 2px; }
@@ -20640,7 +20644,7 @@
         var GROUPS = [
             ['fa-user', 'ข้อมูลลูกค้า', [['ชื่อลูกค้า', 'ชื่อ-สกุล / ชื่อบริษัท', true, true], ['หมายเลขสมาชิก THP-', 'หมายเลข Post Family'], ['เลขบัตรประชาชน', 'เลขบัตรประชาชน'], ['เบอร์โทร', 'เบอร์โทร'], ['Email', 'Email']]],
             ['fa-store', 'บริการและสัญญา', [['รหัสที่ทำการ', 'รหัสไปรษณีย์ที่ทำการรับฝาก', true], ['รหัสบริการปัจจุบัน', 'รหัสบริการ (Package)'], ['ค่าธรรมเนียม COD(%)', 'ค่าธรรมเนียม COD (%)'],
-                ['วันที่เริ่มต้น', 'วันที่เริ่มสัญญา'], ['วันที่สิ้นสุด', 'วันที่สิ้นสุดสัญญา'], ['ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า'], ['ประเภทสิ่งของที่ฝากส่ง', 'ประเภทสิ่งของที่ฝากส่ง'], ['ไฟล์สัญญา PDF', 'ไฟล์สัญญา']]],
+                ['วันที่เริ่มต้น', 'วันที่เริ่มสัญญา'], ['วันที่สิ้นสุด', 'วันที่สิ้นสุดสัญญา'], ['ชื่อโปรแกรมจ่าหน้าที่ใช้งาน', 'โปรแกรมจ่าหน้า'], ['ประเภทสิ่งของที่ฝากส่ง', 'ประเภทสิ่งของที่ฝากส่ง']]], // ไฟล์สัญญา → แสดงในกล่องไฟล์แนบ (ผู้ใช้ขอ 2026-11-23)
             ['fa-map-marker-alt', 'ที่อยู่ลูกค้า', [['CUSTOMER_ADDRESS', 'เลขที่ / หมู่'], ['อาคาร', 'อาคาร'], ['ถนน', 'ถนน'], ['CUSTOMER_SUBDISTRICT', 'ตำบล/แขวง'], ['CUSTOMER_DISTRICT', 'อำเภอ/เขต'], ['CUSTOMER_PROVINCE', 'จังหวัด'], ['CUSTOMER_POSTCODE', 'รหัสไปรษณีย์']]],
             ['fa-wallet', 'Wallet@post', [['เบอร์ Wallet@post', 'เบอร์ที่ลงทะเบียน'], ['ชื่อเจ้าของ Wallet@post', 'ชื่อเจ้าของ']]]
         ];
@@ -20675,20 +20679,29 @@
         };
         window.thpCcYear = function (sel) { var g = sel.closest('.cc-files-group'), it = g && last.items[Number(g.getAttribute('data-i'))]; if (it) it.attachYear = sel.value; };
         // ไฟล์แนบจากคอลัมน์ R ชีตรายชื่อ (เปิดดู/ดาวน์โหลดผ่าน Google Drive — ต้องมีสิทธิ์ไฟล์)
+        var fmtSize = function (b) { b = Number(b) || 0; return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : b >= 1024 ? Math.round(b / 1024) + ' KB' : b + ' B'; };
         var filesBox = function (files, listRow, err, idx) {
-            if (!(listRow > 0)) return '';
+            var it0 = last.items[idx] || {}, ct = it0.contract && it0.contract.id ? it0.contract : null; // ไฟล์สัญญาจากระบบ (ทะเบียน) — ผู้ใช้ขอ 2026-11-23
+            var canAdd = listRow > 0;
+            if (!canAdd && !ct) return '';
+            if (ct) files = files.filter(function (x) { return x.id !== ct.id; }); // สัญญาที่อยู่ในคอลัมน์ไฟล์แนบด้วย → แสดงครั้งเดียว
             var ic = function (n) { n = String(n || '').toLowerCase(); return /\.(jpe?g|png|webp|gif|heic)$/.test(n) ? 'fa-file-image' : /\.docx?$/.test(n) ? 'fa-file-word' : /\.xlsx?$/.test(n) ? 'fa-file-excel' : 'fa-file-pdf'; };
-            var rows = files.length ? files.map(function (x, i) {
+            var fileRow = function (x, no, isCt) {
                 var view = x.id ? 'https://drive.google.com/file/d/' + encodeURIComponent(x.id) + '/view' : x.url;
                 var dl = x.id ? 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(x.id) : '';
-                return '<div class="cc-file"><span class="cc-file-no">' + (i + 1) + '</span><i class="fas ' + ic(x.name) + ' cc-file-ic"></i><span class="cc-file-name">' + esc(x.name) + '</span>' +
+                var meta = [x.size >= 0 ? fmtSize(x.size) : '', x.created ? (isCt ? 'สร้างเมื่อ ' : 'แนบเมื่อ ') + x.created : '', x.updated && x.updated !== x.created ? 'แก้ไข ' + x.updated : ''].filter(Boolean).join(' · ');
+                return '<div class="cc-file' + (isCt ? ' cc-file-ct' : '') + '">' + (isCt ? '<span class="cc-file-tag"><i class="fas fa-star"></i> สัญญาจากระบบ</span>' : '<span class="cc-file-no">' + no + '</span>') +
+                    '<i class="fas ' + ic(x.name) + ' cc-file-ic"></i><span class="cc-file-name">' + esc(x.name) +
+                    (meta ? '<small class="cc-file-meta">' + esc(meta) + '</small>' : '') + '</span>' +
                     '<a class="cc-file-btn" href="' + esc(view) + '" target="_blank" rel="noopener"><i class="fas fa-eye"></i> เปิดดู</a>' +
                     (dl ? '<a class="cc-file-btn" href="' + esc(dl) + '" target="_blank" rel="noopener"><i class="fas fa-download"></i> ดาวน์โหลด</a>' : '') + '</div>';
-            }).join('') : (err ? '<div class="cc-ro cc-ro-empty" style="color:#b91c1c"><i class="fas fa-exclamation-triangle"></i> อ่านไฟล์แนบไม่ได้: ' + esc(err) + '</div>' : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>');
-            var it0 = last.items[idx] || {};
-            return '<div class="cc-mgroup cc-files-group" data-i="' + idx + '"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(จากชีตรายชื่อ คอลัมน์ "ไฟล์แนบ" · ' + files.length + ' ไฟล์)</small>' + yearSel(it0.attachYear, 'thpCcYear(this)') +
-                '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcUpload(this)" aria-label="เพิ่มไฟล์แนบ"></label></h4>' +
-                '<div class="cc-files">' + rows + '</div><div class="cc-file-hint">PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>';
+            };
+            var rows = (ct ? fileRow(ct, 0, true) : '') + (files.length ? files.map(function (x, i) { return fileRow(x, i + 1, false); }).join('')
+                : !canAdd ? '' : err ? '<div class="cc-ro cc-ro-empty" style="color:#b91c1c"><i class="fas fa-exclamation-triangle"></i> อ่านไฟล์แนบไม่ได้: ' + esc(err) + '</div>' : '<div class="cc-ro cc-ro-empty">— ยังไม่มีไฟล์แนบในชีตรายชื่อ</div>');
+            return '<div class="cc-mgroup cc-files-group" data-i="' + idx + '"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(' + (ct ? 'สัญญา 1 ไฟล์ · ' : '') + 'ไฟล์แนบ ' + files.length + ' ไฟล์)</small>' +
+                (canAdd ? yearSel(it0.attachYear, 'thpCcYear(this)') +
+                    '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcUpload(this)" aria-label="เพิ่มไฟล์แนบ"></label>' : '') + '</h4>' +
+                '<div class="cc-files">' + rows + '</div><div class="cc-file-hint">' + (canAdd ? 'PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"' : 'กด "บันทึกลงชีต" ก่อน จึงจะเพิ่มไฟล์แนบได้') + '</div></div>';
         };
         var pending = []; // ไฟล์ที่เลือกในฟอร์มลูกค้าใหม่ (ยังไม่อัปโหลด)
         var pendingRows = function () {
