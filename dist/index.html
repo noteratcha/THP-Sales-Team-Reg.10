@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1123.2210';
+    var APP_VERSION = 'Ver. 2026.1123.2211';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2131,10 +2131,13 @@
                                         // 34010 / 47010 (ศูนย์ไปรษณีย์) แยกเป็นแถวของตัวเอง ไม่รวมในจังหวัด (ผู้ใช้ขอ 2026-11-23)
                                         var own = byProv && SEP_ZIPS.indexOf(String(f.zip || '')) !== -1;
                                         var key = own ? '@' + (f.office || f.zip) : byProv ? (f.prov || 'ไม่ระบุจังหวัด') : (f.office || f.zip || '-');
-                                        var o = g[key] || (g[key] = { k: key, n: 0, v: 0, d: 0 }); o.n++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
+                                        var o = g[key] || (g[key] = { k: key, z: own ? String(f.zip) : '', n: 0, v: 0, d: 0 }); o.n++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
                                     });
-                                    var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
-                                    html += '<div><p class="hcf-sub-h">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>เรียงจากดาวน์โหลดน้อยไปมาก · คลิกเพื่อดูไฟล์</small></p>' +
+                                    // ลำดับจังหวัดตามที่ผู้ใช้กำหนด (2026-11-23) แล้วต่อด้วย ศป.อุบลราชธานี, ศป.สกลนคร · มุมมองที่ทำการ (ปจ.) เรียงดาวน์โหลดน้อย→มาก
+                                    var ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'สกลนคร', 'นครพนม', 'มุกดาหาร', '@34010', '@47010'];
+                                    var rank = function (r) { var i = ORDER.indexOf(r.z ? '@' + r.z : String(r.k).replace(/^จังหวัดs*/, '')); return i === -1 ? ORDER.length : i; };
+                                    var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(byProv ? function (a, b) { return rank(a) - rank(b) || String(a.k).localeCompare(String(b.k), 'th'); } : function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
+                                    html += '<div><p class="hcf-sub-h">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>' + (byProv ? '' : 'เรียงจากดาวน์โหลดน้อยไปมาก · ') + 'คลิกเพื่อดูไฟล์</small></p>' +
                                         '<div class="hcf-legend" style="margin:6px 0 4px"><span><i style="background:#16a34a"></i>ดาวน์โหลดแล้ว</span><span><i style="background:#93c5fd"></i>เปิดดูอย่างเดียว</span><span><i style="background:#eef0f3"></i>ยังไม่เปิด</span></div>' +
                                         '<div class="hcf-rows">' + rows.map(function (r) {
                                             return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" title="' + esc(r.k.replace(/^@/, '')) + ': ดาวน์โหลด ' + r.d + ' · เปิดดูอย่างเดียว ' + r.v + ' · ยังไม่เปิด ' + (r.n - r.d - r.v) + ' จาก ' + r.n + ' สัญญา">' +
