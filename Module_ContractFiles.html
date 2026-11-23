@@ -6,6 +6,7 @@
         <p id="cfScope" class="cf-scope">ไฟล์สัญญาที่สร้างจากระบบ</p>
         <button type="button" id="cfReload" class="cf-btn-2" onclick="thpCfLoad(true)"><i class="fas fa-sync-alt"></i> โหลดใหม่</button>
     </div>
+    <div id="cfDash" class="cf-dash" aria-live="polite"></div>
     <div class="cf-filters">
         <div class="cf-search">
             <i class="fas fa-search" aria-hidden="true"></i>
@@ -33,6 +34,30 @@
     #page-contract-files .cf-total { font-size: 13px; color: #6b7280; margin-left: auto; white-space: nowrap; }
     #page-contract-files .cf-total b { font-size: 18px; color: #c2410c; font-weight: 800; }
     #page-contract-files .cf-list { display: flex; flex-direction: column; gap: 14px; }
+    #page-contract-files .cf-dash { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    #page-contract-files .cf-dash:empty { display: none; }
+    #page-contract-files .cf-kpi { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; font: inherit; color: inherit; min-width: 0; }
+    #page-contract-files .cf-kpi.is-btn { cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
+    #page-contract-files .cf-kpi.is-btn:hover { border-color: #fdba74; background: #fffaf5; }
+    #page-contract-files .cf-kpi.is-btn:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+    #page-contract-files .cf-kpi.is-on { border-color: #ea580c; background: #fff7ed; box-shadow: 0 0 0 2px rgba(234, 88, 12, .18); }
+    #page-contract-files .cf-kpi-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
+    #page-contract-files .cf-kpi-l i { width: 14px; text-align: center; color: #9a3412; }
+    #page-contract-files .k-view .cf-kpi-l i { color: #2563eb; }
+    #page-contract-files .k-dl .cf-kpi-l i { color: #15803d; }
+    #page-contract-files .k-none .cf-kpi-l i { color: #9ca3af; }
+    #page-contract-files .cf-kpi-v { font-size: 24px; font-weight: 800; color: #111827; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    #page-contract-files .cf-kpi-v small { font-size: 12px; font-weight: 600; color: #6b7280; }
+    #page-contract-files .cf-kpi-s { font-size: 12px; color: #6b7280; }
+    #page-contract-files .cf-bar { display: block; height: 6px; border-radius: 999px; background: #f3f4f6; overflow: hidden; }
+    #page-contract-files .cf-bar span { display: block; height: 100%; border-radius: inherit; background: #ea580c; }
+    #page-contract-files .k-view .cf-bar span { background: #2563eb; }
+    #page-contract-files .k-dl .cf-bar span { background: #16a34a; }
+    #page-contract-files .k-none .cf-bar span { background: #9ca3af; }
+    #page-contract-files .cf-chip-x { margin-left: 6px; font-size: 12px; font-weight: 700; color: #c2410c; background: #fff7ed; border: 1px solid #fdba74; border-radius: 999px; padding: 2px 8px; cursor: pointer; }
+    #page-contract-files .cf-seen { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-weight: 600; }
+    #page-contract-files .cf-seen i { font-size: 11px; opacity: .8; }
+    @media (max-width: 760px) { #page-contract-files .cf-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract-files .cf-kpi-v { font-size: 20px; } }
     #page-contract-files .cf-pkg { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; vertical-align: 1px; white-space: nowrap; }
     #page-contract-files .cf-pkg.is-custom { color: #92400e; background: #fffbeb; border-color: #fde68a; }
     #page-contract-files .cf-prov { border: 1px solid #fed7aa; border-radius: 16px; background: #fff; overflow: hidden; }
@@ -97,6 +122,7 @@
             return Number(m[3]) + ' ' + mo[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543) + ' ' + m[4] + ' น.';
         };
 
+        window.thpCfStatus = function (k) { st.status = st.status === k ? '' : k; window.thpCfRender(); };
         window.thpCfClear = function () {
             st.list = null; st.forUser = null; st.meta = null; st.seq++;
             var l = document.getElementById('cfList'); if (l) l.innerHTML = '';
@@ -140,8 +166,36 @@
             var list = document.getElementById('cfList'), tot = document.getElementById('cfTotal'); if (!list || !st.list) return;
             var q = String((document.getElementById('cfSearch') || {}).value || '').trim().toLowerCase();
             var off = String((document.getElementById('cfOffice') || {}).value || '');
-            var hits = st.list.filter(function (f) { return (!off || f.office === off) && (!q || (show(f.name) + ' ' + (f.pkg || '')).toLowerCase().indexOf(q) !== -1); });
-            if (tot) tot.innerHTML = (q || off ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (q || off ? ' จาก ' + fmt(st.list.length) : '');
+            var base = st.list.filter(function (f) { return (!off || f.office === off) && (!q || (show(f.name) + ' ' + (f.pkg || '')).toLowerCase().indexOf(q) !== -1); });
+            // แดชบอร์ด (ผู้ใช้ขอ 2026-11-23): นับตามตัวกรองค้นหา/ที่ทำการ — กดการ์ดเพื่อกรองตามสถานะ
+            var STATUS = {
+                view: { t: 'เปิดดูแล้ว', fn: function (f) { return f.nView > 0 || !!f.view; } },
+                dl: { t: 'ดาวน์โหลดแล้ว', fn: function (f) { return f.nDl > 0 || !!f.dl; } },
+                none: { t: 'ยังไม่มีใครเปิด', fn: function (f) { return !(f.nView > 0 || f.view || f.nDl > 0 || f.dl); } }
+            };
+            if (st.status && !STATUS[st.status]) st.status = '';
+            var dash = document.getElementById('cfDash');
+            if (dash) {
+                var n = base.length, cnt = function (k) { return base.filter(STATUS[k].fn).length; };
+                var sum = function (k) { return base.reduce(function (a, f) { return a + (Number(f[k]) || 0); }, 0); };
+                var pct = function (x) { return n ? Math.round(x * 100 / n) : 0; };
+                var nv = cnt('view'), nd = cnt('dl'), nn = cnt('none'), offices = {};
+                base.forEach(function (f) { offices[f.office] = 1; });
+                var card = function (key, icon, label, val, sub, p) {
+                    var tag = key ? 'button type="button" onclick="thpCfStatus(\'' + key + '\')" aria-pressed="' + (st.status === key) + '"' : 'div';
+                    return '<' + tag + ' class="cf-kpi' + (key ? ' is-btn k-' + key : '') + (key && st.status === key ? ' is-on' : '') + '"><span class="cf-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span>' +
+                        '<span class="cf-kpi-v">' + fmt(val) + '<small> ไฟล์' + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
+                        (p != null ? '<span class="cf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="cf-kpi-s">' + sub + '</span></' + tag.split(' ')[0] + '>';
+                };
+                dash.innerHTML = card('', 'fa-file-pdf', 'ไฟล์สัญญา' + (q || off ? ' (ตามตัวกรอง)' : 'ทั้งหมด'), n, fmt(Object.keys(offices).length) + ' ที่ทำการ', null) +
+                    card('view', 'fa-eye', 'เปิดดูแล้ว', nv, 'รวม ' + fmt(sum('nView')) + ' ครั้ง', pct(nv)) +
+                    card('dl', 'fa-download', 'ดาวน์โหลดแล้ว', nd, 'รวม ' + fmt(sum('nDl')) + ' ครั้ง', pct(nd)) +
+                    card('none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', nn, 'ไม่เคยเปิดดูหรือดาวน์โหลด', pct(nn));
+            }
+            var hits = st.status ? base.filter(STATUS[st.status].fn) : base;
+            var filtered = q || off || st.status;
+            if (tot) tot.innerHTML = (filtered ? 'พบ ' : 'ทั้งหมด ') + '<b>' + fmt(hits.length) + '</b> ไฟล์' + (filtered ? ' จาก ' + fmt(st.list.length) : '') +
+                (st.status ? ' <button type="button" class="cf-chip-x" onclick="thpCfStatus(\'\')" aria-label="ล้างตัวกรองสถานะ">' + STATUS[st.status].t + ' <i class="fas fa-times"></i></button>' : '');
             if (!hits.length) { list.innerHTML = '<div class="cf-empty">' + (st.list.length ? 'ไม่พบไฟล์ที่ตรงกับการค้นหา' : 'ยังไม่มีไฟล์สัญญา') + '</div>'; return; }
             // จัดกลุ่ม จังหวัด › ที่ทำการ — จังหวัดเป็นแบบพับได้ เปิดจังหวัดหนึ่งแล้วจังหวัดอื่นพับเอง (ผู้ใช้ขอ 2026-11-20)
             // ค้นหาอยู่ = เปิดทุกจังหวัดที่พบ; ไม่ค้นหา = เปิดจังหวัดที่เปิดไว้ล่าสุด (ครั้งแรก = จังหวัดแรก)
@@ -162,10 +216,10 @@
             };
             pOrder.sort(function (a, b) { return provRank(a) - provRank(b) || String(a).localeCompare(String(b), 'th'); });
             // ค่าเริ่มต้นพับทั้งหมด (ผู้ใช้ขอ 2026-11-20) — เปิดเฉพาะที่ผู้ใช้กดเปิดไว้ในรอบนี้
-            var openAll = !!q;
+            var openAll = !!q || !!st.status;
             // ประวัติล่าสุด (ผู้ใช้ขอ 2026-11-20): เปิดดู / ดาวน์โหลด — วันเวลา + ผู้ใช้
-            var hist = function (e, icon, label) {
-                return '<span class="cf-hist' + (e ? '' : ' none') + '"><i class="fas ' + icon + '"></i>' + label + (e ? ' ' + esc(thDate(e.at)) + (e.by ? ' <em>(' + esc(e.by) + ')</em>' : '') : ' ยังไม่มี') + '</span>';
+            var hist = function (e, icon, label, n) {
+                return '<span class="cf-hist' + (e ? '' : ' none') + '"><i class="fas ' + icon + '"></i>' + label + (e ? ' ' + esc(thDate(e.at)) + (e.by ? ' <em>(' + esc(e.by) + ')</em>' : '') + (n > 1 ? ' · ' + fmt(n) + ' ครั้ง' : '') : ' ยังไม่มี') + '</span>';
             };
             // ป้าย Package (จากทะเบียนสัญญา) — ไม่มีข้อมูลในทะเบียน = ไม่แสดง
             var pkgBadge = function (p) {
@@ -173,16 +227,22 @@
                 var custom = /พิเศษ/.test(p);
                 return ' <span class="cf-pkg' + (custom ? ' is-custom' : '') + '" title="Package อัตราค่าบริการ">' + esc(custom ? 'อัตราพิเศษเฉพาะราย' : 'Package ' + p) + '</span>';
             };
+            // จำนวนไฟล์ที่เปิดดู/ดาวน์โหลดแล้วในจังหวัด
+            var seen = function (P) {
+                var all = []; P.oOrder.forEach(function (k) { all = all.concat(P.offices[k]); });
+                var v = all.filter(function (f) { return f.nView > 0 || f.view; }).length, d = all.filter(function (f) { return f.nDl > 0 || f.dl; }).length;
+                return '<span class="cf-seen"><i class="fas fa-eye"></i>' + fmt(v) + '</span><span class="cf-seen"><i class="fas fa-download"></i>' + fmt(d) + '</span>';
+            };
             var row = function (f, i) {
                 return '<div class="cf-row"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + '</div>' +
-                    '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด') + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด') + '</div></div>' +
+                    '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
             };
             list.innerHTML = pOrder.map(function (p) {
                 var P = provs[p], open = openAll || p === st.openProv;
                 return '<details class="cf-prov" data-prov="' + esc(p) + '"' + (open ? ' open' : '') + '><summary class="cf-prov-h"><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas fa-map-marker-alt"></i>จังหวัด' + esc(p) +
-                    '<small>' + fmt(P.oOrder.length) + ' ที่ทำการ · ' + fmt(P.n) + ' ไฟล์</small></summary><div class="cf-prov-body">' +
+                    '<small>' + fmt(P.oOrder.length) + ' ที่ทำการ · ' + fmt(P.n) + ' ไฟล์' + seen(P) + '</small></summary><div class="cf-prov-body">' +
                     P.oOrder.map(function (k) {
                         // ที่ทำการพับได้เช่นกัน: เปิดทีละ 1 ที่ทำการ (ผู้ใช้ขอ 2026-11-20); ค้นหา/กรองที่ทำการ = เปิดทั้งหมดที่พบ; จังหวัดมีที่ทำการเดียว = เปิดเลย
                         var g = P.offices[k], oOpen = openAll || !!off || P.oOrder.length === 1 || st.openOffice === k;
@@ -216,7 +276,7 @@
                 var bin = atob(res.data), u8 = new Uint8Array(bin.length);
                 for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
                 // อัปเดตประวัติล่าสุดในรายการทันที (คงจังหวัดที่เปิดอยู่)
-                if (res.log && st.list) { st.list.forEach(function (f) { if (f.id === id) f[res.log.kind] = { at: res.log.at, by: res.log.by }; }); window.thpCfRender(); }
+                if (res.log && st.list) { st.list.forEach(function (f) { if (f.id === id) { f[res.log.kind] = { at: res.log.at, by: res.log.by }; if (res.log.kind === 'dl') f.nDl = (f.nDl || 0) + 1; else f.nView = (f.nView || 0) + 1; } }); window.thpCfRender(); }
                 var url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
                 if (dl || !w) {
                     var a = document.createElement('a'); a.href = url; a.download = res.name || 'สัญญา.pdf';

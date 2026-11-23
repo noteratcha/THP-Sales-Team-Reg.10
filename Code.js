@@ -6946,7 +6946,8 @@ function contractFileLogMap_() {
   data.forEach(function (r) {
     var id = r[1], k = r[3] === 'ดาวน์โหลด' ? 'dl' : 'view';
     if (!id) return;
-    var e = out[id] || (out[id] = {});
+    var e = out[id] || (out[id] = { nView: 0, nDl: 0 });
+    if (k === 'dl') e.nDl++; else e.nView++; // จำนวนครั้ง (แดชบอร์ด — ผู้ใช้ขอ 2026-11-23)
     if (!e[k] || r[0] > e[k].at) e[k] = { at: r[0], by: r[4] };
   });
   return out;
@@ -6996,7 +6997,7 @@ function listContractFiles_(actor) {
     }
     if (scope.all) { var rit = base.getFiles(); while (rit.hasNext()) add(rit.next(), '', 'ไฟล์ก่อนแยกโฟลเดอร์', ''); }
     var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
-    out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; });
+    out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; f.nView = e.nView || 0; f.nDl = e.nDl || 0; });
     var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
     out.forEach(function (f) {
       var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
