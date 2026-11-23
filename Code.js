@@ -5981,31 +5981,78 @@ function contractLinkCol_(sh) {
  * Log แสดงเฉพาะยอดนับ (ผู้ใช้ขอ 2026-11-23)
  */
 function moveContractLinksFromAttachCol() {
-  var listSh = renewalSheet_(); if (!listSh) { Logger.log('ไม่พบชีตรายชื่อ'); return; }
+  // อ่านชีตรายชื่อครั้งเดียว + เรียก Sheets API เฉพาะแถวที่คอลัมน์ R มีข้อมูล + เขียนคอลัมน์ลิงก์ครั้งเดียว (รุ่นแรกช้าเพราะอ่านทั้งชีตทุกแถว)
+  // ความคืบหน้า (ผู้ใช้ขอ 2026-11-23): แสดงใน Execution log ทีละขั้น + % + เวลาที่คาดว่าเหลือ (ไม่แสดงชื่อ/เลขบัตรลูกค้า)
+  // ใกล้หมดเวลา 6 นาทีของ Apps Script → บันทึกผลที่ทำแล้ว จำตำแหน่งไว้ แล้วหยุด — กด Run อีกครั้งเพื่อทำต่อ
+  var t0 = Date.now(), LIMIT_MS = 4.5 * 60 * 1000, PROP = 'MOVE_CONTRACT_LINKS_RESUME';
+  var props = PropertiesService.getScriptProperties();
+  var sec = function () { return Math.round((Date.now() - t0) / 1000); };
+  var log = function (msg) { console.log('[' + sec() + ' วิ] ' + msg); };
+  var resume = JSON.parse(props.getProperty(PROP) || 'null');
+  log(resume ? '▶ ทำต่อจากครั้งก่อน (เริ่มที่แถวทะเบียน ' + resume.next + ')' : '▶ เริ่มย้ายลิงก์สัญญาจากคอลัมน์ R → "' + CONTRACT_LINK_COL + '"');
+  log('ขั้น 1/4: อ่านชีตรายชื่อ...');
+  var listSh = renewalSheet_(); if (!listSh) { log('✖ ไม่พบชีตรายชื่อ'); return; }
+  log('ขั้น 2/4: อ่านทะเบียนสัญญา...');
   var reg = SpreadsheetApp.openById(CONTRACT_REGISTER_SS_ID).getSheetByName(CONTRACT_REGISTER_SHEET);
-  if (!reg || reg.getLastRow() < 2) { Logger.log('ไม่พบทะเบียน'); return; }
+  if (!reg || reg.getLastRow() < 2) { log('✖ ไม่พบทะเบียน'); return; }
   var rd = reg.getDataRange().getDisplayValues(), h = rd[0], iu = h.indexOf('ไฟล์สัญญา PDF');
+  var iT = h.indexOf('หมายเลขสมาชิก THP-'), iN = h.indexOf('ชื่อลูกค้า'), iZ = h.indexOf('รหัสที่ทำการ');
+  var idOf = function (u) { var m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(u); return m ? (m[1] || m[2]) : ''; };
+  var total = 0; for (var k = 1; k < rd.length; k++) if (idOf(String(rd[k][iu] || '').trim())) total++;
+  log('   ทะเบียน ' + (rd.length - 1) + ' แถว · มีลิงก์ไฟล์สัญญา ' + total + ' แถว');
   var lcol = contractLinkCol_(listSh);
-  var st = { registryWithPdf: 0, noListRow: 0, moved: 0, linkOnly: 0, rewriteErr: 0 };
-  for (var i = 1; i < rd.length; i++) {
-    var url = String(rd[i][iu] || '').trim(), m = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/.exec(url), id = m ? (m[1] || m[2]) : '';
+  var data = listSh.getRange(1, 1, listSh.getLastRow(), Math.max(listSh.getLastColumn(), lcol)).getDisplayValues();
+  var c = renewalCols_(data[0]), rIdx = colIndex_('R') - 1;
+  log('   ชีตรายชื่อ ' + (data.length - 1) + ' แถว · คอลัมน์ลิงก์สัญญา = คอลัมน์ที่ ' + lcol);
+  var links = data.slice(1).map(function (r) { return [r[lcol - 1]]; }), changed = false;
+  var st = (resume && resume.st) || { registryWithPdf: 0, noListRow: 0, moved: 0, linkSet: 0, linkSame: 0, rewriteErr: 0, apiChecked: 0 };
+  var start = (resume && resume.next) || 1, done = st.registryWithPdf, doneAtStart = done, tLoop = Date.now(), lastLog = 0;
+  log('ขั้น 3/4: ตรวจ/ย้ายลิงก์ทีละแถว (แถวที่คอลัมน์ R มีข้อมูลจะเปิดอ่านชิปไฟล์ ใช้เวลาแถวละประมาณ 1 วินาที)');
+  var stopAt = 0;
+  for (var i = start; i < rd.length; i++) {
+    if (Date.now() - t0 > LIMIT_MS) { stopAt = i; break; }
+    var url = String(rd[i][iu] || '').trim(), id = idOf(url);
     if (!id) continue;
-    st.registryWithPdf++;
-    var v = {}; h.forEach(function (k, j) { if (k) v[k] = String(rd[i][j] || '').trim(); });
-    var row = customerListRow_(listSh, v);
-    if (row < 2) { st.noListRow++; continue; }
-    var files = customerListAttachments_(listSh, row), hit = files.some(function (f) { return f.id === id; });
-    if (hit) {
-      var keep = files.filter(function (f) { return f.id !== id; }).map(function (f) { return f.url; }), err = '';
-      if (keep.length) err = customerListWriteChips_(listSh, row, keep.map(function () { return '@'; }).join(String.fromCharCode(10)), keep.map(function (u, k) { return { startIndex: k * 2, chip: { richLinkProperties: { uri: u } } }; }));
-      else listSh.getRange(row, colIndex_('R')).clearContent();
-      if (err) { st.rewriteErr++; continue; }
-      st.moved++;
-    } else st.linkOnly++;
-    listSh.getRange(row, lcol).setValue(url);
+    st.registryWithPdf++; done++;
+    var idx = renewalFindRow_(data, c, String(rd[i][iT] || '').replace(/\D/g, ''), String(rd[i][iN] || '').trim(), String(rd[i][iZ] || '').trim());
+    if (idx < 1) { st.noListRow++; }
+    else {
+      var row = idx + 1, skip = false;
+      if (String(data[idx][rIdx] || '').trim()) { // R มีข้อมูล → ตรวจว่ามีลิงก์สัญญานี้ไหม
+        st.apiChecked++;
+        var files = customerListAttachments_(listSh, row);
+        if (files.some(function (f) { return f.id === id; })) {
+          var keep = files.filter(function (f) { return f.id !== id; }).map(function (f) { return f.url; }), err = '';
+          if (keep.length) err = customerListWriteChips_(listSh, row, keep.map(function () { return '@'; }).join(String.fromCharCode(10)), keep.map(function (u, q) { return { startIndex: q * 2, chip: { richLinkProperties: { uri: u } } }; }));
+          else listSh.getRange(row, rIdx + 1).clearContent();
+          if (err) { st.rewriteErr++; skip = true; log('   ⚠ แถว ' + row + ' ในชีตรายชื่อ: เขียนคอลัมน์ R ไม่ได้ (ข้ามแถวนี้)'); }
+          else { st.moved++; log('   ✔ แถว ' + row + ': ย้ายลิงก์สัญญาออกจากคอลัมน์ R แล้ว (ไฟล์แนบอื่นคงไว้ ' + keep.length + ' ไฟล์)'); }
+        }
+      }
+      if (!skip) {
+        if (String(links[idx - 1][0] || '').trim() === url) st.linkSame++;
+        else { links[idx - 1][0] = url; changed = true; st.linkSet++; }
+      }
+    }
+    if (done === total || Date.now() - lastLog > 10000 || done % 50 === 0) {
+      lastLog = Date.now();
+      var rate = (Date.now() - tLoop) / Math.max(1, done - doneAtStart), left = Math.round(rate * (total - done) / 1000);
+      log('   ความคืบหน้า ' + done + '/' + total + ' (' + Math.round(done * 100 / Math.max(1, total)) + '%) · ย้ายออกจาก R ' + st.moved +
+        ' · ใส่ลิงก์ใหม่ ' + st.linkSet + ' · ไม่พบในชีตรายชื่อ ' + st.noListRow + (done < total ? ' · คาดว่าเหลือ ~' + left + ' วิ' : ''));
+    }
   }
+  log('ขั้น 4/4: บันทึกคอลัมน์ "' + CONTRACT_LINK_COL + '"' + (changed ? ' (' + st.linkSet + ' แถว)...' : ' — ไม่มีอะไรเปลี่ยน'));
+  if (changed) listSh.getRange(2, lcol, links.length, 1).setValues(links);
   SpreadsheetApp.flush();
-  Logger.log('ย้ายลิงก์สัญญา R → "' + CONTRACT_LINK_COL + '": ' + JSON.stringify(st));
+  if (stopAt) {
+    props.setProperty(PROP, JSON.stringify({ next: stopAt, st: st }));
+    log('⏸ หยุดชั่วคราวก่อนหมดเวลา — ทำแล้ว ' + done + '/' + total + ' (' + Math.round(done * 100 / Math.max(1, total)) + '%) บันทึกผลส่วนที่ทำแล้วเรียบร้อย');
+    log('👉 กด Run ฟังก์ชันนี้อีกครั้งเพื่อทำต่อ');
+    return;
+  }
+  props.deleteProperty(PROP);
+  log('✅ เสร็จสิ้น — มีลิงก์สัญญาในทะเบียน ' + st.registryWithPdf + ' · ย้ายออกจากคอลัมน์ R ' + st.moved + ' · ใส่ลิงก์ในคอลัมน์ใหม่ ' + st.linkSet +
+    ' · มีอยู่แล้ว ' + st.linkSame + ' · ไม่พบในชีตรายชื่อ ' + st.noListRow + ' · เขียน R ไม่ได้ ' + st.rewriteErr + ' · ใช้เวลารอบนี้ ' + sec() + ' วิ');
 }
 // ค้นในชีตรายชื่อด้วยเลขบัตร (U) / THP (G) → [{ listRow, v }] (คีย์เดียวกับทะเบียน)
 function customerListFind_(listSh, q) {
