@@ -7057,16 +7057,19 @@ function pkgContractStats_(listSh, rows, scope) {
   if (svc) svc.getRange(1, 1, 5, 1).getDisplayValues().forEach(function (r) { var s = String(r[0] || '').trim(); if (s) colOf[s] = SPECIAL; });
   colOf['อัตราค่าบริการพิเศษเฉพาะราย'] = SPECIAL;
   var zero = function () { return PKG_STAT_COLS.map(function () { return 0; }); };
-  var month = {}, prov = {}, zip = {};
-  rows.forEach(function (r) {
+  var month = {}, prov = {}, zip = {}, badDate = [];
+  rows.forEach(function (r, ri) {
     var ci = colOf[String(r[7] || '').trim()]; if (ci == null) return;
     var z = String(r[2] || '').replace(/\D/g, ''); if (!z) return; z = ('00000' + z).slice(-5);
     if (!scope.all) {
       if (scope.only && z !== scope.zip) return;
       if (scope.prov && contractProvinceOfZip_(z) !== scope.prov) return;
     }
-    var mm = /^(\d{1,2})\/(\d{4})$/.exec(String(r[13] || '').trim());
-    if (mm && +mm[1] >= 1 && +mm[1] <= 12) { var y = month[mm[2]] || (month[mm[2]] = []); for (var k = y.length; k < 12; k++) y.push(zero()); y[+mm[1] - 1][ci]++; }
+    // N = เดือน/ปี — บางแถวกรอกปี พ.ศ. (เช่น 6/2569) → แปลงเป็น ค.ศ.; ปีที่ไม่สมเหตุผล (พิมพ์ผิด) ไม่นับรายเดือน + แจ้งเลขแถว (แก้ 2026-11-24)
+    var mm = /^(\d{1,2})\/(\d{4})$/.exec(String(r[13] || '').trim()), yy = mm ? +mm[2] : 0;
+    if (yy > 2400) yy -= 543;
+    if (mm && +mm[1] >= 1 && +mm[1] <= 12 && yy >= 2000 && yy <= 2100) { var y = month[yy] || (month[yy] = []); for (var k = y.length; k < 12; k++) y.push(zero()); y[+mm[1] - 1][ci]++; }
+    else badDate.push(ri + 2);
     var pv = String(r[4] || '').trim(); if (pv) (prov[pv] || (prov[pv] = zero()))[ci]++;
     var zo = zip[z] || (zip[z] = { office: String(r[3] || '').trim(), c: zero() }); zo.c[ci]++;
   });
@@ -7087,7 +7090,7 @@ function pkgContractStats_(listSh, rows, scope) {
   Object.keys(prov).sort().forEach(function (p) { if (provOrder.indexOf(p) < 0) provOrder.push(p); });
   Object.keys(zip).sort().forEach(function (z) { if (zipOrder.indexOf(z) < 0) zipOrder.push(z); });
   if (!scope.all) { provOrder = provOrder.filter(function (p) { return prov[p]; }); zipOrder = zipOrder.filter(function (z) { return zip[z]; }); }
-  return { cols: PKG_STAT_COLS, month: month, prov: prov, zip: zip, provOrder: provOrder, zipOrder: zipOrder };
+  return { cols: PKG_STAT_COLS, month: month, badDate: badDate, prov: prov, zip: zip, provOrder: provOrder, zipOrder: zipOrder };
 }
 
 // ลูกค้าที่ยกเลิกสัญญา (ชีตรายชื่อ H = "ยกเลิกสัญญา") → { byId: {fileId:1}, byKey: {"zip|ชื่อ":1} } ใช้ตัดออกจากตัวเลขสรุป (ผู้ใช้ขอ 2026-11-23)

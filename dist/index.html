@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.1558';
+    var APP_VERSION = 'Ver. 2026.1124.1609';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21590,7 +21590,7 @@
      แดชบอร์ด: จำนวนลูกค้า + ข้อมูลฝากส่ง (ชิ้นงาน/รายได้) แยกตาม ปี/เดือนที่ฝากส่ง, Package, ทีม, ที่ทำการ (เรียงรหัสน้อย→มาก) และรายชื่อลูกค้า
      สิทธิ์เหมือนหน้าไฟล์สัญญา — หลังบ้าน getPackageDashboard_ ตรวจจาก session
      ปรับ UX/UI (ผู้ใช้ขอ 2026-11-23): สรุปแยกตามมิติเป็นแท็บเต็มความกว้าง, สลับ รายได้/ชิ้นงาน, ป้ายตัวกรองที่ใช้อยู่, คอลัมน์ฝากส่ง x/y -->
-<div class="bg-white custom-radius shadow-xl w-full max-w-[1200px] mx-auto mt-4 mb-8 p-4 md:p-6">
+<div class="bg-white custom-radius shadow-xl w-full max-w-[1760px] mx-auto mt-4 mb-8 p-4 md:p-6"><!-- จอกว้างขยายตามพื้นที่ (ผู้ใช้ขอ 2026-11-24) -->
     <div class="cp-top">
         <p id="cpScope" class="cp-scope">ลูกค้าตาม Package</p>
         <div class="cp-top-r">
@@ -21727,6 +21727,7 @@
     #page-contract-packages .cp-st tr.is-idle td { color: var(--cp-faint); }
     #page-contract-packages .cp-st-year { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; }
     #page-contract-packages .cp-st-foot { margin: 0; padding: 8px 16px; font-size: 11px; color: var(--cp-faint); border-top: 1px solid var(--cp-line); }
+    #page-contract-packages .cp-st-warn { color: #b45309; background: #fffbeb; }
     #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: var(--cp-mute); font-size: 14px; }
     #page-contract-packages .cp-skel { height: 88px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: cpSk 1.2s infinite; }
     @keyframes cpSk { to { background-position: -200% 0; } }
@@ -21902,7 +21903,8 @@
                 '<div class="cp-scroll" role="tabpanel"><table class="cp-t cp-st"><thead><tr><th>' + head0 + '</th>' + (head1 ? '<th>' + head1 + '</th>' : '') +
                 S.cols.map(function (p) { return '<th class="n" title="' + esc(p) + '">' + lbl(p) + '</th>'; }).join('') + '<th class="n">รวม</th></tr></thead><tbody>' + body +
                 '</tbody><tfoot><tr><td' + (head1 ? ' colspan="2"' : '') + '>รวม</td>' + tot.map(function (v) { return '<td class="n">' + cell(v) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + fmt(all) + '</td></tr></tfoot></table></div>' +
-                '<p class="cp-st-foot">นับทุกสัญญาในชีตรายชื่อตาม Package ในคอลัมน์ H (ไม่รวมที่ยกเลิกสัญญา) แบบเดียวกับชีตสถิติ' + (V === 'month' ? ' · รายเดือนนับตามเดือนที่เริ่มสัญญา' : '') + '</p></section>';
+                '<p class="cp-st-foot">นับทุกสัญญาในชีตรายชื่อตาม Package ในคอลัมน์ H (ไม่รวมที่ยกเลิกสัญญา) แบบเดียวกับชีตสถิติ' + (V === 'month' ? ' · รายเดือนนับตามเดือนที่เริ่มสัญญา (ปีที่กรอกเป็น พ.ศ. แปลงเป็นปีเดียวกันให้แล้ว)' : '') + '</p>' +
+                (V === 'month' && S.badDate && S.badDate.length ? '<p class="cp-st-foot cp-st-warn"><i class="fas fa-exclamation-triangle"></i> วันเริ่มสัญญาว่างหรือปีไม่ถูกต้อง ' + fmt(S.badDate.length) + ' สัญญา — ไม่นับในตารางรายเดือน (ชีตรายชื่อแถว ' + S.badDate.slice(0, 30).join(', ') + (S.badDate.length > 30 ? ' …' : '') + ')</p>' : '') + '</section>';
         };
 
         window.thpCpRender = function () {
