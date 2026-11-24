@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.1620';
+    var APP_VERSION = 'Ver. 2026.1124.1648';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21727,6 +21727,10 @@
     #page-contract-packages .cp-st tr.is-idle td { color: var(--cp-faint); }
     #page-contract-packages .cp-st-year { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; }
     #page-contract-packages .cp-st-foot { margin: 0; padding: 8px 16px; font-size: 11px; color: var(--cp-faint); border-top: 1px solid var(--cp-line); }
+    #page-contract-packages .cp-st-btn { border: 0; background: none; padding: 2px 6px; margin: -2px -6px; border-radius: 6px; font: inherit; color: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
+    #page-contract-packages .cp-st-btn:hover { background: #ffedd5; color: #c2410c; text-decoration: underline; }
+    #page-contract-packages .cp-st-btn:focus-visible { outline: 2px solid #c2410c; outline-offset: 1px; }
+    #page-contract-packages .cp-st-btn.is-on { background: #ea580c; color: #fff; }
     #page-contract-packages .cp-st-warn { color: #b45309; background: #fffbeb; }
     #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: var(--cp-mute); font-size: 14px; }
     #page-contract-packages .cp-skel { height: 88px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: cpSk 1.2s infinite; }
@@ -21783,13 +21787,19 @@
             if (skip !== 'pkg' && f.pkg && pkgOf(c) !== f.pkg) return false;
             if (skip !== 'team' && f.team && teamOf(c) !== f.team) return false;
             if (skip !== 'zip' && f.zip && c.zip !== f.zip) return false;
+            var sf = st.sf; // เลือกช่องในตารางสถิติ → กรองรายชื่อ (ผู้ใช้ขอ 2026-11-24)
+            if (sf && skip !== 'sf') {
+                if (c.sc == null || (sf.col >= 0 && c.sc !== sf.col)) return false;
+                if (sf.key != null && (sf.v === 'month' ? c.ym !== sf.key : sf.v === 'prov' ? c.sprov !== sf.key : c.zip !== sf.key)) return false;
+                if (sf.key == null && sf.v === 'month' && String(c.ym || '').split('-')[0] !== sf.year) return false;
+            }
             if (f.q) { var q = f.q.toLowerCase(), qd = f.q.replace(/\D/g, ''); if (String(c.name).toLowerCase().indexOf(q) === -1 && !(qd.length >= 3 && c.thp.indexOf(qd) !== -1)) return false; }
             return true;
         };
         var meter = function (p, ok) { return '<span class="cp-meter' + (ok ? ' ok' : '') + '"><span><span style="width:' + Math.min(100, Math.max(0, p)) + '%"></span></span><em>' + p + '%</em></span>'; };
 
         window.thpCpClear = function () {
-            st.data = null; st.forUser = null; st.seq++;
+            st.data = null; st.forUser = null; st.seq++; st.sf = null;
             st.f = { year: '', month: '', pkg: '', team: '', zip: '', q: '' };
             var b = document.getElementById('cpBody'); if (b) b.innerHTML = '';
             var c = document.getElementById('cpChips'); if (c) c.innerHTML = '';
@@ -21826,9 +21836,15 @@
             if (k === 'q') { clearTimeout(st.qt); st.qt = setTimeout(function () { st.limit = 100; window.thpCpRender(); }, 200); return; }
             st.limit = 100; window.thpCpRender();
         };
-        window.thpCpUnset = function (k) { st.f[k] = ''; if (k === 'q') { var q = document.getElementById('cpQ'); if (q) q.value = ''; } st.limit = 100; window.thpCpRender(); };
+        window.thpCpStatPick = function (v, key, col, label) {
+            var cur = st.sf;
+            st.sf = cur && cur.v === v && cur.key === key && cur.col === col ? null : { v: v, key: key, col: col, label: label, year: st.statYear };
+            st.limit = 100; window.thpCpRender();
+            if (st.sf) { var el = document.getElementById('cpCustomers'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        };
+        window.thpCpUnset = function (k) { if (k === 'sf') { st.sf = null; st.limit = 100; window.thpCpRender(); return; } st.f[k] = ''; if (k === 'q') { var q = document.getElementById('cpQ'); if (q) q.value = ''; } st.limit = 100; window.thpCpRender(); };
         window.thpCpReset = function () {
-            st.f.month = ''; st.f.pkg = ''; st.f.team = ''; st.f.zip = ''; st.f.q = '';
+            st.f.month = ''; st.f.pkg = ''; st.f.team = ''; st.f.zip = ''; st.f.q = ''; st.sf = null;
             var q = document.getElementById('cpQ'); if (q) q.value = '';
             st.limit = 100; window.thpCpRender();
         };
@@ -21876,22 +21892,30 @@
             var rows = [], head1 = '', head0 = '';
             if (V === 'month') {
                 head0 = 'เดือน'; var ym = S.month[st.statYear] || [];
-                for (var i = 0; i < 12; i++) rows.push([MO[i], '', ym[i] || null]);
+                for (var i = 0; i < 12; i++) rows.push([MO[i], '', ym[i] || null, st.statYear + '-' + (i + 1), MO_FULL[i] + ' ' + (Number(st.statYear) + 543)]);
             } else if (V === 'prov') {
                 head0 = 'ลำดับ'; head1 = 'จังหวัด';
-                S.provOrder.forEach(function (p, i) { rows.push([String(i + 1), p, S.prov[p] || null]); });
+                S.provOrder.forEach(function (p, i) { rows.push([String(i + 1), p, S.prov[p] || null, p, 'จังหวัด' + p]); });
             } else {
                 head0 = 'รหัสไปรษณีย์'; head1 = 'ปณ.';
-                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, (S.zipName && S.zipName[z]) || (o ? o.office : ''), o ? o.c : null]); });
+                S.zipOrder.forEach(function (z) { var o = S.zip[z]; var nm = (S.zipName && S.zipName[z]) || (o ? o.office : ''); rows.push([z, nm, o ? o.c : null, z, z + ' ' + nm]); });
             }
             var tot = []; for (var c = 0; c < N; c++) tot.push(0);
             var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
             var lbl = function (p) { return /พิเศษ/.test(p) ? 'พิเศษ<span class="cp-st-sub">เฉพาะราย</span>' : esc(p.replace(/\s*\((.*)\)$/, '')) + (/\(/.test(p) ? '<span class="cp-st-sub">' + esc(p.replace(/^[^(]*\(|\)$/g, '')) + '</span>' : ''); };
+            var colName = function (p) { return /พิเศษ/.test(p) ? 'อัตราพิเศษเฉพาะราย' : p.replace(/\s*\(.*\)$/, ''); };
+            var allLbl = V === 'month' ? 'ทั้งปี ' + (Number(st.statYear) + 543) : V === 'prov' ? 'ทุกจังหวัด' : 'ทุกที่ทำการ';
+            // ช่องที่มีตัวเลข = ปุ่ม คลิกแล้วกรองรายชื่อลูกค้าด้านล่าง (คลิกซ้ำ = ยกเลิก)
+            var pick = function (key, c, v, label) {
+                if (!v) return cell(0);
+                var on = st.sf && st.sf.v === V && st.sf.key === key && st.sf.col === c && (V !== 'month' || st.sf.year === st.statYear);
+                return '<button type="button" class="cp-st-btn' + (on ? ' is-on' : '') + '" aria-pressed="' + !!on + '" title="ดูรายชื่อ: ' + esc(label) + '" onclick="thpCpStatPick(' + esc(JSON.stringify(V)) + ', ' + esc(JSON.stringify(key)) + ', ' + c + ', ' + esc(JSON.stringify(label)) + ')">' + fmt(v) + '</button>';
+            };
             var body = rows.map(function (r) {
                 var a = r[2] || [], s = 0;
                 for (var c = 0; c < N; c++) { var v = a[c] || 0; tot[c] += v; s += v; }
                 return '<tr' + (s ? '' : ' class="is-idle"') + '><td class="cp-lbl">' + esc(r[0]) + '</td>' + (head1 ? '<td style="white-space:nowrap">' + esc(r[1]) + '</td>' : '') +
-                    S.cols.map(function (p, c) { return '<td class="n">' + cell(a[c] || 0) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + cell(s) + '</td></tr>';
+                    S.cols.map(function (p, c) { return '<td class="n">' + pick(r[3], c, a[c] || 0, r[4] + ' · ' + colName(p)) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + pick(r[3], -1, s, r[4] + ' · ทุก Package') + '</td></tr>';
             }).join('');
             var all = tot.reduce(function (a, b) { return a + b; }, 0);
             var tabs = [['month', 'รายเดือน'], ['prov', 'จังหวัด'], ['zip', 'ที่ทำการ']];
@@ -21902,8 +21926,8 @@
                     return '<button type="button" role="tab" data-sview="' + t[0] + '" aria-selected="' + (V === t[0]) + '" tabindex="' + (V === t[0] ? 0 : -1) + '" onclick="thpCpStatView(\'' + t[0] + '\')" onkeydown="thpCpStatKey(event)">' + t[1] + '</button>'; }).join('') + '</div></div></div>' +
                 '<div class="cp-scroll" role="tabpanel"><table class="cp-t cp-st"><thead><tr><th>' + head0 + '</th>' + (head1 ? '<th>' + head1 + '</th>' : '') +
                 S.cols.map(function (p) { return '<th class="n" title="' + esc(p) + '">' + lbl(p) + '</th>'; }).join('') + '<th class="n">รวม</th></tr></thead><tbody>' + body +
-                '</tbody><tfoot><tr><td' + (head1 ? ' colspan="2"' : '') + '>รวม</td>' + tot.map(function (v) { return '<td class="n">' + cell(v) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + fmt(all) + '</td></tr></tfoot></table></div>' +
-                '<p class="cp-st-foot">นับทุกสัญญาในชีตรายชื่อตาม Package ในคอลัมน์ H (ไม่รวมที่ยกเลิกสัญญา) แบบเดียวกับชีตสถิติ' + (V === 'month' ? ' · รายเดือนนับตามเดือนที่เริ่มสัญญา (ปีที่กรอกเป็น พ.ศ. แปลงเป็นปีเดียวกันให้แล้ว)' : '') + '</p>' +
+                '</tbody><tfoot><tr><td' + (head1 ? ' colspan="2"' : '') + '>รวม</td>' + tot.map(function (v, c) { return '<td class="n">' + pick(null, c, v, allLbl + ' · ' + colName(S.cols[c])) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + pick(null, -1, all, allLbl + ' · ทุก Package') + '</td></tr></tfoot></table></div>' +
+                '<p class="cp-st-foot"><b>คลิกตัวเลขเพื่อดูรายชื่อลูกค้า</b> · นับทุกสัญญาในชีตรายชื่อตาม Package ในคอลัมน์ H (ไม่รวมที่ยกเลิกสัญญา) แบบเดียวกับชีตสถิติ' + (V === 'month' ? ' · รายเดือนนับตามเดือนที่เริ่มสัญญา (ปีที่กรอกเป็น พ.ศ. แปลงเป็นปีเดียวกันให้แล้ว)' : '') + '</p>' +
                 (V === 'month' && S.badDate && S.badDate.length ? '<p class="cp-st-foot cp-st-warn"><i class="fas fa-exclamation-triangle"></i> วันเริ่มสัญญาว่างหรือปีไม่ถูกต้อง ' + fmt(S.badDate.length) + ' สัญญา — ไม่นับในตารางรายเดือน (ชีตรายชื่อแถว ' + S.badDate.slice(0, 30).join(', ') + (S.badDate.length > 30 ? ' …' : '') + ')</p>' : '') + '</section>';
         };
 
@@ -21928,6 +21952,7 @@
             if (f.team) chips.push(['team', f.team]);
             if (f.zip) chips.push(['zip', f.zip + ' ' + (zn[f.zip] || '')]);
             if (f.q) chips.push(['q', 'ค้นหา “' + f.q + '”']);
+            if (st.sf) chips.push(['sf', 'สถิติ: ' + st.sf.label]);
             var ch = document.getElementById('cpChips');
             if (ch) ch.innerHTML = chips.length ? '<span class="cp-chips-l">กรองอยู่:</span>' + chips.map(function (c) { return '<button type="button" class="cp-chip" onclick="thpCpUnset(\'' + c[0] + '\')" aria-label="เอาตัวกรอง ' + esc(c[1]) + ' ออก">' + esc(c[1]) + '<i class="fas fa-times" aria-hidden="true"></i></button>'; }).join('') +
                 (chips.length > 1 ? '<button type="button" class="cp-chip-clear" onclick="thpCpReset()">ล้างทั้งหมด</button>' : '') : '';

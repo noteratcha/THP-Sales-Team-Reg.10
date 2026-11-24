@@ -6999,6 +6999,7 @@ function getPackageDashboard_(actor) {
         if (/^\d{5}$/.test(z) && tm && (!zipTeamYear[z] || y >= zipTeamYear[z])) { zipTeam[z] = tm; zipTeamYear[z] = y; }
       });
     } catch (eT) { }
+    var statCol = {}; try { statCol = pkgStatColOf_(listSh.getParent()); } catch (eSc) { }
     var customers = [], want = {}, cancelled = 0, seenCust = {};
     rows.forEach(function (r, i) {
       var zip = String(r[2] || '').replace(/\D/g, '').slice(0, 5), name = String(r[5] || '').trim();
@@ -7013,7 +7014,8 @@ function getPackageDashboard_(actor) {
       if (thp) want[thp] = true;
       // รายเดียวกัน = รหัส|ชื่อ|Package (ลูกค้าที่มี 2 Package เช่น A12+A13 นับทั้ง 2 สัญญา — ผู้ใช้ขอ 2026-11-24)
       var ck = zip + '|' + name.replace(/\s+/g, ' ') + '|' + String(r[7] || '').trim(), item = ({ row: i + 2, zip: zip, office: String(r[3] || '').trim(), prov: String(r[4] || '').trim() || contractProvinceOfZip_(zip), name: name, thp: thp,
-        pkg: String(r[7] || '').trim(), start: String(r[12] || '').trim(), end: String(r[14] || '').trim(), team: zipTeam[zip] || '' });
+        pkg: String(r[7] || '').trim(), start: String(r[12] || '').trim(), end: String(r[14] || '').trim(), team: zipTeam[zip] || '',
+        sc: statCol[String(r[7] || '').trim()], ym: pkgStatYm_(r[13]), sprov: String(r[4] || '').trim() }); // sc/ym/sprov = คลิกตารางสถิติเพื่อดูรายชื่อ (2026-11-24)
       // แถวซ้ำ (รหัส|ชื่อ เดียวกัน) = รายเดียว ใช้แถวล่าสุด (ผู้ใช้เลือก 2026-11-24)
       if (seenCust.hasOwnProperty(ck)) customers[seenCust[ck]] = item; else { seenCust[ck] = customers.length; customers.push(item); }
     });
@@ -7036,7 +7038,7 @@ function getPackageDashboard_(actor) {
         Object.keys(ship).forEach(function (t) { Object.keys(ship[t]).forEach(function (y) { ship[t][y] = ship[t][y].map(function (v) { return Math.round(v * 100) / 100; }); }); });
       } else shipErr = 'ไม่พบข้อมูลในชีตรายได้รายลูกค้า';
     } catch (eS) { shipErr = 'อ่านข้อมูลฝากส่งไม่ได้: ' + String(eS && eS.message || eS).slice(0, 160); }
-    var stat = null; try { stat = pkgContractStats_(listSh, rows, scope); } catch (eSt) { }
+    var stat = null; try { stat = pkgContractStats_(listSh, rows, scope, statCol); } catch (eSt) { }
     return { status: 'success', customers: customers, cancelled: cancelled, stat: stat, ship: ship, years: Object.keys(years).map(Number).sort(function (a, b) { return b - a; }), shipErr: shipErr,
       scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '',
       updatedAt: Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm') };
@@ -7050,12 +7052,24 @@ function getPackageDashboard_(actor) {
 // นับทุกแถวของชีตรายชื่อที่ H ตรงกับ Package (A14…A1) หรือบริการพิเศษในชีต "บริการ"!A1:A5 (รวมเป็นคอลัมน์ อัตราค่าบริการพิเศษเฉพาะราย)
 // รายเดือนใช้ N (เดือน/ปี ค.ศ. ของวันเริ่มสัญญา), จังหวัดใช้ E, ที่ทำการใช้ C — ลำดับ/ชื่อจังหวัดและที่ทำการตามชีตสถิติ
 var PKG_STAT_COLS = ['A14 (EMS ECOM 5014)', 'A13 (EMS ECOM 5013)', 'A12', 'A11', 'A10', 'A9', 'A8', 'A7', 'A6', 'A5', 'A4', 'A3', 'A2', 'A1', 'อัตราค่าบริการพิเศษเฉพาะราย'];
-function pkgContractStats_(listSh, rows, scope) {
-  var ss = listSh.getParent(), SPECIAL = PKG_STAT_COLS.length - 1, colOf = {};
+// ค่าในคอลัมน์ H → ลำดับคอลัมน์สถิติ (A14…A1 / บริการพิเศษใน "บริการ"!A1:A5 → คอลัมน์สุดท้าย)
+function pkgStatColOf_(ss) {
+  var SPECIAL = PKG_STAT_COLS.length - 1, colOf = {};
   PKG_STAT_COLS.slice(0, SPECIAL).forEach(function (p, i) { colOf[p] = i; });
   var svc = ss.getSheetByName('บริการ');
   if (svc) svc.getRange(1, 1, 5, 1).getDisplayValues().forEach(function (r) { var s = String(r[0] || '').trim(); if (s) colOf[s] = SPECIAL; });
   colOf['อัตราค่าบริการพิเศษเฉพาะราย'] = SPECIAL;
+  return colOf;
+}
+// N "เดือน/ปี" → "ปี ค.ศ.-เดือน" (ปี พ.ศ. แปลงให้, ปีผิด = '')
+function pkgStatYm_(v) {
+  var mm = /^(\d{1,2})\/(\d{4})$/.exec(String(v || '').trim()), yy = mm ? +mm[2] : 0;
+  if (yy > 2400) yy -= 543;
+  return mm && +mm[1] >= 1 && +mm[1] <= 12 && yy >= 2000 && yy <= 2100 ? yy + '-' + (+mm[1]) : '';
+}
+function pkgContractStats_(listSh, rows, scope, colOf) {
+  var ss = listSh.getParent();
+  colOf = colOf || pkgStatColOf_(ss);
   var zero = function () { return PKG_STAT_COLS.map(function () { return 0; }); };
   var month = {}, prov = {}, zip = {}, badDate = [];
   rows.forEach(function (r, ri) {
@@ -7066,9 +7080,8 @@ function pkgContractStats_(listSh, rows, scope) {
       if (scope.prov && contractProvinceOfZip_(z) !== scope.prov) return;
     }
     // N = เดือน/ปี — บางแถวกรอกปี พ.ศ. (เช่น 6/2569) → แปลงเป็น ค.ศ.; ปีที่ไม่สมเหตุผล (พิมพ์ผิด) ไม่นับรายเดือน + แจ้งเลขแถว (แก้ 2026-11-24)
-    var mm = /^(\d{1,2})\/(\d{4})$/.exec(String(r[13] || '').trim()), yy = mm ? +mm[2] : 0;
-    if (yy > 2400) yy -= 543;
-    if (mm && +mm[1] >= 1 && +mm[1] <= 12 && yy >= 2000 && yy <= 2100) { var y = month[yy] || (month[yy] = []); for (var k = y.length; k < 12; k++) y.push(zero()); y[+mm[1] - 1][ci]++; }
+    var ym = pkgStatYm_(r[13]);
+    if (ym) { var yy = ym.split('-')[0], mo = +ym.split('-')[1], y = month[yy] || (month[yy] = []); for (var k = y.length; k < 12; k++) y.push(zero()); y[mo - 1][ci]++; }
     else badDate.push(ri + 2);
     var pv = String(r[4] || '').trim(); if (pv) (prov[pv] || (prov[pv] = zero()))[ci]++;
     var zo = zip[z] || (zip[z] = { office: String(r[3] || '').trim(), c: zero() }); zo.c[ci]++;
