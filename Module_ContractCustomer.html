@@ -77,6 +77,8 @@
     #page-contract-customer .cc-file-btn { flex: 0 0 auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid #fdba74; color: #c2410c; background: #fff; white-space: nowrap; }
     #page-contract-customer .cc-file-btn:hover { background: #fff7ed; }
     #page-contract-customer .cc-files-group h4 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    #page-contract-customer .cc-files-group { transition: background .15s, border-color .15s; }
+    #page-contract-customer .cc-files-group.is-drop { outline: 2px dashed #ea580c; outline-offset: -2px; background: #fff7ed; }
     #page-contract-customer .cc-year + .cc-file-add { margin-left: 0; }
     #page-contract-customer .cc-file-del { color: #dc2626 !important; border-color: #fca5a5 !important; background: #fff; cursor: pointer; }
     #page-contract-customer .cc-file-del:hover { background: #fef2f2; }
@@ -234,7 +236,7 @@
             return '<div class="cc-mgroup cc-files-group" data-i="' + idx + '"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(' + (ct ? 'สัญญา 1 ไฟล์ · ' : '') + 'ไฟล์แนบ ' + files.length + ' ไฟล์)</small>' +
                 (canAdd ? yearSel(it0.attachYear, 'thpCcYear(this)') +
                     '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcUpload(this)" aria-label="เพิ่มไฟล์แนบ"></label>' : '') + '</h4>' +
-                '<div class="cc-files">' + rows + '</div><div class="cc-file-hint">' + (canAdd ? 'PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"' : 'กด "บันทึกลงชีต" ก่อน จึงจะเพิ่มไฟล์แนบได้') + '</div></div>';
+                '<div class="cc-files">' + rows + '</div><div class="cc-file-hint">' + (canAdd ? 'กด "เพิ่มไฟล์" หรือลากไฟล์มาวางในกรอบนี้ · PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"' : 'กด "บันทึกลงชีต" ก่อน จึงจะเพิ่มไฟล์แนบได้') + '</div></div>';
         };
         var pending = []; // ไฟล์ที่เลือกในฟอร์มลูกค้าใหม่ (ยังไม่อัปโหลด)
         var pendingRows = function () {
@@ -251,7 +253,7 @@
                 // ลูกค้าใหม่ยังไม่มีแถวในชีต → เลือกไฟล์ไว้ก่อน อัปโหลดหลังบันทึกสำเร็จ (ผู้ใช้ขอ 2026-11-23)
                 '<div class="cc-mgroup cc-files-group cc-pending"><h4><i class="fas fa-paperclip"></i> ไฟล์แนบ <small>(อัปโหลดอัตโนมัติหลังกดบันทึกลูกค้าใหม่)</small>' + yearSel() +
                 '<label class="cc-file-add"><i class="fas fa-plus"></i> เพิ่มไฟล์<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="thpCcPick(this)" aria-label="เพิ่มไฟล์แนบ"></label></h4>' +
-                '<div class="cc-files" id="ccPendingList">' + pendingRows() + '</div><div class="cc-file-hint">PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>' +
+                '<div class="cc-files" id="ccPendingList">' + pendingRows() + '</div><div class="cc-file-hint">กด "เพิ่มไฟล์" หรือลากไฟล์มาวางในกรอบนี้ · PDF, รูปภาพ, Word, Excel ไม่เกิน 10 MB ต่อไฟล์ · ไฟล์จะถูกเก็บใน Drive และเพิ่มเป็นชิปไฟล์ในคอลัมน์ "ไฟล์แนบ"</div></div>' +
                 '<div class="cc-actions"><button type="button" class="cc-btn" onclick="thpCcSaveManual(this)"><i class="fas fa-save"></i> บันทึกลูกค้าใหม่</button>' +
                 '<button type="button" class="cc-btn cc-btn-2" onclick="thpCcClear()"><i class="fas fa-times"></i> ยกเลิก</button>' +
                 '<span class="cc-note">บันทึกลงชีต "การตอบแบบฟอร์ม 1" (เพิ่มแถว), "รายชื่อ/สัญญา A1-A12" และทะเบียนสัญญา "ปี 2570"</span></div></div>';
@@ -401,6 +403,29 @@
             pending = pending.concat(list.filter(function (f) { return bad.indexOf(f) === -1; }));
             var box2 = document.getElementById('ccPendingList'); if (box2) box2.innerHTML = pendingRows();
         };
+        // ลากไฟล์มาวางในกล่องไฟล์แนบ (ผู้ใช้ขอ 2026-11-24) — ใช้ได้เฉพาะกล่องที่มีปุ่ม "เพิ่มไฟล์"
+        var dropGrp = function (e) {
+            var g = e.target && e.target.closest ? e.target.closest('#page-contract-customer .cc-files-group') : null;
+            return g && g.querySelector('input[type="file"]') ? g : null;
+        };
+        var hasFiles = function (e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1; };
+        var dropOff = function () { document.querySelectorAll('#page-contract-customer .cc-files-group.is-drop').forEach(function (x) { x.classList.remove('is-drop'); }); };
+        document.addEventListener('dragover', function (e) {
+            if (!hasFiles(e)) return;
+            var g = dropGrp(e); if (!g) return;
+            e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+            if (!g.classList.contains('is-drop')) { dropOff(); g.classList.add('is-drop'); }
+        });
+        document.addEventListener('dragleave', function (e) {
+            var g = dropGrp(e); if (g && !g.contains(e.relatedTarget)) g.classList.remove('is-drop');
+        });
+        document.addEventListener('drop', function (e) {
+            if (!hasFiles(e)) return;
+            var g = dropGrp(e); dropOff(); if (!g) return;
+            e.preventDefault();
+            var inp = g.querySelector('input[type="file"]'), fake = { files: e.dataTransfer.files, value: '', closest: function (s) { return inp.closest(s); } };
+            if (g.classList.contains('cc-pending')) window.thpCcPick(fake); else window.thpCcUpload(fake);
+        });
         window.thpCcUnpick = function (i) {
             pending.splice(i, 1);
             var box2 = document.getElementById('ccPendingList'); if (box2) box2.innerHTML = pendingRows();

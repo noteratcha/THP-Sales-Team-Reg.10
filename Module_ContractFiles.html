@@ -60,6 +60,8 @@
     #page-contract-files .cf-row.is-cancel .cf-ic { color: #d1d5db; }
     #page-contract-files .cf-seen { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; font-weight: 600; }
     #page-contract-files .cf-seen i { font-size: 11px; opacity: .8; }
+    #page-contract-files .cf-group-h .cf-seen { color: #c2410c; }
+    #page-contract-files .cf-group-h .cf-seen.is-zero { color: #9ca3af; }
     @media (max-width: 760px) { #page-contract-files .cf-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } #page-contract-files .cf-kpi-v { font-size: 20px; } }
     #page-contract-files .cf-pkg { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; vertical-align: 1px; white-space: nowrap; }
     #page-contract-files .cf-pkg.is-custom { color: #92400e; background: #fffbeb; border-color: #fde68a; }
@@ -234,11 +236,16 @@
                 return ' <span class="cf-pkg' + (custom ? ' is-custom' : '') + '" title="Package อัตราค่าบริการ">' + esc(custom ? 'อัตราพิเศษเฉพาะราย' : 'Package ' + p) + '</span>';
             };
             // จำนวนไฟล์ที่เปิดดู/ดาวน์โหลดแล้วในจังหวัด
-            var seen = function (P) {
-                var all = []; P.oOrder.forEach(function (k) { all = all.concat(P.offices[k]); });
+            // ใช้ทั้งระดับจังหวัดและระดับที่ทำการ (ผู้ใช้ขอ 2026-11-24) — นับจำนวนไฟล์ที่เปิดดู/ดาวน์โหลดแล้ว
+            var seenFiles = function (all) {
                 all = all.filter(function (f) { return !f.cancelled; });
                 var v = all.filter(function (f) { return f.nView > 0 || f.view; }).length, d = all.filter(function (f) { return f.nDl > 0 || f.dl; }).length;
-                return '<span class="cf-seen"><i class="fas fa-eye"></i>' + fmt(v) + '</span><span class="cf-seen"><i class="fas fa-download"></i>' + fmt(d) + '</span>';
+                return '<span class="cf-seen' + (v ? '' : ' is-zero') + '" title="เปิดดูแล้ว ' + fmt(v) + ' จาก ' + fmt(all.length) + ' ไฟล์"><i class="fas fa-eye"></i>' + fmt(v) + '</span>' +
+                    '<span class="cf-seen' + (d ? '' : ' is-zero') + '" title="ดาวน์โหลดแล้ว ' + fmt(d) + ' จาก ' + fmt(all.length) + ' ไฟล์"><i class="fas fa-download"></i>' + fmt(d) + '</span>';
+            };
+            var seen = function (P) {
+                var all = []; P.oOrder.forEach(function (k) { all = all.concat(P.offices[k]); });
+                return seenFiles(all);
             };
             var row = function (f, i) {
                 return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
@@ -253,7 +260,7 @@
                     P.oOrder.map(function (k) {
                         // ที่ทำการพับได้เช่นกัน: เปิดทีละ 1 ที่ทำการ (ผู้ใช้ขอ 2026-11-20); ค้นหา/กรองที่ทำการ = เปิดทั้งหมดที่พบ; จังหวัดมีที่ทำการเดียว = เปิดเลย
                         var g = P.offices[k], oOpen = openAll || !!off || P.oOrder.length === 1 || st.openOffice === k;
-                        return '<details class="cf-group" data-office="' + esc(k) + '"' + (oOpen ? ' open' : '') + '><summary class="cf-group-h"><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas fa-folder"></i>' + esc(k) + '<small>' + fmt(g.length) + ' ไฟล์</small></summary>' + g.map(row).join('') + '</details>';
+                        return '<details class="cf-group" data-office="' + esc(k) + '"' + (oOpen ? ' open' : '') + '><summary class="cf-group-h"><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas fa-folder"></i>' + esc(k) + '<small>' + fmt(g.length) + ' ไฟล์' + seenFiles(g) + '</small></summary>' + g.map(row).join('') + '</details>';
                     }).join('') + '</div></details>';
             }).join('');
             // accordion: เปิดอันหนึ่ง อันอื่นระดับเดียวกันพับเอง
