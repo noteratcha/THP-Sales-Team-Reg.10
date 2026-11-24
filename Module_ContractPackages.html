@@ -294,7 +294,7 @@
                 S.provOrder.forEach(function (p, i) { rows.push([String(i + 1), p, S.prov[p] || null]); });
             } else {
                 head0 = 'รหัสไปรษณีย์'; head1 = 'ปณ.';
-                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, o ? o.office : '', o ? o.c : null]); });
+                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, (S.zipName && S.zipName[z]) || (o ? o.office : ''), o ? o.c : null]); });
             }
             var tot = []; for (var c = 0; c < N; c++) tot.push(0);
             var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };

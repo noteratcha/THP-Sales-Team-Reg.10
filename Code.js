@@ -7074,7 +7074,7 @@ function pkgContractStats_(listSh, rows, scope) {
     var zo = zip[z] || (zip[z] = { office: String(r[3] || '').trim(), c: zero() }); zo.c[ci]++;
   });
   // ลำดับ + ชื่อตามชีตสถิติ (ถ้าอ่านได้)
-  var provOrder = [], zipOrder = [];
+  var provOrder = [], zipOrder = [], zipName = {};
   var stSh = ss.getSheetByName('A1-A12 อัตราค่าบริการพิเศษเฉพาะราย');
   if (stSh && stSh.getLastRow() > 0) {
     var mode = '';
@@ -7084,13 +7084,26 @@ function pkgContractStats_(listSh, rows, scope) {
       if (a === 'รหัสไปรษณีย์') { mode = 'z'; return; }
       if (a === 'รวม' || /^สถิติ/.test(a)) { mode = ''; return; }
       if (mode === 'p' && b) provOrder.push(b);
-      if (mode === 'z' && /^\d{1,5}$/.test(a)) { var zz = ('00000' + a).slice(-5); zipOrder.push(zz); if (zip[zz] && b) zip[zz].office = b; }
+      if (mode === 'z' && /^\d{1,5}$/.test(a)) { var zz = ('00000' + a).slice(-5); zipOrder.push(zz); if (b) zipName[zz] = b; }
     });
   }
+  // ชื่อที่ทำการให้ครบ (ผู้ใช้ขอ 2026-11-24): ชีตสถิติ → ชีตรายชื่อ (D) → ชีตอ้างอิง "ที่ทำการ" (A รหัส, C ชื่อ ปณ.)
+  Object.keys(zip).forEach(function (z) { if (!zipName[z] && zip[z].office) zipName[z] = zip[z].office; });
+  var missing = zipOrder.concat(Object.keys(zip)).filter(function (z) { return !zipName[z]; });
+  if (missing.length) {
+    try {
+      var ref = SpreadsheetApp.openById('1uo2vKwNI--USPCLg_jZNmWWxbcV8aHheem4ZAfobIg4').getSheetByName('ที่ทำการ');
+      if (ref && ref.getLastRow() > 1) ref.getRange(2, 1, ref.getLastRow() - 1, 3).getDisplayValues().forEach(function (r) {
+        var d = String(r[0] || '').replace(/\D/g, ''), n = String(r[2] || '').trim().replace(/^(ปณ|ปจ)\./, ''); // ชีตสถิติไม่ใส่ ปณ./ปจ. นำหน้า
+        if (d && n) { d = ('00000' + d).slice(-5); if (!zipName[d]) zipName[d] = n; }
+      });
+    } catch (eRef) { }
+  }
+  Object.keys(zip).forEach(function (z) { if (zipName[z]) zip[z].office = zipName[z]; });
   Object.keys(prov).sort().forEach(function (p) { if (provOrder.indexOf(p) < 0) provOrder.push(p); });
   Object.keys(zip).sort().forEach(function (z) { if (zipOrder.indexOf(z) < 0) zipOrder.push(z); });
   if (!scope.all) { provOrder = provOrder.filter(function (p) { return prov[p]; }); zipOrder = zipOrder.filter(function (z) { return zip[z]; }); }
-  return { cols: PKG_STAT_COLS, month: month, badDate: badDate, prov: prov, zip: zip, provOrder: provOrder, zipOrder: zipOrder };
+  return { cols: PKG_STAT_COLS, month: month, badDate: badDate, prov: prov, zip: zip, zipName: zipName, provOrder: provOrder, zipOrder: zipOrder };
 }
 
 // ลูกค้าที่ยกเลิกสัญญา (ชีตรายชื่อ H = "ยกเลิกสัญญา") → { byId: {fileId:1}, byKey: {"zip|ชื่อ":1} } ใช้ตัดออกจากตัวเลขสรุป (ผู้ใช้ขอ 2026-11-23)

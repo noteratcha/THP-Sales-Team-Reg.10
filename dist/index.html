@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.1609';
+    var APP_VERSION = 'Ver. 2026.1124.1620';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21882,7 +21882,7 @@
                 S.provOrder.forEach(function (p, i) { rows.push([String(i + 1), p, S.prov[p] || null]); });
             } else {
                 head0 = 'รหัสไปรษณีย์'; head1 = 'ปณ.';
-                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, o ? o.office : '', o ? o.c : null]); });
+                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, (S.zipName && S.zipName[z]) || (o ? o.office : ''), o ? o.c : null]); });
             }
             var tot = []; for (var c = 0; c < N; c++) tot.push(0);
             var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
