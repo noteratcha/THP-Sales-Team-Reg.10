@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.0724';
+    var APP_VERSION = 'Ver. 2026.1124.1422';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21674,6 +21674,14 @@
     #page-contract-packages .cp-spark span.z { background: #f3f4f6; }
     #page-contract-packages .cp-more { display: block; width: 100%; padding: 10px; border: 0; border-top: 1px solid var(--cp-line); background: #fffaf5; color: #c2410c; font-size: 13px; font-weight: 700; cursor: pointer; }
     #page-contract-packages .cp-more:hover { background: var(--cp-brand-soft); }
+    /* ตารางสถิติ Package */
+    #page-contract-packages .cp-st th, #page-contract-packages .cp-st td { padding: 7px 8px; }
+    #page-contract-packages .cp-st th.n { vertical-align: bottom; line-height: 1.2; }
+    #page-contract-packages .cp-st-sub { display: block; font-size: 10px; font-weight: 600; color: var(--cp-faint); }
+    #page-contract-packages .cp-st .cp-st-tot { font-weight: 800; color: var(--cp-ink); background: #fffaf5; }
+    #page-contract-packages .cp-st tr.is-idle td { color: var(--cp-faint); }
+    #page-contract-packages .cp-st-year { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 12px; background: #fff; }
+    #page-contract-packages .cp-st-foot { margin: 0; padding: 8px 16px; font-size: 11px; color: var(--cp-faint); border-top: 1px solid var(--cp-line); }
     #page-contract-packages .cp-empty { padding: 28px 16px; text-align: center; color: var(--cp-mute); font-size: 14px; }
     #page-contract-packages .cp-skel { height: 88px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: cpSk 1.2s infinite; }
     @keyframes cpSk { to { background-position: -200% 0; } }
@@ -21793,13 +21801,63 @@
             el.innerHTML = '<option value="">' + esc(all) + '</option>' + items.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('');
             el.value = cur; el.classList.toggle('is-set', !!cur);
         };
+        // ลูกค้าที่มีหลาย Package ใช้ THP เดียวกัน → ชิ้นงาน/รายได้นับครั้งเดียวต่อ THP (ผู้ใช้ขอ 2026-11-24)
+        var shipKey = function (c) { return c.thp || ('#' + c.zip + '|' + c.name); };
+        var shipSum = function (list, y, m) { var seen = {}, p = 0, r = 0; list.forEach(function (c) { var k = shipKey(c); if (seen[k]) return; seen[k] = 1; var s = shipOf(c, y, m); p += s[0]; r += s[1]; }); return [p, r]; };
         var groupBy = function (list, keyFn, y, m) {
             var g = {};
             list.forEach(function (c) {
-                var k = keyFn(c), s = shipOf(c, y, m), o = g[k] || (g[k] = { k: k, n: 0, a: 0, p: 0, r: 0, items: [] });
-                o.n++; o.p += s[0]; o.r += s[1]; if (s[0] > 0 || s[1] > 0) o.a++; o.items.push(c);
+                var k = keyFn(c), s = shipOf(c, y, m), o = g[k] || (g[k] = { k: k, n: 0, a: 0, p: 0, r: 0, items: [], seen: {} });
+                o.n++; if (s[0] > 0 || s[1] > 0) o.a++; o.items.push(c);
+                var sk = shipKey(c); if (!o.seen[sk]) { o.seen[sk] = 1; o.p += s[0]; o.r += s[1]; }
             });
             return Object.keys(g).map(function (k) { return g[k]; });
+        };
+
+        // ----- สถิติการขออนุญาตใช้ Package (นับแบบชีต "A1-A12 อัตราค่าบริการพิเศษเฉพาะราย" — ผู้ใช้ขอ 2026-11-24) -----
+        window.thpCpStatView = function (v) { st.statView = v; window.thpCpRender(); var t = document.querySelector('#page-contract-packages [data-sview="' + v + '"]'); if (t) t.focus(); };
+        window.thpCpStatYear = function (v) { st.statYear = v; window.thpCpRender(); };
+        window.thpCpStatKey = function (e) {
+            var order = ['month', 'prov', 'zip'], i = order.indexOf(st.statView || 'month');
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); window.thpCpStatView(order[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]); }
+        };
+        var statCard = function (S) {
+            if (!S || !S.cols) return '';
+            var V = st.statView || 'month', N = S.cols.length;
+            var years = Object.keys(S.month || {}).sort(function (a, b) { return b - a; });
+            var cy = String(new Date().getFullYear());
+            if (!st.statYear || years.indexOf(st.statYear) < 0) st.statYear = years.indexOf(cy) >= 0 ? cy : (years[0] || '');
+            var rows = [], head1 = '', head0 = '';
+            if (V === 'month') {
+                head0 = 'เดือน'; var ym = S.month[st.statYear] || [];
+                for (var i = 0; i < 12; i++) rows.push([MO[i], '', ym[i] || null]);
+            } else if (V === 'prov') {
+                head0 = 'ลำดับ'; head1 = 'จังหวัด';
+                S.provOrder.forEach(function (p, i) { rows.push([String(i + 1), p, S.prov[p] || null]); });
+            } else {
+                head0 = 'รหัสไปรษณีย์'; head1 = 'ปณ.';
+                S.zipOrder.forEach(function (z) { var o = S.zip[z]; rows.push([z, o ? o.office : '', o ? o.c : null]); });
+            }
+            var tot = []; for (var c = 0; c < N; c++) tot.push(0);
+            var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
+            var lbl = function (p) { return /พิเศษ/.test(p) ? 'พิเศษ<span class="cp-st-sub">เฉพาะราย</span>' : esc(p.replace(/\s*\((.*)\)$/, '')) + (/\(/.test(p) ? '<span class="cp-st-sub">' + esc(p.replace(/^[^(]*\(|\)$/g, '')) + '</span>' : ''); };
+            var body = rows.map(function (r) {
+                var a = r[2] || [], s = 0;
+                for (var c = 0; c < N; c++) { var v = a[c] || 0; tot[c] += v; s += v; }
+                return '<tr' + (s ? '' : ' class="is-idle"') + '><td class="cp-lbl">' + esc(r[0]) + '</td>' + (head1 ? '<td style="white-space:nowrap">' + esc(r[1]) + '</td>' : '') +
+                    S.cols.map(function (p, c) { return '<td class="n">' + cell(a[c] || 0) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + cell(s) + '</td></tr>';
+            }).join('');
+            var all = tot.reduce(function (a, b) { return a + b; }, 0);
+            var tabs = [['month', 'รายเดือน'], ['prov', 'จังหวัด'], ['zip', 'ที่ทำการ']];
+            var title = V === 'month' ? 'ประจำปี ' + (st.statYear ? Number(st.statYear) + 543 : '-') : V === 'prov' ? 'แต่ละจังหวัด' : 'แต่ละที่ทำการ';
+            return '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-table"></i>สถิติการขออนุญาตใช้ Package A1-A14 และอัตราพิเศษเฉพาะราย</h3><small>' + esc(title) + ' · ' + fmt(all) + ' สัญญา</small>' +
+                '<div class="cp-right">' + (V === 'month' && years.length ? '<select class="cp-st-year" aria-label="ปีที่เริ่มสัญญา" onchange="thpCpStatYear(this.value)">' + years.map(function (y) { return '<option value="' + esc(y) + '"' + (y === st.statYear ? ' selected' : '') + '>พ.ศ. ' + (Number(y) + 543) + '</option>'; }).join('') + '</select>' : '') +
+                '<div class="cp-seg" role="tablist" aria-label="สถิติแยกตาม">' + tabs.map(function (t) {
+                    return '<button type="button" role="tab" data-sview="' + t[0] + '" aria-selected="' + (V === t[0]) + '" tabindex="' + (V === t[0] ? 0 : -1) + '" onclick="thpCpStatView(\'' + t[0] + '\')" onkeydown="thpCpStatKey(event)">' + t[1] + '</button>'; }).join('') + '</div></div></div>' +
+                '<div class="cp-scroll" role="tabpanel"><table class="cp-t cp-st"><thead><tr><th>' + head0 + '</th>' + (head1 ? '<th>' + head1 + '</th>' : '') +
+                S.cols.map(function (p) { return '<th class="n" title="' + esc(p) + '">' + lbl(p) + '</th>'; }).join('') + '<th class="n">รวม</th></tr></thead><tbody>' + body +
+                '</tbody><tfoot><tr><td' + (head1 ? ' colspan="2"' : '') + '>รวม</td>' + tot.map(function (v) { return '<td class="n">' + cell(v) + '</td>'; }).join('') + '<td class="n cp-st-tot">' + fmt(all) + '</td></tr></tfoot></table></div>' +
+                '<p class="cp-st-foot">นับทุกสัญญาในชีตรายชื่อตาม Package ในคอลัมน์ H (ไม่รวมที่ยกเลิกสัญญา) แบบเดียวกับชีตสถิติ' + (V === 'month' ? ' · รายเดือนนับตามเดือนที่เริ่มสัญญา' : '') + '</p></section>';
         };
 
         window.thpCpRender = function () {
@@ -21829,7 +21887,8 @@
 
             var list = all.filter(function (c) { return match(c); });
             var period = y ? (m !== '' ? MO_FULL[m] + ' ' : 'ทั้งปี ') + (Number(y) + 543) : '-';
-            var sum = list.reduce(function (a, c) { var s = shipOf(c, y, m); a.p += s[0]; a.r += s[1]; if (s[0] > 0 || s[1] > 0) a.a++; if (!c.thp) a.noThp++; return a; }, { p: 0, r: 0, a: 0, noThp: 0 });
+            var sum = list.reduce(function (a, c) { var s = shipOf(c, y, m); if (s[0] > 0 || s[1] > 0) a.a++; if (!c.thp) a.noThp++; return a; }, { p: 0, r: 0, a: 0, noThp: 0 });
+            var ss0 = shipSum(list, y, m); sum.p = ss0[0]; sum.r = ss0[1];
             var pkgs = {}; list.forEach(function (c) { pkgs[pkgOf(c)] = 1; });
             // ----- การ์ดตัวเลข -----
             var kpi = function (icon, label, v, unit, sub, extra) { return '<div class="cp-kpi"><span class="cp-kpi-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="cp-kpi-v">' + v + (unit ? '<small> ' + unit + '</small>' : '') + '</span>' + (extra || '') + '<span class="cp-kpi-s">' + sub + '</span></div>'; };
@@ -21843,6 +21902,7 @@
             if (sum.noThp) notes.push(fmt(sum.noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงดึงข้อมูลฝากส่งไม่ได้');
             if (D.shipErr) notes.push(D.shipErr);
             if (notes.length) html += '<p class="cp-note"><i class="fas fa-info-circle"></i><span>' + notes.map(esc).join(' · ') + '</span></p>';
+            html += statCard(D.stat);
             if (!list.length) { body.innerHTML = html + '<div class="cp-empty">ไม่พบลูกค้าที่ตรงกับตัวกรอง</div>'; return; }
 
             var seg = '<div class="cp-seg" role="group" aria-label="แสดงเป็น">' + [['rev', 'รายได้'], ['pcs', 'ชิ้นงาน']].map(function (o) {
@@ -21851,7 +21911,8 @@
             // ----- กราฟรายเดือน -----
             if (y) {
                 var mo = []; for (var i = 0; i < 12; i++) mo.push([0, 0, 0]);
-                list.forEach(function (c) { var a = c.thp && D.ship[c.thp] && D.ship[c.thp][y]; if (!a) return; for (var i = 0; i < 12; i++) { mo[i][0] += a[i * 2]; mo[i][1] += a[i * 2 + 1]; if (a[i * 2] > 0 || a[i * 2 + 1] > 0) mo[i][2]++; } });
+                var seenM = {};
+                list.forEach(function (c) { var a = c.thp && !seenM[c.thp] && D.ship[c.thp] && D.ship[c.thp][y]; if (!a) return; seenM[c.thp] = 1; for (var i = 0; i < 12; i++) { mo[i][0] += a[i * 2]; mo[i][1] += a[i * 2 + 1]; if (a[i * 2] > 0 || a[i * 2 + 1] > 0) mo[i][2]++; } });
                 var maxM = Math.max.apply(null, mo.map(function (x) { return mVal(x); }).concat([1]));
                 html += '<section class="cp-card"><div class="cp-card-h"><h3><i class="fas fa-chart-bar"></i>ฝากส่งรายเดือน ปี ' + (Number(y) + 543) + '</h3><small>คลิกเดือนเพื่อกรอง</small><div class="cp-right">' + seg + '</div></div><div class="cp-months">' +
                     mo.map(function (x, i) {
@@ -21876,7 +21937,8 @@
                 gs = groupBy(all.filter(function (c) { return match(c, 'pkg'); }), pkgOf, y, m).sort(function (a, b) { return pkgSort(a.k, b.k); });
                 gs.forEach(function (g) { g.label = pkgBadge(g.k) + (g.k !== NOPKG && /\(/.test(g.k) ? '<span class="cp-pkg-note">' + esc(g.k.replace(/^[^(]*/, '')) + '</span>' : ''); }); sel = f.pkg; head1 = 'Package';
             }
-            var key = V, tot = gs.reduce(function (a, g) { a.n += g.n; a.a += g.a; a.p += g.p; a.r += g.r; return a; }, { n: 0, a: 0, p: 0, r: 0 });
+            var key = V, tot = gs.reduce(function (a, g) { a.n += g.n; a.a += g.a; return a; }, { n: 0, a: 0, p: 0, r: 0 });
+            var ssT = shipSum([].concat.apply([], gs.map(function (g) { return g.items; })), y, m); tot.p = ssT[0]; tot.r = ssT[1];
             var totM = st.metric === 'pcs' ? tot.p : tot.r;
             var cell = function (v) { return v ? fmt(v) : '<span class="cp-zero">0</span>'; };
             var tabs = [['pkg', 'Package', Object.keys(pc).length], ['team', 'ทีม', Object.keys(tc).length], ['zip', 'ที่ทำการ', Object.keys(zc).length]];
