@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1124.0643';
+    var APP_VERSION = 'Ver. 2026.1124.0717';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1264,7 +1264,7 @@
         </div>
 
         <nav class="flex-1 py-4 overflow-y-auto space-y-1 custom-scrollbar">
-            <div onclick="switchPage('home')" id="menu-home"
+            <div onclick="collapseAllSubMenus(); switchPage('home')" id="menu-home"
                 class="nav-item group flex items-center px-4 py-3 my-0.5 mx-3 rounded-xl text-[11px] font-medium transition-all duration-300 cursor-pointer mt-2 text-gray-400 hover:bg-white/10 hover:text-white">
                 <div
                     class="w-7 flex justify-center transition-all duration-300 group-hover:scale-125 group-hover:-translate-y-1">
@@ -1983,95 +1983,111 @@
                             </div>
                         </div>
 
-                    <!-- 📑 สรุปสัญญาที่ต้องขยาย (ผู้ใช้ขอ 2026-11-23): ข้อมูลเดียวกับหน้าไฟล์สัญญา (listContractFiles — สิทธิ์ตามที่ทำการ/จังหวัด) -->
+                    <!-- 📑 สรุปสัญญาที่ต้องขยาย (ผู้ใช้ขอ 2026-11-23; ออกแบบใหม่ 2026-11-24): ข้อมูลเดียวกับหน้าไฟล์สัญญา (listContractFiles — สิทธิ์ตามที่ทำการ/จังหวัด) + ลูกค้า Active (getPackageDashboard) -->
                     <section id="homeContractCard" class="hcf hidden" aria-labelledby="hcfTitle">
                         <div class="hcf-h">
                             <span class="hcf-ic" aria-hidden="true"><i class="fas fa-file-signature"></i></span>
-                            <div class="hcf-tt"><h3 id="hcfTitle">สัญญาขนส่งที่ต้องขยายอายุ ปี 2570</h3><p id="hcfScope">กำลังโหลด...</p></div>
+                            <div class="hcf-tt"><h3 id="hcfTitle">สัญญาขนส่งที่ต้องขยายระยะเวลา สำหรับปี 2570</h3><p id="hcfScope">กำลังโหลด...</p></div>
                             <div class="hcf-act">
                                 <button type="button" class="hcf-ref" onclick="loadHomeContractSummary(true)" aria-label="โหลดข้อมูลใหม่" title="โหลดใหม่"><i class="fas fa-sync-alt"></i></button>
                                 <button type="button" class="hcf-go" onclick="switchPage('contract-files')">ไปที่ไฟล์สัญญา <i class="fas fa-arrow-right"></i></button>
                             </div>
                         </div>
-                        <div id="hcfBody" class="hcf-body"><div class="hcf-kpis"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div></div>
-                        <div id="hcfActive" class="hcf-active"></div>
+                        <div id="hcfBody" class="hcf-body"><div class="hcf-sk" style="height:180px"></div></div>
+                    </section>
+                    <!-- 👥 ลูกค้า Active แยกเป็นการ์ดของตัวเอง (ผู้ใช้ถาม 2026-11-24 ควรแยกไหม) -->
+                    <section id="homeActiveCard" class="hcf hidden" aria-labelledby="hcaTitle">
+                        <div class="hcf-h">
+                            <span class="hcf-ic hcf-ic-g" aria-hidden="true"><i class="fas fa-user-check"></i></span>
+                            <div class="hcf-tt"><h3 id="hcaTitle">ลูกค้า Active</h3><p>ลูกค้าที่ทำสัญญา มาฝากส่งกี่ราย (ไม่รวมยกเลิกสัญญา)</p></div>
+                            <div class="hcf-act"><button type="button" class="hcf-a-go" onclick="switchPage('contract-packages')">ดูรายละเอียด <i class="fas fa-arrow-right"></i></button></div>
+                        </div>
+                        <div id="hcfActive" class="hcf-active"><div class="hcf-sk"></div></div>
                     </section>
                     <style>
-                        .hcf { width: 100%; background: #fff; border: 1px solid #f1f2f4; border-radius: 1.5rem; box-shadow: 0 8px 30px rgba(0, 0, 0, .04); padding: 18px 20px; }
+                        .hcf { --c-dl: #16a34a; --c-view: #3b82f6; --c-none: #f59e0b; --c-none-soft: #fde68a; --c-ink: #0f172a; --c-mute: #64748b; --c-faint: #94a3b8; --c-line: #eef1f4;
+                            width: 100%; background: #fff; border: 1px solid #eef0f3; border-radius: 1.5rem; box-shadow: 0 8px 30px rgba(15, 23, 42, .05); padding: 20px 22px; }
                         .hcf.hidden { display: none; }
-                        .hcf-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #f5f5f5; }
-                        .hcf-ic { width: 32px; height: 32px; border-radius: 12px; background: #ffedd5; color: #ea580c; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+                        .hcf-h { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+                        .hcf-ic { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #fb923c, #ea580c); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(234, 88, 12, .25); }
                         .hcf-tt { flex: 1; min-width: 0; }
-                        .hcf-tt h3 { margin: 0; font-size: 17px; font-weight: 800; color: #111827; line-height: 1.3; }
-                        .hcf-tt p { margin: 0; font-size: 12px; color: #6b7280; }
+                        .hcf-tt h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--c-ink); line-height: 1.3; }
+                        .hcf-tt p { margin: 2px 0 0; font-size: 12px; color: var(--c-mute); }
                         .hcf-act { display: flex; align-items: center; gap: 8px; }
-                        .hcf-ref { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer; }
+                        .hcf-ref { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: var(--c-mute); cursor: pointer; }
                         .hcf-ref:hover { color: #ea580c; border-color: #fdba74; }
                         .hcf-ref:disabled i { animation: hcfSpin 1s linear infinite; }
                         @keyframes hcfSpin { to { transform: rotate(360deg); } }
-                        .hcf-go { height: 34px; padding: 0 14px; border-radius: 10px; border: 0; background: #ea580c; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+                        .hcf-go { height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: #ea580c; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
                         .hcf-go:hover { background: #c2410c; }
-                        .hcf-ref:focus-visible, .hcf-go:focus-visible, .hcf-row:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
-                        .hcf-body { padding-top: 14px; display: flex; flex-direction: column; gap: 14px; }
-                        .hcf-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-                        .hcf-k { border: 1px solid #f1f2f4; border-radius: 14px; padding: 12px 14px; min-width: 0; background: #fcfcfd; }
-                        .hcf-k-l { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
-                        .hcf-k-v { display: block; margin-top: 4px; font-size: 26px; font-weight: 800; color: #111827; line-height: 1.1; font-variant-numeric: tabular-nums; }
-                        .hcf-k-v small { font-size: 12px; font-weight: 600; color: #6b7280; }
-                        .hcf-k-s { display: block; margin-top: 2px; font-size: 12px; color: #6b7280; }
-                        .hcf-k.is-total { background: #fff7ed; border-color: #fed7aa; }
-                        .hcf-k.is-total .hcf-k-l i { color: #ea580c; }
-                        .hcf-k.is-view .hcf-k-l i { color: #2563eb; }
-                        .hcf-k.is-dl .hcf-k-l i { color: #16a34a; }
-                        .hcf-k.is-none .hcf-k-l i { color: #d97706; }
-                        .hcf-k.is-none { background: #fffbeb; border-color: #fde68a; }
-                        .hcf-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
-                        .hcf-bar span { display: block; height: 100%; border-radius: inherit; }
-                        .is-view .hcf-bar span { background: #2563eb; } .is-dl .hcf-bar span { background: #16a34a; } .is-none .hcf-bar span { background: #f59e0b; }
-                        .hcf-sub-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 800; color: #374151; margin: 0; }
-                        .hcf-sub-h small { font-size: 11px; font-weight: 600; color: #9ca3af; }
-                        .hcf-prog-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; }
-                        .hcf-rows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-                        .hcf-row { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-radius: 12px; border: 1px solid #f1f2f4; background: #fff; text-align: left; font: inherit; cursor: pointer; min-width: 0; transition: border-color .15s, background .15s; }
-                        .hcf-row:hover { border-color: #fdba74; background: #fffaf5; }
-                        .hcf-row-t { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-                        .hcf-row-n { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .hcf-row-n small { display: block; color: #9ca3af; font-weight: 500; font-size: 11px; }
-                        .hcf-row-pc { font-size: 18px; font-weight: 800; color: #111827; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
-                        .hcf-row-pc small { font-size: 11px; font-weight: 600; color: #6b7280; margin-left: 2px; }
-                        .hcf-row-pc.is-zero { color: #d97706; }
-                        .hcf-stack { display: flex; height: 8px; border-radius: 999px; background: #fde68a; overflow: hidden; }
-                        .hcf-stack .d { background: #16a34a; } .hcf-stack .v { background: #60a5fa; }
-                        .hcf-row-c { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11px; color: #6b7280; font-variant-numeric: tabular-nums; }
-                        .hcf-row-c b { color: #111827; font-weight: 700; }
-                        .hcf-row-c i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
-                        .hcf-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #6b7280; }
-                        .hcf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
-                        .hcf-active { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e5e7eb; }
-                        .hcf-active:empty { display: none; }
-                        .hcf-a-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-                        .hcf-a-h h4 { margin: 0; font-size: 15px; font-weight: 800; color: #111827; display: flex; align-items: center; gap: 8px; }
-                        .hcf-a-h h4 i { color: #16a34a; }
-                        .hcf-a-h small { font-size: 12px; color: #6b7280; }
-                        .hcf-a-go { margin-left: auto; height: 30px; padding: 0 12px; border-radius: 9px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #15803d; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+                        .hcf button:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
+                        .hcf-body { margin-top: 18px; display: flex; flex-direction: column; gap: 20px; }
+                        /* ภาพรวม: วงแหวน + ตัวเลข */
+                        .hcf-ov { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 22px; align-items: center; padding: 18px; border-radius: 18px; background: linear-gradient(180deg, #fffaf5, #fff); border: 1px solid #fdebd8; }
+                        .hcf-ring { position: relative; width: 168px; height: 168px; margin: 0 auto; border-radius: 50%; }
+                        .hcf-ring::after { content: ''; position: absolute; inset: 18px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px #f1f5f9; }
+                        .hcf-ring-c { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+                        .hcf-ring-c b { font-size: 26px; font-weight: 800; color: var(--c-ink); line-height: 1; font-variant-numeric: tabular-nums; }
+                        .hcf-ring-c b small { font-size: 14px; font-weight: 700; margin-left: 1px; }
+                        .hcf-ring-c span { font-size: 12px; color: var(--c-mute); margin-top: 4px; }
+                        .hcf-ring-c em { font-style: normal; font-size: 11px; color: var(--c-faint); margin-top: 2px; }
+                        .hcf-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: 1px solid var(--c-line); border-radius: 14px; overflow: hidden; background: #fff; }
+                        .hcf-st { padding: 14px 16px; min-width: 0; border-right: 1px solid var(--c-line); border-bottom: 1px solid var(--c-line); }
+                        .hcf-st:nth-child(2n) { border-right: 0; }
+                        .hcf-st:nth-child(n+3) { border-bottom: 0; }
+                        .hcf-st-l { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--c-mute); }
+                        .hcf-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+                        .hcf-st-v { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+                        .hcf-st-v b { font-size: 26px; font-weight: 800; color: var(--c-ink); line-height: 1.1; font-variant-numeric: tabular-nums; }
+                        .hcf-st-v small { font-size: 12px; color: var(--c-mute); }
+                        .hcf-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+                        .hcf-st-s { display: block; margin-top: 2px; font-size: 12px; color: var(--c-faint); }
+                        .hcf-flag { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 11px; font-weight: 700; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 999px; padding: 1px 8px; }
+                        /* ความคืบหน้าแยกพื้นที่ */
+                        .hcf-sec-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 8px; }
+                        .hcf-sec-h h4 { margin: 0; font-size: 15px; font-weight: 800; color: var(--c-ink); display: flex; align-items: center; gap: 8px; }
+                        .hcf-sec-h h4 small { font-size: 12px; font-weight: 500; color: var(--c-faint); }
+                        .hcf-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--c-mute); }
+                        .hcf-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+                        .hcf-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
+                        .hcf-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; gap: 6px 10px; padding: 10px 6px; border: 0; border-bottom: 1px solid var(--c-line); background: none; text-align: left; font: inherit; cursor: pointer; border-radius: 8px; min-width: 0; }
+                        .hcf-li:hover { background: #fff7ed; }
+                        .hcf-li-n { font-size: 13px; font-weight: 700; color: var(--c-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .hcf-li-n small { font-weight: 500; color: var(--c-faint); margin-left: 6px; font-size: 11px; }
+                        .hcf-li-p { font-size: 13px; font-weight: 800; color: var(--c-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+                        .hcf-li-p.is-zero { color: #d97706; }
+                        .hcf-li-p small { font-size: 11px; font-weight: 500; color: var(--c-faint); margin-left: 4px; }
+                        .hcf-stack { grid-column: 1 / -1; display: flex; height: 6px; border-radius: 999px; background: var(--c-none-soft); overflow: hidden; }
+                        .hcf-stack .d { background: var(--c-dl); } .hcf-stack .v { background: var(--c-view); }
+                        /* ลูกค้า Active */
+                        .hcf-ic-g { background: linear-gradient(135deg, #4ade80, #16a34a); box-shadow: 0 4px 10px rgba(22, 163, 74, .25); }
+                        .hcf-active { margin-top: 16px; }
+                        .hcf-a-go { height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid #bbf7d0; background: #f0fdf4; color: #15803d; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
                         .hcf-a-go:hover { background: #dcfce7; }
-                        .hcf-a-go:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
-                        .hcf-a { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-                        .hcf-a .hcf-k.is-act .hcf-k-l i { color: #16a34a; }
-                        .hcf-a .hcf-k.is-act .hcf-bar span { background: #16a34a; }
+                        .hcf-a { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--c-line); border-radius: 14px; overflow: hidden; }
+                        .hcf-a > div { padding: 14px 16px; min-width: 0; border-right: 1px solid var(--c-line); }
+                        .hcf-a > div:last-child { border-right: 0; }
+                        .hcf-a .hcf-st-l i { color: #16a34a; width: 14px; text-align: center; }
+                        .hcf-a .hcf-a-first .hcf-st-l i { color: #ea580c; }
+                        .hcf-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef2f6; overflow: hidden; }
+                        .hcf-bar span { display: block; height: 100%; border-radius: inherit; background: var(--c-dl); }
                         .hcf-a-note { margin: 8px 0 0; font-size: 12px; color: #b45309; }
-                        @media (max-width: 640px) { .hcf-a { grid-template-columns: minmax(0, 1fr); } .hcf-a-go { margin-left: 0; } }
                         .hcf-sk { height: 84px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: hcfSk 1.2s infinite; }
                         @keyframes hcfSk { to { background-position: -200% 0; } }
-                        .hcf-err { font-size: 13px; color: #6b7280; padding: 8px 0; }
+                        .hcf-err { font-size: 13px; color: var(--c-mute); padding: 8px 0; }
                         @media (prefers-reduced-motion: reduce) { .hcf-sk, .hcf-ref:disabled i { animation: none; } }
-                        @media (max-width: 1100px) { .hcf-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+                        @media (max-width: 1100px) { .hcf-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+                        @media (max-width: 860px) { .hcf-ov { grid-template-columns: minmax(0, 1fr); } }
                         @media (max-width: 640px) {
-                            .hcf { padding: 14px; border-radius: 1.25rem; }
-                            .hcf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-                            .hcf-k-v { font-size: 22px; }
+                            .hcf { padding: 16px; border-radius: 1.25rem; }
                             .hcf-act { width: 100%; } .hcf-go { flex: 1; justify-content: center; }
-                            .hcf-rows { grid-template-columns: minmax(0, 1fr); }
+                            .hcf-ov { padding: 14px; }
+                            .hcf-st-v b { font-size: 22px; }
+                            .hcf-flag { display: none; }
+                            .hcf-list { grid-template-columns: minmax(0, 1fr); }
+                            .hcf-a { grid-template-columns: minmax(0, 1fr); }
+                            .hcf-a > div { border-right: 0; border-bottom: 1px solid var(--c-line); }
+                            .hcf-a > div:last-child { border-bottom: 0; }
                         }
                     </style>
                     <script>
@@ -2080,24 +2096,35 @@
                             var who = function () { try { return String((currentUserInfo || {}).user || '').trim().toLowerCase(); } catch (e) { return ''; } };
                             var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
                             var fmt = function (n) { return Number(n || 0).toLocaleString('th-TH'); };
-                            var pct = function (a, b) { if (!b || !a) return 0; var p = a * 100 / b; return p < 1 ? Math.max(0.1, Math.round(p * 10) / 10) : Math.round(p); };
+                            // เปอร์เซ็นต์ทศนิยม 2 ตำแหน่ง (ผู้ใช้ขอ 2026-11-24) — คืนเป็นข้อความ เช่น "84.13" ใช้ได้ทั้งแสดงผลและความกว้างแถบ
+                            var pct = function (a, b) { return (b ? a * 100 / b : 0).toFixed(2); };
                             var seen = function (f) { return f.nView > 0 || !!f.view; }, dled = function (f) { return f.nDl > 0 || !!f.dl; };
+                            var pill = function (p, bg, fg) { return '<span class="hcf-pill" style="background:' + bg + ';color:' + fg + '">' + p + '%</span>'; };
                             var render = function (res) {
                                 var body = document.getElementById('hcfBody'), sc = document.getElementById('hcfScope'); if (!body) return;
                                 var nc = res.cancelled || 0; // ไม่นับลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-23)
-                                var L = (res.data || []).filter(function (f) { return !f.cancelled; }), n = L.length, v = L.filter(seen).length, d = L.filter(dled).length, none = L.filter(function (f) { return !seen(f) && !dled(f); }).length;
+                                var L = (res.data || []).filter(function (f) { return !f.cancelled; }), n = L.length;
+                                var d = L.filter(dled).length, vOnly = L.filter(function (f) { return seen(f) && !dled(f); }).length, v = L.filter(seen).length, none = n - d - vOnly;
                                 var tv = L.reduce(function (a, f) { return a + (f.nView || 0); }, 0), td = L.reduce(function (a, f) { return a + (f.nDl || 0); }, 0);
-                                if (sc) sc.textContent = (res.scope === 'all' ? 'ทุกที่ทำการ ปข.10' : res.scope === 'province' ? 'ที่ทำการในจังหวัด' + (res.prov || '') : 'ที่ทำการ ' + (res.zip || '')) + ' · ไฟล์สัญญาที่สร้างแล้วรอให้ลูกค้าลงนาม' + (nc ? ' · ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : '');
-                                var k = function (cls, icon, label, val, sub, p) {
-                                    return '<div class="hcf-k ' + cls + '"><span class="hcf-k-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="hcf-k-v">' + fmt(val) + '<small> สัญญา' + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
-                                        (p != null ? '<span class="hcf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="hcf-k-s">' + sub + '</span></div>';
+                                if (sc) sc.textContent = (res.scope === 'all' ? 'ทุกที่ทำการ ปข.10' : res.scope === 'province' ? 'ที่ทำการในจังหวัด' + (res.prov || '') : 'ที่ทำการ ' + (res.zip || '')) + ' · ไฟล์สัญญาที่สร้างแล้ว รอที่ทำการดาวน์โหลดไปให้ลูกค้าลงนาม';
+                                if (!n) { body.innerHTML = '<div class="hcf-err">ยังไม่มีไฟล์สัญญาที่ต้องขยายในพื้นที่ของคุณ</div>'; return; }
+                                // ----- ภาพรวม: วงแหวน (ดาวน์โหลด / เปิดดูอย่างเดียว / ยังไม่เปิด) + ตัวเลข -----
+                                var pD = d * 100 / n, pV = vOnly * 100 / n;
+                                var ring = 'conic-gradient(var(--c-dl) 0 ' + pD + '%, var(--c-view) ' + pD + '% ' + (pD + pV) + '%, var(--c-none-soft) ' + (pD + pV) + '% 100%)';
+                                var st = function (dot, label, val, unit, p, pbg, pfg, sub, flag) {
+                                    return '<div class="hcf-st"><span class="hcf-st-l">' + (dot ? '<span class="hcf-dot" style="background:' + dot + '"></span>' : '<i class="fas fa-file-contract" style="color:#ea580c"></i>') + label + (flag || '') + '</span>' +
+                                        '<span class="hcf-st-v"><b>' + fmt(val) + '</b><small>' + unit + '</small>' + (p != null ? pill(p, pbg, pfg) : '') + '</span><span class="hcf-st-s">' + sub + '</span></div>';
                                 };
-                                var html = '<div class="hcf-kpis">' + k('is-total', 'fa-file-contract', 'สัญญาที่ต้องขยาย', n, 'ไฟล์สัญญาทั้งหมด', null) +
-                                    k('is-view', 'fa-eye', 'เปิดดูแล้ว', v, 'รวม ' + fmt(tv) + ' ครั้ง', pct(v, n)) +
-                                    k('is-dl', 'fa-download', 'ดาวน์โหลดแล้ว', d, 'รวม ' + fmt(td) + ' ครั้ง', pct(d, n)) +
-                                    k('is-none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', none, 'ต้องติดตาม', pct(none, n)) + '</div>';
-                                // แยกตามจังหวัด (admin) / ที่ทำการ (ที่ทำการจังหวัด) — เรียงจากดาวน์โหลดน้อยไปมาก เพื่อเห็นที่ต้องติดตามก่อน
-                                if (res.scope !== 'office' && n) {
+                                var html = '<div class="hcf-ov"><div><div class="hcf-ring" style="background:' + ring + '" role="img" aria-label="ดาวน์โหลดแล้ว ' + pct(d, n) + ' เปอร์เซ็นต์">' +
+                                    '<div class="hcf-ring-c"><b>' + pct(d, n) + '<small>%</small></b><span>ดาวน์โหลดแล้ว</span><em>' + fmt(d) + ' จาก ' + fmt(n) + ' สัญญา</em></div></div></div>' +
+                                    '<div class="hcf-stats">' +
+                                    st('', 'สัญญาที่ต้องขยาย', n, 'สัญญา', null, '', '', nc ? 'ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : 'ไฟล์สัญญาทั้งหมด') +
+                                    st('var(--c-dl)', 'ดาวน์โหลดแล้ว', d, 'สัญญา', pct(d, n), '#dcfce7', '#15803d', 'รวม ' + fmt(td) + ' ครั้ง') +
+                                    st('var(--c-view)', 'เปิดดูแล้ว', v, 'สัญญา', pct(v, n), '#dbeafe', '#1d4ed8', 'รวม ' + fmt(tv) + ' ครั้ง · เปิดดูอย่างเดียว ' + fmt(vOnly)) +
+                                    st('var(--c-none)', 'ยังไม่มีใครเปิด', none, 'สัญญา', pct(none, n), '#fef3c7', '#b45309', 'ยังไม่เปิดดูหรือดาวน์โหลด', none ? '<span class="hcf-flag"><i class="fas fa-flag"></i>ต้องติดตาม</span>' : '') +
+                                    '</div></div>';
+                                // ----- แยกตามจังหวัด (admin) / ที่ทำการ (ที่ทำการจังหวัด) -----
+                                if (res.scope !== 'office') {
                                     var byProv = res.scope === 'all', g = {};
                                     L.forEach(function (f) {
                                         // 34010 / 47010 (ศูนย์ไปรษณีย์) แยกเป็นแถวของตัวเอง ไม่รวมในจังหวัด (ผู้ใช้ขอ 2026-11-23)
@@ -2109,18 +2136,16 @@
                                     var ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'สกลนคร', 'นครพนม', 'มุกดาหาร', '@34010', '@47010'];
                                     var rank = function (r) { var i = ORDER.indexOf(r.z ? '@' + r.z : String(r.k).replace(/^จังหวัด\s*/, '')); return i === -1 ? ORDER.length : i; };
                                     var rows = Object.keys(g).map(function (x) { return g[x]; }).sort(byProv ? function (a, b) { return rank(a) - rank(b) || String(a.k).localeCompare(String(b.k), 'th'); } : function (a, b) { return pct(a.d, a.n) - pct(b.d, b.n) || b.n - a.n; });
-                                    var C_D = '#16a34a', C_V = '#60a5fa', C_N = '#fde68a';
-                                    html += '<div><div class="hcf-prog-h"><p class="hcf-sub-h" style="margin:0">ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>' + (byProv ? '' : 'เรียงจากดาวน์โหลดน้อยไปมาก · ') + 'ตัวเลขใหญ่ = % ดาวน์โหลดแล้ว · คลิกเพื่อดูไฟล์</small></p>' +
-                                        '<div class="hcf-legend"><span><i style="background:' + C_D + '"></i>ดาวน์โหลดแล้ว</span><span><i style="background:' + C_V + '"></i>เปิดดูอย่างเดียว</span><span><i style="background:' + C_N + '"></i>ยังไม่เปิด</span></div></div>' +
-                                        '<div class="hcf-rows">' + rows.map(function (r) {
-                                            var name = r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k, none = r.n - r.d - r.v, pd = pct(r.d, r.n);
-                                            return '<button type="button" class="hcf-row" onclick="switchPage(\'contract-files\')" aria-label="' + esc(name) + ': ดาวน์โหลดแล้ว ' + r.d + ' เปิดดูอย่างเดียว ' + r.v + ' ยังไม่เปิด ' + none + ' จาก ' + r.n + ' สัญญา">' +
-                                                '<span class="hcf-row-t"><span class="hcf-row-n">' + esc(name) + '<small>' + fmt(r.n) + ' สัญญา</small></span><span class="hcf-row-pc' + (r.d ? '' : ' is-zero') + '">' + pd + '<small>%</small></span></span>' +
-                                                '<span class="hcf-stack" aria-hidden="true"><span class="d" style="width:' + (r.n ? r.d * 100 / r.n : 0) + '%"></span><span class="v" style="width:' + (r.n ? r.v * 100 / r.n : 0) + '%"></span></span>' +
-                                                '<span class="hcf-row-c"><span><i style="background:' + C_D + '"></i><b>' + fmt(r.d) + '</b></span><span><i style="background:' + C_V + '"></i><b>' + fmt(r.v) + '</b></span><span><i style="background:' + C_N + '"></i>' + fmt(none) + '</span></span></button>';
+                                    html += '<div><div class="hcf-sec-h"><h4>ความคืบหน้าแยกตาม' + (byProv ? 'จังหวัด' : 'ที่ทำการ') + ' <small>% = ดาวน์โหลดแล้ว' + (byProv ? '' : ' · เรียงจากน้อยไปมาก') + ' · คลิกเพื่อดูไฟล์</small></h4>' +
+                                        '<div class="hcf-legend"><span><i style="background:var(--c-dl)"></i>ดาวน์โหลดแล้ว</span><span><i style="background:var(--c-view)"></i>เปิดดูอย่างเดียว</span><span><i style="background:var(--c-none-soft)"></i>ยังไม่เปิด</span></div></div>' +
+                                        '<div class="hcf-list">' + rows.map(function (r) {
+                                            var name = r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k, nn = r.n - r.d - r.v;
+                                            return '<button type="button" class="hcf-li" onclick="switchPage(\'contract-files\')" title="' + esc(name) + ': ดาวน์โหลดแล้ว ' + fmt(r.d) + ' · เปิดดูอย่างเดียว ' + fmt(r.v) + ' · ยังไม่เปิด ' + fmt(nn) + ' จาก ' + fmt(r.n) + ' สัญญา">' +
+                                                '<span class="hcf-li-n">' + esc(name) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
+                                                '<span class="hcf-li-p' + (r.d ? '' : ' is-zero') + '">' + pct(r.d, r.n) + '%<small>' + fmt(r.d) + '/' + fmt(r.n) + '</small></span>' +
+                                                '<span class="hcf-stack" aria-hidden="true"><span class="d" style="width:' + (r.d * 100 / r.n) + '%"></span><span class="v" style="width:' + (r.v * 100 / r.n) + '%"></span></span></button>';
                                         }).join('') + '</div></div>';
                                 }
-                                if (!n) html = '<div class="hcf-err">ยังไม่มีไฟล์สัญญาที่ต้องขยายในพื้นที่ของคุณ</div>';
                                 body.innerHTML = html;
                             };
                             // ----- ลูกค้า Active: ทำสัญญากี่ราย มีการฝากส่งกี่ราย (ผู้ใช้ขอ 2026-11-23) — ข้อมูลเดียวกับหน้า ลูกค้าแต่ละ Package (ไม่รวมยกเลิกสัญญา) -----
@@ -2129,7 +2154,9 @@
                             var renderActive = function (res) {
                                 var el = document.getElementById('hcfActive'); if (!el) return;
                                 var C = res.customers || [], y = (res.years || [])[0], n = C.length;
-                                if (!n) { el.innerHTML = ''; return; }
+                                var card = document.getElementById('homeActiveCard');
+                                if (!n) { if (card) card.classList.add('hidden'); return; }
+                                if (card) card.classList.remove('hidden');
                                 var lastM = -1, ship = res.ship || {};
                                 if (y) Object.keys(ship).forEach(function (t) { var a = ship[t][y]; if (!a) return; for (var m = 11; m > lastM; m--) if (a[m * 2] > 0 || a[m * 2 + 1] > 0) { lastM = m; break; } });
                                 var yr = 0, mo = 0, noThp = 0;
@@ -2140,40 +2167,39 @@
                                     if (any) yr++;
                                     if (lastM >= 0 && (a[lastM * 2] > 0 || a[lastM * 2 + 1] > 0)) mo++;
                                 });
-                                var k = function (cls, icon, label, val, unit, sub, p) {
-                                    return '<div class="hcf-k ' + cls + '"><span class="hcf-k-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="hcf-k-v">' + fmt(val) + '<small> ' + unit + (p != null ? ' · ' + p + '%' : '') + '</small></span>' +
-                                        (p != null ? '<span class="hcf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="hcf-k-s">' + sub + '</span></div>';
-                                };
                                 var be = y ? y + 543 : '';
-                                el.innerHTML = '<div class="hcf-a-h"><h4><i class="fas fa-user-check"></i>ลูกค้า Active</h4><small>ทำสัญญากี่ราย มีการมาฝากส่งกี่ราย (ไม่รวมยกเลิกสัญญา)</small>' +
-                                    '<button type="button" class="hcf-a-go" onclick="switchPage(\'contract-packages\')">ดูรายละเอียด <i class="fas fa-arrow-right"></i></button></div><div class="hcf-a">' +
-                                    k('is-total', 'fa-users', 'ลูกค้าที่ทำสัญญา', n, 'ราย', (res.cancelled ? 'ไม่รวมยกเลิกสัญญา ' + fmt(res.cancelled) + ' ราย' : 'ตามชีตรายชื่อลูกค้า'), null) +
-                                    k('is-act', 'fa-truck', 'มีการฝากส่ง ปี ' + be, yr, 'ราย', 'ไม่มีการฝากส่ง ' + fmt(n - yr) + ' ราย', pct(yr, n)) +
-                                    k('is-act', 'fa-calendar-check', 'มีการฝากส่ง ' + (lastM >= 0 ? MOF[lastM] + ' ' + be : 'เดือนล่าสุด'), mo, 'ราย', 'เดือนล่าสุดที่มีข้อมูลรายได้', pct(mo, n)) + '</div>' +
+                                var col = function (cls, icon, label, val, unit, sub, p) {
+                                    return '<div class="' + cls + '"><span class="hcf-st-l"><i class="fas ' + icon + '"></i>' + label + '</span><span class="hcf-st-v"><b>' + fmt(val) + '</b><small>' + unit + '</small>' + (p != null ? pill(p, '#dcfce7', '#15803d') : '') + '</span>' +
+                                        (p != null ? '<span class="hcf-bar"><span style="width:' + p + '%"></span></span>' : '') + '<span class="hcf-st-s">' + sub + '</span></div>';
+                                };
+                                el.innerHTML = '<div class="hcf-a">' +
+                                    col('hcf-a-first', 'fa-users', 'ลูกค้าที่ทำสัญญา', n, 'ราย', res.cancelled ? 'ไม่รวมยกเลิกสัญญา ' + fmt(res.cancelled) + ' ราย' : 'ตามชีตรายชื่อลูกค้า', null) +
+                                    col('', 'fa-truck', 'มีการฝากส่ง ปี ' + be, yr, 'ราย', 'ไม่มีการฝากส่ง ' + fmt(n - yr) + ' ราย', pct(yr, n)) +
+                                    col('', 'fa-calendar-check', 'มีการฝากส่ง ' + (lastM >= 0 ? MOF[lastM] + ' ' + be : 'เดือนล่าสุด'), mo, 'ราย', 'เดือนล่าสุดที่มีข้อมูลรายได้', pct(mo, n)) + '</div>' +
                                     (noThp ? '<p class="hcf-a-note"><i class="fas fa-info-circle"></i> ' + fmt(noThp) + ' รายไม่มีหมายเลข THP ในชีตรายชื่อ จึงตรวจการฝากส่งไม่ได้ (นับเป็นไม่มีการฝากส่ง)</p>' : '');
                             };
                             var loadActive = function (force, u) {
                                 var el = document.getElementById('hcfActive'); if (!el) return;
                                 if (!force && aCache && aCache.u === u && Date.now() - aCache.at < 300000) { renderActive(aCache.res); return; }
                                 var my = ++aSeq;
-                                if (!aCache || aCache.u !== u) el.innerHTML = '<div class="hcf-a"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div>';
+                                if (!aCache || aCache.u !== u) { el.innerHTML = '<div class="hcf-sk"></div>'; var ac = document.getElementById('homeActiveCard'); if (ac) ac.classList.remove('hidden'); }
                                 google.script.run.withSuccessHandler(function (res) {
                                     if (my !== aSeq || who() !== u) return;
-                                    if (!(res && res.status === 'success')) { el.innerHTML = ''; return; }
+                                    if (!(res && res.status === 'success')) { var ac = document.getElementById('homeActiveCard'); if (ac) ac.classList.add('hidden'); return; }
                                     aCache = { u: u, at: Date.now(), res: res }; renderActive(res);
-                                }).withFailureHandler(function () { if (my === aSeq) el.innerHTML = ''; }).getPackageDashboard(currentUserInfo);
+                                }).withFailureHandler(function () { if (my === aSeq) { var ac = document.getElementById('homeActiveCard'); if (ac) ac.classList.add('hidden'); } }).getPackageDashboard(currentUserInfo);
                             };
-                            window.clearHomeContractSummary = function () { cache = null; seq++; aCache = null; aSeq++; var ea = document.getElementById('hcfActive'); if (ea) ea.innerHTML = ''; var c = document.getElementById('homeContractCard'); if (c) c.classList.add('hidden'); };
+                            window.clearHomeContractSummary = function () { cache = null; seq++; aCache = null; aSeq++; var ea = document.getElementById('hcfActive'); if (ea) ea.innerHTML = ''; ['homeContractCard', 'homeActiveCard'].forEach(function (id) { var c = document.getElementById(id); if (c) c.classList.add('hidden'); }); };
                             // force = กดโหลดใหม่ · ไม่ force = ใช้ข้อมูลเดิมถ้าโหลดไว้ไม่เกิน 5 นาที
                             window.loadHomeContractSummary = function (force) {
                                 var u = who(), card = document.getElementById('homeContractCard');
                                 if (!card) return;
-                                if (!u || u === 'viewer' || u === 'prepost') { card.classList.add('hidden'); return; }
+                                if (!u || u === 'viewer' || u === 'prepost') { card.classList.add('hidden'); var ac0 = document.getElementById('homeActiveCard'); if (ac0) ac0.classList.add('hidden'); return; }
                                 card.classList.remove('hidden');
                                 loadActive(force, u);
                                 if (!force && cache && cache.u === u && Date.now() - cache.at < 300000) { render(cache.res); return; }
                                 var my = ++seq, btn = card.querySelector('.hcf-ref'); if (btn) btn.disabled = true;
-                                if (!cache || cache.u !== u) document.getElementById('hcfBody').innerHTML = '<div class="hcf-kpis"><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div><div class="hcf-sk"></div></div>';
+                                if (!cache || cache.u !== u) document.getElementById('hcfBody').innerHTML = '<div class="hcf-sk" style="height:180px"></div>';
                                 google.script.run.withSuccessHandler(function (res) {
                                     if (my !== seq || who() !== u) return; if (btn) btn.disabled = false;
                                     if (!(res && res.status === 'success')) { if (res && /สิทธิ์/.test(res.message || '')) { card.classList.add('hidden'); return; } document.getElementById('hcfBody').innerHTML = '<div class="hcf-err">โหลดข้อมูลสัญญาไม่สำเร็จ: ' + esc((res && res.message) || '') + '</div>'; return; }
@@ -30281,6 +30307,25 @@
         }
     }
 
+    // หุบเมนูย่อยทั้งหมดในแถบซ้าย (กดเมนู "หน้าหลัก" — ผู้ใช้ขอ 2026-11-24)
+    function collapseAllSubMenus() {
+        ['visits', 'revenue', 'contract', 'tools', 'biglot', 'cmp', 'tms', 'fuze'].forEach(function (k) {
+            var grp = document.getElementById('menu-group-' + k), icn = document.getElementById('icon-' + k);
+            if (grp) { grp.classList.add('hidden'); grp.classList.remove('flex'); }
+            if (icn) { icn.style.transform = 'rotate(0deg)'; icn.classList.remove('text-theme-orange'); }
+        });
+    }
+    window.collapseAllSubMenus = collapseAllSubMenus;
+    // เปิดกลุ่มเมนู (และกลุ่มแม่) ที่มีเมนูของหน้าปัจจุบัน หุบกลุ่มอื่น
+    window.revealActiveMenu = function (menuEl) {
+        collapseAllSubMenus();
+        for (var el = menuEl && menuEl.parentElement; el; el = el.parentElement) {
+            if (!el.id || el.id.indexOf("menu-group-") !== 0) continue;
+            el.classList.remove("hidden"); el.classList.add("flex");
+            var icn = document.getElementById("icon-" + el.id.slice(11));
+            if (icn) { icn.style.transform = "rotate(180deg)"; icn.classList.add("text-theme-orange"); }
+        }
+    };
     function toggleSubMenu(groupId, iconId) {
         const allGroups = ['menu-group-visits', 'menu-group-revenue', 'menu-group-contract', 'menu-group-tools', 'menu-group-biglot'];
         const allIcons = ['icon-visits', 'icon-revenue', 'icon-contract', 'icon-tools', 'icon-biglot'];
@@ -30873,6 +30918,8 @@
                 if (pageEl) pageEl.classList.remove('hidden');
                 const menuEl = document.getElementById(target.menu);
                 if (menuEl) { menuEl.classList.remove(...inactiveClasses); menuEl.classList.add(...activeClasses); }
+                // เมนูด้านซ้าย: เปิดกลุ่มของหน้าที่อยู่ (เช่น กดการ์ดหน้าหลักแล้วไปไฟล์สัญญา → เปิด สัญญาขนส่ง) และหุบกลุ่มอื่น — หน้าหลักหุบทั้งหมด (ผู้ใช้ขอ 2026-11-24)
+                if (menuEl && typeof window.revealActiveMenu === "function") window.revealActiveMenu(menuEl);
                 const pageTitleEl = document.getElementById('pageTitle');
                 if (pageTitleEl) pageTitleEl.innerText = target.title;
                 if (target.action) target.action();
