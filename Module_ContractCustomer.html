@@ -28,6 +28,12 @@
     #page-contract-customer .cc-result { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
     #page-contract-customer .cc-empty { font-size: 14px; color: #6b7280; padding: 14px; border: 1px dashed #d1d5db; border-radius: 12px; text-align: center; }
     #page-contract-customer .cc-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; }
+    #page-contract-customer .cc-done { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid #86efac; background: #f0fdf4; border-radius: 12px; color: #166534; }
+    #page-contract-customer .cc-done > i { font-size: 20px; margin-top: 1px; }
+    #page-contract-customer .cc-done b { display: block; font-size: 15px; }
+    #page-contract-customer .cc-done span { display: block; font-size: 13px; color: #15803d; margin-top: 2px; }
+    #page-contract-customer .cc-done.is-warn { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+    #page-contract-customer .cc-done.is-warn span { color: #b45309; }
     #page-contract-customer .cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
     #page-contract-customer .cc-head b { font-size: 16px; color: #111827; }
     #page-contract-customer .cc-chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: #f3f4f6; color: #374151; }
@@ -420,6 +426,15 @@
             return res.regErr ? '<br><span style="color:#b91c1c">อัปเดตทะเบียนสัญญาปี 2570 ไม่สำเร็จ: ' + esc(res.regErr) + '</span>'
                 : res.regRow ? '<br>' + (res.regAdded ? 'เพิ่ม' : 'อัปเดต') + 'ทะเบียนสัญญา "ปี 2570" แถว ' + res.regRow : '';
         };
+        // บันทึกเสร็จ → ล้างผลค้นหา/ฟอร์ม + ช่องค้นหา พร้อมกรอกรายต่อไป (ผู้ใช้ขอ 2026-11-24)
+        var doneSave = function (sw, name, row, warn) {
+            window.thpCcClear(); pending = [];
+            var el = box(), t = new Date(), hm = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+            if (el) el.innerHTML = '<div class="cc-done' + (warn ? ' is-warn' : '') + '" role="status"><i class="fas ' + (warn ? 'fa-exclamation-circle' : 'fa-check-circle') + '"></i><div><b>บันทึกข้อมูล' + (name ? ' ' + esc(name) : '') + ' เรียบร้อยแล้ว</b>' +
+                '<span>' + (row > 1 ? 'ชีตรายชื่อแถว ' + row + ' · ' : '') + 'เวลา ' + hm + ' น.' + (warn ? ' · มีไฟล์แนบที่ยังไม่ได้อัปโหลด' : '') + ' — ค้นหาลูกค้ารายถัดไปได้เลย</span></div></div>';
+            var go = function () { var i = document.getElementById('ccQuery'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus({ preventScroll: true }); } };
+            if (sw && sw.then) sw.then(go); else go();
+        };
         window.thpCcSave = function (btn) {
             var it = last.items[Number(btn.getAttribute('data-i'))]; if (!it) return;
             var card = btn.closest('.cc-card'), ex0 = collectExtra(card);
@@ -436,8 +451,7 @@
                 google.script.run.withSuccessHandler(function (res) {
                     btn.disabled = false; btn.innerHTML = html;
                     if (!(res && res.status === 'success')) { Swal.fire('บันทึกไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error'); return; }
-                    Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : '') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow + regMsg(res) });
-                    window.thpCcSearch(); // แสดงสถานะล่าสุด
+                    doneSave(Swal.fire({ icon: 'success', title: 'บันทึกเรียบร้อย', html: (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : '') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow + regMsg(res), returnFocus: false }), it.v['ชื่อลูกค้า'], res.listRow);
                 }).withFailureHandler(function (err) {
                     btn.disabled = false; btn.innerHTML = html;
                     Swal.fire('บันทึกไม่สำเร็จ', err && err.message ? err.message : String(err), 'error');
@@ -464,17 +478,16 @@
                     var msg = (res.formAdded ? 'เพิ่มแถว ' + res.formRow + ' ในชีต "การตอบแบบฟอร์ม 1"<br>' : 'มีลูกค้าในชีตอยู่แล้ว (ไม่เพิ่มซ้ำ)<br>') + 'บันทึก ' + res.written + ' ช่อง ในชีต "รายชื่อ/สัญญา A1-A12" แถว ' + res.listRow + regMsg(res);
                     var files = pending.slice();
                     if (!files.length || !(res.listRow > 1)) {
-                        Swal.fire({ icon: files.length ? 'warning' : 'success', title: 'บันทึกแล้ว', html: msg + (files.length ? '<br><br>ยังไม่ได้อัปโหลดไฟล์แนบ (ไม่ทราบแถวในชีตรายชื่อ) — ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"' : '') });
-                        if (res.listRow > 1) window.thpCcSearch(); // แสดงข้อมูลที่บันทึกจากชีตรายชื่อ
+                        pending = [];
+                        doneSave(Swal.fire({ icon: files.length ? 'warning' : 'success', title: 'บันทึกเรียบร้อย', html: msg + (files.length ? '<br><br>ยังไม่ได้อัปโหลดไฟล์แนบ (ไม่ทราบแถวในชีตรายชื่อ) — ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"' : ''), returnFocus: false }), ex['ชื่อลูกค้า'], res.listRow, files.length > 0);
                         return;
                     }
                     pending = [];
                     var box2 = document.getElementById('ccPendingList'); if (box2) box2.innerHTML = pendingRows();
                     var ys = card.querySelector('.cc-pending .cc-year');
                     uploadFiles(files, res.listRow, ex, ys ? ys.value : 0).then(function (r) {
-                        Swal.fire({ icon: r.fails.length ? 'warning' : 'success', title: 'บันทึกแล้ว',
-                            html: msg + '<br>ไฟล์แนบ: อัปโหลดแล้ว ' + r.done + ' จาก ' + files.length + ' ไฟล์' + (r.fails.length ? '<br><br>' + failHtml(r.fails) + '<div style="margin-top:6px">ไฟล์ที่ไม่สำเร็จ: ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"</div>' : '') });
-                        window.thpCcSearch(); // แสดงข้อมูลที่บันทึก + ไฟล์แนบจากชีตรายชื่อ
+                        doneSave(Swal.fire({ icon: r.fails.length ? 'warning' : 'success', title: 'บันทึกเรียบร้อย', returnFocus: false,
+                            html: msg + '<br>ไฟล์แนบ: อัปโหลดแล้ว ' + r.done + ' จาก ' + files.length + ' ไฟล์' + (r.fails.length ? '<br><br>' + failHtml(r.fails) + '<div style="margin-top:6px">ไฟล์ที่ไม่สำเร็จ: ค้นหาลูกค้าอีกครั้งแล้วกด "เพิ่มไฟล์"</div>' : '') }), ex['ชื่อลูกค้า'], res.listRow, r.fails.length > 0);
                     });
                 }).withFailureHandler(function (err) {
                     btn.disabled = false; btn.innerHTML = html;
