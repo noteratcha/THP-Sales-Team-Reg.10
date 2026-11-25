@@ -4875,6 +4875,21 @@ function getLineDestinationId_(tokenIndex) {
  * หาก Token แรกโควตาเต็ม (429) หรือมีปัญหา จะสลับไปใช้ Token ถัดไปทันที
  * พร้อมส่งคืนสถานะแจ้งเตือนโควตา (Quota Alerts)
  */
+// เรียก LINE API แบบลองซ้ำ (แก้ 2026-11-25): Google บางครั้งต่อ api.line.me ไม่ได้ชั่วคราว
+// ("Exception: ที่อยู่ไม่สามารถใช้ได้" / Address unavailable / DNS / timeout) หรือ LINE ตอบ 5xx → รอ 1, 2 วินาทีแล้วลองใหม่ รวม 3 ครั้ง
+function lineFetchRetry_(url, options) {
+  var lastErr = null, resp = null;
+  for (var t = 0; t < 3; t++) {
+    if (t) Utilities.sleep(1000 * t);
+    try {
+      resp = UrlFetchApp.fetch(url, options);
+      if (resp.getResponseCode() < 500) return resp;
+      lastErr = null;
+    } catch (e) { lastErr = e; console.warn('LINE fetch ครั้งที่ ' + (t + 1) + ' ไม่สำเร็จ: ' + e); }
+  }
+  if (resp && !lastErr) return resp;
+  throw new Error('เชื่อมต่อ LINE ไม่ได้ชั่วคราว (ลองแล้ว 3 ครั้ง) กรุณาลองส่งใหม่อีกครั้งในอีกสักครู่ — ' + String(lastErr && lastErr.message || lastErr));
+}
 function sendLinePushWithFailover_(payload) {
   var tokens = getLineChannelAccessTokens_();
   var lastError = "";
@@ -4900,7 +4915,9 @@ function sendLinePushWithFailover_(payload) {
       muteHttpExceptions: true
     };
 
-    var response = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+    var response;
+    try { response = lineFetchRetry_('https://api.line.me/v2/bot/message/push', options); }
+    catch (eNet) { lastCode = 0; lastError = String(eNet && eNet.message || eNet); all429 = false; console.warn('LINE Token ' + (i + 1) + ': ' + lastError); continue; } // เครือข่ายล้ม → ลองบอทถัดไป
     var code = response.getResponseCode();
     var body = response.getContentText();
 
@@ -5252,7 +5269,7 @@ function sendBigLotLineNotification(message) {
       muteHttpExceptions: true
     };
 
-    var response = UrlFetchApp.fetch(url, options);
+    var response = lineFetchRetry_(url, options);
     console.log("LINE Notification Response: " + response.getContentText());
   } catch (e) {
     console.error("LINE Notification Error: " + e.toString());
@@ -7826,7 +7843,7 @@ function sendBugReportToLine_(message, base64Image) {
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     };
-    UrlFetchApp.fetch(apiUrl, options);
+    lineFetchRetry_(apiUrl, options);
     
   } catch(e) {
     console.error("sendBugReportToLine error: " + e.toString());
@@ -8192,7 +8209,7 @@ function sendDailyLinkToLine() {
       muteHttpExceptions: true
     };
     
-    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', options);
+    lineFetchRetry_('https://api.line.me/v2/bot/message/push', options);
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e);
   }
