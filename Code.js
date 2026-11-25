@@ -5294,6 +5294,52 @@ function isTargetPlanAdmin_(actor) {
   return !!(actor && String(actor.user || '').toLowerCase() === 'admin');
 }
 
+// ==========================================
+// 📢 ข้อความวิ่ง "แจ้งเพื่อดำเนินการ" (ผู้ใช้ขอ 2026-11-25) — admin เพิ่ม/แก้/ลบ/จัดลำดับ/กำหนดวันเวลาสิ้นสุด/สีข้อความ
+// เก็บใน Script Properties 'ANNOUNCEMENTS' = [{ id, text, until: 'yyyy-MM-ddTHH:mm' (เวลาไทย, ว่าง = ไม่มีกำหนด), color: '#rrggbb' }] เรียงตามลำดับแสดง
+// ==========================================
+var ANNOUNCE_PROP = 'ANNOUNCEMENTS';
+var ANNOUNCE_DEFAULT = [{ id: 'a1', color: '#9a3412', until: '2026-12-31T23:59',
+  text: 'ขอให้ทีมขายประจำที่ทำการทุกแห่ง ดาวน์โหลดเอกสารขยายอายุสัญญาขนส่ง A11–A14 ประจำปี 2570 เพื่อดำเนินการให้ลูกค้าลงนามให้แล้วเสร็จสมบูรณ์ และนำส่งให้ ผปข.10 พิจารณาอนุมัติ ภายในวันที่ 20 ธันวาคม 2569 ทั้งนี้ ขอความร่วมมือดำเนินการให้แล้วเสร็จตามกำหนดเวลาดังกล่าว' }];
+function announceRead_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(ANNOUNCE_PROP);
+  if (raw == null) return ANNOUNCE_DEFAULT.slice();
+  try { var a = JSON.parse(raw); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function announceUntilMs_(until) { return until ? Date.parse(until + ':00+07:00') : Infinity; }
+function getAnnouncements_(actor) {
+  try {
+    if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
+    var all = announceRead_(), now = Date.now(), admin = isTargetPlanAdmin_(actor);
+    return { status: 'success', items: admin ? all : all.filter(function (x) { return now <= announceUntilMs_(x.until); }), admin: admin, now: now };
+  } catch (e) {
+    return { status: 'error', message: e.toString() };
+  }
+}
+function saveAnnouncements_(payload, actor) {
+  try {
+    if (!isTargetPlanAdmin_(actor)) return { status: 'error', message: 'แก้ไขข้อความประกาศได้เฉพาะผู้ดูแลระบบ (admin)' };
+    var list = payload && payload.items;
+    if (!Array.isArray(list)) return { status: 'error', message: 'ข้อมูลไม่ถูกต้อง' };
+    if (list.length > 20) return { status: 'error', message: 'ประกาศได้ไม่เกิน 20 ข้อความ' };
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var x = list[i] || {}, text = String(x.text || '').replace(/\s+/g, ' ').trim();
+      if (!text) continue;
+      if (text.length > 500) return { status: 'error', message: 'ข้อความที่ ' + (i + 1) + ' ยาวเกิน 500 ตัวอักษร' };
+      var until = String(x.until || '').trim();
+      if (until && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(until) || isNaN(Date.parse(until + ':00+07:00')))) return { status: 'error', message: 'วันเวลาสิ้นสุดของข้อความที่ ' + (i + 1) + ' ไม่ถูกต้อง' };
+      var color = /^#[0-9a-fA-F]{6}$/.test(String(x.color || '')) ? String(x.color).toLowerCase() : '#9a3412';
+      out.push({ id: /^[\w-]{1,20}$/.test(String(x.id || '')) ? String(x.id) : 'a' + Date.now().toString(36) + i, text: text, until: until, color: color });
+    }
+    PropertiesService.getScriptProperties().setProperty(ANNOUNCE_PROP, JSON.stringify(out));
+    return { status: 'success', items: out };
+  } catch (e) {
+    if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'saveAnnouncements_');
+    return { status: 'error', message: e.toString() };
+  }
+}
+
 function getTargetPlanIntlSheet_(createIfMissing) {
   var ss = SpreadsheetApp.openById(TARGET_PLAN_INTL_SS_ID);
   var sheet = ss.getSheetByName(TARGET_PLAN_INTL_SHEET);
@@ -7343,6 +7389,7 @@ var API_ALLOWED_FUNCTIONS = [
   'sendVisitSummaryImagesToLine', 'setPostNewsTemplateActive', 'submitBigLotOrders',
   'submitBulkBigLotOrders', 'submitEvaluationScores', 'undoPKCustomer', 'updateBigLotOrder',
   'updateBigLotProduct', 'updateBigLotProductStatus', 'updateFuzeAgentData', 'updateVisitData',
+  'getAnnouncements', 'saveAnnouncements',
   'getTargetPlanIntlData', 'saveTargetPlanIntlData', 'saveNextYearTargets', 'saveVisitTargetsCopyYear',
   'generateTransportContract', 'getContractTemplatePdf', 'getContractTemplateFile',
   'getRenewalCustomers', 'getRenewalCustomer', 'setRenewalEnabled', 'createRenewalArchive',
@@ -7367,6 +7414,8 @@ var AUTH_SESSION_USER_ARG = {
   updateBigLotOrder: 5,          // (rowIndex, qty, total, deliveryDate, remark, userInfo)
   deleteBigLotOrder: 1,          // (rowIndex, userInfo)
   deleteMultipleBigLotOrders: 1, // (rowIndices, userInfo)
+  getAnnouncements: 0,           // (actor) — ทุกคนที่ล็อกอิน (admin ได้ทั้งหมดรวมที่หมดเวลา)
+  saveAnnouncements: 1,          // (payload, actor) — admin เท่านั้น
   getTargetPlanIntlData: 0,      // (actor) — admin เท่านั้น
   saveTargetPlanIntlData: 1,     // (payload, actor) — admin เท่านั้น
   saveNextYearTargets: 1,        // (payload, actor) — admin เท่านั้น

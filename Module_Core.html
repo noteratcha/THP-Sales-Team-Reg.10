@@ -412,7 +412,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1125.1125';
+    var APP_VERSION = 'Ver. 2026.1125.1143';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -1040,28 +1040,153 @@
         <header
             class="min-h-[60px] sm:min-h-[72px] py-2.5 sm:py-3 bg-white shadow-sm border-b flex flex-wrap items-center justify-between px-3 sm:px-8 sticky top-0 z-30 gap-y-2 sm:gap-y-3">
 
-            <!-- 📢 ข้อความวิ่งแจ้งเพื่อดำเนินการ (ผู้ใช้ขอ 2026-11-23) — แสดงทุกหน้าถึง 31 ธ.ค. 2569 เท่านั้น (ซ่อนไว้ก่อน สคริปต์ด้านล่างเปิดเมื่อยังไม่หมดเวลา) -->
+            <!-- 📢 ข้อความวิ่งแจ้งเพื่อดำเนินการ (ผู้ใช้ขอ 2026-11-23; จัดการได้ 2026-11-25) — ข้อความ/วันเวลาสิ้นสุด/ลำดับ/สี เก็บหลังบ้าน (getAnnouncements / saveAnnouncements — แก้ได้เฉพาะ admin) -->
             <div id="thpAnnounce" class="thp-announce hidden" role="region" aria-label="ประกาศแจ้งเพื่อดำเนินการ">
                 <span class="thp-announce-tag"><i class="fas fa-bullhorn" aria-hidden="true"></i> แจ้งเพื่อดำเนินการ</span>
-                <div class="thp-announce-track"><span class="thp-announce-text">ขอให้ทีมขายประจำที่ทำการทุกแห่ง ดาวน์โหลดเอกสารขยายอายุสัญญาขนส่ง A11–A14 ประจำปี 2570 เพื่อดำเนินการให้ลูกค้าลงนามให้แล้วเสร็จสมบูรณ์ และนำส่งให้ ผปข.10 พิจารณาอนุมัติ ภายในวันที่ 20 ธันวาคม 2569 ทั้งนี้ ขอความร่วมมือดำเนินการให้แล้วเสร็จตามกำหนดเวลาดังกล่าว</span></div>
+                <div class="thp-announce-track"><span class="thp-announce-text" id="thpAnnounceText"></span></div>
+                <button type="button" id="thpAnnounceEdit" class="thp-announce-edit hidden" onclick="thpAnnEdit()" title="จัดการข้อความประกาศ (admin)" aria-label="จัดการข้อความประกาศ"><i class="fas fa-pen" aria-hidden="true"></i><span> จัดการประกาศ</span></button>
             </div>
             <style>
                 .thp-announce { order: -1; flex: 0 0 auto; width: calc(100% + 1.5rem); margin: -0.625rem calc(-0.75rem + 1px) 0 -0.75rem; /* ขอบขวาเกิน 1px ให้รายการถัดไปขึ้นบรรทัดใหม่เสมอ */ display: flex; align-items: stretch; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #9a3412; font-size: 13px; overflow: hidden; }
                 @media (min-width: 640px) { .thp-announce { width: calc(100% + 4rem); margin: -0.75rem calc(-2rem + 1px) 0 -2rem; } }
-                .thp-announce.hidden { display: none; }
+                .thp-announce.hidden, .thp-announce-edit.hidden { display: none; }
                 .thp-announce-tag { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #ea580c; color: #fff; font-weight: 700; white-space: nowrap; }
                 .thp-announce-track { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; }
                 .thp-announce-text { display: inline-block; padding-left: 100%; white-space: nowrap; font-weight: 600; animation: thpAnnounceRun 55s linear infinite; }
+                .thp-announce-text .thp-ann-sep { color: #fdba74; margin: 0 28px; }
+                .thp-announce-text.is-empty { animation: none; padding: 0 12px; color: #9ca3af; font-weight: 500; }
                 .thp-announce:hover .thp-announce-text { animation-play-state: paused; }
+                .thp-announce-edit { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; border: 0; border-left: 1px solid #fed7aa; background: #fff; color: #c2410c; font-size: 12px; font-weight: 700; padding: 0 12px; cursor: pointer; }
+                .thp-announce-edit:hover { background: #ffedd5; }
+                .thp-announce-edit:focus-visible { outline: 2px solid #c2410c; outline-offset: -2px; }
                 @keyframes thpAnnounceRun { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-                @media (max-width: 639px) { .thp-announce-tag span, .thp-announce { font-size: 12px; } .thp-announce-text { animation-duration: 45s; } }
+                @media (max-width: 639px) { .thp-announce-tag span, .thp-announce { font-size: 12px; } .thp-announce-edit span { display: none; } }
                 @media (prefers-reduced-motion: reduce) { .thp-announce-text { animation: none; padding: 6px 12px; white-space: normal; } }
+                /* หน้าต่างจัดการประกาศ */
+                .thp-ann-list { display: flex; flex-direction: column; gap: 10px; text-align: left; max-height: 60vh; overflow: auto; padding: 2px; }
+                .thp-ann-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; background: #fff; }
+                .thp-ann-item.is-expired { background: #f9fafb; }
+                .thp-ann-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: #6b7280; }
+                .thp-ann-head .thp-ann-no { display: inline-flex; width: 22px; height: 22px; border-radius: 999px; background: #ea580c; color: #fff; align-items: center; justify-content: center; font-size: 12px; }
+                .thp-ann-head .thp-ann-st { font-weight: 600; padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; }
+                .thp-ann-head .thp-ann-st.is-off { background: #f3f4f6; color: #6b7280; }
+                .thp-ann-head .thp-ann-tools { margin-left: auto; display: flex; gap: 4px; }
+                .thp-ann-head button { width: 30px; height: 30px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; color: #4b5563; cursor: pointer; }
+                .thp-ann-head button:hover:not(:disabled) { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+                .thp-ann-head button:disabled { opacity: .35; cursor: default; }
+                .thp-ann-head button.is-del:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+                .thp-ann-item textarea { width: 100%; min-height: 64px; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 10px; font-size: 14px; resize: vertical; font-weight: 600; }
+                .thp-ann-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; font-size: 12px; color: #4b5563; }
+                .thp-ann-row label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+                .thp-ann-row input[type="datetime-local"] { height: 32px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 8px; font-size: 13px; }
+                .thp-ann-sw { display: inline-flex; gap: 4px; align-items: center; }
+                .thp-ann-sw button { width: 22px; height: 22px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 0 0 1px #d1d5db; cursor: pointer; padding: 0; }
+                .thp-ann-sw button.is-on { box-shadow: 0 0 0 2px #111827; }
+                .thp-ann-sw input[type="color"] { width: 30px; height: 26px; border: 1px solid #d1d5db; border-radius: 6px; padding: 1px; background: #fff; cursor: pointer; }
+                .thp-ann-add { margin-top: 10px; width: 100%; padding: 9px; border: 1px dashed #fdba74; border-radius: 10px; background: #fff7ed; color: #c2410c; font-weight: 700; cursor: pointer; }
+                .thp-ann-add:hover { background: #ffedd5; }
+                .thp-ann-note { font-size: 12px; color: #6b7280; text-align: left; margin: 0 0 10px; }
             </style>
             <script>
                 (function () {
-                    // แสดงถึง 31 ธ.ค. 2569 23:59:59 เวลาไทย
-                    var el = document.getElementById('thpAnnounce');
-                    if (el && Date.now() <= Date.UTC(2026, 11, 31, 16, 59, 59)) el.classList.remove('hidden');
+                    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+                    var A = { items: [], user: null, seq: 0, loadedAt: 0 };
+                    var COLORS = ['#9a3412', '#b91c1c', '#1d4ed8', '#15803d', '#7c3aed', '#111827'];
+                    var untilMs = function (u) { return u ? Date.parse(u + ':00+07:00') : Infinity; };
+                    var who = function () { try { return String((currentUserInfo || {}).user || ''); } catch (e) { return ''; } };
+                    var isAdm = function () { return who().toLowerCase() === 'admin'; };
+                    var thDate = function (u) {
+                        if (!u) return 'ไม่มีกำหนด';
+                        var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(u); if (!m) return u;
+                        var MO = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                        return (+m[3]) + ' ' + MO[+m[2] - 1] + ' ' + (+m[1] + 543) + ' ' + m[4] + ':' + m[5] + ' น.';
+                    };
+                    // แสดงแถบข้อความวิ่ง (กรองที่หมดเวลาในเบราว์เซอร์ด้วย — หมดเวลาระหว่างเปิดหน้าก็หายเอง)
+                    var render = function () {
+                        var el = document.getElementById('thpAnnounce'), tx = document.getElementById('thpAnnounceText'), ed = document.getElementById('thpAnnounceEdit');
+                        if (!el || !tx) return;
+                        var now = Date.now(), live = who() ? A.items.filter(function (x) { return now <= untilMs(x.until); }) : [], adm = isAdm();
+                        if (ed) ed.classList.toggle('hidden', !adm);
+                        if (!live.length && !adm) { el.classList.add('hidden'); tx.innerHTML = ''; tx.removeAttribute('data-h'); return; }
+                        el.classList.remove('hidden');
+                        var html = live.length ? live.map(function (x) { return '<span style="color:' + esc(x.color || '#9a3412') + '">' + esc(x.text) + '</span>'; }).join('<span class="thp-ann-sep" aria-hidden="true">◆</span>')
+                            : 'ไม่มีประกาศที่กำลังแสดง — กด "จัดการประกาศ" เพื่อเพิ่มข้อความ';
+                        if (tx.getAttribute('data-h') !== html) {
+                            tx.setAttribute('data-h', html); tx.innerHTML = html;
+                            tx.classList.toggle('is-empty', !live.length);
+                            var len = live.reduce(function (a, x) { return a + x.text.length; }, 0);
+                            tx.style.animationDuration = Math.max(30, Math.round(len * 0.32)) + 's'; // ข้อความยาว = วิ่งนานขึ้น ความเร็วใกล้เคียงเดิม
+                        }
+                    };
+                    var load = function () {
+                        var u = who(), seq = ++A.seq;
+                        if (!u) { A.items = []; render(); return; }
+                        google.script.run.withSuccessHandler(function (res) {
+                            if (seq !== A.seq || who() !== u) return;
+                            if (res && res.status === 'success') { A.items = res.items || []; A.loadedAt = Date.now(); }
+                            render();
+                        }).withFailureHandler(function () { render(); }).getAnnouncements(currentUserInfo);
+                    };
+                    window.thpAnnLoad = load;
+                    // เปลี่ยนผู้ใช้ (ล็อกอิน/ออก) → โหลดใหม่, ทุก 10 นาทีดึงใหม่, ระหว่างนั้นตรวจเวลาสิ้นสุด
+                    setInterval(function () {
+                        var u = who();
+                        if (u !== A.user) { A.user = u; load(); return; }
+                        if (u && Date.now() - A.loadedAt > 600000) load(); else render();
+                    }, 2000);
+
+                    // ---------- หน้าต่างจัดการ (admin) ----------
+                    var draft = [];
+                    var listHtml = function () {
+                        var now = Date.now();
+                        return draft.map(function (x, i) {
+                            var exp = now > untilMs(x.until);
+                            return '<div class="thp-ann-item' + (exp ? ' is-expired' : '') + '"><div class="thp-ann-head"><span class="thp-ann-no">' + (i + 1) + '</span>' +
+                                '<span class="thp-ann-st' + (exp ? ' is-off' : '') + '">' + (exp ? 'หมดเวลาแล้ว (ไม่แสดง)' : 'กำลังแสดง') + '</span>' +
+                                '<span class="thp-ann-tools"><button type="button" onclick="thpAnnAct(\'up\',' + i + ')" ' + (i ? '' : 'disabled') + ' title="เลื่อนขึ้น" aria-label="เลื่อนข้อความที่ ' + (i + 1) + ' ขึ้น"><i class="fas fa-arrow-up"></i></button>' +
+                                '<button type="button" onclick="thpAnnAct(\'down\',' + i + ')" ' + (i < draft.length - 1 ? '' : 'disabled') + ' title="เลื่อนลง" aria-label="เลื่อนข้อความที่ ' + (i + 1) + ' ลง"><i class="fas fa-arrow-down"></i></button>' +
+                                '<button type="button" class="is-del" onclick="thpAnnAct(\'del\',' + i + ')" title="ลบ" aria-label="ลบข้อความที่ ' + (i + 1) + '"><i class="fas fa-trash-alt"></i></button></span></div>' +
+                                '<textarea data-i="' + i + '" data-k="text" maxlength="500" placeholder="พิมพ์ข้อความที่ต้องการให้วิ่ง" style="color:' + esc(x.color) + '" oninput="thpAnnSet(this)">' + esc(x.text) + '</textarea>' +
+                                '<div class="thp-ann-row"><label>แสดงถึง <input type="datetime-local" data-i="' + i + '" data-k="until" value="' + esc(x.until) + '" onchange="thpAnnSet(this)"></label>' +
+                                '<span>' + esc(thDate(x.until)) + '</span>' +
+                                '<label>สีข้อความ <span class="thp-ann-sw">' + COLORS.map(function (c) { return '<button type="button" class="' + (x.color === c ? 'is-on' : '') + '" style="background:' + c + '" onclick="thpAnnColor(' + i + ',\'' + c + '\')" title="' + c + '" aria-label="สี ' + c + '"></button>'; }).join('') +
+                                '<input type="color" data-i="' + i + '" data-k="color" value="' + esc(x.color) + '" onchange="thpAnnSet(this)" title="เลือกสีเอง"></span></label></div></div>';
+                        }).join('') || '<div class="thp-ann-note" style="text-align:center;padding:16px">ยังไม่มีข้อความ</div>';
+                    };
+                    var redraw = function () { var b = document.getElementById('thpAnnList'); if (b) b.innerHTML = listHtml(); };
+                    var dflt = function () { var d = new Date(Date.now() + 7 * 864e5 + 7 * 36e5); return d.toISOString().slice(0, 10) + 'T23:59'; };
+                    window.thpAnnSet = function (inp) { var x = draft[+inp.getAttribute('data-i')]; if (!x) return; x[inp.getAttribute('data-k')] = inp.value; if (inp.getAttribute('data-k') !== 'text') redraw(); };
+                    window.thpAnnColor = function (i, c) { if (draft[i]) { draft[i].color = c; redraw(); } };
+                    window.thpAnnAct = function (a, i) {
+                        if (a === 'up' && i > 0) draft.splice(i - 1, 0, draft.splice(i, 1)[0]);
+                        else if (a === 'down' && i < draft.length - 1) draft.splice(i + 1, 0, draft.splice(i, 1)[0]);
+                        else if (a === 'del') draft.splice(i, 1);
+                        else if (a === 'add') { draft.push({ id: '', text: '', until: dflt(), color: COLORS[0] }); redraw(); var t = document.querySelector('#thpAnnList textarea[data-i="' + (draft.length - 1) + '"]'); if (t) t.focus(); return; }
+                        redraw();
+                    };
+                    window.thpAnnEdit = function () {
+                        if (!isAdm()) return;
+                        draft = A.items.map(function (x) { return { id: x.id, text: x.text, until: x.until || '', color: x.color || COLORS[0] }; });
+                        Swal.fire({
+                            title: 'จัดการข้อความประกาศ', width: 860, showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#ea580c', showLoaderOnConfirm: true,
+                            html: '<p class="thp-ann-note">ข้อความวิ่งตามลำดับจากบนลงล่าง · แสดงถึงวันเวลาที่กำหนด (เวลาไทย, ลบวันเวลาออก = ไม่มีกำหนด) · ผู้ใช้ทุกคนเห็นภายใน 10 นาทีหลังบันทึก</p>' +
+                                '<div id="thpAnnList" class="thp-ann-list">' + listHtml() + '</div><button type="button" class="thp-ann-add" onclick="thpAnnAct(\'add\')"><i class="fas fa-plus"></i> เพิ่มข้อความ</button>',
+                            didOpen: function () { if (!draft.length) window.thpAnnAct('add'); },
+                            preConfirm: function () {
+                                var items = draft.map(function (x) { return { id: x.id, text: String(x.text || '').trim(), until: x.until, color: x.color }; }).filter(function (x) { return x.text; });
+                                return new Promise(function (ok) {
+                                    google.script.run.withSuccessHandler(function (res) {
+                                        if (!(res && res.status === 'success')) { Swal.showValidationMessage((res && res.message) || 'บันทึกไม่สำเร็จ'); ok(false); return; }
+                                        ok(res);
+                                    }).withFailureHandler(function (err) { Swal.showValidationMessage('บันทึกไม่สำเร็จ: ' + (err && err.message ? err.message : err)); ok(false); }).saveAnnouncements({ items: items }, currentUserInfo);
+                                });
+                            }
+                        }).then(function (r) {
+                            if (!r.isConfirmed || !r.value) return;
+                            A.items = r.value.items || []; A.loadedAt = Date.now(); render();
+                            Swal.fire({ icon: 'success', title: 'บันทึกประกาศแล้ว', text: A.items.length + ' ข้อความ', timer: 1500, showConfirmButton: false });
+                        });
+                    };
                 })();
             </script>
 
