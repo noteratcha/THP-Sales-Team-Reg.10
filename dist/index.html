@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1125.1141';
+    var APP_VERSION = 'Ver. 2026.1126.1321';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -21411,6 +21411,7 @@
         <button type="button" id="cfReload" class="cf-btn-2" onclick="thpCfLoad(true)"><i class="fas fa-sync-alt"></i> โหลดใหม่</button>
     </div>
     <div id="cfDash" class="cf-dash" aria-live="polite"></div>
+    <div id="cfRenew"></div>
     <div class="cf-filters">
         <div class="cf-search">
             <i class="fas fa-search" aria-hidden="true"></i>
@@ -21438,7 +21439,33 @@
     #page-contract-files .cf-total { font-size: 13px; color: #6b7280; margin-left: auto; white-space: nowrap; }
     #page-contract-files .cf-total b { font-size: 18px; color: #c2410c; font-weight: 800; }
     #page-contract-files .cf-list { display: flex; flex-direction: column; gap: 14px; }
-    #page-contract-files .cf-dash { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    #page-contract-files .cf-dash { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    @media (max-width: 1180px) { #page-contract-files .cf-dash { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    #page-contract-files .k-sign .cf-kpi-l i { color: #7c3aed; }
+    #page-contract-files .k-sign .cf-bar span { background: #7c3aed; }
+    #page-contract-files .k-nosign .cf-kpi-l i { color: #dc2626; }
+    #page-contract-files .k-nosign .cf-bar span { background: #f87171; }
+    #page-contract-files .cf-sign { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe; vertical-align: 1px; white-space: nowrap; }
+    #page-contract-files .cf-group-h .cf-seen.is-sign { color: #7c3aed; }
+    /* สรุปการต่อสัญญาปี 2570 รายจังหวัด + 2 ศป. (ผู้ใช้ขอ 2026-11-26) */
+    #page-contract-files .cf-rn { margin-top: 14px; border: 1px solid #ddd6fe; border-radius: 16px; background: #fff; overflow: hidden; }
+    #page-contract-files .cf-rn > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; background: #f5f3ff; cursor: pointer; list-style: none; font-size: 15px; font-weight: 800; color: #5b21b6; }
+    #page-contract-files .cf-rn > summary::-webkit-details-marker { display: none; }
+    #page-contract-files .cf-rn[open] > summary .cf-chev { transform: rotate(90deg); }
+    #page-contract-files .cf-rn-act { margin-left: auto; display: flex; gap: 6px; }
+    #page-contract-files .cf-rn-act button { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; border-radius: 8px; padding: 5px 10px; cursor: pointer; border: 1px solid #c4b5fd; background: #fff; color: #5b21b6; }
+    #page-contract-files .cf-rn-act button.is-line { background: #06c755; border-color: #06c755; color: #fff; }
+    #page-contract-files .cf-rn-act button:disabled { opacity: .6; cursor: wait; }
+    #page-contract-files .cf-rn-wrap { overflow-x: auto; padding: 4px 12px 12px; }
+    #page-contract-files .cf-rn table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    #page-contract-files .cf-rn th { text-align: right; font-size: 12px; color: #6b7280; font-weight: 700; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+    #page-contract-files .cf-rn td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
+    #page-contract-files .cf-rn th:first-child, #page-contract-files .cf-rn td:first-child { text-align: left; }
+    #page-contract-files .cf-rn tfoot td { font-weight: 800; border-top: 2px solid #ddd6fe; border-bottom: 0; background: #faf5ff; }
+    #page-contract-files .cf-rn .rn-ok { color: #6d28d9; font-weight: 700; }
+    #page-contract-files .cf-rn .rn-left { color: #dc2626; }
+    #page-contract-files .cf-rn .rn-bar { display: inline-block; width: 90px; height: 6px; border-radius: 999px; background: #f3f4f6; vertical-align: middle; margin-left: 8px; overflow: hidden; }
+    #page-contract-files .cf-rn .rn-bar span { display: block; height: 100%; background: #7c3aed; }
     #page-contract-files .cf-dash:empty { display: none; }
     #page-contract-files .cf-kpi { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; font: inherit; color: inherit; min-width: 0; }
     #page-contract-files .cf-kpi.is-btn { cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
@@ -21535,6 +21562,7 @@
         window.thpCfClear = function () {
             st.list = null; st.forUser = null; st.meta = null; st.seq++;
             var l = document.getElementById('cfList'); if (l) l.innerHTML = '';
+            var rn = document.getElementById('cfRenew'); if (rn) rn.innerHTML = '';
             var s = document.getElementById('cfSearch'); if (s) s.value = '';
         };
         // เข้าหน้าใหม่ทุกครั้ง = พับทุกจังหวัด/ที่ทำการ
@@ -21571,8 +21599,110 @@
                 if (list) list.innerHTML = '<div class="cf-empty">โหลดรายการไฟล์ไม่สำเร็จ: ' + esc(err && err.message ? err.message : err) + '</div>';
             }).listContractFiles(currentUserInfo);
         };
+        // ===== สรุปการต่อสัญญาปี 2570 รายจังหวัด + ศป. (ผู้ใช้ขอ 2026-11-26) — นับทั้งขอบเขตสิทธิ์ ไม่ขึ้นกับช่องค้นหา =====
+        var RN_ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'นครพนม', 'สกลนคร', 'มุกดาหาร', 'ศป.อุบลราชธานี', 'ศป.สกลนคร'];
+        var rnArea = function (f) { return f.zip === '34010' ? 'ศป.อุบลราชธานี' : f.zip === '47010' ? 'ศป.สกลนคร' : String(f.prov || 'ไม่ระบุจังหวัด').replace(/^จังหวัด\s*|^จ\.\s*/, '').trim(); };
+        var rnLabel = function (a) { return /^ศป\./.test(a) || a === 'ไม่ระบุจังหวัด' ? a : 'จ.' + a; };
+        var rnData = function () {
+            var g = {}, order = [], tot = { n: 0, s: 0, off: {}, offDone: 0 };
+            (st.list || []).forEach(function (f) {
+                if (f.cancelled) return;
+                var a = rnArea(f);
+                if (!g[a]) { g[a] = { a: a, n: 0, s: 0, off: {} }; order.push(a); }
+                var o = g[a].off[f.office] || (g[a].off[f.office] = { n: 0, s: 0 });
+                g[a].n++; o.n++; if (f.signed) { g[a].s++; o.s++; }
+            });
+            var rank = function (a) { var i = RN_ORDER.indexOf(a); return i < 0 ? RN_ORDER.length : i; };
+            order.sort(function (x, y) { return rank(x) - rank(y) || x.localeCompare(y, 'th'); });
+            var rows = order.map(function (a) {
+                var G = g[a], offs = Object.keys(G.off), done = offs.filter(function (k) { return G.off[k].s >= G.off[k].n; }).length;
+                tot.n += G.n; tot.s += G.s; tot.offN = (tot.offN || 0) + offs.length; tot.offDone += done;
+                return { a: a, offN: offs.length, offDone: done, n: G.n, s: G.s };
+            });
+            return { rows: rows, tot: { n: tot.n, s: tot.s, offN: tot.offN || 0, offDone: tot.offDone } };
+        };
+        var rnPct = function (s, n) { return n ? (s * 100 / n).toFixed(2) : '0.00'; };
+        var rnNow = function () {
+            var d = new Date(), mo = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            return d.getDate() + ' ' + mo[d.getMonth()] + ' ' + (d.getFullYear() + 543) + ' เวลา ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ' น.';
+        };
+        var renderRenew = function () {
+            var box = document.getElementById('cfRenew'); if (!box) return;
+            var D = rnData(), sy = (st.meta && st.meta.signYear) || 2570, isAdmin = st.meta && st.meta.scope === 'all';
+            if (!D.rows.length) { box.innerHTML = ''; return; }
+            var tr = function (r, foot) {
+                var p = rnPct(r.s, r.n);
+                return '<tr><td>' + (foot ? 'รวมทั้งหมด' : esc(rnLabel(r.a))) + '</td><td>' + fmt(r.offN) + '</td><td>' + fmt(r.offDone) + '</td><td>' + fmt(r.n) + '</td><td class="rn-ok">' + fmt(r.s) + '</td><td class="rn-left">' + fmt(r.n - r.s) + '</td>' +
+                    '<td>' + p + '%<span class="rn-bar"><span style="width:' + Math.min(100, Number(p)) + '%"></span></span></td></tr>';
+            };
+            box.innerHTML = '<details class="cf-rn"' + (st.rnClosed ? '' : ' open') + ' ontoggle="thpCfRnToggle(this)"><summary><i class="fas fa-chevron-right cf-chev" aria-hidden="true"></i><i class="fas fa-file-signature"></i> สรุปการต่อสัญญาปี ' + sy +
+                ' <small style="font-weight:600;color:#6b7280">ส่งแล้ว ' + fmt(D.tot.s) + '/' + fmt(D.tot.n) + ' ราย (' + rnPct(D.tot.s, D.tot.n) + '%)</small>' +
+                '<span class="cf-rn-act"><button type="button" onclick="event.preventDefault();thpCfRnImage(false,this)"><i class="fas fa-image"></i> บันทึกรูป</button>' +
+                (isAdmin ? '<button type="button" class="is-line" onclick="event.preventDefault();thpCfRnImage(true,this)"><i class="fab fa-line"></i> ส่งเข้า LINE</button>' : '') + '</span></summary>' +
+                '<div class="cf-rn-wrap"><table><thead><tr><th>พื้นที่</th><th>ที่ทำการ</th><th>ที่ทำการส่งครบ</th><th>สัญญาที่ต้องต่อ</th><th>ส่งฉบับใหม่แล้ว</th><th>ยังไม่ส่ง</th><th>ร้อยละที่ส่งแล้ว</th></tr></thead><tbody>' +
+                D.rows.map(function (r) { return tr(r); }).join('') + '</tbody><tfoot>' + tr(D.tot, true) + '</tfoot></table>' +
+                (st.meta && st.meta.signErr ? '<div class="cf-kpi-s" style="color:#b91c1c;margin-top:6px">ตรวจไฟล์แนบปี ' + sy + ' ไม่ได้: ' + esc(st.meta.signErr) + '</div>' : '') +
+                '<div class="cf-kpi-s" style="margin-top:6px">นับ "ส่งฉบับใหม่แล้ว" เมื่อลูกค้ามีไฟล์แนบในโฟลเดอร์ สัญญาขนส่ง › ปี ' + sy + ' (หน้าเพิ่มข้อมูลลูกค้า) · ไม่นับลูกค้ายกเลิกสัญญา</div></div></details>';
+        };
+        window.thpCfRnToggle = function (d) { st.rnClosed = !d.open; };
+        // ข้อความสรุปสำหรับ LINE
+        var rnText = function (D, sy) {
+            var lines = ['📑 สรุปการต่อสัญญาขนส่ง ปี ' + sy + ' (ปข.10)', 'ข้อมูล ณ ' + rnNow(), '',
+                'รวมทั้งหมด: ส่งฉบับใหม่แล้ว ' + fmt(D.tot.s) + '/' + fmt(D.tot.n) + ' ราย (' + rnPct(D.tot.s, D.tot.n) + '%) ยังไม่ส่ง ' + fmt(D.tot.n - D.tot.s) + ' ราย', ''];
+            D.rows.forEach(function (r) {
+                lines.push((r.s >= r.n ? '✅ ' : '▫️ ') + rnLabel(r.a) + ': ส่งแล้ว ' + fmt(r.s) + '/' + fmt(r.n) + ' (' + rnPct(r.s, r.n) + '%) ยังไม่ส่ง ' + fmt(r.n - r.s) + ' · ที่ทำการส่งครบ ' + fmt(r.offDone) + '/' + fmt(r.offN));
+            });
+            return lines.join('\n') + '\n';
+        };
+        // รูปตารางสรุป (วาดใหม่ด้วยสไตล์ inline ให้ภาพคมและไม่ขึ้นกับหน้าจอ)
+        var rnCanvas = function (D, sy) {
+            var off = document.createElement('div');
+            off.style.cssText = 'position:absolute;left:-10000px;top:0;width:980px;padding:28px 32px;background:#fff;font-family:Prompt,Sarabun,Tahoma,sans-serif;color:#111827';
+            var td = 'padding:10px 12px;border-bottom:1px solid #ede9fe;text-align:right;font-size:17px';
+            var row = function (r, foot) {
+                var p = rnPct(r.s, r.n), bg = foot ? 'background:#f5f3ff;font-weight:800;' : '';
+                return '<tr><td style="' + td + ';text-align:left;' + bg + '">' + (foot ? 'รวมทั้งหมด' : esc(rnLabel(r.a))) + '</td><td style="' + td + ';' + bg + '">' + fmt(r.offDone) + '/' + fmt(r.offN) + '</td><td style="' + td + ';' + bg + '">' + fmt(r.n) + '</td>' +
+                    '<td style="' + td + ';color:#6d28d9;font-weight:700;' + bg + '">' + fmt(r.s) + '</td><td style="' + td + ';color:#dc2626;' + bg + '">' + fmt(r.n - r.s) + '</td>' +
+                    '<td style="' + td + ';' + bg + '"><b>' + p + '%</b><div style="display:inline-block;width:120px;height:10px;border-radius:6px;background:#ede9fe;margin-left:10px;vertical-align:middle;overflow:hidden"><div style="height:10px;width:' + Math.min(100, Number(p)) + '%;background:#7c3aed"></div></div></td></tr>';
+            };
+            var th = 'padding:10px 12px;text-align:right;font-size:15px;color:#fff;background:#6d28d9';
+            off.innerHTML = '<div style="font-size:26px;font-weight:800;color:#5b21b6">สรุปการต่อสัญญาขนส่ง ปี ' + sy + '</div>' +
+                '<div style="font-size:16px;color:#6b7280;margin:4px 0 16px">ส่วนทีมขายและดูแลลูกค้า ปข.10 · ข้อมูล ณ ' + esc(rnNow()) + '</div>' +
+                '<table style="width:100%;border-collapse:collapse"><thead><tr><th style="' + th + ';text-align:left;border-radius:8px 0 0 0">พื้นที่</th><th style="' + th + '">ที่ทำการส่งครบ</th><th style="' + th + '">สัญญาที่ต้องต่อ</th><th style="' + th + '">ส่งฉบับใหม่แล้ว</th><th style="' + th + '">ยังไม่ส่ง</th><th style="' + th + ';border-radius:0 8px 0 0">ร้อยละ</th></tr></thead>' +
+                '<tbody>' + D.rows.map(function (r) { return row(r); }).join('') + row(D.tot, true) + '</tbody></table>' +
+                '<div style="font-size:13px;color:#9ca3af;margin-top:12px">นับจากไฟล์สัญญาฉบับใหม่ที่แนบในระบบ (โฟลเดอร์ ปี ' + sy + ') · ไม่นับลูกค้ายกเลิกสัญญา</div>';
+            document.body.appendChild(off);
+            return html2canvas(off, { scale: 2, backgroundColor: '#ffffff', logging: false }).then(function (c) { document.body.removeChild(off); return c.toDataURL('image/png'); },
+                function (e) { if (off.parentNode) document.body.removeChild(off); throw e; });
+        };
+        window.thpCfRnImage = function (send, btn) {
+            if (typeof html2canvas === 'undefined') { Swal.fire('ข้อผิดพลาด', 'ไม่พบไลบรารีสร้างรูปภาพ (html2canvas)', 'error'); return; }
+            var D = rnData(), sy = (st.meta && st.meta.signYear) || 2570; if (!D.rows.length) return;
+            var go = function () {
+                if (btn) btn.disabled = true;
+                rnCanvas(D, sy).then(function (png) {
+                    if (!send) {
+                        if (btn) btn.disabled = false;
+                        var a = document.createElement('a'); a.href = png; a.download = 'สรุปการต่อสัญญา_' + sy + '_' + Date.now() + '.png'; a.click(); return;
+                    }
+                    if (typeof showGlobalLoader === 'function') showGlobalLoader('กำลังส่งรูปและข้อความสรุปเข้า LINE...');
+                    google.script.run.withSuccessHandler(function (res) {
+                        if (btn) btn.disabled = false; if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                        if (res && res.status === 'success') Swal.fire({ icon: 'success', title: 'ส่งเข้า LINE แล้ว', text: res.message || '', confirmButtonColor: '#10b981' });
+                        else Swal.fire('ส่งเข้า LINE ไม่สำเร็จ', (res && res.message) || 'ไม่ทราบสาเหตุ', 'error');
+                    }).withFailureHandler(function (err) {
+                        if (btn) btn.disabled = false; if (typeof hideGlobalLoader === 'function') hideGlobalLoader();
+                        Swal.fire('ส่งเข้า LINE ไม่สำเร็จ', String(err && err.message || err), 'error');
+                    }).sendVisitSummaryImagesToLine([{ base64: png, messageText: rnText(D, sy) }]);
+                }).catch(function (e) { if (btn) btn.disabled = false; Swal.fire('สร้างรูปไม่สำเร็จ', String(e && e.message || e), 'error'); });
+            };
+            if (!send) { go(); return; }
+            Swal.fire({ title: 'ส่งสรุปการต่อสัญญาปี ' + sy + ' เข้า LINE?', html: '<pre style="text-align:left;white-space:pre-wrap;font-size:12px;max-height:260px;overflow:auto;background:#f9fafb;padding:10px;border-radius:8px">' + esc(rnText(D, sy)) + '</pre><div style="font-size:12px;color:#6b7280">พร้อมรูปตารางสรุป</div>',
+                showCancelButton: true, confirmButtonText: '<i class="fab fa-line"></i> ส่งเลย', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#06c755' }).then(function (r) { if (r.isConfirmed) go(); });
+        };
         window.thpCfRender = function () {
             var list = document.getElementById('cfList'), tot = document.getElementById('cfTotal'); if (!list || !st.list) return;
+            renderRenew();
             var q = String((document.getElementById('cfSearch') || {}).value || '').trim().toLowerCase();
             var off = String((document.getElementById('cfOffice') || {}).value || '');
             var base = st.list.filter(function (f) { return (!off || f.office === off) && (!q || (show(f.name) + ' ' + (f.pkg || '')).toLowerCase().indexOf(q) !== -1); });
@@ -21580,8 +21710,12 @@
             var STATUS = {
                 view: { t: 'เปิดดูแล้ว', fn: function (f) { return f.nView > 0 || !!f.view; } },
                 dl: { t: 'ดาวน์โหลดแล้ว', fn: function (f) { return f.nDl > 0 || !!f.dl; } },
-                none: { t: 'ยังไม่มีใครเปิด', fn: function (f) { return !(f.nView > 0 || f.view || f.nDl > 0 || f.dl); } }
+                none: { t: 'ยังไม่มีใครเปิด', fn: function (f) { return !(f.nView > 0 || f.view || f.nDl > 0 || f.dl); } },
+                // ส่งสัญญาฉบับใหม่ปี 2570 แล้ว = มีไฟล์แนบในโฟลเดอร์ "สัญญาขนส่ง › ปี 2570" (หน้าเพิ่มข้อมูลลูกค้า) — ผู้ใช้ขอ 2026-11-26
+                sign: { t: 'ส่งฉบับใหม่แล้ว', fn: function (f) { return !!f.signed; } },
+                nosign: { t: 'ยังไม่ส่งฉบับใหม่', fn: function (f) { return !f.signed; } }
             };
+            var sy = (st.meta && st.meta.signYear) || 2570;
             if (st.status && !STATUS[st.status]) st.status = '';
             var dash = document.getElementById('cfDash');
             if (dash) {
@@ -21601,7 +21735,9 @@
                 dash.innerHTML = card('', 'fa-file-pdf', 'ไฟล์สัญญา' + (q || off ? ' (ตามตัวกรอง)' : 'ทั้งหมด'), n, fmt(Object.keys(offices).length) + ' ที่ทำการ' + (nc ? ' · ไม่รวมยกเลิกสัญญา ' + fmt(nc) + ' ไฟล์' : ''), null) +
                     card('view', 'fa-eye', 'เปิดดูแล้ว', nv, 'รวม ' + fmt(sum('nView')) + ' ครั้ง', pct(nv)) +
                     card('dl', 'fa-download', 'ดาวน์โหลดแล้ว', nd, 'รวม ' + fmt(sum('nDl')) + ' ครั้ง', pct(nd)) +
-                    card('none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', nn, 'ไม่เคยเปิดดูหรือดาวน์โหลด', pct(nn));
+                    card('none', 'fa-eye-slash', 'ยังไม่มีใครเปิด', nn, 'ไม่เคยเปิดดูหรือดาวน์โหลด', pct(nn)) +
+                    card('sign', 'fa-file-signature', 'ส่งฉบับใหม่ปี ' + sy + ' แล้ว', cnt('sign'), (st.meta && st.meta.signErr) ? 'ตรวจไม่ได้: ' + esc(st.meta.signErr) : 'มีไฟล์แนบในโฟลเดอร์ ปี ' + sy, pct(cnt('sign'))) +
+                    card('nosign', 'fa-hourglass-half', 'ยังไม่ส่งฉบับใหม่', cnt('nosign'), 'ยังไม่มีไฟล์แนบปี ' + sy, pct(cnt('nosign')));
             }
             var hits = st.status ? base.filter(function (f) { return !f.cancelled && STATUS[st.status].fn(f); }) : base;
             var filtered = q || off || st.status;
@@ -21643,16 +21779,18 @@
             // ใช้ทั้งระดับจังหวัดและระดับที่ทำการ (ผู้ใช้ขอ 2026-11-24) — นับจำนวนไฟล์ที่เปิดดู/ดาวน์โหลดแล้ว
             var seenFiles = function (all) {
                 all = all.filter(function (f) { return !f.cancelled; });
-                var v = all.filter(function (f) { return f.nView > 0 || f.view; }).length, d = all.filter(function (f) { return f.nDl > 0 || f.dl; }).length;
+                var v = all.filter(function (f) { return f.nView > 0 || f.view; }).length, d = all.filter(function (f) { return f.nDl > 0 || f.dl; }).length, s = all.filter(function (f) { return f.signed; }).length;
                 return '<span class="cf-seen' + (v ? '' : ' is-zero') + '" title="เปิดดูแล้ว ' + fmt(v) + ' จาก ' + fmt(all.length) + ' ไฟล์"><i class="fas fa-eye"></i>' + fmt(v) + '</span>' +
-                    '<span class="cf-seen' + (d ? '' : ' is-zero') + '" title="ดาวน์โหลดแล้ว ' + fmt(d) + ' จาก ' + fmt(all.length) + ' ไฟล์"><i class="fas fa-download"></i>' + fmt(d) + '</span>';
+                    '<span class="cf-seen' + (d ? '' : ' is-zero') + '" title="ดาวน์โหลดแล้ว ' + fmt(d) + ' จาก ' + fmt(all.length) + ' ไฟล์"><i class="fas fa-download"></i>' + fmt(d) + '</span>' +
+                    '<span class="cf-seen' + (s ? ' is-sign' : ' is-zero') + '" title="ส่งสัญญาฉบับใหม่ปี ' + sy + ' แล้ว ' + fmt(s) + ' จาก ' + fmt(all.length) + ' ราย"><i class="fas fa-file-signature"></i>' + fmt(s) + '/' + fmt(all.length) + '</span>';
             };
             var seen = function (P) {
                 var all = []; P.oOrder.forEach(function (k) { all = all.concat(P.offices[k]); });
                 return seenFiles(all);
             };
             var row = function (f, i) {
-                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
+                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
+                    (f.signed ? ' <span class="cf-sign" title="มีไฟล์แนบในโฟลเดอร์ ปี ' + sy + ' ' + fmt(f.signed.n) + ' ไฟล์ · ล่าสุด ' + esc(thDate(f.signed.at)) + '"><i class="fas fa-file-signature"></i> ส่งฉบับใหม่ปี ' + sy + ' แล้ว</span>' : '') + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
                     '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';

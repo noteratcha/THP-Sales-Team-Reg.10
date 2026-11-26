@@ -7202,6 +7202,49 @@ function contractCancelledMap_() {
   Object.keys(activeIds).forEach(function (k) { delete out.byId[k]; });
   return out;
 }
+// ส่งสัญญาฉบับใหม่ปี 2570 แล้วหรือยัง (ผู้ใช้ขอ 2026-11-26): ลูกค้าที่คอลัมน์ R (ไฟล์แนบ) ของชีตรายชื่อมีไฟล์ที่อยู่ในโฟลเดอร์
+// "สัญญาขนส่ง › ปี 2570" (อัปโหลดจากหน้าเพิ่มข้อมูลลูกค้า) → { byId: {idไฟล์สัญญา: info}, byKey: {"zip|ชื่อ": info} } info = { n จำนวนไฟล์, at วันเวลาล่าสุด }
+var CONTRACT_SIGN_YEAR = 2570;
+function contractSignedMap_() {
+  var out = { byId: {}, byKey: {}, files: 0 };
+  var yFiles = {}, fit = DriveApp.getFolderById(CUSTOMER_ATTACH_BASE_ID).getFoldersByName('ปี ' + CONTRACT_SIGN_YEAR);
+  while (fit.hasNext()) {
+    var fo = fit.next(); if (fo.isTrashed()) continue;
+    var it = fo.getFiles();
+    while (it.hasNext()) { var f = it.next(); if (!f.isTrashed()) { yFiles[f.getId()] = Utilities.formatDate(f.getDateCreated(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm'); out.files++; } }
+  }
+  if (!out.files) return out;
+  var sh = renewalSheet_(); if (!sh || sh.getLastRow() < 2) return out;
+  var last = sh.getLastRow(), data = sh.getRange(1, 1, last, sh.getLastColumn()).getDisplayValues();
+  var lc = data[0].map(function (h) { return String(h).trim(); }).indexOf(CONTRACT_LINK_COL);
+  var idRe = /\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/;
+  var idOf = function (v) { var m = idRe.exec(String(v || '')); return m ? (m[1] || m[2]) : ''; };
+  // คอลัมน์ R ทั้งคอลัมน์ผ่าน Sheets API (ชิปไฟล์อ่านด้วย SpreadsheetApp ไม่ได้)
+  var range = "'" + sh.getName().replace(/'/g, "''") + "'!R2:R" + last, ssId = sh.getParent().getId();
+  var FIELDS = 'sheets.data.rowData.values(chipRuns.chip.richLinkProperties.uri,hyperlink,textFormatRuns.format.link.uri)', api = null;
+  try { if (typeof Sheets !== 'undefined') api = Sheets.Spreadsheets.get(ssId, { ranges: [range], includeGridData: true, fields: FIELDS }); } catch (eA) { }
+  if (!api) {
+    var resp = UrlFetchApp.fetch('https://sheets.googleapis.com/v4/spreadsheets/' + ssId + '?includeGridData=true&ranges=' + encodeURIComponent(range) + '&fields=' + encodeURIComponent(FIELDS),
+      { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) throw new Error('อ่านคอลัมน์ไฟล์แนบไม่ได้ HTTP ' + resp.getResponseCode());
+    api = JSON.parse(resp.getContentText());
+  }
+  var rd = ((((api.sheets || [])[0] || {}).data || [])[0] || {}).rowData || [];
+  rd.forEach(function (r, i) {
+    var cell = ((r || {}).values || [])[0] || {}, ids = {};
+    (cell.chipRuns || []).forEach(function (c) { var u = c.chip && c.chip.richLinkProperties && c.chip.richLinkProperties.uri; if (u) ids[idOf(u)] = 1; });
+    (cell.textFormatRuns || []).forEach(function (t) { var u = t.format && t.format.link && t.format.link.uri; if (u) ids[idOf(u)] = 1; });
+    if (cell.hyperlink) ids[idOf(cell.hyperlink)] = 1;
+    var hit = Object.keys(ids).filter(function (id) { return id && yFiles[id]; });
+    if (!hit.length) return;
+    var row = data[i + 1] || [], zip = String(row[2] || '').replace(/\D/g, '').slice(0, 5), name = String(row[5] || '').trim();
+    var info = { n: hit.length, at: hit.map(function (id) { return yFiles[id]; }).sort().pop() };
+    var put = function (map, k) { var o = map[k]; if (!o) map[k] = { n: info.n, at: info.at }; else { o.n += info.n; if (info.at > o.at) o.at = info.at; } };
+    if (zip && name) put(out.byKey, zip + '|' + contractSafeName_(name));
+    var cid = lc >= 0 ? idOf(row[lc]) : ''; if (cid) put(out.byId, cid);
+  });
+  return out;
+}
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -7233,16 +7276,18 @@ function listContractFiles_(actor) {
     out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; f.nView = e.nView || 0; f.nDl = e.nDl || 0; });
     var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
     var cancelMap = { byId: {}, byKey: {}, active: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
+    var signMap = { byId: {}, byKey: {} }, signErr = ''; try { signMap = contractSignedMap_(); } catch (eSg) { signErr = String(eSg && eSg.message || eSg).slice(0, 160); }
     out.forEach(function (f) {
       var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
       var key = (f.zip || '') + '|' + contractSafeName_(nm);
       f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || '';
+      f.signed = signMap.byId[f.id] || signMap.byKey[key] || null; // ส่งสัญญาฉบับใหม่ปี 2570 แล้ว (ไฟล์แนบในโฟลเดอร์ ปี 2570)
       if (!cancelMap.active[key] && (cancelMap.byId[f.id] || cancelMap.byKey[key])) f.cancelled = true; // ยกเลิกสัญญาจริง (ไม่มีแถวใช้งานอยู่) — ไม่นับในสรุป
     });
     var nCancelled = out.filter(function (f) { return f.cancelled; }).length;
     out = out.filter(function (f) { return !f.cancelled; }); // ไม่แสดงไฟล์ของลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-24)
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
-    return { status: 'success', data: out, cancelled: nCancelled, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
+    return { status: 'success', data: out, cancelled: nCancelled, signYear: CONTRACT_SIGN_YEAR, signErr: signErr, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
   } catch (e) {
     if (typeof sendErrorToLine_ === 'function') sendErrorToLine_(e, 'listContractFiles_');
     return { status: 'error', message: e.toString() };
