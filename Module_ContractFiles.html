@@ -43,6 +43,9 @@
     #page-contract-files .k-nosign .cf-bar span { background: #f87171; }
     #page-contract-files .cf-sign { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe; vertical-align: 1px; white-space: nowrap; }
     #page-contract-files .cf-group-h .cf-seen.is-sign { color: #7c3aed; }
+    #page-contract-files .cf-ic.cf-ok { color: #16a34a; }
+    #page-contract-files .cf-hist.cf-hist-ok { color: #15803d; font-weight: 700; }
+    #page-contract-files .cf-hist.cf-hist-ok i { color: #16a34a; }
     /* สรุปการต่อสัญญาปี 2570 รายจังหวัด + 2 ศป. (ผู้ใช้ขอ 2026-11-26) */
     #page-contract-files .cf-rn { margin-top: 14px; border: 1px solid #ddd6fe; border-radius: 16px; background: #fff; overflow: hidden; }
     #page-contract-files .cf-rn > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; background: #f5f3ff; cursor: pointer; list-style: none; font-size: 15px; font-weight: 800; color: #5b21b6; }
@@ -385,9 +388,11 @@
                 return seenFiles(all);
             };
             var row = function (f, i) {
-                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
+                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span>' +
+                    (f.signed ? '<i class="fas fa-check-circle cf-ic cf-ok" title="ต่อสัญญาปี ' + sy + ' แล้ว" aria-label="ต่อสัญญาแล้ว"></i>' : '<i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i>') + '<div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
                     (f.signed ? ' <span class="cf-sign" title="มีไฟล์แนบในโฟลเดอร์ ปี ' + sy + ' ' + fmt(f.signed.n) + ' ไฟล์ · ล่าสุด ' + esc(thDate(f.signed.at)) + '"><i class="fas fa-file-signature"></i> ส่งฉบับใหม่ปี ' + sy + ' แล้ว</span>' : '') + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
-                    '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
+                    '<div class="cf-meta">' + (f.signed ? '<span class="cf-hist cf-hist-ok"><i class="fas fa-check"></i>ต่อสัญญาเมื่อ ' + esc(thDate(f.signed.at)) + (f.signed.n > 1 ? ' · ' + fmt(f.signed.n) + ' ไฟล์' : '') + '</span>' : '') +
+                    '<span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
             };

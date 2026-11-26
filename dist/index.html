@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1126.1321';
+    var APP_VERSION = 'Ver. 2026.1126.1339';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2197,6 +2197,13 @@
                         .hcf-bar { display: block; height: 6px; margin-top: 8px; border-radius: 999px; background: #eef2f6; overflow: hidden; }
                         .hcf-bar span { display: block; height: 100%; border-radius: inherit; background: var(--c-dl); }
                         .hcf-a-note { margin: 8px 0 0; font-size: 12px; color: #b45309; }
+                        .hcf-sg { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 1px solid #ddd6fe; border-radius: 14px; background: #faf5ff; text-align: left; font: inherit; cursor: pointer; }
+                        .hcf-sg:hover { background: #f5f3ff; border-color: #c4b5fd; }
+                        .hcf-sg-ic { width: 38px; height: 38px; border-radius: 11px; background: #7c3aed; color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+                        .hcf-sg-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+                        .hcf-sg-l { font-size: 12px; font-weight: 700; color: #6d28d9; }
+                        .hcf-li-s { color: #7c3aed !important; font-weight: 700 !important; }
+                        .hcf-li-s.is-zero { color: var(--c-faint) !important; font-weight: 500 !important; }
                         .hcf-sk { height: 84px; border-radius: 14px; background: linear-gradient(90deg, #f3f4f6, #fafafa, #f3f4f6); background-size: 200% 100%; animation: hcfSk 1.2s infinite; }
                         @keyframes hcfSk { to { background-position: -200% 0; } }
                         .hcf-err { font-size: 13px; color: var(--c-mute); padding: 8px 0; }
@@ -2248,6 +2255,13 @@
                                     st('var(--c-view)', 'เปิดดูแล้ว', v, 'สัญญา', pct(v, n), '#dbeafe', '#1d4ed8', 'รวม ' + fmt(tv) + ' ครั้ง · เปิดดูอย่างเดียว ' + fmt(vOnly)) +
                                     st('var(--c-none)', 'ยังไม่มีใครเปิด', none, 'สัญญา', pct(none, n), '#fef3c7', '#b45309', 'ยังไม่เปิดดูหรือดาวน์โหลด', none ? '<span class="hcf-flag"><i class="fas fa-flag"></i>ต้องติดตาม</span>' : '') +
                                     '</div></div>';
+                                // ----- ส่งสัญญาฉบับใหม่ปี 2570 แล้ว (ไฟล์แนบในโฟลเดอร์ ปี 2570) — ผู้ใช้ขอ 2026-11-26 -----
+                                var sy = res.signYear || 2570, sg = L.filter(function (f) { return f.signed; }).length;
+                                html += '<button type="button" class="hcf-sg" onclick="switchPage(\'contract-files\')" title="ดูรายละเอียดในหน้าไฟล์สัญญา">' +
+                                    '<span class="hcf-sg-ic"><i class="fas fa-file-signature"></i></span><span class="hcf-sg-t"><span class="hcf-sg-l">ส่งสัญญาฉบับใหม่ปี ' + sy + ' แล้ว</span>' +
+                                    '<span class="hcf-st-v"><b>' + fmt(sg) + '</b><small>จาก ' + fmt(n) + ' สัญญา</small>' + pill(pct(sg, n), '#ede9fe', '#6d28d9') + '<small>ยังไม่ส่ง ' + fmt(n - sg) + ' สัญญา</small></span>' +
+                                    '<span class="hcf-bar"><span style="width:' + pct(sg, n) + '%;background:#7c3aed"></span></span>' +
+                                    (res.signErr ? '<span class="hcf-st-s" style="color:#b91c1c">ตรวจไฟล์แนบปี ' + sy + ' ไม่ได้: ' + esc(res.signErr) + '</span>' : '') + '</span></button>';
                                 // ----- แยกตามจังหวัด (admin) / ที่ทำการ (ที่ทำการจังหวัด) -----
                                 if (res.scope !== 'office') {
                                     var byProv = res.scope === 'all', g = {};
@@ -2255,7 +2269,7 @@
                                         // 34010 / 47010 (ศูนย์ไปรษณีย์) แยกเป็นแถวของตัวเอง ไม่รวมในจังหวัด (ผู้ใช้ขอ 2026-11-23)
                                         var own = byProv && SEP_ZIPS.indexOf(String(f.zip || '')) !== -1;
                                         var key = own ? '@' + (f.office || f.zip) : byProv ? (f.prov || 'ไม่ระบุจังหวัด') : (f.office || f.zip || '-');
-                                        var o = g[key] || (g[key] = { k: key, z: own ? String(f.zip) : '', n: 0, v: 0, d: 0 }); o.n++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
+                                        var o = g[key] || (g[key] = { k: key, z: own ? String(f.zip) : '', n: 0, v: 0, d: 0, s: 0 }); o.n++; if (f.signed) o.s++; if (dled(f)) o.d++; else if (seen(f)) o.v++;
                                     });
                                     // ลำดับจังหวัดตามที่ผู้ใช้กำหนด (2026-11-23) แล้วต่อด้วย ศป.อุบลราชธานี, ศป.สกลนคร · มุมมองที่ทำการ (ปจ.) เรียงดาวน์โหลดน้อย→มาก
                                     var ORDER = ['ศรีสะเกษ', 'อุบลราชธานี', 'ยโสธร', 'อำนาจเจริญ', 'สกลนคร', 'นครพนม', 'มุกดาหาร', '@34010', '@47010'];
@@ -2266,7 +2280,7 @@
                                         '<div class="hcf-list">' + rows.map(function (r) {
                                             var name = r.k.charAt(0) === '@' ? r.k.slice(1) : byProv ? 'จ.' + r.k : r.k, nn = r.n - r.d - r.v;
                                             return '<button type="button" class="hcf-li" onclick="switchPage(\'contract-files\')" title="' + esc(name) + ': ดาวน์โหลดแล้ว ' + fmt(r.d) + ' · เปิดดูอย่างเดียว ' + fmt(r.v) + ' · ยังไม่เปิด ' + fmt(nn) + ' จาก ' + fmt(r.n) + ' สัญญา">' +
-                                                '<span class="hcf-li-n">' + esc(name) + '<small>' + fmt(r.n) + ' สัญญา</small></span>' +
+                                                '<span class="hcf-li-n">' + esc(name) + '<small>' + fmt(r.n) + ' สัญญา</small><small class="hcf-li-s' + (r.s ? '' : ' is-zero') + '" title="ส่งสัญญาฉบับใหม่ปี ' + sy + ' แล้ว"><i class="fas fa-file-signature"></i> ' + fmt(r.s) + '/' + fmt(r.n) + '</small></span>' +
                                                 '<span class="hcf-li-p' + (r.d ? '' : ' is-zero') + '">' + pct(r.d, r.n) + '%<small>' + fmt(r.d) + '/' + fmt(r.n) + '</small></span>' +
                                                 '<span class="hcf-stack" aria-hidden="true"><span class="d" style="width:' + (r.d * 100 / r.n) + '%"></span><span class="v" style="width:' + (r.v * 100 / r.n) + '%"></span></span></button>';
                                         }).join('') + '</div></div>';
@@ -21447,6 +21461,9 @@
     #page-contract-files .k-nosign .cf-bar span { background: #f87171; }
     #page-contract-files .cf-sign { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #6d28d9; background: #f5f3ff; border: 1px solid #ddd6fe; vertical-align: 1px; white-space: nowrap; }
     #page-contract-files .cf-group-h .cf-seen.is-sign { color: #7c3aed; }
+    #page-contract-files .cf-ic.cf-ok { color: #16a34a; }
+    #page-contract-files .cf-hist.cf-hist-ok { color: #15803d; font-weight: 700; }
+    #page-contract-files .cf-hist.cf-hist-ok i { color: #16a34a; }
     /* สรุปการต่อสัญญาปี 2570 รายจังหวัด + 2 ศป. (ผู้ใช้ขอ 2026-11-26) */
     #page-contract-files .cf-rn { margin-top: 14px; border: 1px solid #ddd6fe; border-radius: 16px; background: #fff; overflow: hidden; }
     #page-contract-files .cf-rn > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; background: #f5f3ff; cursor: pointer; list-style: none; font-size: 15px; font-weight: 800; color: #5b21b6; }
@@ -21789,9 +21806,11 @@
                 return seenFiles(all);
             };
             var row = function (f, i) {
-                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span><i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i><div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
+                return '<div class="cf-row' + (f.cancelled ? ' is-cancel' : '') + '"><span class="cf-no">' + (i + 1) + '</span>' +
+                    (f.signed ? '<i class="fas fa-check-circle cf-ic cf-ok" title="ต่อสัญญาปี ' + sy + ' แล้ว" aria-label="ต่อสัญญาแล้ว"></i>' : '<i class="fas fa-file-pdf cf-ic" aria-hidden="true"></i>') + '<div class="cf-name"><div class="cf-title"><b>' + esc(show(f.name)) + '</b>' + pkgBadge(f.pkg) +
                     (f.signed ? ' <span class="cf-sign" title="มีไฟล์แนบในโฟลเดอร์ ปี ' + sy + ' ' + fmt(f.signed.n) + ' ไฟล์ · ล่าสุด ' + esc(thDate(f.signed.at)) + '"><i class="fas fa-file-signature"></i> ส่งฉบับใหม่ปี ' + sy + ' แล้ว</span>' : '') + (f.cancelled ? ' <span class="cf-cancel" title="ลูกค้ายกเลิกสัญญา (ชีตรายชื่อ) — ไม่นับในสรุป">ยกเลิกสัญญา</span>' : '') + '</div>' +
-                    '<div class="cf-meta"><span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
+                    '<div class="cf-meta">' + (f.signed ? '<span class="cf-hist cf-hist-ok"><i class="fas fa-check"></i>ต่อสัญญาเมื่อ ' + esc(thDate(f.signed.at)) + (f.signed.n > 1 ? ' · ' + fmt(f.signed.n) + ' ไฟล์' : '') + '</span>' : '') +
+                    '<span class="cf-hist"><i class="fas fa-clock"></i>สร้าง/อัปเดต ' + esc(thDate(f.at)) + '</span>' + hist(f.view, 'fa-eye', 'เปิดดูล่าสุด', f.nView) + hist(f.dl, 'fa-download', 'ดาวน์โหลดล่าสุด', f.nDl) + '</div></div>' +
                     '<div class="cf-act"><button type="button" class="cf-view" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, false)"><i class="fas fa-eye"></i>เปิดดู</button>' +
                     '<button type="button" data-id="' + esc(f.id) + '" onclick="thpCfOpen(this, true)"><i class="fas fa-download"></i>ดาวน์โหลด</button></div></div>';
             };
