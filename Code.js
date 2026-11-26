@@ -7185,7 +7185,8 @@ function pkgContractStats_(listSh, rows, scope, colOf) {
 // ลูกค้าที่ยกเลิกสัญญา (ชีตรายชื่อ H = "ยกเลิกสัญญา") → { byId: {fileId:1}, byKey: {"zip|ชื่อ":1} } ใช้ตัดออกจากตัวเลขสรุป (ผู้ใช้ขอ 2026-11-23)
 function contractCancelledMap_() {
   // active = ลูกค้า (รหัส|ชื่อ) ที่ยังมีแถวใช้งานอยู่ — ลูกค้าที่เปลี่ยนบริการมีแถวเก่า "ยกเลิกสัญญา" + แถวใหม่ที่ใช้งาน ต้องไม่นับเป็นยกเลิก (แก้ 2026-11-24)
-  var out = { byId: {}, byKey: {}, active: {} };
+  // pkgById/pkgByKey = Package (H) ของแถวที่ใช้งาน — สำรองเมื่อทะเบียนไม่มี "รหัสบริการปัจจุบัน" (ผู้ใช้ถาม 2026-11-26 ทำไมบางรายการไม่มีป้าย)
+  var out = { byId: {}, byKey: {}, active: {}, pkgById: {}, pkgByKey: {} };
   var sh = renewalSheet_(); if (!sh || sh.getLastRow() < 2) return out;
   var lastCol = sh.getLastColumn(), data = sh.getRange(1, 1, sh.getLastRow(), lastCol).getDisplayValues();
   var lc = data[0].map(function (h) { return String(h).trim(); }).indexOf(CONTRACT_LINK_COL);
@@ -7196,7 +7197,11 @@ function contractCancelledMap_() {
     if (!zip || !name) continue;
     var key = zip + '|' + contractSafeName_(name), id = lc >= 0 ? idOf(data[i][lc]) : '';
     if (isCancelledSvc_(data[i][7])) { out.byKey[key] = 1; if (id) out.byId[id] = 1; }
-    else { out.active[key] = 1; if (id) activeIds[id] = 1; }
+    else {
+      out.active[key] = 1; if (id) activeIds[id] = 1;
+      var pk = String(data[i][7] || '').trim();
+      if (pk) { out.pkgByKey[key] = pk; if (id) out.pkgById[id] = pk; }
+    }
   }
   Object.keys(out.active).forEach(function (k) { delete out.byKey[k]; });
   Object.keys(activeIds).forEach(function (k) { delete out.byId[k]; });
@@ -7245,6 +7250,12 @@ function contractSignedMap_() {
   });
   return out;
 }
+// ไฟล์สัญญาที่เห็นได้เฉพาะ admin (ผู้ใช้ขอ 2026-11-26): Package A1–A10 และอัตราพิเศษเฉพาะราย/บริการพิเศษอื่น
+// = มี Package ในทะเบียนแต่ไม่ใช่ A11–A14 · ไม่มี Package ในทะเบียน = เห็นตามสิทธิ์ปกติ
+function contractPkgAdminOnly_(pkg) {
+  var p = String(pkg || '').trim().replace(/^Package\s*/i, '');
+  return !!p && !/^A1[1-4](?!\d)/i.test(p);
+}
 function listContractFiles_(actor) {
   try {
     if (!actor || !actor.user) return { status: 'error', message: 'กรุณาเข้าสู่ระบบใหม่' };
@@ -7275,17 +7286,18 @@ function listContractFiles_(actor) {
     var logMap = {}; try { logMap = contractFileLogMap_(); } catch (eLog) { }
     out.forEach(function (f) { var e = logMap[f.id] || {}; f.view = e.view || null; f.dl = e.dl || null; f.nView = e.nView || 0; f.nDl = e.nDl || 0; });
     var pkgMap = { byId: {}, byKey: {} }; try { pkgMap = contractFilePkgMap_(); } catch (ePkg) { }
-    var cancelMap = { byId: {}, byKey: {}, active: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
+    var cancelMap = { byId: {}, byKey: {}, active: {}, pkgById: {}, pkgByKey: {} }; try { cancelMap = contractCancelledMap_(); } catch (eC) { }
     var signMap = { byId: {}, byKey: {} }, signErr = ''; try { signMap = contractSignedMap_(); } catch (eSg) { signErr = String(eSg && eSg.message || eSg).slice(0, 160); }
     out.forEach(function (f) {
       var nm = String(f.name || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
       var key = (f.zip || '') + '|' + contractSafeName_(nm);
-      f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || '';
+      f.pkg = pkgMap.byId[f.id] || pkgMap.byKey[key] || cancelMap.pkgById[f.id] || cancelMap.pkgByKey[key] || '';
       f.signed = signMap.byId[f.id] || signMap.byKey[key] || null; // ส่งสัญญาฉบับใหม่ปี 2570 แล้ว (ไฟล์แนบในโฟลเดอร์ ปี 2570)
       if (!cancelMap.active[key] && (cancelMap.byId[f.id] || cancelMap.byKey[key])) f.cancelled = true; // ยกเลิกสัญญาจริง (ไม่มีแถวใช้งานอยู่) — ไม่นับในสรุป
     });
     var nCancelled = out.filter(function (f) { return f.cancelled; }).length;
     out = out.filter(function (f) { return !f.cancelled; }); // ไม่แสดงไฟล์ของลูกค้าที่ยกเลิกสัญญา (ผู้ใช้ขอ 2026-11-24)
+    if (!scope.all) out = out.filter(function (f) { return !contractPkgAdminOnly_(f.pkg); }); // A1–A10 เห็นเฉพาะ admin (ผู้ใช้ขอ 2026-11-26)
     out.sort(function (a, b) { return a.zip === b.zip ? a.name.localeCompare(b.name, 'th') : (a.zip || '99999').localeCompare(b.zip || '99999'); });
     return { status: 'success', data: out, cancelled: nCancelled, signYear: CONTRACT_SIGN_YEAR, signErr: signErr, scope: scope.all ? 'all' : (scope.only ? 'office' : 'province'), prov: scope.prov || '', zip: scope.zip || '' };
   } catch (e) {
@@ -7315,6 +7327,14 @@ function getContractFileData_(payload, actor) {
       }
     }
     if (!ok) return { status: 'error', message: 'ไม่มีสิทธิ์ดูไฟล์นี้' };
+    // A1–A10 เปิด/ดาวน์โหลดได้เฉพาะ admin (ผู้ใช้ขอ 2026-11-26)
+    if (!scope.all) {
+      var pm = { byId: {}, byKey: {} }; try { pm = contractFilePkgMap_(); } catch (ePm) { }
+      var fz = '', fpar = f.getParents(); if (fpar.hasNext()) fz = contractFolderZip_(fpar.next().getName());
+      var fnm = String(f.getName() || '').replace(/^(\d{5}_)?สัญญาขนส่ง_/, '').replace(/\.pdf$/i, '');
+      var fkey = fz + '|' + contractSafeName_(fnm), cm = { pkgById: {}, pkgByKey: {} }; try { cm = contractCancelledMap_(); } catch (eCm) { }
+      if (contractPkgAdminOnly_(pm.byId[id] || pm.byKey[fkey] || cm.pkgById[id] || cm.pkgByKey[fkey])) return { status: 'error', message: 'ไม่มีสิทธิ์ดูไฟล์นี้' };
+    }
     // บันทึกประวัติ (ล้มเหลวไม่กระทบการเปิดไฟล์)
     var mode = payload.mode === 'download' ? 'ดาวน์โหลด' : 'เปิดดู';
     var at = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd HH:mm');
