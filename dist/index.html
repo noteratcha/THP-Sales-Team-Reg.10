@@ -1102,7 +1102,7 @@
     // ตัวอย่างเช่น วันที่ 5 มิ.ย. 2026 เวลา 14:30 น. -> Ver. 2026.06.05.1430
     // เวลาอัพเดตโค้ดครั้งใหญ่ ควรเปลี่ยนเลขเวอร์ชันนี้ด้วย เพื่อล้างแคชเก่าออก
     // ---------------------------------------------------------
-    var APP_VERSION = 'Ver. 2026.1126.1431';
+    var APP_VERSION = 'Ver. 2026.1127.1634';
 
     // ฟังก์ชันซ่อน/แสดงข้อมูลส่วนตัวและ Footer ใน Sidebar
     function toggleSidebarInfo() {
@@ -2120,6 +2120,73 @@
                         </div>
                         <div id="hcfBody" class="hcf-body"><div class="hcf-sk" style="height:180px"></div></div>
                     </section>
+                    <!-- 📢 popup อินโฟกราฟิก "การจัดทำและดาวน์โหลดสัญญาขนส่งภายในประเทศ ปี 2570" (ผู้ใช้ขอ 2026-11-27)
+                         แสดงเมื่อเข้าหน้าหลักหลังล็อกอิน ครั้งละ 1 ครั้งต่อการเปิดเบราว์เซอร์ จนถึง 20 ธ.ค. 2569 23:59 น. — คลิกการ์ด 1 = ไฟล์สัญญา, การ์ด 2 = สร้างสัญญาขนส่ง
+                         รูปอยู่ที่ dist/img (ต้นฉบับ อินโฟกราฟิก_สัญญาขนส่งปี2570.png ที่โฟลเดอร์หลัก) -->
+                    <style>
+                        .thp-promo { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); opacity: 0; transition: opacity .2s; }
+                        .thp-promo.is-on { opacity: 1; }
+                        .thp-promo-box { position: relative; width: min(1100px, 100%, calc((100vh - 96px) * 1.414)); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: #fff; border-radius: 18px; box-shadow: 0 30px 80px rgba(0, 0, 0, .35); overflow: hidden; transform: translateY(10px) scale(.98); transition: transform .25s; }
+                        .thp-promo.is-on .thp-promo-box { transform: none; }
+                        .thp-promo-img { position: relative; overflow: auto; line-height: 0; }
+                        .thp-promo-img img { display: block; width: 100%; height: auto; }
+                        .thp-promo-hot { position: absolute; display: block; border-radius: 14px; cursor: pointer; transition: box-shadow .15s, background .15s; }
+                        .thp-promo-hot:hover, .thp-promo-hot:focus-visible { background: rgba(255, 255, 255, .08); box-shadow: 0 0 0 3px rgba(234, 88, 12, .85); outline: none; }
+                        .thp-promo-x { position: absolute; top: 10px; right: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(15, 23, 42, .7); color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+                        .thp-promo-x:hover { background: #0f172a; }
+                        .thp-promo-x:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+                        .thp-promo-ft { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 10px 16px; border-top: 1px solid #f1f5f9; font-size: 13px; color: #475569; line-height: 1.4; }
+                        .thp-promo-ft label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+                        .thp-promo-ft .go { display: flex; gap: 8px; flex-wrap: wrap; }
+                        .thp-promo-ft button { height: 34px; padding: 0 14px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid #e2e8f0; background: #fff; color: #334155; }
+                        .thp-promo-ft button.b1 { background: #2563eb; border-color: #2563eb; color: #fff; }
+                        .thp-promo-ft button.b2 { background: #ea580c; border-color: #ea580c; color: #fff; }
+                        @media (prefers-reduced-motion: reduce) { .thp-promo, .thp-promo-box { transition: none; } }
+                    </style>
+                    <script>
+                        (function () {
+                            var UNTIL = Date.parse('2026-12-20T23:59:59+07:00'), IMG = 'https://salesreg10.vercel.app/img/promo-contract-2570';
+                            var KEY_S = 'thpPromo2570Seen', KEY_D = 'thpPromo2570Skip';
+                            var get = function (st, k) { try { return window[st].getItem(k); } catch (e) { return null; } };
+                            var set = function (st, k, v) { try { window[st].setItem(k, v); } catch (e) { } };
+                            var today = function () { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+                            var who = function () { try { return String((currentUserInfo || {}).user || '').trim().toLowerCase(); } catch (e) { return ''; } };
+                            var close = function () {
+                                var el = document.getElementById('thpPromo'); if (!el) return;
+                                var cb = el.querySelector('#thpPromoSkip'); if (cb && cb.checked) set('localStorage', KEY_D, today());
+                                el.classList.remove('is-on'); document.removeEventListener('keydown', onKey);
+                                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+                            };
+                            var onKey = function (e) { if (e.key === 'Escape') close(); };
+                            window.thpPromoClose = close;
+                            window.thpPromoGo = function (page) { close(); if (typeof switchPage === 'function') switchPage(page); };
+                            // force = เปิดเองจากปุ่ม (ไม่สนว่าเคยแสดงแล้ว)
+                            window.thpPromoShow = function (force) {
+                                if (Date.now() > UNTIL || document.getElementById('thpPromo')) return;
+                                var u = who(); if (!u) return;
+                                if (!force && (get('sessionStorage', KEY_S) === u || get('localStorage', KEY_D) === today())) return;
+                                set('sessionStorage', KEY_S, u);
+                                var hot = function (l, t, w, h, page, label) {
+                                    return '<a role="button" tabindex="0" class="thp-promo-hot" style="left:' + l + '%;top:' + t + '%;width:' + w + '%;height:' + h + '%" aria-label="' + label + '" title="' + label + '" onclick="thpPromoGo(\'' + page + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();thpPromoGo(\'' + page + '\')}"></a>';
+                                };
+                                var el = document.createElement('div');
+                                el.id = 'thpPromo'; el.className = 'thp-promo';
+                                el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'การจัดทำและดาวน์โหลดสัญญาขนส่งภายในประเทศ ปี 2570');
+                                el.innerHTML = '<div class="thp-promo-box"><button type="button" class="thp-promo-x" onclick="thpPromoClose()" aria-label="ปิด"><i class="fas fa-times"></i></button>' +
+                                    '<div class="thp-promo-img"><picture><source srcset="' + IMG + '.webp" type="image/webp"><img src="' + IMG + '.jpg" width="2000" height="1414" alt="แนวทางปฏิบัติ: การจัดทำและดาวน์โหลดสัญญาขนส่งภายในประเทศ ปี 2570 — ลูกค้าปัจจุบันใช้เมนู ไฟล์สัญญา, ลูกค้ารายใหม่หรือปรับราคาใช้เมนู สร้างสัญญาขนส่ง, ดำเนินการให้เสร็จภายใน 20 ธ.ค. 2569"></picture>' +
+                                    hot(3.6, 29.7, 45.2, 43.3, 'contract-files', 'ลูกค้าปัจจุบัน: ไปที่เมนู ไฟล์สัญญา') +
+                                    hot(51.25, 29.7, 45.2, 43.3, 'contract', 'ลูกค้ารายใหม่/ปรับราคา: ไปที่เมนู สร้างสัญญาขนส่ง') + '</div>' +
+                                    '<div class="thp-promo-ft"><label><input type="checkbox" id="thpPromoSkip"> ไม่ต้องแสดงอีกในวันนี้</label>' +
+                                    '<span class="go"><button type="button" class="b1" onclick="thpPromoGo(\'contract-files\')"><i class="fas fa-folder-open"></i> ไฟล์สัญญา</button>' +
+                                    '<button type="button" class="b2" onclick="thpPromoGo(\'contract\')"><i class="fas fa-file-signature"></i> สร้างสัญญาขนส่ง</button>' +
+                                    '<button type="button" onclick="thpPromoClose()">ปิด</button></span></div></div>';
+                                el.addEventListener('click', function (e) { if (e.target === el) close(); });
+                                document.body.appendChild(el);
+                                document.addEventListener('keydown', onKey);
+                                requestAnimationFrame(function () { el.classList.add('is-on'); var x = el.querySelector('.thp-promo-x'); if (x) x.focus(); });
+                            };
+                        })();
+                    </script>
                     <!-- 👥 ลูกค้า Active แยกเป็นการ์ดของตัวเอง (ผู้ใช้ถาม 2026-11-24 ควรแยกไหม) -->
                     <section id="homeActiveCard" class="hcf hidden" aria-labelledby="hcaTitle">
                         <div class="hcf-h">
@@ -31507,6 +31574,7 @@
                         setTimeout(() => {
                             if (typeof updateHomeVisitSummary === 'function') updateHomeVisitSummary();
                             if (typeof window.loadHomeContractSummary === 'function') window.loadHomeContractSummary(false); // สรุปสัญญาที่ต้องขยาย (ผู้ใช้ขอ 2026-11-23)
+                            if (typeof window.thpPromoShow === 'function') window.thpPromoShow(); // popup อินโฟกราฟิกสัญญาปี 2570 (ผู้ใช้ขอ 2026-11-27)
                         }, 300);
                     }
                 },
